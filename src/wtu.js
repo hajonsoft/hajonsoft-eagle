@@ -33,10 +33,7 @@ const config = [
       },
       {
         selector: "#txtEADate",
-        value: () =>
-          moment()
-            .add(7, "days")
-            .format("MM-DD-YYYY"),
+        value: () => moment().add(7, "days").format("MM-DD-YYYY"),
       },
     ],
   },
@@ -128,12 +125,12 @@ const config = [
 
 async function send(sendData) {
   data = sendData;
-  page = await util.initPage(onContentLoaded);
+  page = await util.initPage(config, onContentLoaded);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
 async function onContentLoaded(res) {
-  counter = util.counter(counter);
+  counter = util.useCounter(counter);
   if (counter >= data.travellers.length) {
     return;
   }
@@ -226,9 +223,7 @@ async function pageContentHandler(currentConfig) {
       await page.click("#btn_uploadImage");
       let photoFile = `./photos/${data.travellers[counter].passportNumber}.jpg`;
       const resizedPhotoFile = `./photos/${data.travellers[counter].passportNumber}_200x200.jpg`;
-      await sharp(photoFile)
-        .resize(200, 200)
-        .toFile(resizedPhotoFile);
+      await sharp(photoFile).resize(200, 200).toFile(resizedPhotoFile);
       await util.commitFile("#file_photo_upload", resizedPhotoFile);
       await page.waitForNavigation();
 
@@ -243,16 +238,19 @@ async function pageContentHandler(currentConfig) {
       );
 
       if (!ppSrc) {
-        let passportFile = __dirname + `/../passports/${data.travellers[counter].passportNumber}.jpg`;
+        let passportFile =
+          __dirname +
+          `/../passports/${data.travellers[counter].passportNumber}.jpg`;
         if (fs.existsSync(passportFile)) {
-          let resizedPassportFile = __dirname + `../passports/${data.travellers[counter].passportNumber}_400x300.jpg`;
+          let resizedPassportFile =
+            __dirname +
+            `../passports/${data.travellers[counter].passportNumber}_400x300.jpg`;
           await sharp(passportFile)
             .resize(400, 300)
             .toFile(resizedPassportFile);
           await util.commitFile("#fuppcopy", resizedPassportFile);
         } else {
           // let pngFile = __dirname +  `/../passports/${data.travellers[counter].passportNumber}.png`;
-
           // const pad = " ".repeat(4);
           // const height = "\n".repeat(10);
           // const codeline = `${height}${pad}${data.travellers[
@@ -260,7 +258,6 @@ async function pageContentHandler(currentConfig) {
           // ].codeline.substring(0, 44)}${pad}${"\n"}${pad}${data.travellers[
           //   counter
           // ].codeline.substring(44)}${pad}${"\n".repeat(1)}`;
-
           // fs.writeFileSync(
           //   pngFile,
           //   text2png(codeline, {
@@ -270,7 +267,6 @@ async function pageContentHandler(currentConfig) {
           //     lineSpacing: 20,
           //   })
           // );
-
           // await util.commitFile("#fuppcopy", pngFile);
         }
       }

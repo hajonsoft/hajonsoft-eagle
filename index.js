@@ -5,19 +5,20 @@ const { send: sendVst } = require("./src/vst");
 
 const path = require("path");
 const fs = require("fs");
-var unzipper = require("unzipper");
+var inflater = require("unzipper");
 const downloadsFolder = require("downloads-folder");
 
 if (process.argv.length > 2) {
-  const urlParts = process.argv[2].split("/");
-  if (urlParts) {
-    let fileName = urlParts.find((x) => x.toLowerCase().endsWith(".zip"));
+  const eagleParameters = process.argv[2];
+  const eagleParametersParts = eagleParameters.split("/");
+  if (eagleParametersParts) {
+    let fileName = eagleParametersParts.find((x) => x.toLowerCase().endsWith(".zip"));
     fileName = path.join(downloadsFolder(), fileName);
     console.log('%c 🌭 fileName: ', 'font-size:20px;background-color: #4b4b4b;color:#fff;', fileName);
-    fs.createReadStream(fileName).pipe(unzipper.Extract({ path: __dirname }));
+    fs.createReadStream(fileName).pipe(inflater.Extract({ path: __dirname }));
   }
 } else {
-  console.log("no file name found in URL Handler");
+  console.log("no file name found in eagle parameters url. I will continue to data.json");
 }
 
 let dataFileName = path.join(__dirname, "data.json");

@@ -1,5 +1,6 @@
 const puppeteer = require("puppeteer");
 const fs = require("fs");
+const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
@@ -33,10 +34,7 @@ const config = [
       },
       {
         selector: "#ctl00_ContentHolder_TxtExpectedArrivalDate_dateInput",
-        value: () =>
-          moment()
-            .add(7, "days")
-            .format("DD/MM/YYYY"),
+        value: () => moment().add(7, "days").format("DD/MM/YYYY"),
       },
     ],
   },
@@ -49,11 +47,13 @@ const config = [
       selector:
         "#aspnetForm > div.container-fluid.body-content > div.page-header",
       action: async () => {
-
-        const selectedTraveller = await page.$eval("#hajonsoft_select", el=> el.value);
+        const selectedTraveller = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
         if (selectedTraveller) {
           fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
-          await page.goto(await page.url())
+          await page.goto(await page.url());
         }
       },
     },
@@ -103,36 +103,24 @@ const config = [
 
 async function send(sendData) {
   data = sendData;
-  const browser = await puppeteer.launch({
-    headless: false,
-    defaultViewport: null,
-    args: ["--start-maximized", "--incognito"],
-  });
-  page = await browser.newPage();
-  await page.bringToFront();
-  page.on("domcontentloaded", onContentLoaded);
-  page.on("console", (msg) => console.log(msg.text()));
-  await page.setUserAgent(
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 10_3 like Mac OS X) AppleWebKit/602.1.50 (KHTML, like Gecko) CriOS/56.0.2924.75 Mobile/14E5239e Safari/602.1"
-  );
-
+  page = await util.initPage(config, onContentLoaded);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
 async function onContentLoaded(res) {
-  counter = util.counter(counter);
+  counter = util.useCounter(counter);
   if (counter >= data.travellers.length) {
     return;
   }
   const currentConfig = util.findConfig(await page.url(), config);
   try {
-    await pageContentHandler(currentConfig);
+    await runPageConfiguration(currentConfig);
   } catch (err) {
     console.log(err);
   }
 }
 
-async function pageContentHandler(currentConfig) {
+async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
@@ -149,6 +137,13 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "create-group":
+      const groupName = await page.$eval(
+        "#ctl00_ContentHolder_TxtGroupName",
+        (e) => e.value
+      );
+      if (groupName) {
+        return;
+      }
       await util.commit(page, currentConfig.details, data.travellers[0]);
       await page.evaluate(() => {
         const consulate = document.querySelector(
@@ -161,6 +156,7 @@ async function pageContentHandler(currentConfig) {
         }
       });
       await page.click("#ctl00_ContentHolder_btnCreate");
+      // #ctl00_ContentHolder_LblDepLtPackEnd
       break;
     case "create-mutamer":
       await util.controller(page, currentConfig, data.travellers);
@@ -191,8 +187,14 @@ async function pageContentHandler(currentConfig) {
       );
       await page.waitFor(2000);
       await util.commit(page, currentConfig.details, data.travellers[counter]);
-
-      let photoFile = `./photos/${data.travellers[counter].passportNumber}.jpg`;
+      let photoPath = path.join(
+        util.photosFolder,
+        `${data.travellers[counter].passportNumber}.jpg`
+      );
+      await util.downloadImage(
+        data.travellers[counter].images.photo,
+        photoPath
+      );
       await page.waitForSelector("#ctl00_ContentHolder_imgSelectedFile");
       let futureFileChooser = page.waitForFileChooser();
       await page.evaluate(() =>
@@ -201,14 +203,22 @@ async function pageContentHandler(currentConfig) {
           .click()
       );
       let fileChooser = await futureFileChooser;
-      const resizedPhotoFile = `./photos/${data.travellers[counter].passportNumber}_200x200.jpg`;
-      await sharp(photoFile)
-        .resize(200, 200)
-        .toFile(resizedPhotoFile);
-      await fileChooser.accept([resizedPhotoFile]);
+      const resizedPhotoPath = path.join(
+        util.photosFolder,
+        `${data.travellers[counter].passportNumber}_200x200.jpg`
+      );
+      await sharp(photoPath).resize(200, 200).toFile(resizedPhotoPath);
+      await fileChooser.accept([resizedPhotoPath]);
 
-      let passportFile = `./passports/${data.travellers[counter].passportNumber}.jpg`;
-      if (fs.existsSync(passportFile)) {
+      const passportPath = path.join(
+        util.passportsFolder,
+        `${data.travellers[counter].passportNumber}.jpg`
+      );
+      await util.downloadImage(
+        data.travellers[counter].images.passport,
+        passportPath
+      );
+      if (fs.existsSync(passportPath)) {
         futureFileChooser = page.waitForFileChooser();
         await page.evaluate(() =>
           document
@@ -216,11 +226,11 @@ async function pageContentHandler(currentConfig) {
             .click()
         );
         fileChooser = await futureFileChooser;
-        let resizedPassportFile = `./passports/${data.travellers[counter].passportNumber}_400x300.jpg`;
-        await sharp(passportFile)
-          .resize(400, 300)
-          .toFile(resizedPassportFile);
-
+        let resizedPassportFile = path.join(
+          util.passportsFolder,
+          `${data.travellers[counter].passportNumber}_400x300.jpg`
+        );
+        await sharp(passportPath).resize(400, 300).toFile(resizedPassportFile);
         await fileChooser.accept([resizedPassportFile]);
       }
       await page.waitForSelector("#ctl00_ContentHolder_rdCap_CaptchaTextBox");

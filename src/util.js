@@ -1,10 +1,15 @@
 const fs = require("fs");
+const path = require("path");
 const puppeteer = require("puppeteer");
+const axios = require("axios");
 const _ = require("lodash");
+const homedir = require('os').homedir();
 
 let page;
 const debug = false;
-async function initPage(onContentLoaded) {
+const photosFolder = path.join(homedir,'hajonsoft','photos')
+const passportsFolder = path.join(homedir,'hajonsoft','passports')
+async function initPage(config, onContentLoaded) {
   const browser = await puppeteer.launch({
     headless: false,
     defaultViewport: null,
@@ -20,6 +25,28 @@ async function initPage(onContentLoaded) {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36."
   );
 
+  if (!fs.existsSync(path.join(homedir,'hajonsoft'))) {
+    fs.mkdirSync(path.join(homedir,'hajonsoft'));
+  }
+
+  if (!fs.existsSync(photosFolder)) {
+    fs.mkdirSync(photosFolder);
+  } else {
+    fs.readdir(photosFolder, (err, files) => {
+      for (const file of files) {
+        fs.unlink(path.join(photosFolder, file), err => {});
+      }
+    });
+  }
+  if (!fs.existsSync(passportsFolder)) {
+    fs.mkdirSync(passportsFolder);
+  } else {
+    fs.readdir(passportsFolder, (err, files) => {
+      for (const file of files) {
+        fs.unlink(path.join(passportsFolder, file), err => {});
+      }
+    });
+  }
   return page;
 }
 
@@ -66,7 +93,7 @@ function findConfig(url, config) {
 
   const urlConfig = config.find(
     (x) =>
-    (x.url && x.url.toLowerCase() === lowerUrl )||
+      (x.url && x.url.toLowerCase() === lowerUrl) ||
       (x.regex && RegExp(x.regex.toLowerCase()).test(lowerUrl))
   );
   if (urlConfig) {
@@ -120,7 +147,7 @@ async function commit(page, structure, info) {
         break;
     }
     if (element.break) {
-      throw new Error('break-here')
+      throw new Error("break-here");
     }
   }
 }
@@ -171,7 +198,7 @@ async function controller(page, structure, travellers) {
   }
 }
 
-function counter(currentCounter) {
+function useCounter(currentCounter) {
   let output = currentCounter;
   const fileName = "./selectedTraveller.txt";
   if (fs.existsSync(fileName)) {
@@ -189,7 +216,7 @@ async function commitFile(selector, fileName) {
   await page.waitForSelector(selector);
   let [fileChooser] = await Promise.all([
     page.waitForFileChooser(),
-    page.evaluate((p) => document.querySelector(p[0]).click(),[selector]),
+    page.evaluate((p) => document.querySelector(p[0]).click(), [selector]),
   ]);
 
   await fileChooser.accept([fileName]);
@@ -197,14 +224,29 @@ async function commitFile(selector, fileName) {
 async function captchaClick(selector, numbers, actionSelector) {
   await page.waitForSelector(selector);
   await page.focus(selector);
-  await page.waitForFunction((args)=> 
-  {
-      document.querySelector(args[0]).value.length === args[1]
-    }, 
-    {timeout: 0}, 
+  await page.waitForFunction(
+    (args) => {
+      document.querySelector(args[0]).value.length === args[1];
+    },
+    { timeout: 0 },
     [selector, numbers]
   );
   await page.click(actionSelector);
+}
+
+async function downloadImage(url, imagePath) {
+  const writer = fs.createWriteStream(imagePath);
+  const response = await axios({
+    url,
+    method: "GET",
+    responseType: "stream",
+  });
+
+  response.data.pipe(writer);
+  return new Promise((resolve, reject) => {
+    writer.on("finish", resolve);
+    writer.on("error", reject);
+  });
 }
 
 module.exports = {
@@ -212,7 +254,10 @@ module.exports = {
   commit,
   controller,
   initPage,
-  counter,
+  useCounter,
   commitFile,
-  captchaClick
+  captchaClick,
+  downloadImage,
+  photosFolder,
+  passportsFolder,
 };
