@@ -185,7 +185,7 @@ async function runPageConfiguration(currentConfig) {
           delay: 0,
         }
       );
-      await page.waitFor(2000);
+      await page.waitFor(4000);
       await util.commit(page, currentConfig.details, data.travellers[counter]);
       let photoPath = path.join(
         util.photosFolder,

@@ -13,9 +13,11 @@ async function initPage(config, onContentLoaded) {
   const browser = await puppeteer.launch({
     headless: false,
     defaultViewport: null,
-    args: ["--start-maximized", "--incognito"],
+    args: ["--start-fullscreen", "--incognito"],
   });
-  page = await browser.newPage();
+  const pages = await browser.pages();
+  // page = await browser.pages();
+  page = pages[0];
   await page.bringToFront();
   page.on("domcontentloaded", onContentLoaded);
   if (debug) {
