@@ -165,26 +165,25 @@ async function pageContentHandler(currentConfig) {
         const consulate = document.querySelector("#cmbEmb");
         const consulateOptions = consulate.querySelectorAll("option");
         const consulateOptionsCount = [...consulateOptions].length;
-        if (consulateOptionsCount === 2) {
-          consulateOptions[1].selected = true;
-        }
-
         return consulateOptionsCount;
       });
-      if (embassyCount == 2) {
+      await page.focus("#BtnSave");
+      const onlyOneEmbassy = embassyCount == 2;
+      if (onlyOneEmbassy) {
         await page.click("#BtnSave");
       }
-      const confirmationTextSelector =
+      // Wait for this string: Group saved successfully, Group code is 153635
+      const groupCreatedSuccessfullyElement =
         "body > div.lobibox.lobibox-success.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span";
-      await page.waitForSelector(confirmationTextSelector, {
+      await page.waitForSelector(groupCreatedSuccessfullyElement, {
         visible: true,
         timeout: 0,
       });
-      const confirmationText = await page.$eval(
-        confirmationTextSelector,
+      const groupCreatedSuccessfullyElementText = await page.$eval(
+        groupCreatedSuccessfullyElement,
         (el) => el.innerText
       );
-      groupNumber = confirmationText.match(/\d+/g)[0];
+      groupNumber = groupCreatedSuccessfullyElementText.match(/\d+/g)[0];
       console.log(
         "%c 🥒 groupNumber: ",
         "font-size:20px;background-color: #FCA650;color:#fff;",

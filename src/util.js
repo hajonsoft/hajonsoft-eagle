@@ -9,6 +9,7 @@ let page;
 const debug = false;
 const photosFolder = path.join(homedir,'hajonsoft','photos')
 const passportsFolder = path.join(homedir,'hajonsoft','passports')
+
 async function initPage(config, onContentLoaded) {
   const browser = await puppeteer.launch({
     headless: false,
