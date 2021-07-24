@@ -1,5 +1,9 @@
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-extra");
+// Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteer.use(StealthPlugin());
 const fs = require("fs");
+const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
@@ -10,6 +14,7 @@ let groupNumber;
 const config = [
   {
     name: "login",
+    regex: "https://www.waytoumrah.com/prj_umrah/eng/Eng_frmlogin.aspx",
     url: "https://www.waytoumrah.com/prj_umrah/eng/Eng_frmlogin.aspx",
     details: [
       { selector: "#txtUserName", value: (system) => system.username },
@@ -143,6 +148,7 @@ async function onContentLoaded(res) {
 }
 
 async function pageContentHandler(currentConfig) {
+  const traveller = data.travellers[counter];
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
@@ -152,7 +158,11 @@ async function pageContentHandler(currentConfig) {
         "document.querySelector('#txtImagetext').value.length === 6"
       );
       await page.click("#cmdlogin");
-
+      await page.waitForSelector("#Button4");
+      const isIDo = await page.$("#Button4");
+      if (isIDo) {
+        await page.click('aria/button[name="Yes, I DO"]');
+      }
       break;
     case "main":
       await page.goto(
@@ -198,7 +208,7 @@ async function pageContentHandler(currentConfig) {
       await page.waitForSelector("#txtppno");
       const passportNumber = await page.$eval("#txtppno", (e) => e.value);
       // Do not continue if the passport number field is not empty - This could be a manual page refresh
-      if (passportNumber) {
+      if (passportNumber || util.isCodelineLooping(traveller)) {
         return;
       }
       await page.waitForSelector("#ddlgroupname");
@@ -213,61 +223,46 @@ async function pageContentHandler(currentConfig) {
       });
 
       await page.waitForSelector("#divshowmsg");
-      await page.type("#divshowmsg", data.travellers[counter].codeline, {
+      await page.type("#divshowmsg", traveller.codeline, {
         delay: 0,
       });
-      await page.waitFor(2000);
-      await util.commit(page, currentConfig.details, data.travellers[counter]);
-
+      await page.waitFor(5000);
+      await util.commit(page, currentConfig.details, traveller);
+      if (traveller.gender == "Female") {
+        await page.waitForSelector('#ddlrelation');
+        await page.select('#ddlrelation', "15");
+      }
+      // Open photo dialogue
       await page.click("#btn_uploadImage");
-      let photoFile = `./photos/${data.travellers[counter].passportNumber}.jpg`;
-      const resizedPhotoFile = `./photos/${data.travellers[counter].passportNumber}_200x200.jpg`;
-      await sharp(photoFile).resize(200, 200).toFile(resizedPhotoFile);
-      await util.commitFile("#file_photo_upload", resizedPhotoFile);
+      let resizedPhotoPath = await util.downloadAndResizeImage(
+        traveller,
+        200,
+        200,
+        "photo"
+      );
+
+      await util.commitFile("#file_photo_upload", resizedPhotoPath);
       await page.waitForNavigation();
 
       await page.waitForSelector("#imgppcopy");
-      const ppSrc = await page.$eval("#imgppcopy", (e) =>
+      const passportElementSourceValue = await page.$eval("#imgppcopy", (e) =>
         e.getAttribute("src")
       );
       console.log(
         "%c 🍅 ppSrc: ",
         "font-size:20px;background-color: #465975;color:#fff;",
-        ppSrc
+        passportElementSourceValue
       );
 
-      if (!ppSrc) {
-        let passportFile =
-          __dirname +
-          `/../passports/${data.travellers[counter].passportNumber}.jpg`;
-        if (fs.existsSync(passportFile)) {
-          let resizedPassportFile =
-            __dirname +
-            `../passports/${data.travellers[counter].passportNumber}_400x300.jpg`;
-          await sharp(passportFile)
-            .resize(400, 300)
-            .toFile(resizedPassportFile);
-          await util.commitFile("#fuppcopy", resizedPassportFile);
-        } else {
-          // let pngFile = __dirname +  `/../passports/${data.travellers[counter].passportNumber}.png`;
-          // const pad = " ".repeat(4);
-          // const height = "\n".repeat(10);
-          // const codeline = `${height}${pad}${data.travellers[
-          //   counter
-          // ].codeline.substring(0, 44)}${pad}${"\n"}${pad}${data.travellers[
-          //   counter
-          // ].codeline.substring(44)}${pad}${"\n".repeat(1)}`;
-          // fs.writeFileSync(
-          //   pngFile,
-          //   text2png(codeline, {
-          //     font: '30px sans-serif',
-          //     color: "black",
-          //     bgColor: "white",
-          //     lineSpacing: 20,
-          //   })
-          // );
-          // await util.commitFile("#fuppcopy", pngFile);
-        }
+      if (!passportElementSourceValue) {
+        const resizedPassportPath = await util.downloadAndResizeImage(
+          traveller,
+          400,
+          300,
+          "passport"
+        );
+        await util.commitFile("#fuppcopy", resizedPassportPath);
+        await page.waitForNavigation();
       }
       await page.waitForSelector("#txtImagetext");
       await page.focus("#txtImagetext");

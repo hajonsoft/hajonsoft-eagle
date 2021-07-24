@@ -1,14 +1,18 @@
 const fs = require("fs");
 const path = require("path");
-const puppeteer = require("puppeteer");
+const puppeteer = require("puppeteer-extra");
+// Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteer.use(StealthPlugin());
+const sharp = require("sharp");
 const axios = require("axios");
 const _ = require("lodash");
-const homedir = require('os').homedir();
+const homedir = require("os").homedir();
 
 let page;
 const debug = false;
-const photosFolder = path.join(homedir,'hajonsoft','photos')
-const passportsFolder = path.join(homedir,'hajonsoft','passports')
+const photosFolder = path.join(homedir, "hajonsoft", "photos");
+const passportsFolder = path.join(homedir, "hajonsoft", "passports");
 
 async function initPage(config, onContentLoaded) {
   const browser = await puppeteer.launch({
@@ -28,8 +32,8 @@ async function initPage(config, onContentLoaded) {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36."
   );
 
-  if (!fs.existsSync(path.join(homedir,'hajonsoft'))) {
-    fs.mkdirSync(path.join(homedir,'hajonsoft'));
+  if (!fs.existsSync(path.join(homedir, "hajonsoft"))) {
+    fs.mkdirSync(path.join(homedir, "hajonsoft"));
   }
 
   if (!fs.existsSync(photosFolder)) {
@@ -37,7 +41,7 @@ async function initPage(config, onContentLoaded) {
   } else {
     fs.readdir(photosFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(photosFolder, file), err => {});
+        fs.unlink(path.join(photosFolder, file), (err) => {});
       }
     });
   }
@@ -46,7 +50,7 @@ async function initPage(config, onContentLoaded) {
   } else {
     fs.readdir(passportsFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(passportsFolder, file), err => {});
+        fs.unlink(path.join(passportsFolder, file), (err) => {});
       }
     });
   }
@@ -252,6 +256,52 @@ async function downloadImage(url, imagePath) {
   });
 }
 
+async function downloadAndResizeImage(
+  traveller,
+  width,
+  height,
+  imageType = "photo"
+) {
+  const folder = imageType == "photo" ? photosFolder : passportsFolder;
+  const url =
+    imageType == "photo" ? traveller.images.photo : traveller.images.passport;
+  let imagePath = path.join(folder, `${traveller.passportNumber}.jpg`);
+  const resizedPath = path.join(
+    folder,
+    `${traveller.passportNumber}_${width}x${height}.jpg`
+  );
+  const writer = fs.createWriteStream(imagePath);
+  const response = await axios({
+    url,
+    method: "GET",
+    responseType: "stream",
+  });
+
+  response.data.pipe(writer);
+  const result = new Promise((resolve, reject) => {
+    writer.on("finish", resolve);
+    writer.on("error", reject);
+  });
+  await result;
+  await sharp(imagePath).resize(width, height).toFile(resizedPath);
+  return resizedPath;
+}
+
+const loopMonitor = [];
+function isCodelineLooping(traveller, numberOfEntries = 1) {
+  loopMonitor.push({
+    key: traveller.codeline,
+    data: traveller,
+  });
+  if (
+    loopMonitor.filter((x) => x.key === traveller?.codeline)?.length >
+    numberOfEntries
+  ) {
+    return true;
+  }
+  return false;
+}
+
 module.exports = {
   findConfig,
   commit,
@@ -263,4 +313,6 @@ module.exports = {
   downloadImage,
   photosFolder,
   passportsFolder,
+  isCodelineLooping,
+  downloadAndResizeImage,
 };

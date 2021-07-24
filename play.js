@@ -22,7 +22,7 @@ function ayman() {
     ctx.stroke()
     
     // Draw cat with lime helmet
-    loadImage('./passports/ayman.jpg').then((image) => {
+    loadImage('~/hajonsoft/passports/19AA39734_400x300.jpg').then((image) => {
       ctx.drawImage(image, 50, 0, 70, 70)
     
       console.log('<img src="' + canvas.toDataURL() + '" />')
@@ -30,3 +30,15 @@ function ayman() {
 }
 ayman()
 module.exports = {ayman}
+
+
+
+          // fs.writeFileSync(
+          //   pngFile,
+          //   text2png(codeline, {
+          //     font: '30px sans-serif',
+          //     color: "black",
+          //     bgColor: "white",
+          //     lineSpacing: 20,
+          //   })
+          // );
