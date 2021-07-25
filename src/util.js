@@ -294,7 +294,7 @@ function isCodelineLooping(traveller, numberOfEntries = 1) {
     data: traveller,
   });
   if (
-    loopMonitor.filter((x) => x.key === traveller?.codeline)?.length >
+    loopMonitor.filter((x) => x.key === traveller.codeline).length >
     numberOfEntries
   ) {
     return true;
