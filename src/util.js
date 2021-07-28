@@ -10,7 +10,6 @@ const _ = require("lodash");
 const homedir = require("os").homedir();
 
 let page;
-const debug = false;
 const photosFolder = path.join(homedir, "hajonsoft", "photos");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
 
@@ -25,7 +24,7 @@ async function initPage(config, onContentLoaded) {
   page = pages[0];
   await page.bringToFront();
   page.on("domcontentloaded", onContentLoaded);
-  if (debug) {
+  if (process.argv.length > 2) {
     page.on("console", (msg) => console.log(msg.text()));
   }
   await page.setUserAgent(
@@ -58,6 +57,7 @@ async function initPage(config, onContentLoaded) {
 }
 
 async function storeControls(url) {
+  console.log(`starting verbose output on ${url}`)
   const folder = __dirname + "/../log/";
   if (!fs.existsSync(folder)) {
     fs.mkdirSync(folder);
@@ -66,12 +66,19 @@ async function storeControls(url) {
   const inputs = await page.$$eval("input", (inputs) =>
     inputs.filter((i) => i.type !== "hidden").map((i) => i.outerHTML)
   );
+  console.log(`Input elements count: ${inputs.length}`)
   const selects = await page.$$eval("select", (selects) =>
     selects.map((s) => s.outerHTML.replace(/\t/g, ""))
   );
+
+  console.log(`select elements count: ${selects.length}`)
+
   const frames = await page.$$eval("iframe", (frames) =>
     frames.map((f) => f.outerHTML)
   );
+
+  console.log(`frames elements count: ${frames.length}`)
+
   if (inputs && inputs.length > 0) {
     const inputsString = `<html>${url}\n\n\n${inputs
       .toString()
@@ -94,7 +101,7 @@ async function storeControls(url) {
 }
 function findConfig(url, config) {
   let lowerUrl = url.toLowerCase();
-  if (debug) {
+  if (process.argv.length > 2 && process.argv.includes(`verbose-url=${url}`)) {
     storeControls(lowerUrl);
   }
 
@@ -103,6 +110,7 @@ function findConfig(url, config) {
       (x.url && x.url.toLowerCase() === lowerUrl) ||
       (x.regex && RegExp(x.regex.toLowerCase()).test(lowerUrl))
   );
+  
   if (urlConfig) {
     console.log("Workflow: ", urlConfig.name);
     return urlConfig;
