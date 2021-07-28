@@ -25,6 +25,7 @@ To start a recorder
 npx @puppeteer/recorder [url]
 
 npx @puppeteer/recorder https://www.waytoumrah.com/prj_umrah/eng/eng_frmlogin.aspx
+npx @puppeteer/recorder https://eumra.com/
 ```
 
 To send a photo

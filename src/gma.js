@@ -137,17 +137,22 @@ async function onContentLoaded(res) {
   }
   const currentConfig = util.findConfig(await page.url(), config);
   try {
-    await pageContentHandler(currentConfig);
+    await runPageConfiguration(currentConfig);
   } catch (err) {
     console.log(err);
   }
 }
 
-async function pageContentHandler(currentConfig) {
+async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      await util.captchaClick("#CodeNumberTextBox", 5, "#btn_Login");
+      await page.waitForSelector("#CodeNumberTextBox");
+      await page.focus("#CodeNumberTextBox");
+      await page.waitForFunction(
+        "document.querySelector('#CodeNumberTextBox').value.length === 5"
+      );
+      await page.click("#btn_Login");
       break;
     case "main":
       await page.goto(
