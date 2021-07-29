@@ -1,7 +1,7 @@
 const puppeteer = require("puppeteer-extra");
 // Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
-const StealthPlugin = require('puppeteer-extra-plugin-stealth')
-puppeteer.use(StealthPlugin())
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const util = require("./util");
 const moment = require("moment");
@@ -11,6 +11,63 @@ let page;
 let data;
 let counter = 0;
 let groupNumber;
+
+const mutamerConfig = {
+  details: [
+    { selector: "#txt_EnglishName1", value: (row) => row.name.first },
+    { selector: "#txt_EnglishName2", value: (row) => row.name.father },
+    { selector: "#txt_EnglishName3", value: (row) => row.name.grand },
+    { selector: "#txt_EnglishName4", value: (row) => row.name.last },
+    { selector: "#txt_PassportNumber", value: (row) => row.passportNumber },
+    { selector: "#ddl_Titles", value: (row) => "99" },
+    { selector: "#ddl_Gender", value: (row) => row.gender == "Female" ? "2" : 1 },
+    { selector: "#ddl_BirthCountry", value: (row) => row.nationality.telCode},
+    { selector: "#ddl_Nationality", value: (row) => row.nationality.code},
+    {
+      selector: "#txt_Occupation",
+      value: (row) => decodeURI(row.profession || "unknown"),
+    },
+    { selector: "#ddl_MaritalStatus", value: (row) => "99" },
+    { selector: "#ddl_EducationalLevel", value: (row) => "99" },
+    {
+      selector: "#txt_BirthCity",
+      value: (row) => decodeURI(row.birthPlace),
+    },
+    {
+      selector: "#txt_ArabicName1",
+      value: (row) => row.nameArabic.first,
+    },
+    {
+      selector: "#txt_ArabicName4",
+      value: (row) => row.nameArabic.last,
+    },
+    {
+      selector: "#txt_ArabicName3",
+      value: (row) => row.nameArabic.grand,
+    },
+    {
+      selector: "#txt_ArabicName2",
+      value: (row) => row.nameArabic.father,
+    },
+    {
+      selector: "#txt_IssueDate",
+      value: (row) => `0${row.passIssueDt.yyyy}/${row.passIssueDt.mm}/${row.passIssueDt.dd}`,
+    },
+    {
+      selector: "#txt_ExpiryDate",
+      value: (row) => `0${row.passExpireDt.yyyy}/${row.passExpireDt.mm}/${row.passExpireDt.dd}`,
+    },
+    {
+      selector: "#txt_BirthDate",
+      value: (row) => `0${row.dob.yyyy}/${row.dob.mm}/${row.dob.dd}`,
+    },
+    {
+      selector: "#txt_IssueCity",
+      value: (row) => decodeURI(row.placeOfIssue),
+    },
+  ],
+};
+
 const config = [
   {
     name: "login",
@@ -25,9 +82,8 @@ const config = [
     url: "https://eumra.com/homepage.aspx?P=DashboardClassic",
   },
   {
-    name: "create-group",
-    url:
-      "https://eumra.com/homepage.aspx?P=auploader",
+    name: "create-group-or-mutamer",
+    url: "https://eumra.com/auploader.aspx#/tab1_1",
     details: [
       {
         selector: "#txt_GroupName",
@@ -36,13 +92,8 @@ const config = [
           parseInt(moment().format("DDMMYYYYHHmmss")).toString(32),
       },
     ],
-  },
-  {
-    name: "create-mutamer",
-    url: "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx",
     controller: {
-      selector:
-        "#Table2 > tbody > tr > td > div > div > div > div.widget-title",
+      selector: "#li1_2",
       action: async () => {
         const selectedTraveller = await page.$eval(
           "#hajonsoft_select",
@@ -50,84 +101,23 @@ const config = [
         );
         if (selectedTraveller) {
           fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
-          await page.goto(await page.url());
+          const data = fs.readFileSync("./data.json", "utf-8");
+          var travellersData = JSON.parse(data);
+          var traveller = travellersData.travellers[selectedTraveller];
+          // await page.waitForSelector("#txt_EnglishName1");
+          // await page.type("#txt_EnglishName1", traveller.name.last);
+          await util.commit(page, mutamerConfig.details, traveller);
+          await page.focus('#CodeNumberTextBox');
         }
       },
     },
-    details: [
-      { selector: "#ddlgroupname", value: (row) => groupNumber },
-      { selector: "#ddltitle", value: (row) => "99" },
-      { selector: "#ddlpptype", value: (row) => "1" },
-      { selector: "#ddlbirthcountry", value: (row) => row.nationality.telCode },
-      { selector: "#ddladdcountry", value: (row) => row.nationality.telCode },
-      { selector: "#ddlhealth", value: (row) => "0" },
-      {
-        selector: "#txtprofession",
-        value: (row) => decodeURI(row.profession || "unknown"),
-      },
-      { selector: "#ddlmstatus", value: (row) => "99" },
-      { selector: "#ddleducation", value: (row) => "99" },
-      {
-        selector: "#txtbirthcity",
-        value: (row) => decodeURI(row.birthPlace),
-      },
-      {
-        selector: "#txtAfirstname",
-        value: (row) => row.nameArabic.first,
-      },
-      {
-        selector: "#txtAfamilyname",
-        value: (row) => row.nameArabic.last,
-      },
-      {
-        selector: "#txtAgfathername",
-        value: (row) => row.nameArabic.grand,
-      },
-      {
-        selector: "#txtAfathername",
-        value: (row) => row.nameArabic.father,
-      },
-      {
-        selector: "#txtppissdd",
-        value: (row) => row.passIssueDt.dd,
-      },
-      {
-        selector: "#ddlppissmm",
-        txt: (row) => row.passIssueDt.mmm,
-      },
-      {
-        selector: "#txtppissyy",
-        value: (row) => row.passIssueDt.yyyy,
-      },
-      {
-        selector: "#txtppisscity",
-        value: (row) => decodeURI(row.placeOfIssue),
-      },
-      {
-        selector: "#txtcity",
-        value: (row) => "",
-      },
-      {
-        selector: "#txtstreet",
-        value: (row) => "",
-      },
-      {
-        selector: "#txtstate",
-        value: (row) => "",
-      },
-      {
-        selector: "#txtzipcode",
-        value: (row) => "",
-      },
-    ],
   },
 ];
 
 async function send(sendData) {
   data = sendData;
-  page = await util.initPage(config,onContentLoaded);
+  page = await util.initPage(config, onContentLoaded);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
-
 }
 
 async function onContentLoaded(res) {
@@ -155,130 +145,19 @@ async function runPageConfiguration(currentConfig) {
       await page.click("#btn_Login");
       break;
     case "main":
-      await page.goto(
-        "https://eumra.com/homepage.aspx?P=auploader"
-      );
+      await page.goto("https://eumra.com/auploader.aspx#/tab1_1", {
+        waitUntil: "networkidle2",
+      });
       break;
-    case "create-group":
+    case "create-group-or-mutamer":
       await util.commit(page, currentConfig.details, data.travellers[0]);
-      // const embassyCount = await page.evaluate(() => {
-      //   const consulate = document.querySelector("#cmbEmb");
-      //   const consulateOptions = consulate.querySelectorAll("option");
-      //   const consulateOptionsCount = [...consulateOptions].length;
-      //   if (consulateOptionsCount === 2) {
-      //     consulateOptions[1].selected = true;
-      //   }
 
-      //   return consulateOptionsCount;
-      // });
-      // if (embassyCount == 2) {
-      //   await page.click("#BtnSave");
-      // }
-      // const confirmationTextSelector =
-      //   "body > div.lobibox.lobibox-success.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span";
-      // await page.waitForSelector(confirmationTextSelector, {
-      //   visible: true,
-      //   timeout: 0,
-      // });
-      // const confirmationText = await page.$eval(
-      //   confirmationTextSelector,
-      //   (el) => el.innerText
-      // );
-      // groupNumber = confirmationText.match(/\d+/g)[0];
-      // console.log(
-      //   "%c 🥒 groupNumber: ",
-      //   "font-size:20px;background-color: #FCA650;color:#fff;",
-      //   groupNumber
-      // );
-      // await page.goto(
-      //   "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
-      // );
+      await page.waitFor("#txt_PassportNumber", { visible: true });
+      await util.controller(page, currentConfig, data.travellers);
+
       break;
     case "create-mutamer":
-      await util.controller(page, currentConfig, data.travellers);
-      await page.waitForSelector("#txtppno");
-      const passportNumber = await page.$eval("#txtppno", (e) => e.value);
-      // Do not continue if the passport number field is not empty - This could be a manual page refresh
-      if (passportNumber) {
-        return;
-      }
-      await page.waitForSelector("#ddlgroupname");
-      await page.select("#ddlgroupname", groupNumber);
-      await page.waitFor(3000);
-      await page.waitForSelector("#btnppscan");
-      await page.evaluate(() => {
-        const divBtn = document.querySelector("#btnppscan");
-        if (divBtn) {
-          divBtn.click();
-        }
-      });
-
-      await page.waitForSelector("#divshowmsg");
-      await page.type("#divshowmsg", data.travellers[counter].codeline, {
-        delay: 0,
-      });
-      await page.waitFor(2000);
       await util.commit(page, currentConfig.details, data.travellers[counter]);
-
-      await page.click("#btn_uploadImage");
-      let photoFile = `./photos/${data.travellers[counter].passportNumber}.jpg`;
-      const resizedPhotoFile = `./photos/${data.travellers[counter].passportNumber}_200x200.jpg`;
-      await sharp(photoFile)
-        .resize(200, 200)
-        .toFile(resizedPhotoFile);
-      await util.commitFile("#file_photo_upload", resizedPhotoFile);
-      await page.waitForNavigation();
-
-      await page.waitForSelector("#imgppcopy");
-      const ppSrc = await page.$eval("#imgppcopy", (e) =>
-        e.getAttribute("src")
-      );
-      console.log(
-        "%c 🍅 ppSrc: ",
-        "font-size:20px;background-color: #465975;color:#fff;",
-        ppSrc
-      );
-
-      if (!ppSrc) {
-        let passportFile =
-          __dirname +
-          `/../passports/${data.travellers[counter].passportNumber}.jpg`;
-        if (fs.existsSync(passportFile)) {
-          let resizedPassportFile =
-            __dirname +
-            `../passports/${data.travellers[counter].passportNumber}_400x300.jpg`;
-          await sharp(passportFile)
-            .resize(400, 300)
-            .toFile(resizedPassportFile);
-          await util.commitFile("#fuppcopy", resizedPassportFile);
-        } else {
-          // let pngFile = __dirname +  `/../passports/${data.travellers[counter].passportNumber}.png`;
-          // const pad = " ".repeat(4);
-          // const height = "\n".repeat(10);
-          // const codeline = `${height}${pad}${data.travellers[
-          //   counter
-          // ].codeline.substring(0, 44)}${pad}${"\n"}${pad}${data.travellers[
-          //   counter
-          // ].codeline.substring(44)}${pad}${"\n".repeat(1)}`;
-          // fs.writeFileSync(
-          //   pngFile,
-          //   text2png(codeline, {
-          //     font: '30px sans-serif',
-          //     color: "black",
-          //     bgColor: "white",
-          //     lineSpacing: 20,
-          //   })
-          // );
-          // await util.commitFile("#fuppcopy", pngFile);
-        }
-      }
-      await page.waitForSelector("#txtImagetext");
-      await page.focus("#txtImagetext");
-      await page.waitForFunction(
-        "document.querySelector('#txtImagetext').value.length === 5"
-      );
-      await page.click("#btnsave");
-      counter = counter + 1;
       break;
     default:
       break;
