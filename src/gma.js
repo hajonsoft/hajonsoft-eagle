@@ -3,6 +3,7 @@ const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const fs = require("fs");
+const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
@@ -23,6 +24,7 @@ const mutamerConfig = {
     { selector: "#ddl_Gender", value: (row) => row.gender == "Female" ? "2" : 1 },
     { selector: "#ddl_BirthCountry", value: (row) => row.nationality.telCode},
     { selector: "#ddl_Nationality", value: (row) => row.nationality.code},
+    { selector: "#select2-ddl_IssueCountry-container", value: (row) => row.nationality.code},
     {
       selector: "#txt_Occupation",
       value: (row) => decodeURI(row.profession || "unknown"),
@@ -51,15 +53,15 @@ const mutamerConfig = {
     },
     {
       selector: "#txt_IssueDate",
-      value: (row) => `0${row.passIssueDt.yyyy}/${row.passIssueDt.mm}/${row.passIssueDt.dd}`,
+      value: (row) => `${row.passIssueDt.yyyy}/${row.passIssueDt.mm}/${row.passIssueDt.dd}`,
     },
     {
       selector: "#txt_ExpiryDate",
-      value: (row) => `0${row.passExpireDt.yyyy}/${row.passExpireDt.mm}/${row.passExpireDt.dd}`,
+      value: (row) => `${row.passExpireDt.yyyy}/${row.passExpireDt.mm}/${row.passExpireDt.dd}`,
     },
     {
       selector: "#txt_BirthDate",
-      value: (row) => `0${row.dob.yyyy}/${row.dob.mm}/${row.dob.dd}`,
+      value: (row) => `${row.dob.yyyy}/${row.dob.mm}/${row.dob.dd}`,
     },
     {
       selector: "#txt_IssueCity",
@@ -107,6 +109,60 @@ const config = [
           // await page.waitForSelector("#txt_EnglishName1");
           // await page.type("#txt_EnglishName1", traveller.name.last);
           await util.commit(page, mutamerConfig.details, traveller);
+
+          let photoPath = path.join(
+            util.photosFolder,
+            `${traveller.passportNumber}.jpg`
+          );
+          await util.downloadImage(
+            traveller.images.photo,
+            photoPath
+          );
+          await page.waitForSelector("#img_Mutamer");
+          let futureFileChooser = page.waitForFileChooser();
+          await page.evaluate(() =>
+            document
+              .querySelector("#img_Mutamer")
+              .click()
+          );
+          let fileChooser = await futureFileChooser;
+          const resizedPhotoPath = path.join(
+            util.photosFolder,
+            `${traveller.passportNumber}_200x200.jpg`
+          );
+          await sharp(photoPath).resize(200, 200).toFile(resizedPhotoPath);
+          await fileChooser.accept([resizedPhotoPath]);
+
+
+
+          const passportPath = path.join(
+            util.passportsFolder,
+            `${traveller.passportNumber}.jpg`
+          );
+          await util.downloadImage(
+            traveller.images.passport,
+            passportPath
+          );
+          if (fs.existsSync(passportPath)) {
+            futureFileChooser = page.waitForFileChooser();
+            await page.evaluate(() =>
+              document
+                .querySelector("#img_MutamerPP")
+                .click()
+            );
+            fileChooser = await futureFileChooser;
+            let resizedPassportFile = path.join(
+              util.passportsFolder,
+              `${traveller.passportNumber}_400x300.jpg`
+            );
+            await sharp(passportPath).resize(400, 300).toFile(resizedPassportFile);
+            await fileChooser.accept([resizedPassportFile]);
+
+            }
+
+
+
+
           await page.focus('#CodeNumberTextBox');
         }
       },
@@ -157,7 +213,7 @@ async function runPageConfiguration(currentConfig) {
 
       break;
     case "create-mutamer":
-      await util.commit(page, currentConfig.details, data.travellers[counter]);
+      // await util.commit(page, currentConfig.details, traveller);
       break;
     default:
       break;

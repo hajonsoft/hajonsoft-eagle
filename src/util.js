@@ -189,6 +189,8 @@ async function commit(page, structure, info) {
     );
     switch (elementType) {
       case "input":
+        await page.waitForSelector(element.selector);
+        await page.focus(element.selector);
         await page.type(element.selector, value);
         break;
       case "select":
@@ -299,6 +301,7 @@ async function captchaClick(selector, numbers, actionSelector) {
 }
 
 async function downloadImage(url, imagePath) {
+  if (!url) return;
   const writer = fs.createWriteStream(imagePath);
   const response = await axios({
     url,
