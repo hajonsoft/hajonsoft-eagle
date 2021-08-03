@@ -112,54 +112,56 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveller) {
-          fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
-          const data = fs.readFileSync("./data.json", "utf-8");
-          var travellersData = JSON.parse(data);
-          var traveller = travellersData.travellers[selectedTraveller];
-          // await page.waitForSelector("#txt_EnglishName1");
-          // await page.type("#txt_EnglishName1", traveller.name.last);
-          await util.commit(page, mutamerConfig.details, traveller);
-          await page.click("#CodeNumberTextBox");
-          let photoPath = path.join(
-            util.photosFolder,
-            `${traveller.passportNumber}.jpg`
-          );
-          await util.downloadImage(traveller.images.photo, photoPath);
-          await page.waitForSelector("#img_Mutamer");
-          let futureFileChooser = page.waitForFileChooser();
-          await page.evaluate(() =>
-            document.querySelector("#img_Mutamer").click()
-          );
-          let fileChooser = await futureFileChooser;
-          const resizedPhotoPath = path.join(
-            util.photosFolder,
-            `${traveller.passportNumber}_200x200.jpg`
-          );
-          await sharp(photoPath).resize(200, 200).toFile(resizedPhotoPath);
-          await fileChooser.accept([resizedPhotoPath]);
-
-          const passportPath = path.join(
-            util.passportsFolder,
-            `${traveller.passportNumber}.jpg`
-          );
-          await util.downloadImage(traveller.images.passport, passportPath);
-          if (fs.existsSync(passportPath)) {
-            futureFileChooser = page.waitForFileChooser();
+          try {
+            fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
+            const data = fs.readFileSync("./data.json", "utf-8");
+            var travellersData = JSON.parse(data);
+            var traveller = travellersData.travellers[selectedTraveller];
+            await util.commit(page, mutamerConfig.details, traveller);
+            await page.click("#CodeNumberTextBox");
+            let photoPath = path.join(
+              util.photosFolder,
+              `${traveller.passportNumber}.jpg`
+            );
+            await util.downloadImage(traveller.images.photo, photoPath);
+            await page.waitForSelector("#img_Mutamer");
+            let futureFileChooser = page.waitForFileChooser();
             await page.evaluate(() =>
-              document.querySelector("#img_MutamerPP").click()
+              document.querySelector("#img_Mutamer").click()
             );
-            fileChooser = await futureFileChooser;
-            let resizedPassportFile = path.join(
-              util.passportsFolder,
-              `${traveller.passportNumber}_400x300.jpg`
+            let fileChooser = await futureFileChooser;
+            const resizedPhotoPath = path.join(
+              util.photosFolder,
+              `${traveller.passportNumber}_200x200.jpg`
             );
-            await sharp(passportPath)
-              .resize(400, 300)
-              .toFile(resizedPassportFile);
-            await fileChooser.accept([resizedPassportFile]);
-          }
+            await sharp(photoPath).resize(200, 200).toFile(resizedPhotoPath);
+            await fileChooser.accept([resizedPhotoPath]);
 
-          await page.focus("#CodeNumberTextBox");
+            const passportPath = path.join(
+              util.passportsFolder,
+              `${traveller.passportNumber}.jpg`
+            );
+            await util.downloadImage(traveller.images.passport, passportPath);
+            if (fs.existsSync(passportPath)) {
+              futureFileChooser = page.waitForFileChooser();
+              await page.evaluate(() =>
+                document.querySelector("#img_MutamerPP").click()
+              );
+              fileChooser = await futureFileChooser;
+              let resizedPassportFile = path.join(
+                util.passportsFolder,
+                `${traveller.passportNumber}_400x300.jpg`
+              );
+              await sharp(passportPath)
+                .resize(400, 300)
+                .toFile(resizedPassportFile);
+              await fileChooser.accept([resizedPassportFile]);
+            }
+
+            await page.focus("#CodeNumberTextBox");
+          } catch (err) {
+            console.log(err.message);
+          }
         }
       },
     },
