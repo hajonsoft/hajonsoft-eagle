@@ -1,7 +1,7 @@
 const puppeteer = require("puppeteer-extra");
 // Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
-const StealthPlugin = require('puppeteer-extra-plugin-stealth')
-puppeteer.use(StealthPlugin())
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const util = require("./util");
 const moment = require("moment");
@@ -14,32 +14,11 @@ let data;
 let counter = 0;
 const config = [
   {
-    name: "main",
-    url: "https://visa.visitsaudi.com/Registration/Verify",
-    details: [
-      { selector: "#PassportType", value: () => "1" },
-      { selector: "#Nationality", txt: (row) => row.nationality.name },
-    ],
-  },
-  {
-    name: "add",
-    url: "https://visa.visitsaudi.com/Registration/Add",
-    details: [
-      { selector: "#FirstName", value: (row) => row.name.first },
-      { selector: "#LastName", value: (row) => row.name.last },
-      { selector: "#MobileNumber", value: (row) => row.mobileNumber },
-      { selector: "#SecretQuestion", value: () => "1" },
-      { selector: "#Answer", value: () => "blue" },
-      { selector: "#password", value: () => "StrongPassword1" },
-      { selector: "#ConfirmPassword", value: () => "StrongPassword1" },
-    ],
-  },
-  {
     name: "login",
     url: "https://visa.visitsaudi.com/Login",
     details: [
-      { selector: "#EmailId", value: () => email },
-      { selector: "#Password", value: (row) => "StrongPassword1" },
+      { selector: "#EmailId", value: (system) => system.username },
+      { selector: "#Password", value: (system) => system.password },
     ],
   },
   {
@@ -96,7 +75,6 @@ const config = [
 ];
 
 async function send(sendData) {
-  getEmailAddress();
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
@@ -136,19 +114,9 @@ async function pageContentHandler(currentConfig) {
       await page.click("#btnAdd");
       break;
     case "login":
-      const isActive = await activateAccount();
-      if (isActive) {
-        await util.commit(currentConfig.details);
-        await page.bringToFront();
-        await page.waitForSelector("#CaptchaCode");
-        await page.focus("#CaptchaCode");
-        await page.waitForFunction(
-          "document.querySelector('#CaptchaCode').value.length === 5"
-        );
-        await page.click("#btnSignIn");
-      } else {
-        console.log("unable to activate email", email);
-      }
+      await util.commit(page, currentConfig.details, data.system);
+      await page.waitForSelector("#CaptchaCode");
+      await page.focus("#CaptchaCode");
       break;
     case "otp":
       if (await page.$("#resendOtp")) {

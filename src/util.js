@@ -191,6 +191,14 @@ async function commit(page, structure, info) {
       case "input":
         await page.waitForSelector(element.selector);
         await page.focus(element.selector);
+        await page.type(element.selector, "");
+        await page.evaluate((selector) => {
+          const field = document.querySelector(selector);
+          if (field) {
+            field.value = "";
+            field.setAttribute("value", "");
+          }
+        }, element.selector);
         await page.type(element.selector, value);
         break;
       case "select":
