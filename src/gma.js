@@ -113,6 +113,7 @@ const config = [
         );
         if (selectedTraveller) {
           try {
+            await page.click('#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-warning');
             fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
             const data = fs.readFileSync("./data.json", "utf-8");
             var travellersData = JSON.parse(data);
