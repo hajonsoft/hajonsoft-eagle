@@ -115,15 +115,17 @@ const config = [
           try {
             fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
             const data = fs.readFileSync("./data.json", "utf-8");
-            var travellersData = JSON.parse(data);
-            var traveller = travellersData.travellers[selectedTraveller];
-            await util.commit(page, mutamerConfig.details, traveller);
+            var passengersData = JSON.parse(data);
+            var passenger = passengersData.travellers[selectedTraveller];
+            await page.evaluate(() => document.querySelector("#txt_Mrz").disabled = false);
+            await page.type("#txt_Mrz",passenger.codeline || 'codeline missing');
+            await util.commit(page, mutamerConfig.details, passenger);
             await page.click("#CodeNumberTextBox");
             let photoPath = path.join(
               util.photosFolder,
-              `${traveller.passportNumber}.jpg`
+              `${passenger.passportNumber}.jpg`
             );
-            await util.downloadImage(traveller.images.photo, photoPath);
+            await util.downloadImage(passenger.images.photo, photoPath);
             await page.waitForSelector("#img_Mutamer");
             let futureFileChooser = page.waitForFileChooser();
             await page.evaluate(() =>
@@ -132,16 +134,16 @@ const config = [
             let fileChooser = await futureFileChooser;
             const resizedPhotoPath = path.join(
               util.photosFolder,
-              `${traveller.passportNumber}_200x200.jpg`
+              `${passenger.passportNumber}_200x200.jpg`
             );
             await sharp(photoPath).resize(200, 200).toFile(resizedPhotoPath);
             await fileChooser.accept([resizedPhotoPath]);
 
             const passportPath = path.join(
               util.passportsFolder,
-              `${traveller.passportNumber}.jpg`
+              `${passenger.passportNumber}.jpg`
             );
-            await util.downloadImage(traveller.images.passport, passportPath);
+            await util.downloadImage(passenger.images.passport, passportPath);
             if (fs.existsSync(passportPath)) {
               futureFileChooser = page.waitForFileChooser();
               await page.evaluate(() =>
@@ -150,7 +152,7 @@ const config = [
               fileChooser = await futureFileChooser;
               let resizedPassportFile = path.join(
                 util.passportsFolder,
-                `${traveller.passportNumber}_400x300.jpg`
+                `${passenger.passportNumber}_400x300.jpg`
               );
               await sharp(passportPath)
                 .resize(400, 300)
