@@ -199,11 +199,11 @@ async function commit(page, structure, info) {
             field.setAttribute("value", "");
           }
         }, element.selector);
-        await page.type(element.selector, value);
+        await page.type(element.selector, value || '');
         break;
       case "select":
         if (value) {
-          await page.select(element.selector, value);
+          await page.select(element.selector, value || '');
           break;
         }
         if (txt) {

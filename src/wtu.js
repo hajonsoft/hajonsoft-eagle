@@ -148,7 +148,7 @@ async function onContentLoaded(res) {
 }
 
 async function pageContentHandler(currentConfig) {
-  const traveller = data.travellers[counter];
+  const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
@@ -208,7 +208,7 @@ async function pageContentHandler(currentConfig) {
       await page.waitForSelector("#txtppno");
       const passportNumber = await page.$eval("#txtppno", (e) => e.value);
       // Do not continue if the passport number field is not empty - This could be a manual page refresh
-      if (passportNumber || util.isCodelineLooping(traveller)) {
+      if (passportNumber || util.isCodelineLooping(passenger)) {
         return;
       }
       await page.waitForSelector("#ddlgroupname");
@@ -223,19 +223,19 @@ async function pageContentHandler(currentConfig) {
       });
 
       await page.waitForSelector("#divshowmsg");
-      await page.type("#divshowmsg", traveller.codeline, {
+      await page.type("#divshowmsg", passenger.codeline, {
         delay: 0,
       });
       await page.waitFor(5000);
-      await util.commit(page, currentConfig.details, traveller);
-      if (traveller.gender == "Female") {
+      await util.commit(page, currentConfig.details, passenger);
+      if (passenger.gender == "Female") {
         await page.waitForSelector('#ddlrelation');
         await page.select('#ddlrelation', "15");
       }
       // Open photo dialogue
       await page.click("#btn_uploadImage");
       let resizedPhotoPath = await util.downloadAndResizeImage(
-        traveller,
+        passenger,
         200,
         200,
         "photo"
@@ -256,7 +256,7 @@ async function pageContentHandler(currentConfig) {
 
       if (!passportElementSourceValue) {
         const resizedPassportPath = await util.downloadAndResizeImage(
-          traveller,
+          passenger,
           400,
           300,
           "passport"
