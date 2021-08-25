@@ -8,10 +8,11 @@ const sharp = require("sharp");
 const axios = require("axios");
 const _ = require("lodash");
 const homedir = require("os").homedir();
-
+console.log('HOME: ' + homedir)
 let page;
 const photosFolder = path.join(homedir, "hajonsoft", "photos");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
+const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
 
 async function initPage(config, onContentLoaded) {
   const browser = await puppeteer.launch({
@@ -55,6 +56,15 @@ async function initPage(config, onContentLoaded) {
     fs.readdir(passportsFolder, (err, files) => {
       for (const file of files) {
         fs.unlink(path.join(passportsFolder, file), (err) => {});
+      }
+    });
+  }
+  if (!fs.existsSync(vaccineFolder)) {
+    fs.mkdirSync(vaccineFolder);
+  } else {
+    fs.readdir(vaccineFolder, (err, files) => {
+      for (const file of files) {
+        fs.unlink(path.join(vaccineFolder, file), (err) => {});
       }
     });
   }
@@ -199,11 +209,11 @@ async function commit(page, structure, info) {
             field.setAttribute("value", "");
           }
         }, element.selector);
-        await page.type(element.selector, value);
+        await page.type(element.selector, value || '');
         break;
       case "select":
         if (value) {
-          await page.select(element.selector, value);
+          await page.select(element.selector, value || '');
           break;
         }
         if (txt) {
@@ -294,6 +304,7 @@ async function commitFile(selector, fileName) {
   ]);
 
   await fileChooser.accept([fileName]);
+  await fileChooser.cancel();
 }
 async function captchaClick(selector, numbers, actionSelector) {
   await page.waitForSelector(selector);
@@ -330,7 +341,10 @@ async function downloadAndResizeImage(
   height,
   imageType = "photo"
 ) {
-  const folder = imageType == "photo" ? photosFolder : passportsFolder;
+  let folder = imageType == "photo" ? photosFolder : passportsFolder;
+if (imageType == "vaccine") {
+  folder = vaccineFolder;
+}
   const url =
     imageType == "photo" ? traveller.images.photo : traveller.images.passport;
   let imagePath = path.join(folder, `${traveller.passportNumber}.jpg`);
@@ -381,6 +395,7 @@ module.exports = {
   downloadImage,
   photosFolder,
   passportsFolder,
+  vaccineFolder,
   isCodelineLooping,
   downloadAndResizeImage,
 };

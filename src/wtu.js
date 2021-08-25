@@ -36,10 +36,10 @@ const config = [
           (row.name.full + row.passportNumber).replace(/ /g, "") +
           parseInt(moment().format("DDMMYYYYHHmmss")).toString(32),
       },
-      {
-        selector: "#txtEADate",
-        value: () => moment().add(7, "days").format("MM-DD-YYYY"),
-      },
+      // {
+      //   selector: "#txtEADate",
+      //   value: () => moment().add(7, "days").format("YYYY-MM-DD"),
+      // },
     ],
   },
   {
@@ -148,7 +148,7 @@ async function onContentLoaded(res) {
 }
 
 async function pageContentHandler(currentConfig) {
-  const traveller = data.travellers[counter];
+  const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
@@ -208,7 +208,7 @@ async function pageContentHandler(currentConfig) {
       await page.waitForSelector("#txtppno");
       const passportNumber = await page.$eval("#txtppno", (e) => e.value);
       // Do not continue if the passport number field is not empty - This could be a manual page refresh
-      if (passportNumber || util.isCodelineLooping(traveller)) {
+      if (passportNumber || util.isCodelineLooping(passenger)) {
         return;
       }
       await page.waitForSelector("#ddlgroupname");
@@ -223,26 +223,32 @@ async function pageContentHandler(currentConfig) {
       });
 
       await page.waitForSelector("#divshowmsg");
-      await page.type("#divshowmsg", traveller.codeline, {
+      await page.type("#divshowmsg", passenger.codeline, {
         delay: 0,
       });
       await page.waitFor(5000);
-      await util.commit(page, currentConfig.details, traveller);
-      if (traveller.gender == "Female") {
+      await util.commit(page, currentConfig.details, passenger);
+      if (passenger.gender == "Female") {
         await page.waitForSelector('#ddlrelation');
         await page.select('#ddlrelation', "15");
       }
+
+      await page.select('#cmbVacc_cert_type',"2")
+      await page.waitForSelector('#img_vaccination_copy')
+
       // Open photo dialogue
-      await page.click("#btn_uploadImage");
       let resizedPhotoPath = await util.downloadAndResizeImage(
-        traveller,
+        passenger,
         200,
         200,
         "photo"
       );
 
-      await util.commitFile("#file_photo_upload", resizedPhotoPath);
-      await page.waitForNavigation();
+      if (!process.argv.includes("noimage")) {
+      await page.click("#btn_uploadImage");
+        await util.commitFile("#file_photo_upload", resizedPhotoPath);
+        await page.waitForNavigation();
+      }
 
       await page.waitForSelector("#imgppcopy");
       const passportElementSourceValue = await page.$eval("#imgppcopy", (e) =>
@@ -254,14 +260,39 @@ async function pageContentHandler(currentConfig) {
         passportElementSourceValue
       );
 
-      if (!passportElementSourceValue) {
-        const resizedPassportPath = await util.downloadAndResizeImage(
-          traveller,
-          400,
-          300,
-          "passport"
-        );
+      const resizedPassportPath = await util.downloadAndResizeImage(
+        passenger,
+        400,
+        300,
+        "passport"
+      );
+      if (!passportElementSourceValue && !process.argv.includes("noimage")) {
         await util.commitFile("#fuppcopy", resizedPassportPath);
+        await page.waitForNavigation();
+      }
+
+      const vaccineElementSourceValue = await page.$eval("#img_vaccination_copy", (e) =>
+        e.getAttribute("src")
+      );
+
+      const resizedVaccinePath = await util.downloadAndResizeImage(
+        passenger,
+        100,
+        100,
+        "vaccine"
+      );
+      if (!vaccineElementSourceValue && !process.argv.includes("noimage")) {
+
+        let futureFileChooser = page.waitForFileChooser();
+        await page.evaluate(() =>
+          document
+            .querySelector("#F_Vaccinationcopy")
+            .click()
+        );
+        let fileChooser = await futureFileChooser;
+        // await util.commitFile("#F_Vaccinationcopy", resizedVaccinePath);
+        await fileChooser.accept([resizedVaccinePath]);
+
         await page.waitForNavigation();
       }
       await page.waitForSelector("#txtImagetext");
