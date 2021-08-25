@@ -1,35 +1,31 @@
 
-// const fs = require('fs')
-// const { createCanvas, loadImage } = require('canvas')
-// // https://github.com/Automattic/node-canvas
-// function ayman() {
+const fs = require('fs')
+const { createCanvas, loadImage } = require('canvas')
+// https://github.com/Automattic/node-canvas
+function createPassport() {
 
  
-//     const canvas = createCanvas(200, 200)
-//     const ctx = canvas.getContext('2d')
+    const canvas = createCanvas(400, 300)
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = "white";
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "black";
+    ctx.font = '12px Arial'
+    ctx.fillText('P<UZBALIAKHUNOVA<<ROBIYA<<<<<<<<<<<<<<<<<<<<', 25, canvas.height -40)
+    ctx.fillText('AA43573271UZB9802023F24021924020298658002462', 25, canvas.height - 20)
     
-//     // Write "Awesome!"
-//     ctx.font = '30px Impact'
-//     ctx.rotate(0.1)
-//     ctx.fillText('Awesome!', 50, 100)
     
-//     // Draw line under text
-//     var text = ctx.measureText('Awesome!')
-//     ctx.strokeStyle = 'rgba(0,0,0,0.5)'
-//     ctx.beginPath()
-//     ctx.lineTo(50, 102)
-//     ctx.lineTo(50 + text.width, 102)
-//     ctx.stroke()
-    
-//     // Draw cat with lime helmet
-//     loadImage('~/hajonsoft/passports/19AA39734_400x300.jpg').then((image) => {
-//       ctx.drawImage(image, 50, 0, 70, 70)
-    
-//       console.log('<img src="' + canvas.toDataURL() + '" />')
-//     })
-// }
-// ayman()
-// module.exports = {ayman}
+    const out = fs.createWriteStream(__dirname + '/test.jpeg')
+    const stream = canvas.createJPEGStream({
+        quality: 0.95,
+        chromaSubsampling: false
+      })
+    stream.pipe(out)
+    out.on('finish', () =>  console.log('The JPEG file was created.'))
+
+}
+createPassport()
+module.exports = {ayman: createPassport}
 
 
 
@@ -43,5 +39,5 @@
 //           //   })
 //           // );
 
-const moment = require('moment')
-console.log(moment().format('mmssa'))
+// const moment = require('moment')
+// console.log(moment().format('mmssa'))

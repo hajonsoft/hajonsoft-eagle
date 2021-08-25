@@ -6,9 +6,10 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const sharp = require("sharp");
 const axios = require("axios");
+const { createCanvas, loadImage } = require("canvas");
 const _ = require("lodash");
 const homedir = require("os").homedir();
-console.log('HOME: ' + homedir)
+console.log("HOME: " + homedir);
 let page;
 const photosFolder = path.join(homedir, "hajonsoft", "photos");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
@@ -209,11 +210,11 @@ async function commit(page, structure, info) {
             field.setAttribute("value", "");
           }
         }, element.selector);
-        await page.type(element.selector, value || '');
+        await page.type(element.selector, value || "");
         break;
       case "select":
         if (value) {
-          await page.select(element.selector, value || '');
+          await page.select(element.selector, value || "");
           break;
         }
         if (txt) {
@@ -342,9 +343,9 @@ async function downloadAndResizeImage(
   imageType = "photo"
 ) {
   let folder = imageType == "photo" ? photosFolder : passportsFolder;
-if (imageType == "vaccine") {
-  folder = vaccineFolder;
-}
+  if (imageType == "vaccine") {
+    folder = vaccineFolder;
+  }
   const url =
     imageType == "photo" ? traveller.images.photo : traveller.images.passport;
   let imagePath = path.join(folder, `${traveller.passportNumber}.jpg`);
@@ -384,6 +385,25 @@ function isCodelineLooping(traveller, numberOfEntries = 1) {
   return false;
 }
 
+function createMRZImage(fileName, codeline) {
+  const canvas = createCanvas(400, 300);
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "black";
+  ctx.font = "12px Arial";
+  ctx.fillText(codeline.substring(0, 44), 25, canvas.height - 40);
+  ctx.fillText(codeline.substring(44), 25, canvas.height - 20);
+
+  const out = fs.createWriteStream(fileName);
+  console.log('%c 🥜 fileName: ', 'font-size:20px;background-color: #93C0A4;color:#fff;', fileName);
+  const stream = canvas.createJPEGStream({
+    quality: 0.95,
+    chromaSubsampling: false,
+  });
+  stream.pipe(out);
+}
+
 module.exports = {
   findConfig,
   commit,
@@ -397,5 +417,6 @@ module.exports = {
   passportsFolder,
   vaccineFolder,
   isCodelineLooping,
+  createMRZImage,
   downloadAndResizeImage,
 };

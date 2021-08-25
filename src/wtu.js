@@ -233,16 +233,29 @@ async function pageContentHandler(currentConfig) {
         await page.select('#ddlrelation', "15");
       }
 
-      await page.select('#cmbVacc_cert_type',"2")
-      await page.waitForSelector('#img_vaccination_copy')
+      util.createMRZImage(path.join(util.passportsFolder, passenger.passportNumber + "_400x300_mrz.jpg"), passenger.codeline);
 
-      // Open photo dialogue
       let resizedPhotoPath = await util.downloadAndResizeImage(
         passenger,
         200,
         200,
         "photo"
       );
+      const resizedPassportPath = await util.downloadAndResizeImage(
+        passenger,
+        400,
+        300,
+        "passport"
+      );
+      const resizedVaccinePath = await util.downloadAndResizeImage(
+        passenger,
+        100,
+        100,
+        "vaccine"
+      );
+
+      await page.select('#cmbVacc_cert_type',"2")
+      await page.waitForSelector('#img_vaccination_copy')
 
       if (!process.argv.includes("noimage")) {
       await page.click("#btn_uploadImage");
@@ -254,19 +267,9 @@ async function pageContentHandler(currentConfig) {
       const passportElementSourceValue = await page.$eval("#imgppcopy", (e) =>
         e.getAttribute("src")
       );
-      console.log(
-        "%c 🍅 ppSrc: ",
-        "font-size:20px;background-color: #465975;color:#fff;",
-        passportElementSourceValue
-      );
+
 
       if (!passportElementSourceValue && !process.argv.includes("noimage")) {
-        const resizedPassportPath = await util.downloadAndResizeImage(
-          passenger,
-          400,
-          300,
-          "passport"
-        );
         await util.commitFile("#fuppcopy", resizedPassportPath);
         await page.waitForNavigation();
       }
@@ -275,12 +278,6 @@ async function pageContentHandler(currentConfig) {
         e.getAttribute("src")
       );
 
-      const resizedVaccinePath = await util.downloadAndResizeImage(
-        passenger,
-        100,
-        100,
-        "vaccine"
-      );
       if (!vaccineElementSourceValue && !process.argv.includes("noimage")) {
 
         let futureFileChooser = page.waitForFileChooser();
