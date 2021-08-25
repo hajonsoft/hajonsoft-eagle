@@ -260,13 +260,13 @@ async function pageContentHandler(currentConfig) {
         passportElementSourceValue
       );
 
-      const resizedPassportPath = await util.downloadAndResizeImage(
-        passenger,
-        400,
-        300,
-        "passport"
-      );
       if (!passportElementSourceValue && !process.argv.includes("noimage")) {
+        const resizedPassportPath = await util.downloadAndResizeImage(
+          passenger,
+          400,
+          300,
+          "passport"
+        );
         await util.commitFile("#fuppcopy", resizedPassportPath);
         await page.waitForNavigation();
       }
