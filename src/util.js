@@ -391,12 +391,11 @@ function createMRZImage(fileName, codeline) {
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "black";
-  ctx.font = "12px Arial";
+  ctx.font = "13px Arial";
   ctx.fillText(codeline.substring(0, 44), 25, canvas.height - 40);
   ctx.fillText(codeline.substring(44), 25, canvas.height - 20);
 
   const out = fs.createWriteStream(fileName);
-  console.log('%c 🥜 fileName: ', 'font-size:20px;background-color: #93C0A4;color:#fff;', fileName);
   const stream = canvas.createJPEGStream({
     quality: 0.95,
     chromaSubsampling: false,
