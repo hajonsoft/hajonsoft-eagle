@@ -6,6 +6,7 @@ const { send: sendVst } = require("./src/vst");
 const path = require("path");
 const fs = require("fs");
 const extract = require("extract-zip");
+const { homedir } = require("os");
 
 async function main() {
   const dataFileName = await getDataFileName();
@@ -47,7 +48,9 @@ async function getDataFileName() {
     if (!fileName.endsWith(".zip")) {
       fileName = fileName + ".zip";
     }
-    fileName = path.join("/users/ay9984588/Downloads", fileName); // TODO detect the download folder automatically and make sure the path in argv is not absolute
+    if (!fileParam.includes('/')) { //Only file name was provided: Assume default download folder
+      fileName = path.join(homedir, "Downloads", fileName);
+    }
     if (!fs.existsSync(fileName)) {
       console.log(`File not found ${fileName}`);
       process.exit(1);
