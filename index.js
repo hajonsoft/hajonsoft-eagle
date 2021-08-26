@@ -10,7 +10,7 @@ const { homedir } = require("os");
 const version = '0.1.0';
 
 async function main() {
-  if (process.argv.includes('-v'){
+  if (process.argv.includes('-v')) {
       console.log('version: ' + version);
       process.exit(0);
   }
