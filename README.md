@@ -10,11 +10,11 @@ Note: These steps not compatible with Apple M1 Chip
 git clone https://github.com/hajonsoft/hajonsoft-eagle.git
 cd hajonsoft-eagle
 npm i
-copy data.json to the root of hajonsoft-eagle
-node . [noimage] [debug] [verbose-url=url]
+node . [file=FILENAME[.zip]] [noimage] [debug] [verbose-url=url]
 
 ```
 
+Note: Eagle will use data.json from its root
 
 # Puppeteer
 
