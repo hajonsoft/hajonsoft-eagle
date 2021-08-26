@@ -7,8 +7,13 @@ const path = require("path");
 const fs = require("fs");
 const extract = require("extract-zip");
 const { homedir } = require("os");
+const version = '0.1.0';
 
 async function main() {
+  if (process.argv.includes('-v'){
+      console.log('version: ' + version);
+      process.exit(0);
+  }
   const dataFileName = await getDataFileName();
   const content = fs.readFileSync(dataFileName, "utf8");
   const data = JSON.parse(content);
