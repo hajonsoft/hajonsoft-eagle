@@ -4,7 +4,7 @@ Home for eagle node application
 
 # Getting started 
 
-Note: These steps not compatible with Apple M1 Chip
+Note: Apple M1 Chip not supported!
 
 ```
 git clone https://github.com/hajonsoft/hajonsoft-eagle.git
