@@ -1,6 +1,6 @@
 # Eagle
 
-Home for eagle node application
+Use puppeteer to automate google chrome. automation include logging in to third party websites and fill forms.
 
 # Getting started 
 
