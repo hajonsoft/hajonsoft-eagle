@@ -18,7 +18,7 @@ Note: Eagle will use data.json from its root
 
 # Puppeteer
 
-This node application uses puppeteer to automate sending traveller data to various visa systems like
+Use node and puppeteer https://github.com/puppeteer/puppeteer/tree/main#readme to automate passenger data exchange with 
 * Way to Umrah
 * Bab Al Umrah
 * Gabul Ya Hajj
