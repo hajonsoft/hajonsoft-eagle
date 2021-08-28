@@ -353,6 +353,9 @@ async function downloadAndResizeImage(
     folder,
     `${traveller.passportNumber}_${width}x${height}.jpg`
   );
+  if (fs.existsSync(imagePath) && fs.existsSync(resizedPath)) {
+    return;
+  }
   const writer = fs.createWriteStream(imagePath);
   const response = await axios({
     url,

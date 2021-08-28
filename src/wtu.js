@@ -10,6 +10,7 @@ const sharp = require("sharp");
 let page;
 let data;
 let counter = 0;
+const defaultNoImage = true;
 let groupNumber;
 const config = [
   {
@@ -229,11 +230,17 @@ async function pageContentHandler(currentConfig) {
       await page.waitFor(5000);
       await util.commit(page, currentConfig.details, passenger);
       if (passenger.gender == "Female") {
-        await page.waitForSelector('#ddlrelation');
-        await page.select('#ddlrelation', "15");
+        await page.waitForSelector("#ddlrelation");
+        await page.select("#ddlrelation", "15");
       }
 
-      util.createMRZImage(path.join(util.passportsFolder, passenger.passportNumber + "_400x300_mrz.jpg"), passenger.codeline);
+      util.createMRZImage(
+        path.join(
+          util.passportsFolder,
+          passenger.passportNumber + "_400x300_mrz.jpg"
+        ),
+        passenger.codeline
+      );
 
       let resizedPhotoPath = await util.downloadAndResizeImage(
         passenger,
@@ -254,11 +261,11 @@ async function pageContentHandler(currentConfig) {
         "vaccine"
       );
 
-      await page.select('#cmbVacc_cert_type',"2")
-      await page.waitForSelector('#img_vaccination_copy')
+      await page.select("#cmbVacc_cert_type", "2");
+      await page.waitForSelector("#img_vaccination_copy");
 
-      if (!process.argv.includes("noimage")) {
-      await page.click("#btn_uploadImage");
+      if (!process.argv.includes("noimage") || !defaultNoImage) {
+        await page.click("#btn_uploadImage");
         await util.commitFile("#file_photo_upload", resizedPhotoPath);
         await page.waitForNavigation();
       }
@@ -268,23 +275,26 @@ async function pageContentHandler(currentConfig) {
         e.getAttribute("src")
       );
 
-
-      if (!passportElementSourceValue && !process.argv.includes("noimage")) {
+      if (
+        (!passportElementSourceValue && !process.argv.includes("noimage")) ||
+        !defaultNoImage
+      ) {
         await util.commitFile("#fuppcopy", resizedPassportPath);
         await page.waitForNavigation();
       }
 
-      const vaccineElementSourceValue = await page.$eval("#img_vaccination_copy", (e) =>
-        e.getAttribute("src")
+      const vaccineElementSourceValue = await page.$eval(
+        "#img_vaccination_copy",
+        (e) => e.getAttribute("src")
       );
 
-      if (!vaccineElementSourceValue && !process.argv.includes("noimage")) {
-
+      if (
+        (!vaccineElementSourceValue && !process.argv.includes("noimage")) ||
+        !defaultNoImage
+      ) {
         let futureFileChooser = page.waitForFileChooser();
         await page.evaluate(() =>
-          document
-            .querySelector("#F_Vaccinationcopy")
-            .click()
+          document.querySelector("#F_Vaccinationcopy").click()
         );
         let fileChooser = await futureFileChooser;
         // await util.commitFile("#F_Vaccinationcopy", resizedVaccinePath);
