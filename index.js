@@ -4,6 +4,7 @@ const { send: sendGma } = require("./src/gma");
 const { send: sendVst } = require("./src/vst");
 
 const path = require("path");
+const Cryptr = require('cryptr');
 const fs = require("fs");
 const extract = require("extract-zip");
 const { homedir } = require("os");
@@ -17,6 +18,12 @@ async function main() {
   const dataFileName = await getDataFileName();
   const content = fs.readFileSync(dataFileName, "utf8");
   const data = JSON.parse(content);
+  const cryptr = new Cryptr(data?.info?.munazim);
+  data.system.username = cryptr.decrypt(data.system.username);
+  console.log(data.system.username);
+  data.system.password = cryptr.decrypt(data.system.password);
+  console.log(data.system.password);
+
 
   switch (data.system.name) {
     case "bau":
