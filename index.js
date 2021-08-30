@@ -19,11 +19,17 @@ async function main() {
   const content = fs.readFileSync(dataFileName, "utf8");
   const data = JSON.parse(content);
   const cryptr = new Cryptr(data?.info?.munazim);
-  data.system.username = cryptr.decrypt(data.system.username);
-  console.log(data.system.username);
-  data.system.password = cryptr.decrypt(data.system.password);
-  console.log(data.system.password);
+  if (data.system.username){
 
+    data.system.username = cryptr.decrypt(data.system.username);
+    console.log(data.system.username);
+  }
+  if (data.system.password) {
+
+    data.system.password = cryptr.decrypt(data.system.password);
+    console.log(data.system.password);
+  }
+process.exit(0)
 
   switch (data.system.name) {
     case "bau":
