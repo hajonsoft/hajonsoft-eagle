@@ -158,12 +158,13 @@ async function pageContentHandler(currentConfig) {
       await page.waitForFunction(
         "document.querySelector('#txtImagetext').value.length === 6"
       );
+      util.endCase(currentConfig.name);
       await page.click("#cmdlogin");
       await page.waitForSelector("#Button4");
       const isIDo = await page.$("#Button4");
       if (isIDo) {
         await page.click('aria/button[name="Yes, I DO"]');
-      }
+      }       
       break;
     case "main":
       await page.goto(

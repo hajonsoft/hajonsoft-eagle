@@ -14,9 +14,9 @@ let page;
 const photosFolder = path.join(homedir, "hajonsoft", "photos");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
 const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
-
+let browser;
 async function initPage(config, onContentLoaded) {
-  const browser = await puppeteer.launch({
+  browser = await puppeteer.launch({
     headless: false,
     defaultViewport: null,
     args: [
@@ -406,6 +406,12 @@ function createMRZImage(fileName, codeline) {
   stream.pipe(out);
 }
 
+function endCase(name) {
+  const regEx = new RegExp(`${name}[_-]only`)
+  if (process.argv.some(arg => regEx.test(arg))){
+    browser.disconnect();
+  }
+}
 module.exports = {
   findConfig,
   commit,
@@ -420,5 +426,6 @@ module.exports = {
   vaccineFolder,
   isCodelineLooping,
   createMRZImage,
+  endCase,
   downloadAndResizeImage,
 };
