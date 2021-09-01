@@ -33,9 +33,7 @@ const config = [
     details: [
       {
         selector: "#txtGrpdesc",
-        value: (row) =>
-          (row.name.full + row.passportNumber).replace(/ /g, "") +
-          parseInt(moment().format("DDMMYYYYHHmmss")).toString(32),
+        value: (row) => `${row.name.first}-${row.name.last}-${moment().format("HH:mm:ss")}`
       },
       // {
       //   selector: "#txtEADate",
@@ -265,7 +263,7 @@ async function pageContentHandler(currentConfig) {
       await page.select("#cmbVacc_cert_type", "2");
       await page.waitForSelector("#img_vaccination_copy");
 
-      if (!process.argv.includes("noimage") || !defaultNoImage) {
+      if (!process.argv.includes("noimage") && !defaultNoImage) {
         await page.click("#btn_uploadImage");
         await util.commitFile("#file_photo_upload", resizedPhotoPath);
         await page.waitForNavigation();
@@ -277,7 +275,7 @@ async function pageContentHandler(currentConfig) {
       );
 
       if (
-        (!passportElementSourceValue && !process.argv.includes("noimage")) ||
+        (!passportElementSourceValue && !process.argv.includes("noimage")) &&
         !defaultNoImage
       ) {
         await util.commitFile("#fuppcopy", resizedPassportPath);
@@ -290,7 +288,7 @@ async function pageContentHandler(currentConfig) {
       );
 
       if (
-        (!vaccineElementSourceValue && !process.argv.includes("noimage")) ||
+        (!vaccineElementSourceValue && !process.argv.includes("noimage")) &&
         !defaultNoImage
       ) {
         let futureFileChooser = page.waitForFileChooser();
