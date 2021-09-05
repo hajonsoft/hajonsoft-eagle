@@ -5,7 +5,10 @@ const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const sharp = require("sharp");
+const budgie = require("./budgie");
+
 const axios = require("axios");
+const moment = require("moment");
 const { createCanvas, loadImage } = require("canvas");
 const _ = require("lodash");
 const homedir = require("os").homedir();
@@ -84,7 +87,9 @@ async function storeControls(url) {
   }
   const fileNameBase = logFolder + _.last(url.split("/"));
   const pageInputs = await page.$$eval("input", (inputs) =>
-    inputs.filter((i) => i.type !== "hidden").map((i) => i.outerHTML)
+    inputs
+      .filter((i) => i.type !== "hidden")
+      .map((i) => i.getAttribute("id") + "\n" + i.outerHTML)
   );
   const pageSelects = await page.$$eval("select", (selects) =>
     selects.map((s) => s.outerHTML.replace(/\t/g, ""))
@@ -180,52 +185,58 @@ function findConfig(url, config) {
   return {};
 }
 
-async function commit(page, structure, info) {
-  for (const element of structure) {
-    await page.waitForSelector(element.selector);
+async function commit(page, details, info) {
+  for (const detail of details) {
+    await page.waitForSelector(detail.selector);
     let value;
     let txt;
-    if (element.value) {
-      value = element.value(info); // call value function and pass current row info
+    if (detail.value) {
+      value = detail.value(info); // call value function and pass current row info
+      if (!value && details.autocomplete) {
+        value = budgie.get(detail.autocomplete)
+      }
     }
-    if (element.txt) {
-      txt = element.txt(info); // call txt function and pass current row info
+    if (detail.txt) {
+      txt = detail.txt(info); // call txt function and pass current row info
     }
-    const elementType = await page.$eval(element.selector, (e) =>
+    const elementType = await page.$eval(detail.selector, (e) =>
       e.outerHTML
         .match(/<(.*?) /g)[0]
         .replace(/</g, "")
         .replace(/ /g, "")
         .toLowerCase()
     );
+    // Budgie entry point
     switch (elementType) {
       case "input":
-        await page.waitForSelector(element.selector);
-        await page.focus(element.selector);
-        await page.type(element.selector, "");
-        await page.evaluate((selector) => {
-          const field = document.querySelector(selector);
+        await page.waitForSelector(detail.selector);
+        await page.focus(detail.selector);
+        await page.type(detail.selector, "");
+        await page.evaluate((element) => {
+          const field = document.querySelector(element.selector);
           if (field) {
             field.value = "";
             field.setAttribute("value", "");
           }
-        }, element.selector);
-        await page.type(element.selector, value || "");
+        }, detail);
+
+        await page.waitForSelector(detail.selector);
+        await page.type(detail.selector, value || budgie.get(detail.autocomplete));
         break;
       case "select":
         if (value) {
-          await page.select(element.selector, value || "");
+          await page.select(detail.selector, value || "");
           break;
         }
-        if (txt) {
+        if (txt) { // TODO AA: review this logic and compare with enjaz sender for date
           const options = await page.$eval(
-            element.selector,
+            detail.selector,
             (e) => e.innerHTML
           );
           const pattern = new RegExp(`value="(\\d+)">${txt}`, "im");
           const match = pattern.exec(options.replace(/\n/gim, ""));
           if (match && match.length >= 2) {
-            await page.select(element.selector, match[1]);
+            await page.select(detail.selector, match[1]);
           }
           break;
         }
@@ -233,9 +244,22 @@ async function commit(page, structure, info) {
       default:
         break;
     }
-    if (element.break) {
+    if (detail.break) {
       throw new Error("break-here");
     }
+  }
+}
+
+async function selectByValue(selector, txt) {
+  await page.waitForSelector(selector);
+  const options = await page.$eval(
+    selector,
+    (e) => e.innerHTML
+  );
+  const valuePattern = new RegExp(`value="([0-9a-zA-Z/]+)">${txt}</option>`, "im");
+  const found = valuePattern.exec(options.replace(/\n/gim, ""));
+  if (found && found.length >= 2) {
+    await page.select(selector, found[1]);
   }
 }
 
@@ -297,6 +321,14 @@ function useCounter(currentCounter) {
   return output;
 }
 
+function setCounter(currentCounter) {
+  const fileName = "./selectedTraveller.txt";
+    const selectedTraveller = fs.writeFileSync(
+      "./selectedTraveller.txt",
+      selectedTraveller
+    );
+}
+
 async function commitFile(selector, fileName) {
   await page.waitForSelector(selector);
   let [fileChooser] = await Promise.all([
@@ -305,7 +337,11 @@ async function commitFile(selector, fileName) {
   ]);
 
   await fileChooser.accept([fileName]);
-  await fileChooser.cancel();
+  try {
+    await fileChooser.cancel();
+  } catch {
+    console.log("File chooser is probably already handled");
+  }
 }
 async function captchaClick(selector, numbers, actionSelector) {
   await page.waitForSelector(selector);
@@ -407,11 +443,20 @@ function createMRZImage(fileName, codeline) {
 }
 
 function endCase(name) {
-  const regEx = new RegExp(`${name}[_-]only`)
-  if (process.argv.some(arg => regEx.test(arg))){
+  const regEx = new RegExp(`${name}[_-]only`);
+  if (process.argv.some((arg) => regEx.test(arg))) {
     browser.disconnect();
   }
 }
+
+async function sniff(page,details) {
+for (const detail of details) {
+  if (detail.autocomplete) {
+    budgie.sniff(page,detail.selector,detail.autocomplete);
+  }
+}
+}
+
 module.exports = {
   findConfig,
   commit,
@@ -427,5 +472,8 @@ module.exports = {
   isCodelineLooping,
   createMRZImage,
   endCase,
+  setCounter,
+  selectByValue,
+  sniff,
   downloadAndResizeImage,
 };

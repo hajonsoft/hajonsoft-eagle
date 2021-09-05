@@ -39,9 +39,12 @@
 //           //   })
 //           // );
 
-// const moment = require('moment')
-// console.log(moment().format('mmssa'))
+const moment = require('moment')
+// console.log(new Date("2021-01-01").toLocaleDateString())
+// console.log(moment("2021-01-01").format('L'))
+// console.log(new Date("2021-01-01").toLocaleDateString())
+console.log(moment().add(10,'days').year())
 
-console.log(
-/login[_-]only/.test('login_sonly')
-)
+// console.log(
+// /login[_-]only/.test('login_sonly')
+// )
