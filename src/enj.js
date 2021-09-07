@@ -9,10 +9,10 @@ const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
 let page;
+let mofaPage;
 let data;
 let counter = 0;
 const defaultNoImage = false;
-let groupNumber;
 const config = [
   {
     name: "login",
@@ -21,12 +21,10 @@ const config = [
       {
         selector: "#UserName",
         value: (system) => system.username,
-        autocomplete: "username",
       },
       {
         selector: "#Password",
         value: (system) => system.password,
-        autocomplete: "password",
       },
     ],
   },
@@ -102,49 +100,38 @@ const config = [
       {
         selector: "#BIRTH_PLACE",
         value: (row) => decodeURI(row.birthPlace),
+        autocomplete: "birthPlace",
       },
       {
         selector: "#PASSPORT_ISSUE_PLACE",
         value: (row) => decodeURI(row.placeOfIssue),
+        autocomplete: "passportIssuePlace",
       },
       {
         selector: "#JOB_OR_RELATION",
-        value: (row) => decodeURI(row.profession || "unknown"),
+        value: (row) => decodeURI(row.profession),
+        autocomplete: "profession",
       },
       {
         selector: "#DEGREE",
-        value: (row) => "bachelor",
+        value: (row) => "",
+        autocomplete: "degree",
       },
       {
         selector: "#DEGREE_SOURCE",
-        value: (row) => "university of ",
+        value: (row) => "",
+        autocomplete: "degreeSource",
       },
       {
         selector: "#ADDRESS_HOME",
-        value: (row) => "123 utopia street",
+        value: (row) => "",
+        autocomplete: "homeAddress",
       },
       { selector: "#PASSPORType", value: (row) => "1" },
       { selector: "#NATIONALITY", value: (row) => row.nationality.code },
       { selector: "#RELIGION", value: (row) => "1" },
       { selector: "#SOCIAL_STATUS", value: (row) => "5" },
-      { selector: "#Sex", value: (row) => (row.gender === "MALE" ? "1" : "2") },
-      { selector: "#VisaKind", value: (row) => "3" },
-      { selector: "#ENTRY_POINT", value: (row) => "2" },
-      { selector: "#COMING_THROUGH", value: (row) => "2" },
-      {
-        selector: "#EmbassyCode",
-        value: (row) => "302",
-      },
-      { selector: "#SPONSER_NAME", value: (row) => "value" },
-      { selector: "#SPONSER_ADDRESS", value: (row) => "value" },
-
-      { selector: "#NATIONALITY_FIRST", value: (row) => row.nationality.code },
-      { selector: "#SPONSER_PHONE", value: (row) => "123456789" },
-
-      { selector: "#PersonId", value: (row) => "123456789" },
-      { selector: "#SPONSER_NUMBER", value: (row) => "123456789" },
-      { selector: "#car_number", value: (row) => "123456789" },
-      { selector: "#porpose", value: (row) => "123456789" },
+      { selector: "#Sex", value: (row) => (row.gender === "Male" ? "1" : "2") },
     ],
   },
 ];
@@ -167,6 +154,115 @@ async function onContentLoaded(res) {
   }
 }
 
+async function onMofaContentLoaded(res) {
+  const mofa_visaType = budgie.get("mofa_visaType");
+  const mofa_id1 = budgie.get("mofa_id1") // , "7005985066");
+  const mofa_id2 = budgie.get("mofa_id2") // , "2456817127");
+  util.handleMofa(mofaPage, mofa_id1, mofa_id2, mofa_visaType);
+}
+
+async function onMofaContentClosed(res) {
+  await page.bringToFront();
+  const mofaData = util.getMofaData();
+  await util.commit(page, [
+    {
+      selector: "#JOB_OR_RELATION",
+      value: () => `${mofaData.profession}`,
+    },
+  ]);
+
+  // paste the name in the four fields
+  const nameParts = mofaData.name.split(' ');
+  if (nameParts.length > 0) {
+    if (nameParts.length == 2) {
+      nameParts.push();
+      nameParts.push(nameParts[1]);
+      nameParts[1] = ""
+    }
+    if (nameParts.length == 3) {
+      nameParts.push(nameParts[2]);
+      nameParts[2] = ""
+    }
+    if (nameParts.length > 4) {
+      nameParts[3] = nameParts.slice(3).join(' ')
+    }
+    await util.commit(page, [
+      { selector: "#AFIRSTNAME", value: (row) => nameParts[0] },
+    ]);
+    await util.commit(page, [
+      { selector: "#AFAMILY", value: (row) => nameParts[3] },
+    ]);
+    await util.commit(page, [
+      { selector: "#AGRAND", value: (row) => nameParts[2] },
+    ]);
+    await util.commit(page, [
+      { selector: "#AFATHER", value: (row) => nameParts[1] },
+    ]);
+  }
+  // await util.commit(page, [
+  //   { selector: "#VisaKind", value: (row) => `${JSON.stringify(mofaData)}` },
+  // ]);
+  // await util.commit(page, [
+  //   { selector: "#ENTRY_POINT", value: (row) => `${JSON.stringify(mofaData)}` },
+  // ]);
+  
+  await util.commit(page, [
+    {
+      selector: "#COMING_THROUGH",
+      txt: (row) => `${mofaData.embassy}`,
+    },
+    {
+      selector: "#SPONSER_NAME",
+      value: (row) => `${mofaData.sponsorName}`,
+    },
+    {
+      selector: "#SPONSER_ADDRESS",
+      value: (row) => `${mofaData.address}`,
+    },
+        {
+      selector: "#DocumentNumber",
+      value: (row) => `${mofaData.id1}`,
+    },
+        {
+      selector: "#SPONSER_NUMBER",
+      value: (row) => `${mofaData.id2}`,
+    },
+  ]);
+
+  // await util.commit(page, [
+  //   {
+  //     selector: "#SPONSER_PHONE",
+  //     value: (row) => `${JSON.stringify(mofaData)}`,
+  //   },
+  // ]);
+
+  // await util.commit(page, [
+  //   { selector: "#PersonId", value: (row) => `${JSON.stringify(mofaData)}` },
+  // ]);
+
+  // await util.commit(page, [
+  //   {
+  //     selector: "#SPONSER_NUMBER",
+  //     value: (row) => `${JSON.stringify(mofaData)}`,
+  //   },
+  // ]);
+
+  // await util.commit(page, [
+  //   { selector: "#car_number", value: (row) => `${JSON.stringify(mofaData)}` },
+  // ]);
+  // await util.commit(page, [
+  //   { selector: "#porpose", value: (row) => `${JSON.stringify(mofaData)}` },
+  // ]);
+
+  await page.waitForSelector("#Captcha");
+  await page.focus("#Captcha");
+
+  await page.evaluate(() => {
+    const captchaElement = document.querySelector("#Captcha");
+    captchaElement.scrollIntoView({ block: "end" });
+  });
+}
+
 async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
@@ -177,12 +273,14 @@ async function pageContentHandler(currentConfig) {
         document.querySelector(selector).scrollIntoView();
       }, captchaSelector);
       await page.focus(captchaSelector);
-      await page.waitForFunction(
-        "document.querySelector('#Captcha').value.length === 6"
-      );
-      util.endCase(currentConfig.name);
-      await util.sniff(page, currentConfig.details);
-      await page.click("#btnSubmit");
+      if (!process.argv.includes("slow")) {
+        await page.waitForFunction(
+          "document.querySelector('#Captcha').value.length === 6"
+        );
+        util.endCase(currentConfig.name);
+        await util.sniff(page, currentConfig.details);
+        await page.click("#btnSubmit");
+      }
       break;
     case "main":
       const addNewApplicationSelector =
@@ -230,13 +328,7 @@ async function pageContentHandler(currentConfig) {
       const portraitSrc = await page.$eval("#image", (e) =>
         e.getAttribute("src")
       );
-      console.log(
-        "%c 🍊 portraitSrc: ",
-        "font-size:20px;background-color: #33A5FF;color:#fff;",
-        portraitSrc
-      );
       await util.commitFile("#PersonalImage", resizedPhotoPath);
-      // await page.waitForNavigation();
 
       await util.commit(page, currentConfig.details, passenger);
       await setEnjazDate(
@@ -266,27 +358,27 @@ async function pageContentHandler(currentConfig) {
       //   travelDateDefault.day()
       // );
       await page.click("#HaveTraveledToOtherCountriesNo");
-      counter = counter + 1;
-      console.log(
-        "%c 🥡 counter: ",
-        "font-size:20px;background-color: #B03734;color:#fff;",
-        counter
-      );
-      await page.select("#EmbassyCode", "302");
-
-      await page.waitForSelector("#Captcha");
-      await page.focus("#Captcha");
-
-      await page.evaluate(() => {
-        const captchaElement = document.querySelector("#Captcha");
-        captchaElement.scrollIntoView({ block: "end" });
+      mofaPage = await util.newPage(onMofaContentLoaded, onMofaContentClosed);
+      await mofaPage.goto("https://visa.mofa.gov.sa", {
+        waitUntil: "domcontentloaded",
       });
-      await page.waitForFunction(
-        "document.querySelector('#Captcha').value.length === 6"
-      );
-      await page.click(
-        "#myform > div.form-actions.fluid.right > div > div > button"
-      );
+
+      counter = counter + 1;
+      // await page.select("#EmbassyCode", "302");
+
+      // await page.waitForSelector("#Captcha");
+      // await page.focus("#Captcha");
+
+      // await page.evaluate(() => {
+      //   const captchaElement = document.querySelector("#Captcha");
+      //   captchaElement.scrollIntoView({ block: "end" });
+      // });
+      // await page.waitForFunction(
+      //   "document.querySelector('#Captcha').value.length === 6"
+      // );
+      // await page.click(
+      //   "#myform > div.form-actions.fluid.right > div > div > button"
+      // );
       // util.setCounter(counter + 1);
       break;
     default:

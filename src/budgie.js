@@ -2,25 +2,20 @@ const fs = require("fs");
 const path = require("path");
 
 const dbFile = path.join(__dirname, "budgie.json");
-function get(key) {
+function get(key, defaultValue="") {
   if (!key) {
-    return ""; //TODO AA: Budgie should always return something
+    return "budgie"; 
   }
   const data = readKey(key);
   if (data) {
     return data;
   }
-  return "";
+  return defaultValue;
 }
 
 async function sniff(page, selector, key) {
   await page.waitForSelector(selector);
   let value = await page.$eval(selector, (el) => el.value || el.innerText);
-  console.log(
-    "%c 🥓 value: ",
-    "font-size:20px;background-color: #F5CE50;color:#fff;",
-    value
-  );
   if (value) {
     save(key, value);
   }
@@ -38,11 +33,6 @@ function save(key, value) {
 function read() {
   if (fs.existsSync(dbFile)) {
     const db = fs.readFileSync(dbFile, "utf-8");
-    console.log(
-      "%c 🦐 db: ",
-      "font-size:20px;background-color: #6EC1C2;color:#fff;",
-      db
-    );
     if (db) {
       return JSON.parse(db);
     }
