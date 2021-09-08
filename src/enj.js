@@ -133,7 +133,7 @@ const config = [
       { selector: "#RELIGION", value: (row) => "1" },
       { selector: "#SOCIAL_STATUS", value: (row) => "5" },
       { selector: "#Sex", value: (row) => (row.gender === "Male" ? "1" : "2") },
-      { selector: "#PersonId", value: (row) => row.passportNumber},
+      { selector: "#PersonId", value: (row) => row.passportNumber },
     ],
   },
 ];
@@ -166,8 +166,9 @@ async function onMofaContentLoaded(res) {
 async function onMofaContentClosed(res) {
   await page.bringToFront();
   const mofaData = util.getMofaData();
-  const numberOfEntries = mofaData?.numberOFEntries?.split('-')?.[0]?.trim();
-  const validityDuration = mofaData?.numberOFEntries?.split('-')?.[1]?.trim();
+  const numberOfEntries = mofaData?.numberOfEntries?.split("-")?.[0]?.trim();
+  const validityDuration = mofaData?.numberOfEntries?.split("-")?.[1]?.match(/[0-9]+/)?.[0];
+
   await util.commit(page, [
     {
       selector: "#JOB_OR_RELATION",
@@ -210,10 +211,6 @@ async function onMofaContentClosed(res) {
       autocomplete: "flightNumber",
     },
     { selector: "#porpose", value: (row) => ``, autocomplete: "visaPurpose" },
-    { selector: "#NUMBER_OF_ENTRIES", txt: (row) => `${numberOfEntries}`,  },
-    { selector: "#Number_Entry_Day", txt: (row) => `${mofaData.validityDuration}`,  },
-    { selector: "#RESIDENCY_IN_KSA", txt: (row) => `${mofaData.duration}`  },
-
   ]);
 
   // paste the name in the four fields at the end
@@ -244,9 +241,25 @@ async function onMofaContentClosed(res) {
     ]);
   }
 
+  await page.waitForTimeout(2000);
+  await util.selectByValue("#EmbassyCode", `${mofaData.embassy}`);
+  await page.click("#PerformUmrahNo");
+
+  await util.commit(page, [
+    { selector: "#NUMBER_OF_ENTRIES", txt: (row) => `${numberOfEntries}` },
+  ]);
+
   await page.waitForTimeout(2000)
- await util.selectByValue("#EmbassyCode", `${mofaData.embassy}`)
- await page.click("#PerformUmrahNo");
+  await util.commit(page, [
+    {
+      selector: "#Number_Entry_Day",
+      value: (row) => `${validityDuration.match(/[0-9]+/)}`,
+    },
+  ]);
+  await page.waitForTimeout(2000)
+  await util.commit(page, [
+    { selector: "#RESIDENCY_IN_KSA", value: (row) => `${mofaData.duration}` },
+  ]);
   await page.waitForSelector("#Captcha");
   await page.focus("#Captcha");
 
@@ -256,23 +269,24 @@ async function onMofaContentClosed(res) {
   });
 
   await page.waitForFunction(
-    "document.querySelector('#Captcha').value.length === 6"
-  , {timeout: 0});
+    "document.querySelector('#Captcha').value.length === 6",
+    { timeout: 0 }
+  );
 
   await util.sniff(page, [
     {
       selector: "#ENTRY_POINT",
       autocomplete: "portOfEntry",
     },
-        {
+    {
       selector: "#DEGREE",
       autocomplete: "degree",
     },
-        {
+    {
       selector: "#DEGREE_SOURCE",
       autocomplete: "degreeSource",
     },
-        {
+    {
       selector: "#ADDRESS_HOME",
       autocomplete: "homeAddress",
     },
@@ -287,7 +301,9 @@ async function onMofaContentClosed(res) {
     { selector: "#porpose", autocomplete: "visaPurpose" },
   ]);
 
-  await page.click("#myform > div.form-actions.fluid.right > div > div > button");
+  await page.click(
+    "#myform > div.form-actions.fluid.right > div > div > button"
+  );
 }
 
 async function pageContentHandler(currentConfig) {

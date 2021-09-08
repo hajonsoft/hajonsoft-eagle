@@ -23,7 +23,7 @@ async function initPage(config, onContentLoaded) {
     headless: false,
     defaultViewport: null,
     args: [
-      // "--start-fullscreen",
+      "--start-fullscreen",
       "--incognito",
       "--disable-web-security",
       "--disable-features=IsolateOrigins,site-per-process",
@@ -353,7 +353,7 @@ async function commitFile(selector, fileName) {
   try {
     await fileChooser.cancel();
   } catch {
-    console.log("File chooser is probably already handled");
+    // console.log("File chooser is probably already handled");
   }
 }
 
