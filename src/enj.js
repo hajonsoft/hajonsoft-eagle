@@ -167,8 +167,13 @@ async function onMofaContentClosed(res) {
   await page.bringToFront();
   const mofaData = util.getMofaData();
   const numberOfEntries = mofaData?.numberOfEntries?.split("-")?.[0]?.trim();
-  const validityDuration = mofaData?.numberOfEntries?.split("-")?.[1]?.match(/[0-9]+/)?.[0];
+  const validityDuration = mofaData?.numberOfEntries
+    ?.split("-")?.[1]
+    ?.match(/[0-9]+/)?.[0];
 
+  if (mofaData.applicationType == "invitation") {
+    return;
+  }
   await util.commit(page, [
     {
       selector: "#JOB_OR_RELATION",
@@ -249,14 +254,14 @@ async function onMofaContentClosed(res) {
     { selector: "#NUMBER_OF_ENTRIES", txt: (row) => `${numberOfEntries}` },
   ]);
 
-  await page.waitForTimeout(2000)
+  await page.waitForTimeout(2000);
   await util.commit(page, [
     {
       selector: "#Number_Entry_Day",
       value: (row) => `${validityDuration.match(/[0-9]+/)}`,
     },
   ]);
-  await page.waitForTimeout(2000)
+  await page.waitForTimeout(2000);
   await util.commit(page, [
     { selector: "#RESIDENCY_IN_KSA", value: (row) => `${mofaData.duration}` },
   ]);

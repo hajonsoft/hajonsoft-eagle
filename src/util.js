@@ -230,13 +230,11 @@ async function commit(page, details, info) {
 
         await page.waitForSelector(detail.selector);
         if (value) {
-          await page.type(
-            detail.selector,
-            value
-          );
+          await page.type(detail.selector, value);
         } else if (detail.autocomplete) {
           await page.type(
-            detail.selector, budgie.get(detail.autocomplete, detail.defaultValue)
+            detail.selector,
+            budgie.get(detail.autocomplete, detail.defaultValue)
           );
         }
         break;
@@ -248,7 +246,7 @@ async function commit(page, details, info) {
           await page.select(detail.selector, budgie.get(detail.autocomplete));
         }
         if (txt) {
-          await selectByValue(detail.selector,txt);
+          await selectByValue(detail.selector, txt);
           break;
         }
         break;
@@ -467,7 +465,10 @@ async function sniff(page, details) {
   for (const detail of details) {
     if (detail.autocomplete) {
       await page.waitForSelector(detail.selector);
-      let value = await page.$eval(detail.selector, (el) => el.value || el.innerText);
+      let value = await page.$eval(
+        detail.selector,
+        (el) => el.value || el.innerText
+      );
       if (detail.autocomplete && value) {
         budgie.save(detail.autocomplete, value);
       }
@@ -509,8 +510,9 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
       await currentPage.focus(captchaSelector);
       if (!process.argv.includes("slow")) {
         await currentPage.waitForFunction(
-          "document.querySelector('#Captcha').value.length === 6"
-        , {timeout: 0});
+          "document.querySelector('#Captcha').value.length === 6",
+          { timeout: 0 }
+        );
         await sniff(currentPage, [
           { selector: "#SearchingType", autocomplete: "mofa_visaType" },
           { selector: "#ApplicationNumber", autocomplete: "mofa_id1" },
@@ -521,39 +523,108 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
       }
       break;
     case "https://visa.mofa.gov.sa/Home/PrintVisa".toLowerCase():
-      const sponsorNameSelector =
-        "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(2) > label";
-      const addressSelector =
-        "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(7) > div > label";
-      const visaTypeSelector =
-        "#tblDocumentVisaList > tbody > tr > td:nth-child(1)";
-      const embassySelector =
-        "#tblDocumentVisaList > tbody > tr > td:nth-child(5)";
-      const nameSelector =
-        "#tblDocumentVisaList > tbody > tr > td:nth-child(4)";
-      const id2Selector =
-        "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(4) > label";
-      const professionSelector = "#tblDocumentVisaList > tbody > tr > td:nth-child(8)";
-      const id1Selector =
-        "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
-        const telSelector = "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(6) > div > label";
-        const numberOfEntriesSelector = "#tblDocumentVisaList > tbody > tr > td:nth-child(9)";
-        const durationSelector = "#tblDocumentVisaList > tbody > tr > td:nth-child(10)";
+      const applicationTypeSelector =
+        "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(1) > div:nth-child(2) > h2";
+      const applicationType = await readValue(
+        currentPage,
+        applicationTypeSelector
+      );
+      console.log(
+        "%c 🍕 applicationType: ",
+        "font-size:20px;background-color: #42b983;color:#fff;",
+        applicationType
+      );
+      if (applicationType == "خطاب الدعوة") {
+        mofaData.applicationType = "invitation";
+
+        const inv_id1Selector =
+          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
+        const id2Selector =
+          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(4) > label";
+
+        const sponsorNameSelector =
+          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(2) > label";
+        const addressSelector =
+          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(7) > div > label";
+        const visaTypeSelector =
+          "#tblDocumentVisaList > tbody > tr > td:nth-child(1)";
+        const embassySelector =
+          "#tblDocumentVisaList > tbody > tr > td:nth-child(5)";
+        const nameSelector =
+          "#tblDocumentVisaList > tbody > tr > td:nth-child(4)";
+        const professionSelector =
+          "#tblDocumentVisaList > tbody > tr > td:nth-child(8)";
+        const id1Selector =
+          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
+        const telSelector =
+          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(6) > div > label";
+        const numberOfEntriesSelector =
+          "#tblDocumentVisaList > tbody > tr > td:nth-child(9)";
+        const durationSelector =
+          "#tblDocumentVisaList > tbody > tr > td:nth-child(10)";
+
+        // #content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label
+        mofaData = {
+          ...mofaData,
+          name: await readValue(currentPage, nameSelector),
+          sponsorName: await readValue(currentPage, sponsorNameSelector),
+          tel: await readValue(currentPage, telSelector),
+          address: await readValue(currentPage, addressSelector),
+          numberOfEntries: await readValue(
+            currentPage,
+            numberOfEntriesSelector
+          ),
+          embassy: await readValue(currentPage, embassySelector),
+          duration: await readValue(currentPage, durationSelector),
+          visaType: await readValue(currentPage, visaTypeSelector),
+          id1: await readValue(currentPage, id1Selector),
+          id2: await readValue(currentPage, id2Selector),
+          profession: await readValue(currentPage, professionSelector),
+        };
+      } else if (applicationType == "مستند تأشيرة") {
+        mofaData.applicationType = "visa";
+        const sponsorNameSelector =
+          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(2) > label";
+        const addressSelector =
+          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(7) > div > label";
+        const visaTypeSelector =
+          "#tblDocumentVisaList > tbody > tr > td:nth-child(1)";
+        const embassySelector =
+          "#tblDocumentVisaList > tbody > tr > td:nth-child(5)";
+        const nameSelector =
+          "#tblDocumentVisaList > tbody > tr > td:nth-child(4)";
+        const id2Selector =
+          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(4) > label";
+        const professionSelector =
+          "#tblDocumentVisaList > tbody > tr > td:nth-child(8)";
+        const id1Selector =
+          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
+        const telSelector =
+          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(6) > div > label";
+        const numberOfEntriesSelector =
+          "#tblDocumentVisaList > tbody > tr > td:nth-child(9)";
+        const durationSelector =
+          "#tblDocumentVisaList > tbody > tr > td:nth-child(10)";
 
         mofaData = {
-        ...mofaData,
-        name: await readValue(currentPage, nameSelector),
-        sponsorName: await readValue(currentPage, sponsorNameSelector),
-        tel: await readValue(currentPage, telSelector),
-        address: await readValue(currentPage, addressSelector),
-        numberOfEntries: await readValue(currentPage, numberOfEntriesSelector),
-        embassy: await readValue(currentPage, embassySelector),
-        duration: await readValue(currentPage, durationSelector),
-        visaType: await readValue(currentPage, visaTypeSelector),
-        id1: await readValue(currentPage, id1Selector),
-        id2: await readValue(currentPage, id2Selector),
-        profession: await readValue(currentPage, professionSelector),
-      };
+          ...mofaData,
+          name: await readValue(currentPage, nameSelector),
+          sponsorName: await readValue(currentPage, sponsorNameSelector),
+          tel: await readValue(currentPage, telSelector),
+          address: await readValue(currentPage, addressSelector),
+          numberOfEntries: await readValue(
+            currentPage,
+            numberOfEntriesSelector
+          ),
+          embassy: await readValue(currentPage, embassySelector),
+          duration: await readValue(currentPage, durationSelector),
+          visaType: await readValue(currentPage, visaTypeSelector),
+          id1: await readValue(currentPage, id1Selector),
+          id2: await readValue(currentPage, id2Selector),
+          profession: await readValue(currentPage, professionSelector),
+        };
+      }
+
       break;
   }
 }
