@@ -10,7 +10,7 @@ Note: Apple M1 Chip not supported!
 git clone https://github.com/hajonsoft/hajonsoft-eagle.git
 cd hajonsoft-eagle
 npm i
-node . [file=FILENAME[.zip]] [noimage] [debug] [WORKFLOWNAME-only] [verbose-url=url]
+node . [file=FILENAME[.zip]] [noimage] [debug] [WORKFLOWNAME-only] [verbose-url=url] [slow]
 
 ```
 

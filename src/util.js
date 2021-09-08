@@ -5,7 +5,10 @@ const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const sharp = require("sharp");
+const budgie = require("./budgie");
+
 const axios = require("axios");
+const moment = require("moment");
 const { createCanvas, loadImage } = require("canvas");
 const _ = require("lodash");
 const homedir = require("os").homedir();
@@ -72,7 +75,14 @@ async function initPage(config, onContentLoaded) {
   return page;
 }
 
-async function storeControls(url) {
+async function newPage(onMofaContentLoaded, onMofaContentClosed) {
+  const sameBrowserNewPage = await browser.newPage(); // TODO AA: I had to hardcoded for readability
+  sameBrowserNewPage.on("domcontentloaded", onMofaContentLoaded);
+  sameBrowserNewPage.on("close", onMofaContentClosed);
+  return sameBrowserNewPage;
+}
+
+async function storeControls(pageWithControls, url) {
   console.log(
     "%c 🥔 url: ",
     "font-size:20px;background-color: #4b4b4b;color:#fff;",
@@ -83,14 +93,16 @@ async function storeControls(url) {
     fs.mkdirSync(logFolder);
   }
   const fileNameBase = logFolder + _.last(url.split("/"));
-  const pageInputs = await page.$$eval("input", (inputs) =>
-    inputs.filter((i) => i.type !== "hidden").map((i) => i.outerHTML)
+  const pageInputs = await pageWithControls.$$eval("input", (inputs) =>
+    inputs
+      .filter((i) => i.type !== "hidden")
+      .map((i) => i.getAttribute("id") + "\n" + i.outerHTML)
   );
-  const pageSelects = await page.$$eval("select", (selects) =>
+  const pageSelects = await pageWithControls.$$eval("select", (selects) =>
     selects.map((s) => s.outerHTML.replace(/\t/g, ""))
   );
 
-  const pageFrames = await page.$$eval("iframe", (frames) =>
+  const pageFrames = await pageWithControls.$$eval("iframe", (frames) =>
     frames.map((f) => f.outerHTML)
   );
   console.log(
@@ -98,11 +110,11 @@ async function storeControls(url) {
   );
 
   // frameId's
-  const framesIds = await page.$$eval("iframe", (frames) =>
+  const framesIds = await pageWithControls.$$eval("iframe", (frames) =>
     frames.map((f) => f.id)
   );
 
-  await page.waitFor(10000); //wait for frames to render - need to find a better solution
+  await pageWithControls.waitFor(10000); //wait for frames to render - need to find a better solution - This is ok it is a debug feature anyway
 
   for (let i = 0; i < framesIds.length; i = i + 1) {
     console.log(
@@ -110,7 +122,7 @@ async function storeControls(url) {
       "font-size:20px;background-color: #2EAFB0;color:#fff;",
       i
     );
-    let frameHandle = await page.$(`iframe[id='${framesIds[i]}']`);
+    let frameHandle = await pageWithControls.$(`iframe[id='${framesIds[i]}']`);
     let frame = await frameHandle.contentFrame();
 
     let frameInputs = await frame.$$eval("input", (inputs) =>
@@ -161,10 +173,11 @@ async function storeControls(url) {
     fs.writeFileSync(fileNameBase + "_frames.html", framesString);
   }
 }
+
 function findConfig(url, config) {
   let lowerUrl = url.toLowerCase();
   if (process.argv.length > 2 && process.argv.includes(`verbose-url=${url}`)) {
-    storeControls(lowerUrl);
+    storeControls(page, lowerUrl);
   }
 
   const urlConfig = config.find(
@@ -180,66 +193,90 @@ function findConfig(url, config) {
   return {};
 }
 
-async function commit(page, structure, info) {
-  for (const element of structure) {
-    await page.waitForSelector(element.selector);
+async function commit(page, details, info) {
+  for (const detail of details) {
+    await page.waitForSelector(detail.selector);
     let value;
     let txt;
-    if (element.value) {
-      value = element.value(info); // call value function and pass current row info
+    if (detail.value) {
+      value = detail.value(info); // call value function and pass current row info
+      if (!value && details.autocomplete) {
+        value = budgie.get(detail.autocomplete);
+      }
     }
-    if (element.txt) {
-      txt = element.txt(info); // call txt function and pass current row info
+    if (detail.txt) {
+      txt = detail.txt(info); // call txt function and pass current row info
     }
-    const elementType = await page.$eval(element.selector, (e) =>
+    const elementType = await page.$eval(detail.selector, (e) =>
       e.outerHTML
         .match(/<(.*?) /g)[0]
         .replace(/</g, "")
         .replace(/ /g, "")
         .toLowerCase()
     );
+    // Budgie entry point
     switch (elementType) {
       case "input":
-        await page.waitForSelector(element.selector);
-        await page.focus(element.selector);
-        await page.type(element.selector, "");
-        await page.evaluate((selector) => {
-          const field = document.querySelector(selector);
+        await page.waitForSelector(detail.selector);
+        await page.focus(detail.selector);
+        await page.type(detail.selector, "");
+        await page.evaluate((element) => {
+          const field = document.querySelector(element.selector);
           if (field) {
             field.value = "";
             field.setAttribute("value", "");
           }
-        }, element.selector);
-        await page.type(element.selector, value || "");
+        }, detail);
+
+        await page.waitForSelector(detail.selector);
+        if (value) {
+          await page.type(
+            detail.selector,
+            value
+          );
+        } else if (detail.autocomplete) {
+          await page.type(
+            detail.selector, budgie.get(detail.autocomplete, detail.defaultValue)
+          );
+        }
         break;
       case "select":
         if (value) {
-          await page.select(element.selector, value || "");
+          await page.select(detail.selector, value);
           break;
+        } else if (detail.autocomplete) {
+          await page.select(detail.selector, budgie.get(detail.autocomplete));
         }
         if (txt) {
-          const options = await page.$eval(
-            element.selector,
-            (e) => e.innerHTML
-          );
-          const pattern = new RegExp(`value="(\\d+)">${txt}`, "im");
-          const match = pattern.exec(options.replace(/\n/gim, ""));
-          if (match && match.length >= 2) {
-            await page.select(element.selector, match[1]);
-          }
+          await selectByValue(detail.selector,txt);
           break;
         }
         break;
       default:
         break;
     }
-    if (element.break) {
-      throw new Error("break-here");
-    }
+  }
+}
+
+async function selectByValue(selector, txt) {
+  await page.waitForSelector(selector);
+  const options = await page.$eval(selector, (e) => e.innerHTML);
+  const valuePattern = new RegExp(
+    `value="([0-9a-zA-Z/]+)">${txt}</option>`,
+    "im"
+  );
+  const found = valuePattern.exec(options.replace(/\n/gim, ""));
+  if (found && found.length >= 2) {
+    await page.select(selector, found[1]);
   }
 }
 
 async function controller(page, structure, travellers) {
+  const isVisible = await page.evaluate(() => window.handleSendClick);
+  if (isVisible) {
+    return;
+  }
+
   if (
     !structure.controller ||
     !structure.controller.selector ||
@@ -297,6 +334,14 @@ function useCounter(currentCounter) {
   return output;
 }
 
+function setCounter(currentCounter) {
+  const fileName = "./selectedTraveller.txt";
+  const selectedTraveller = fs.writeFileSync(
+    "./selectedTraveller.txt",
+    selectedTraveller
+  );
+}
+
 async function commitFile(selector, fileName) {
   await page.waitForSelector(selector);
   let [fileChooser] = await Promise.all([
@@ -305,8 +350,13 @@ async function commitFile(selector, fileName) {
   ]);
 
   await fileChooser.accept([fileName]);
-  await fileChooser.cancel();
+  try {
+    await fileChooser.cancel();
+  } catch {
+    // console.log("File chooser is probably already handled");
+  }
 }
+
 async function captchaClick(selector, numbers, actionSelector) {
   await page.waitForSelector(selector);
   await page.focus(selector);
@@ -407,11 +457,113 @@ function createMRZImage(fileName, codeline) {
 }
 
 function endCase(name) {
-  const regEx = new RegExp(`${name}[_-]only`)
-  if (process.argv.some(arg => regEx.test(arg))){
+  const regEx = new RegExp(`${name}[_-]only`);
+  if (process.argv.some((arg) => regEx.test(arg))) {
     browser.disconnect();
   }
 }
+
+async function sniff(page, details) {
+  for (const detail of details) {
+    if (detail.autocomplete) {
+      await page.waitForSelector(detail.selector);
+      let value = await page.$eval(detail.selector, (el) => el.value || el.innerText);
+      if (detail.autocomplete && value) {
+        budgie.save(detail.autocomplete, value);
+      }
+    }
+  }
+}
+
+let mofaData = {};
+
+function getMofaData() {
+  return mofaData;
+}
+async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
+  const url = await currentPage.url();
+  if (!url) {
+    return;
+  }
+  switch (url.toLowerCase()) {
+    case "https://visa.mofa.gov.sa/".toLowerCase():
+      mofaData = {};
+      const closeButtonSelector =
+        "#dlgMessageContent > div.modal-footer > button";
+      await currentPage.waitForSelector(closeButtonSelector);
+      await currentPage.$eval(closeButtonSelector, (btn) => {
+        btn.click();
+      });
+
+      if (mofa_visaTypeValue) {
+        await currentPage.select("#SearchingType", mofa_visaTypeValue);
+      }
+      await currentPage.waitForSelector("#ApplicationNumber");
+      await currentPage.type("#ApplicationNumber", id1);
+      await currentPage.type("#SponserID", id2);
+
+      const captchaSelector = "#Captcha";
+      await currentPage.waitForSelector(captchaSelector);
+      await currentPage.$eval(captchaSelector, (e) => e.scrollIntoView());
+      await currentPage.bringToFront();
+      await currentPage.focus(captchaSelector);
+      if (!process.argv.includes("slow")) {
+        await currentPage.waitForFunction(
+          "document.querySelector('#Captcha').value.length === 6"
+        , {timeout: 0});
+        await sniff(currentPage, [
+          { selector: "#SearchingType", autocomplete: "mofa_visaType" },
+          { selector: "#ApplicationNumber", autocomplete: "mofa_id1" },
+          { selector: "#SponserID", autocomplete: "mofa_id2" },
+        ]);
+
+        await currentPage.click("#btnSearch");
+      }
+      break;
+    case "https://visa.mofa.gov.sa/Home/PrintVisa".toLowerCase():
+      const sponsorNameSelector =
+        "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(2) > label";
+      const addressSelector =
+        "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(7) > div > label";
+      const visaTypeSelector =
+        "#tblDocumentVisaList > tbody > tr > td:nth-child(1)";
+      const embassySelector =
+        "#tblDocumentVisaList > tbody > tr > td:nth-child(5)";
+      const nameSelector =
+        "#tblDocumentVisaList > tbody > tr > td:nth-child(4)";
+      const id2Selector =
+        "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(4) > label";
+      const professionSelector = "#tblDocumentVisaList > tbody > tr > td:nth-child(8)";
+      const id1Selector =
+        "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
+        const telSelector = "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(6) > div > label";
+        const numberOfEntriesSelector = "#tblDocumentVisaList > tbody > tr > td:nth-child(9)";
+        const durationSelector = "#tblDocumentVisaList > tbody > tr > td:nth-child(10)";
+
+        mofaData = {
+        ...mofaData,
+        name: await readValue(currentPage, nameSelector),
+        sponsorName: await readValue(currentPage, sponsorNameSelector),
+        tel: await readValue(currentPage, telSelector),
+        address: await readValue(currentPage, addressSelector),
+        numberOfEntries: await readValue(currentPage, numberOfEntriesSelector),
+        embassy: await readValue(currentPage, embassySelector),
+        duration: await readValue(currentPage, durationSelector),
+        visaType: await readValue(currentPage, visaTypeSelector),
+        id1: await readValue(currentPage, id1Selector),
+        id2: await readValue(currentPage, id2Selector),
+        profession: await readValue(currentPage, professionSelector),
+      };
+      break;
+  }
+}
+
+async function readValue(currentPage, selector) {
+  await currentPage.waitForSelector(selector);
+  const value = await currentPage.$eval(selector, (ele) => ele.innerText);
+  return value;
+}
+
 module.exports = {
   findConfig,
   commit,
@@ -427,5 +579,12 @@ module.exports = {
   isCodelineLooping,
   createMRZImage,
   endCase,
+  setCounter,
+  selectByValue,
+  sniff,
+  newPage,
+  handleMofa,
+  mofaData,
+  getMofaData,
   downloadAndResizeImage,
 };

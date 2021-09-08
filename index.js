@@ -2,13 +2,14 @@ const { send: sendBau } = require("./src/bau");
 const { send: sendWtu } = require("./src/wtu");
 const { send: sendGma } = require("./src/gma");
 const { send: sendVst } = require("./src/vst");
+const { send: sendEnj } = require("./src/enj");
 
 const path = require("path");
 const Cryptr = require("cryptr");
 const fs = require("fs");
 const extract = require("extract-zip");
 const { homedir } = require("os");
-const version = "0.1.0";
+const version = "0.1.1";
 
 async function main() {
   if (process.argv.includes("-v")) {
@@ -43,6 +44,8 @@ async function main() {
       return sendBau(data);
     case "vst":
       return sendVst(data);
+    case "enj":
+      return sendEnj(data);
     default:
       console.log("unknown system");
   }

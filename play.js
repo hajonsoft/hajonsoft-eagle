@@ -40,8 +40,35 @@
 //           // );
 
 // const moment = require('moment')
-// console.log(moment().format('mmssa'))
+// console.log(new Date("2021-01-01").toLocaleDateString())
+// console.log(moment("2021-01-01").format('L'))
+// console.log(new Date("2021-01-01").toLocaleDateString())
+// console.log(moment().add(10,'days').year())
 
-console.log(
-/login[_-]only/.test('login_sonly')
-)
+// console.log(
+// /login[_-]only/.test('login_sonly')
+// )
+
+
+const puppeteer = require("puppeteer-extra");
+
+async function main() {
+browser = await puppeteer.launch({
+    headless: false,
+    defaultViewport: null,
+    args: [
+      "--start-fullscreen",
+      "--incognito",
+      "--disable-web-security",
+      "--disable-features=IsolateOrigins,site-per-process",
+    ],
+  });
+  const pages = await browser.pages();
+  // page = await browser.pages();
+  page = pages[0];
+  const page2 = await browser.newPage();
+  await page2.close();
+  await page.bringToFront();
+
+}
+main()

@@ -2,4 +2,5 @@
 /log
 data.json
 data*.json
+budgie*.json
 selectedTraveller.txt
