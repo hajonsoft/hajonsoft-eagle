@@ -394,8 +394,11 @@ async function downloadAndResizeImage(
   if (imageType == "vaccine") {
     folder = vaccineFolder;
   }
-  const url =
+  let url =
     imageType == "photo" ? traveller.images.photo : traveller.images.passport;
+  if (imageType == "vaccine") {
+    url = traveller.images.vaccine;
+  }
   let imagePath = path.join(folder, `${traveller.passportNumber}.jpg`);
   const resizedPath = path.join(
     folder,
