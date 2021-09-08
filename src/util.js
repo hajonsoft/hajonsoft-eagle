@@ -229,32 +229,31 @@ async function commit(page, details, info) {
         }, detail);
 
         await page.waitForSelector(detail.selector);
-        await page.type(
-          detail.selector,
-          value || budgie.get(detail.autocomplete)
-        );
+        if (value) {
+          await page.type(
+            detail.selector,
+            value
+          );
+        } else if (detail.autocomplete) {
+          await page.type(
+            detail.selector, budgie.get(detail.autocomplete, detail.defaultValue)
+          );
+        }
         break;
       case "select":
         if (value) {
-          await page.select(detail.selector, value || "");
+          await page.select(detail.selector, value);
           break;
+        } else if (detail.autocomplete) {
+          await page.select(detail.selector, budgie.get(detail.autocomplete));
         }
         if (txt) {
-          // TODO AA: review this logic and compare with enjaz sender for date
-          const options = await page.$eval(detail.selector, (e) => e.innerHTML);
-          const pattern = new RegExp(`value="(\\d+)">${txt}`, "im");
-          const match = pattern.exec(options.replace(/\n/gim, ""));
-          if (match && match.length >= 2) {
-            await page.select(detail.selector, match[1]);
-          }
+          await selectByValue(detail.selector,txt);
           break;
         }
         break;
       default:
         break;
-    }
-    if (detail.break) {
-      throw new Error("break-here");
     }
   }
 }
@@ -467,7 +466,11 @@ function endCase(name) {
 async function sniff(page, details) {
   for (const detail of details) {
     if (detail.autocomplete) {
-      budgie.sniff(page, detail.selector, detail.autocomplete);
+      await page.waitForSelector(detail.selector);
+      let value = await page.$eval(detail.selector, (el) => el.value || el.innerText);
+      if (detail.autocomplete && value) {
+        budgie.save(detail.autocomplete, value);
+      }
     }
   }
 }
@@ -504,11 +507,10 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
       await currentPage.$eval(captchaSelector, (e) => e.scrollIntoView());
       await currentPage.bringToFront();
       await currentPage.focus(captchaSelector);
-      await currentPage.focus(captchaSelector);
       if (!process.argv.includes("slow")) {
         await currentPage.waitForFunction(
           "document.querySelector('#Captcha').value.length === 6"
-        );
+        , {timeout: 0});
         await sniff(currentPage, [
           { selector: "#SearchingType", autocomplete: "mofa_visaType" },
           { selector: "#ApplicationNumber", autocomplete: "mofa_id1" },
@@ -546,14 +548,22 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
       const professionSelector = "#tblDocumentVisaList > tbody > tr > td:nth-child(8)";
       const id1Selector =
         "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
-      mofaData = {
+
+        const telSelector = "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(6) > div > label";
+      
+        const numberOfEntriesSelector = "#tblDocumentVisaList > tbody > tr > td:nth-child(9)";
+
+        const durationSelector = "#tblDocumentVisaList > tbody > tr > td:nth-child(10)";
+        mofaData = {
         ...mofaData,
         name: await readValue(currentPage, nameSelector),
         sponsorName: await readValue(currentPage, sponsorNameSelector),
+        tel: await readValue(currentPage, telSelector),
         address: await readValue(currentPage, addressSelector),
+        numberOfEntries: await readValue(currentPage, numberOfEntriesSelector),
         // passportNumber,
         embassy: await readValue(currentPage, embassySelector),
-        // duration,
+        duration: await readValue(currentPage, durationSelector),
         visaType: await readValue(currentPage, visaTypeSelector),
         id1: await readValue(currentPage, id1Selector),
         id2: await readValue(currentPage, id2Selector),

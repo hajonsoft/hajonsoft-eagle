@@ -129,9 +129,11 @@ const config = [
       },
       { selector: "#PASSPORType", value: (row) => "1" },
       { selector: "#NATIONALITY", value: (row) => row.nationality.code },
+      { selector: "#NATIONALITY_FIRST", value: (row) => row.nationality.code },
       { selector: "#RELIGION", value: (row) => "1" },
       { selector: "#SOCIAL_STATUS", value: (row) => "5" },
       { selector: "#Sex", value: (row) => (row.gender === "Male" ? "1" : "2") },
+      { selector: "#PersonId", value: (row) => row.passportNumber},
     ],
   },
 ];
@@ -156,8 +158,8 @@ async function onContentLoaded(res) {
 
 async function onMofaContentLoaded(res) {
   const mofa_visaType = budgie.get("mofa_visaType");
-  const mofa_id1 = budgie.get("mofa_id1") // , "7005985066");
-  const mofa_id2 = budgie.get("mofa_id2") // , "2456817127");
+  const mofa_id1 = budgie.get("mofa_id1"); // , "7005985066");
+  const mofa_id2 = budgie.get("mofa_id2"); // , "2456817127");
   util.handleMofa(mofaPage, mofa_id1, mofa_id2, mofa_visaType);
 }
 
@@ -169,47 +171,16 @@ async function onMofaContentClosed(res) {
       selector: "#JOB_OR_RELATION",
       value: () => `${mofaData.profession}`,
     },
-  ]);
-
-  // paste the name in the four fields
-  const nameParts = mofaData.name.split(' ');
-  if (nameParts.length > 0) {
-    if (nameParts.length == 2) {
-      nameParts.push();
-      nameParts.push(nameParts[1]);
-      nameParts[1] = ""
-    }
-    if (nameParts.length == 3) {
-      nameParts.push(nameParts[2]);
-      nameParts[2] = ""
-    }
-    if (nameParts.length > 4) {
-      nameParts[3] = nameParts.slice(3).join(' ')
-    }
-    await util.commit(page, [
-      { selector: "#AFIRSTNAME", value: (row) => nameParts[0] },
-    ]);
-    await util.commit(page, [
-      { selector: "#AFAMILY", value: (row) => nameParts[3] },
-    ]);
-    await util.commit(page, [
-      { selector: "#AGRAND", value: (row) => nameParts[2] },
-    ]);
-    await util.commit(page, [
-      { selector: "#AFATHER", value: (row) => nameParts[1] },
-    ]);
-  }
-  // await util.commit(page, [
-  //   { selector: "#VisaKind", value: (row) => `${JSON.stringify(mofaData)}` },
-  // ]);
-  // await util.commit(page, [
-  //   { selector: "#ENTRY_POINT", value: (row) => `${JSON.stringify(mofaData)}` },
-  // ]);
-  
-  await util.commit(page, [
+    { selector: "#VisaKind", txt: (row) => `${mofaData.visaType}` },
+    {
+      selector: "#ENTRY_POINT",
+      value: (row) => ``,
+      autocomplete: "portOfEntry",
+    },
     {
       selector: "#COMING_THROUGH",
-      txt: (row) => `${mofaData.embassy}`,
+      txt: (row) => ``,
+      autocomplete: "transportationMode",
     },
     {
       selector: "#SPONSER_NAME",
@@ -219,40 +190,57 @@ async function onMofaContentClosed(res) {
       selector: "#SPONSER_ADDRESS",
       value: (row) => `${mofaData.address}`,
     },
-        {
+    {
       selector: "#DocumentNumber",
       value: (row) => `${mofaData.id1}`,
     },
-        {
+    {
       selector: "#SPONSER_NUMBER",
       value: (row) => `${mofaData.id2}`,
     },
+    {
+      selector: "#SPONSER_PHONE",
+      value: (row) => `${mofaData.tel}`,
+    },
+    {
+      selector: "#car_number",
+      value: (row) => ``,
+      autocomplete: "flightNumber",
+    },
+    { selector: "#porpose", value: (row) => ``, autocomplete: "visaPurpose" },
   ]);
 
-  // await util.commit(page, [
-  //   {
-  //     selector: "#SPONSER_PHONE",
-  //     value: (row) => `${JSON.stringify(mofaData)}`,
-  //   },
-  // ]);
+  // paste the name in the four fields at the end
+  const nameParts = mofaData.name.split(" ");
+  if (nameParts.length > 0) {
+    if (nameParts.length == 1) {
+      nameParts.push();
+      nameParts.push();
+      nameParts.push(nameParts[0]);
+    }
+    if (nameParts.length == 2) {
+      nameParts.push();
+      nameParts.push(nameParts[1]);
+      nameParts[1] = "";
+    }
+    if (nameParts.length == 3) {
+      nameParts.push(nameParts[2]);
+      nameParts[2] = "";
+    }
+    if (nameParts.length > 4) {
+      nameParts[3] = nameParts.slice(3).join(" ");
+    }
+    await util.commit(page, [
+      { selector: "#AFIRSTNAME", value: (row) => nameParts[0] },
+      { selector: "#AFAMILY", value: (row) => nameParts[3] },
+      { selector: "#AGRAND", value: (row) => nameParts[2] },
+      { selector: "#AFATHER", value: (row) => nameParts[1] },
+    ]);
+  }
 
-  // await util.commit(page, [
-  //   { selector: "#PersonId", value: (row) => `${JSON.stringify(mofaData)}` },
-  // ]);
+  await page.waitForTimeout(2000)
+ await util.selectByValue("#EmbassyCode", `${mofaData.embassy}`)
 
-  // await util.commit(page, [
-  //   {
-  //     selector: "#SPONSER_NUMBER",
-  //     value: (row) => `${JSON.stringify(mofaData)}`,
-  //   },
-  // ]);
-
-  // await util.commit(page, [
-  //   { selector: "#car_number", value: (row) => `${JSON.stringify(mofaData)}` },
-  // ]);
-  // await util.commit(page, [
-  //   { selector: "#porpose", value: (row) => `${JSON.stringify(mofaData)}` },
-  // ]);
 
   await page.waitForSelector("#Captcha");
   await page.focus("#Captcha");
@@ -261,6 +249,39 @@ async function onMofaContentClosed(res) {
     const captchaElement = document.querySelector("#Captcha");
     captchaElement.scrollIntoView({ block: "end" });
   });
+
+  await page.waitForFunction(
+    "document.querySelector('#Captcha').value.length === 6"
+  , {timeout: 0});
+  await util.sniff(page, [
+    {
+      selector: "#ENTRY_POINT",
+      autocomplete: "portOfEntry",
+    },
+        {
+      selector: "#DEGREE",
+      autocomplete: "degree",
+    },
+        {
+      selector: "#DEGREE_SOURCE",
+      autocomplete: "degreeSource",
+    },
+        {
+      selector: "#ADDRESS_HOME",
+      autocomplete: "homeAddress",
+    },
+    {
+      selector: "#COMING_THROUGH",
+      autocomplete: "transportationMode",
+    },
+    {
+      selector: "#car_number",
+      autocomplete: "flightNumber",
+    },
+    { selector: "#porpose", autocomplete: "visaPurpose" },
+  ]);
+
+  await page.click("#myform > div.form-actions.fluid.right > div > div > button");
 }
 
 async function pageContentHandler(currentConfig) {
@@ -275,7 +296,8 @@ async function pageContentHandler(currentConfig) {
       await page.focus(captchaSelector);
       if (!process.argv.includes("slow")) {
         await page.waitForFunction(
-          "document.querySelector('#Captcha').value.length === 6"
+          "document.querySelector('#Captcha').value.length === 6",
+          { timeout: 0 }
         );
         util.endCase(currentConfig.name);
         await util.sniff(page, currentConfig.details);
@@ -350,12 +372,12 @@ async function pageContentHandler(currentConfig) {
         passenger.dob.mm,
         passenger.dob.dd
       );
-      const travelDateDefault = moment().add(10, "days");
+      // const travelDateDefault = moment().add(10, "days");
       // await setEnjazDate(
       //   "#ExpectedEntryDate",
       //   travelDateDefault.year(),
       //   travelDateDefault.month(),
-      //   travelDateDefault.day()
+      //   travelDateDefault.day().toString()
       // );
       await page.click("#HaveTraveledToOtherCountriesNo");
       mofaPage = await util.newPage(onMofaContentLoaded, onMofaContentClosed);
@@ -364,21 +386,6 @@ async function pageContentHandler(currentConfig) {
       });
 
       counter = counter + 1;
-      // await page.select("#EmbassyCode", "302");
-
-      // await page.waitForSelector("#Captcha");
-      // await page.focus("#Captcha");
-
-      // await page.evaluate(() => {
-      //   const captchaElement = document.querySelector("#Captcha");
-      //   captchaElement.scrollIntoView({ block: "end" });
-      // });
-      // await page.waitForFunction(
-      //   "document.querySelector('#Captcha').value.length === 6"
-      // );
-      // await page.click(
-      //   "#myform > div.form-actions.fluid.right > div > div > button"
-      // );
       // util.setCounter(counter + 1);
       break;
     default:
@@ -410,8 +417,8 @@ async function setEnjazDate(dateSelector, year, month, day) {
     if (dayAnchor) {
       const anchorContent = await dayAnchor.evaluate((node) => node.innerText);
       if (anchorContent == parseInt(day)) {
-        dayTd.click();
         dayTd.focus();
+        dayTd.click();
       }
     }
   }

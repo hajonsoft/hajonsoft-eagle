@@ -10,15 +10,10 @@ function get(key, defaultValue="") {
   if (data) {
     return data;
   }
-  return defaultValue;
-}
-
-async function sniff(page, selector, key) {
-  await page.waitForSelector(selector);
-  let value = await page.$eval(selector, (el) => el.value || el.innerText);
-  if (value) {
-    save(key, value);
+  if (defaultValue || defaultValue === ""){
+    return defaultValue;
   }
+  return key;
 }
 
 function save(key, value) {
@@ -50,5 +45,5 @@ function readKey(key) {
 
 module.exports = {
   get,
-  sniff,
+  save,
 };
