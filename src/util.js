@@ -525,20 +525,8 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
         "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(2) > label";
       const addressSelector =
         "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(7) > div > label";
-      // const passportNumber = await currentPage.$eval(
-      //   "#tblDocumentVisaList > tbody > tr > td:nth-child(2)",
-      //    #tblDocumentVisaList > tbody > tr > td:nth-child(2)
-      //   (selector) => selector.innerText
-      // );
-
       const visaTypeSelector =
         "#tblDocumentVisaList > tbody > tr > td:nth-child(1)";
-
-      // const duration = await currentPage.$eval(
-      //   "#tblDocumentVisaList > tbody > tr > td:nth-child(10)",
-      //   (selector) => selector.innerText
-      // );
-
       const embassySelector =
         "#tblDocumentVisaList > tbody > tr > td:nth-child(5)";
       const nameSelector =
@@ -548,12 +536,10 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
       const professionSelector = "#tblDocumentVisaList > tbody > tr > td:nth-child(8)";
       const id1Selector =
         "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
-
         const telSelector = "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(6) > div > label";
-      
         const numberOfEntriesSelector = "#tblDocumentVisaList > tbody > tr > td:nth-child(9)";
-
         const durationSelector = "#tblDocumentVisaList > tbody > tr > td:nth-child(10)";
+
         mofaData = {
         ...mofaData,
         name: await readValue(currentPage, nameSelector),
@@ -561,7 +547,6 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
         tel: await readValue(currentPage, telSelector),
         address: await readValue(currentPage, addressSelector),
         numberOfEntries: await readValue(currentPage, numberOfEntriesSelector),
-        // passportNumber,
         embassy: await readValue(currentPage, embassySelector),
         duration: await readValue(currentPage, durationSelector),
         visaType: await readValue(currentPage, visaTypeSelector),

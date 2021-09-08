@@ -158,14 +158,16 @@ async function onContentLoaded(res) {
 
 async function onMofaContentLoaded(res) {
   const mofa_visaType = budgie.get("mofa_visaType");
-  const mofa_id1 = budgie.get("mofa_id1"); // , "7005985066");
-  const mofa_id2 = budgie.get("mofa_id2"); // , "2456817127");
+  const mofa_id1 = budgie.get("mofa_id1");
+  const mofa_id2 = budgie.get("mofa_id2");
   util.handleMofa(mofaPage, mofa_id1, mofa_id2, mofa_visaType);
 }
 
 async function onMofaContentClosed(res) {
   await page.bringToFront();
   const mofaData = util.getMofaData();
+  const numberOfEntries = mofaData?.numberOFEntries?.split('-')?.[0]?.trim();
+  const validityDuration = mofaData?.numberOFEntries?.split('-')?.[1]?.trim();
   await util.commit(page, [
     {
       selector: "#JOB_OR_RELATION",
@@ -208,6 +210,10 @@ async function onMofaContentClosed(res) {
       autocomplete: "flightNumber",
     },
     { selector: "#porpose", value: (row) => ``, autocomplete: "visaPurpose" },
+    { selector: "#NUMBER_OF_ENTRIES", txt: (row) => `${numberOfEntries}`,  },
+    { selector: "#Number_Entry_Day", txt: (row) => `${mofaData.validityDuration}`,  },
+    { selector: "#RESIDENCY_IN_KSA", txt: (row) => `${mofaData.duration}`  },
+
   ]);
 
   // paste the name in the four fields at the end
@@ -240,8 +246,7 @@ async function onMofaContentClosed(res) {
 
   await page.waitForTimeout(2000)
  await util.selectByValue("#EmbassyCode", `${mofaData.embassy}`)
-
-
+ await page.click("#PerformUmrahNo");
   await page.waitForSelector("#Captcha");
   await page.focus("#Captcha");
 
@@ -253,6 +258,7 @@ async function onMofaContentClosed(res) {
   await page.waitForFunction(
     "document.querySelector('#Captcha').value.length === 6"
   , {timeout: 0});
+
   await util.sniff(page, [
     {
       selector: "#ENTRY_POINT",
