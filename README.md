@@ -4,7 +4,9 @@ Use puppeteer to automate google chrome. automation include logging in to third 
 
 # Getting started 
 
-Note: for Apple M1 Chip try this. But it didnt work for me https://linguinecode.com/post/how-to-fix-m1-mac-puppeteer-chromium-arm64-bug
+Note: for Apple M1 Chip try this. But it didnt work for me 
+https://github.com/puppeteer/puppeteer/issues/6622
+https://linguinecode.com/post/how-to-fix-m1-mac-puppeteer-chromium-arm64-bug
 
 ```
 git clone https://github.com/hajonsoft/hajonsoft-eagle.git
