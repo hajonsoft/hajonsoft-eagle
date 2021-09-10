@@ -271,9 +271,10 @@ async function selectByValue(selector, txt) {
 
 async function controller(page, structure, travellers) {
   const isVisible = await page.evaluate(() => window.handleSendClick);
-  if (isVisible) {
-    return;
-  }
+  console.log('%c 🍹 isVisible controller: ', 'font-size:20px;background-color: #EA7E5C;color:#fff;', isVisible);
+  // if (isVisible) {
+  //   return;
+  // }
 
   if (
     !structure.controller ||
@@ -394,9 +395,11 @@ async function downloadAndResizeImage(
   if (imageType == "vaccine") {
     folder = vaccineFolder;
   }
-  let url =
-    imageType == "photo" ? traveller.images.photo : traveller.images.passport;
-  if (imageType == "vaccine") {
+  let url =  traveller.images.photo ;
+    if (imageType == "passport" && traveller.images.passport) {
+      url = traveller.images.passport;
+    }
+  if (imageType == "vaccine" && traveller.images.vaccine) {
     url = traveller.images.vaccine;
   }
   let imagePath = path.join(folder, `${traveller.passportNumber}.jpg`);

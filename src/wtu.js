@@ -10,7 +10,7 @@ const sharp = require("sharp");
 let page;
 let data;
 let counter = 0;
-const defaultNoImage = true;
+const defaultNoImage = false;
 let groupNumber;
 const config = [
   {
@@ -33,12 +33,9 @@ const config = [
     details: [
       {
         selector: "#txtGrpdesc",
-        value: (row) => `${row.name.first}-${row.name.last}-${moment().format("HH:mm:ss")}`
+        value: (row) =>
+          `${row.name.first}-${row.name.last}-${moment().format("HH:mm:ss")}`,
       },
-      // {
-      //   selector: "#txtEADate",
-      //   value: () => moment().add(7, "days").format("YYYY-MM-DD"),
-      // },
     ],
   },
   {
@@ -158,11 +155,11 @@ async function pageContentHandler(currentConfig) {
       );
       util.endCase(currentConfig.name);
       await page.click("#cmdlogin");
-      await page.waitForSelector("#Button4");
+      await page.waitForTimeout(2000);
       const isIDo = await page.$("#Button4");
       if (isIDo) {
         await page.click('aria/button[name="Yes, I DO"]');
-      }       
+      }
       break;
     case "main":
       await page.goto(
@@ -171,17 +168,31 @@ async function pageContentHandler(currentConfig) {
       break;
     case "create-group":
       await util.commit(page, currentConfig.details, data.travellers[0]);
-      const embassyCount = await page.evaluate(() => {
-        const consulate = document.querySelector("#cmbEmb");
-        const consulateOptions = consulate.querySelectorAll("option");
-        const consulateOptionsCount = [...consulateOptions].length;
-        return consulateOptionsCount;
+
+      const firstOption = await page.$eval("#cmbEmb", (e) => {
+        const options = e.querySelectorAll("option");
+
+        for (const opt of options) {
+          if (opt.value && /[0-9]/.test(opt.value)) {
+            return { value: opt.value, label: opt.innerText };
+          }
+        }
       });
-      await page.focus("#BtnSave");
-      const onlyOneEmbassy = embassyCount == 2;
-      if (onlyOneEmbassy) {
-        await page.click("#BtnSave");
+      if (firstOption) {
+        await page.$eval(
+          "#cmbEmb_chosen > a > span",
+          (e, val) => (e.innerText = val),
+          firstOption.label
+        );
+        await page.select("#cmbEmb", firstOption.value);
       }
+      const arrivalDate = moment()
+        .add(10, "days")
+        .toDate()
+        .toLocaleDateString();
+
+      await page.$eval("#txtEADate", (e, dt) => (e.value = dt), arrivalDate);
+
       // Wait for this string: Group saved successfully, Group code is 153635
       const groupCreatedSuccessfullyElement =
         "body > div.lobibox.lobibox-success.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span";
@@ -275,29 +286,34 @@ async function pageContentHandler(currentConfig) {
       );
 
       if (
-        (!passportElementSourceValue && !process.argv.includes("noimage")) &&
+        !passportElementSourceValue &&
+        !process.argv.includes("noimage") &&
         !defaultNoImage
       ) {
         await util.commitFile("#fuppcopy", resizedPassportPath);
         await page.waitForNavigation();
       }
 
+      await page.waitForSelector("#img_vaccination_copy")
       const vaccineElementSourceValue = await page.$eval(
         "#img_vaccination_copy",
         (e) => e.getAttribute("src")
       );
 
       if (
-        (!vaccineElementSourceValue && !process.argv.includes("noimage")) &&
+        !vaccineElementSourceValue &&
+        !process.argv.includes("noimage") &&
         !defaultNoImage
       ) {
-        let futureFileChooser = page.waitForFileChooser();
+        // let futureFileChooser = page.waitForFileChooser();
         await page.evaluate(() =>
           document.querySelector("#F_Vaccinationcopy").click()
         );
-        let fileChooser = await futureFileChooser;
+        // let fileChooser = await futureFileChooser;
         // await util.commitFile("#F_Vaccinationcopy", resizedVaccinePath);
-        await fileChooser.accept([resizedVaccinePath]);
+        // await fileChooser.accept([resizedVaccinePath]);
+        await util.commitFile("#F_Vaccinationcopy", resizedVaccinePath);
+
 
         await page.waitForNavigation();
       }
