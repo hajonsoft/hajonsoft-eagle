@@ -63,7 +63,8 @@ const config = [
       { selector: "#ddlhealth", value: (row) => "0" },
       {
         selector: "#txtprofession",
-        value: (row) => decodeURI(row.profession || "unknown"),
+        value: (row) => decodeURI(row.profession),
+        autocomplete: 'wtu_profession',
       },
       { selector: "#ddlmstatus", value: (row) => "99" },
       { selector: "#ddleducation", value: (row) => "99" },
@@ -106,18 +107,23 @@ const config = [
       {
         selector: "#txtcity",
         value: (row) => "",
+        autocomplete: 'wtu_address_city',
       },
       {
         selector: "#txtstreet",
         value: (row) => "",
+        autocomplete: 'wtu_address_street',
       },
       {
         selector: "#txtstate",
         value: (row) => "",
+        autocomplete: 'wtu_address_state'
+
       },
       {
         selector: "#txtzipcode",
         value: (row) => "",
+        autocomplete: 'wtu_address_zipcode'
       },
     ],
   },
@@ -285,6 +291,7 @@ async function pageContentHandler(currentConfig) {
       }
 
       await util.waitForCaptcha("#txtImagetext", 5);
+      await util.sniff(page,currentConfig.details)
       await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
       counter = counter + 1;
       // TODO: Wait for success message before advancing the counter
