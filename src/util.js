@@ -195,6 +195,7 @@ function findConfig(url, config) {
 
 async function commit(page, details, info) {
   for (const detail of details) {
+    await page.title(detail.selector);
     await page.waitForSelector(detail.selector);
     let value;
     let txt;
@@ -270,12 +271,6 @@ async function selectByValue(selector, txt) {
 }
 
 async function controller(page, structure, travellers) {
-  const isVisible = await page.evaluate(() => window.handleSendClick);
-  console.log('%c 🍹 isVisible controller: ', 'font-size:20px;background-color: #EA7E5C;color:#fff;', isVisible);
-  // if (isVisible) {
-  //   return;
-  // }
-
   if (
     !structure.controller ||
     !structure.controller.selector ||
@@ -312,8 +307,10 @@ async function controller(page, structure, travellers) {
       },
       [structure, options]
     );
-
-    await page.exposeFunction("handleSendClick", structure.controller.action);
+    const isExposed = await page.evaluate(() => window.handleSendClick);
+    if (!isExposed) {
+      await page.exposeFunction("handleSendClick", structure.controller.action);
+    }
   } catch (err) {
     console.log(err);
   }
@@ -345,15 +342,14 @@ async function commitFile(selector, fileName) {
   await page.waitForSelector(selector);
   let [fileChooser] = await Promise.all([
     page.waitForFileChooser(),
-    page.evaluate((p) => document.querySelector(p[0]).click(), [selector]),
+    page.evaluate(
+      (fileUploaderSelector) =>
+        document.querySelector(fileUploaderSelector).click(),
+      selector
+    ),
   ]);
 
-  await fileChooser.accept([fileName]);
-  try {
-    await fileChooser.cancel();
-  } catch {
-    // console.log("File chooser is probably already handled");
-  }
+  const result = await fileChooser.accept([fileName]);
 }
 
 async function captchaClick(selector, numbers, actionSelector) {
@@ -395,10 +391,10 @@ async function downloadAndResizeImage(
   if (imageType == "vaccine") {
     folder = vaccineFolder;
   }
-  let url =  traveller.images.photo ;
-    if (imageType == "passport" && traveller.images.passport) {
-      url = traveller.images.passport;
-    }
+  let url = traveller.images.photo;
+  if (imageType == "passport" && traveller.images.passport) {
+    url = traveller.images.passport;
+  }
   if (imageType == "vaccine" && traveller.images.vaccine) {
     url = traveller.images.vaccine;
   }
@@ -443,14 +439,21 @@ function isCodelineLooping(traveller, numberOfEntries = 1) {
 }
 
 function createMRZImage(fileName, codeline) {
+  // let f = new FontFace("test", "url(x)");
+  // await f.load();
   const canvas = createCanvas(400, 300);
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "black";
-  ctx.font = "13px Arial";
-  ctx.fillText(codeline.substring(0, 44), 25, canvas.height - 40);
-  ctx.fillText(codeline.substring(44), 25, canvas.height - 20);
+  ctx.font = "12px Tahoma, Geneva, sans-serif"; // Verdana, Verdana, Geneva, sans-serif
+  ctx.fillText(codeline.substring(0, 44), 15, canvas.height - 45);
+  ctx.fillText(codeline.substring(44), 15, canvas.height - 20);
+
+  ctx.lineWidth = 2;
+  ctx.strokeRect(20, 20, 120, 150);
+  ctx.fillStyle = "blue";
+  ctx.strokeRect(180, 20, 200, 150);
 
   const out = fs.createWriteStream(fileName);
   const stream = canvas.createJPEGStream({
@@ -458,6 +461,7 @@ function createMRZImage(fileName, codeline) {
     chromaSubsampling: false,
   });
   stream.pipe(out);
+  return fileName;
 }
 
 function endCase(name) {
@@ -641,6 +645,21 @@ async function readValue(currentPage, selector) {
   return value;
 }
 
+async function waitForCaptcha(selector, captchaLength, timeout = 0) {
+  await page.waitForSelector(selector);
+  await page.evaluate((cap) => {
+    const captchaElement = document.querySelector(cap);
+    captchaElement.scrollIntoView({ block: "end" });
+    captchaElement.value = "";
+  }, selector);
+  await page.focus(selector);
+  await page.hover(selector);
+  await page.waitForFunction(
+    `document.querySelector('${selector}').value.length === ${captchaLength}`,
+    { timeout }
+  );
+}
+
 module.exports = {
   findConfig,
   commit,
@@ -663,5 +682,6 @@ module.exports = {
   handleMofa,
   mofaData,
   getMofaData,
+  waitForCaptcha,
   downloadAndResizeImage,
 };

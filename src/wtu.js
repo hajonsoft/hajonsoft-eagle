@@ -10,7 +10,6 @@ const sharp = require("sharp");
 let page;
 let data;
 let counter = 0;
-const defaultNoImage = false;
 let groupNumber;
 const config = [
   {
@@ -148,12 +147,8 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      await page.waitForSelector("#txtImagetext");
-      await page.focus("#txtImagetext");
-      await page.waitForFunction(
-        "document.querySelector('#txtImagetext').value.length === 6"
-      );
       util.endCase(currentConfig.name);
+      await util.waitForCaptcha("#txtImagetext",6);
       await page.click("#cmdlogin");
       await page.waitForTimeout(2000);
       const isIDo = await page.$("#Button4");
@@ -168,10 +163,8 @@ async function pageContentHandler(currentConfig) {
       break;
     case "create-group":
       await util.commit(page, currentConfig.details, data.travellers[0]);
-
       const firstOption = await page.$eval("#cmbEmb", (e) => {
         const options = e.querySelectorAll("option");
-
         for (const opt of options) {
           if (opt.value && /[0-9]/.test(opt.value)) {
             return { value: opt.value, label: opt.innerText };
@@ -192,6 +185,8 @@ async function pageContentHandler(currentConfig) {
         .toLocaleDateString();
 
       await page.$eval("#txtEADate", (e, dt) => (e.value = dt), arrivalDate);
+      await page.focus('#BtnSave')
+      await page.hover('#BtnSave')
 
       // Wait for this string: Group saved successfully, Group code is 153635
       const groupCreatedSuccessfullyElement =
@@ -205,11 +200,6 @@ async function pageContentHandler(currentConfig) {
         (el) => el.innerText
       );
       groupNumber = groupCreatedSuccessfullyElementText.match(/\d+/g)[0];
-      console.log(
-        "%c 🥒 groupNumber: ",
-        "font-size:20px;background-color: #FCA650;color:#fff;",
-        groupNumber
-      );
       await page.goto(
         "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
       );
@@ -244,7 +234,7 @@ async function pageContentHandler(currentConfig) {
         await page.select("#ddlrelation", "15");
       }
 
-      util.createMRZImage(
+      const blankPassportPath = util.createMRZImage(
         path.join(
           util.passportsFolder,
           passenger.passportNumber + "_400x300_mrz.jpg"
@@ -274,56 +264,41 @@ async function pageContentHandler(currentConfig) {
       await page.select("#cmbVacc_cert_type", "2");
       await page.waitForSelector("#img_vaccination_copy");
 
-      if (!process.argv.includes("noimage") && !defaultNoImage) {
+      if (!process.argv.includes("noimage")) {
         await page.click("#btn_uploadImage");
         await util.commitFile("#file_photo_upload", resizedPhotoPath);
         await page.waitForNavigation();
       }
 
       await page.waitForSelector("#imgppcopy");
-      const passportElementSourceValue = await page.$eval("#imgppcopy", (e) =>
-        e.getAttribute("src")
-      );
-
       if (
-        !passportElementSourceValue &&
-        !process.argv.includes("noimage") &&
-        !defaultNoImage
+        !process.argv.includes("noimage")
       ) {
         await util.commitFile("#fuppcopy", resizedPassportPath);
-        await page.waitForNavigation();
       }
 
       await page.waitForSelector("#img_vaccination_copy")
-      const vaccineElementSourceValue = await page.$eval(
-        "#img_vaccination_copy",
-        (e) => e.getAttribute("src")
-      );
-
       if (
-        !vaccineElementSourceValue &&
-        !process.argv.includes("noimage") &&
-        !defaultNoImage
+        !process.argv.includes("noimage")
       ) {
-        // let futureFileChooser = page.waitForFileChooser();
-        await page.evaluate(() =>
-          document.querySelector("#F_Vaccinationcopy").click()
-        );
-        // let fileChooser = await futureFileChooser;
-        // await util.commitFile("#F_Vaccinationcopy", resizedVaccinePath);
-        // await fileChooser.accept([resizedVaccinePath]);
         await util.commitFile("#F_Vaccinationcopy", resizedVaccinePath);
-
-
-        await page.waitForNavigation();
       }
-      await page.waitForSelector("#txtImagetext");
-      await page.focus("#txtImagetext");
-      await page.waitForFunction(
-        "document.querySelector('#txtImagetext').value.length === 5"
-      );
-      await page.click("#btnsave");
+
+      await util.waitForCaptcha("#txtImagetext", 5);
+      await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
       counter = counter + 1;
+      // TODO: Wait for success message before advancing the counter
+      await page.waitForSelector("body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span");
+      const errorButton = await page.waitForSelector('body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-footer.text-center > button')
+      await errorButton.click();
+      await page.waitForSelector("#imgppcopy");
+      if (
+        !process.argv.includes("noimage")
+      ) {
+        await util.commitFile("#fuppcopy", blankPassportPath);
+      }
+      await util.waitForCaptcha("#txtImagetext", 5);
+      await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
       break;
     default:
       break;
