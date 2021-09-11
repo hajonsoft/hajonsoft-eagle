@@ -100,8 +100,8 @@ const config = [
       {
         selector: "#txt_GroupName",
         value: (row) =>
-          (row.name.full + row.passportNumber).replace(/ /g, "") +
-          parseInt(moment().format("DDMMYYYYHHmmss")).toString(32),
+        `${row.name.first}-${row.name.last}-${moment().format("HH:mm:ss")}`,
+
       },
     ],
     controller: {
@@ -194,11 +194,7 @@ async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      await page.waitForSelector("#CodeNumberTextBox");
-      await page.focus("#CodeNumberTextBox");
-      await page.waitForFunction(
-        "document.querySelector('#CodeNumberTextBox').value.length === 5"
-      );
+      await util.waitForCaptcha("#CodeNumberTextBox", 5)
       await page.click("#btn_Login");
       break;
     case "main":
