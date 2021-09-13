@@ -30,7 +30,6 @@ async function initPage(config, onContentLoaded) {
     ],
   });
   const pages = await browser.pages();
-  // page = await browser.pages();
   page = pages[0];
   await page.bringToFront();
   page.on("domcontentloaded", onContentLoaded);
@@ -114,14 +113,9 @@ async function storeControls(pageWithControls, url) {
     frames.map((f) => f.id)
   );
 
-  await pageWithControls.waitFor(10000); //wait for frames to render - need to find a better solution - This is ok it is a debug feature anyway
+  await pageWithControls.waitForTimeout(10000); //wait for frames to render - need to find a better solution - This is ok it is a debug feature anyway
 
   for (let i = 0; i < framesIds.length; i = i + 1) {
-    console.log(
-      "%c 🥩 i: ",
-      "font-size:20px;background-color: #2EAFB0;color:#fff;",
-      i
-    );
     let frameHandle = await pageWithControls.$(`iframe[id='${framesIds[i]}']`);
     let frame = await frameHandle.contentFrame();
 
@@ -176,7 +170,16 @@ async function storeControls(pageWithControls, url) {
 
 function findConfig(url, config) {
   let lowerUrl = url.toLowerCase();
-  if (process.argv.length > 2 && process.argv.includes(`verbose-url=${url}`)) {
+  for (const param of process.argv) {
+    if (param === "verbose_url=" ) {
+      console.log(`Verbose Mode: Navigation: ${url}`);
+      storeControls(page, lowerUrl);
+      break;
+    }
+  }
+  
+
+  if (process.argv.includes(`verbose-url=${url}`)) {
     storeControls(page, lowerUrl);
   }
 
@@ -196,7 +199,7 @@ function findConfig(url, config) {
 async function commit(page, details, info) {
   for (const detail of details) {
     await page.title(detail.selector);
-    await page.waitForSelector(detail.selector);
+    await page.waitForSelector(detail.selector, {timeout: 0});
     let value;
     let txt;
     if (detail.value) {
