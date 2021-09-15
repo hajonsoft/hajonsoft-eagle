@@ -37,9 +37,13 @@ function read() {
 
 function readKey(key) {
   if (fs.existsSync(dbFile)) {
-    const db = fs.readFileSync(dbFile, "utf-8");
-    if (db) {
-      return JSON.parse(db)[key];
+    try {
+      const db = fs.readFileSync(dbFile, "utf-8");
+      if (db) {
+        return JSON.parse(db)[key];
+      }
+    } catch (err) {
+      console.log(err)
     }
   }
 }

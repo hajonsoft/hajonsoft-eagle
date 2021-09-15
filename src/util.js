@@ -483,9 +483,13 @@ async function sniff(page, details) {
       await page.waitForSelector(detail.selector);
       let value = await page.$eval(
         detail.selector,
-        (el) => el.value || el.innerText
+        (el) => {
+          return el.value || el.innerText}
         );
-      console.log('%c 🦑 Sniff: ', 'font-size:20px;background-color: #42b983;color:#fff;', value);
+
+      // const fieldHandle = await page.$(detail.selector);
+      // console.log(await page.evaluate(x => x.value, fieldHandle));
+
       if (detail.autocomplete && value) {
         budgie.save(detail.autocomplete, value);
       }
