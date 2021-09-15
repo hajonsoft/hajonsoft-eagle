@@ -136,6 +136,27 @@ const config = [
       { selector: "#PersonId", value: (row) => row.passportNumber },
     ],
   },
+  {
+    name: "pay-passenger",
+    regex: "https://enjazit.com.sa/payment.appno=.*",
+    details: [
+      {
+        selector: "#CreditNumber",
+        value: (row) => "",
+        autocomplete: "credit-card",
+      },
+      {
+        selector: "#CVV2",
+        value: (row) => "",
+        autocomplete: "credit-card-cvv2",
+      },
+      {
+        selector: "#CardName",
+        value: (row) => "",
+        autocomplete: "credit-card-name",
+      },
+    ],
+  },
 ];
 
 async function send(sendData) {
@@ -265,9 +286,9 @@ async function onMofaContentClosed(res) {
   await util.commit(page, [
     { selector: "#RESIDENCY_IN_KSA", value: (row) => `${mofaData.duration}` },
   ]);
-  await page.emulateVisionDeficiency('none');
+  await page.emulateVisionDeficiency("none");
 
-  await util.waitForCaptcha("#Captcha"),6;
+  await util.waitForCaptcha("#Captcha"), 6;
 
   await util.sniff(page, [
     {
@@ -357,7 +378,7 @@ async function pageContentHandler(currentConfig) {
       if (passportNumber || util.isCodelineLooping(passenger)) {
         return;
       }
-      await page.emulateVisionDeficiency('blurredVision');
+      await page.emulateVisionDeficiency("blurredVision");
       let resizedPhotoPath = await util.downloadAndResizeImage(
         passenger,
         200,
@@ -392,13 +413,17 @@ async function pageContentHandler(currentConfig) {
         passenger.dob.dd
       );
       const travelDateDefault = moment().add(10, "day");
-      console.log('%c 🦐 travelDateDefault: ', 'font-size:20px;background-color: #4b4b4b;color:#fff;', travelDateDefault);
+      console.log(
+        "%c 🦐 travelDateDefault: ",
+        "font-size:20px;background-color: #4b4b4b;color:#fff;",
+        travelDateDefault
+      );
       await setEnjazDate(
         "#ExpectedEntryDate",
-        travelDateDefault.format('YYYY'),
-        travelDateDefault.format('MM'),
-        travelDateDefault.format('DD')
-        );
+        travelDateDefault.format("YYYY"),
+        travelDateDefault.format("MM"),
+        travelDateDefault.format("DD")
+      );
       await page.click("#HaveTraveledToOtherCountriesNo");
       mofaPage = await util.newPage(onMofaContentLoaded, onMofaContentClosed);
       await mofaPage.goto("https://visa.mofa.gov.sa", {
@@ -408,13 +433,20 @@ async function pageContentHandler(currentConfig) {
       counter = counter + 1;
       // util.setCounter(counter + 1);
       break;
+    case "pay-passenger":
+      await util.commit(page, currentConfig.details, {});
+      const ccSelector = "#CreditNumber";
+      const waitForCC = `document.querySelector('${ccSelector}').value.length === 16`
+      await page.waitForFunction(waitForCC);
+      await util.sniff(page, currentConfig.details);
+      break;
     default:
       break;
   }
 }
 
 async function setEnjazDate(dateSelector, year, month, day) {
-  await page.emulateVisionDeficiency('blurredVision');
+  await page.emulateVisionDeficiency("blurredVision");
   await page.click(dateSelector);
   const yearSelector =
     "body > div.calendars-popup > div > div.calendars-month-row > div > div > select.floatleft.calendars-month-year";
@@ -445,7 +477,6 @@ async function setEnjazDate(dateSelector, year, month, day) {
   }
 
   await page.waitForTimeout(1000);
-  await page.emulateVisionDeficiency('none');
-
+  await page.emulateVisionDeficiency("none");
 }
 module.exports = { send };

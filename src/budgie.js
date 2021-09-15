@@ -2,9 +2,9 @@ const fs = require("fs");
 const path = require("path");
 
 const dbFile = path.join(__dirname, "budgie.json");
-function get(key, defaultValue="") {
+function get(key, defaultValue) {
   if (!key) {
-    return "budgie"; 
+    return "unknown key"; 
   }
   const data = readKey(key);
   if (data) {
@@ -23,6 +23,7 @@ function save(key, value) {
   }
   db[key] = value; //TODO AA: Make this an array with useCount
   fs.writeFileSync(dbFile, JSON.stringify(db));
+  console.log("Budgie+: ", key, value);
 }
 
 function read() {
