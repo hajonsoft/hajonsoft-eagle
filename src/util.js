@@ -75,10 +75,10 @@ async function initPage(config, onContentLoaded) {
 }
 
 async function newPage(onMofaContentLoaded, onMofaContentClosed) {
-  const sameBrowserNewPage = await browser.newPage(); // TODO AA: I had to hardcoded for readability
-  sameBrowserNewPage.on("domcontentloaded", onMofaContentLoaded);
-  sameBrowserNewPage.on("close", onMofaContentClosed);
-  return sameBrowserNewPage;
+  const _newPage = await browser.newPage();
+  _newPage.on("domcontentloaded", onMofaContentLoaded);
+  _newPage.on("close", onMofaContentClosed);
+  return _newPage;
 }
 
 async function storeControls(pageWithControls, url) {
@@ -197,6 +197,7 @@ function findConfig(url, config) {
 }
 
 async function commit(page, details, info) {
+  await page.emulateVisionDeficiency('blurredVision');
   for (const detail of details) {
     await page.title(detail.selector);
     await page.waitForSelector(detail.selector, {timeout: 0});
@@ -258,6 +259,7 @@ async function commit(page, details, info) {
         break;
     }
   }
+  await page.emulateVisionDeficiency('none');
 }
 
 async function selectByValue(selector, txt) {
@@ -271,6 +273,7 @@ async function selectByValue(selector, txt) {
   if (found && found.length >= 2) {
     await page.select(selector, found[1]);
   }
+
 }
 
 async function controller(page, structure, travellers) {

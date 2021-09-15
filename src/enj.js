@@ -265,18 +265,9 @@ async function onMofaContentClosed(res) {
   await util.commit(page, [
     { selector: "#RESIDENCY_IN_KSA", value: (row) => `${mofaData.duration}` },
   ]);
-  await page.waitForSelector("#Captcha");
-  await page.focus("#Captcha");
+  await page.emulateVisionDeficiency('none');
 
-  await page.evaluate(() => {
-    const captchaElement = document.querySelector("#Captcha");
-    captchaElement.scrollIntoView({ block: "end" });
-  });
-
-  await page.waitForFunction(
-    "document.querySelector('#Captcha').value.length === 6",
-    { timeout: 0 }
-  );
+  await util.waitForCaptcha("#Captcha"),6;
 
   await util.sniff(page, [
     {
@@ -332,10 +323,11 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "main":
-      const addNewApplicationSelector =
-        "#content > div > div.row.page-user-container > div > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid > div > div.col-md-4 > a";
-      await page.waitForSelector(addNewApplicationSelector);
-      await page.click(addNewApplicationSelector);
+      // Automatically click add new application. Disable/Enable as desired
+      // const addNewApplicationSelector =
+      //   "#content > div > div.row.page-user-container > div > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid > div > div.col-md-4 > a";
+      // await page.waitForSelector(addNewApplicationSelector);
+      // await page.click(addNewApplicationSelector);
       break;
     case "agreement":
       const agreeSelector =
@@ -365,7 +357,7 @@ async function pageContentHandler(currentConfig) {
       if (passportNumber || util.isCodelineLooping(passenger)) {
         return;
       }
-
+      await page.emulateVisionDeficiency('blurredVision');
       let resizedPhotoPath = await util.downloadAndResizeImage(
         passenger,
         200,
@@ -399,13 +391,14 @@ async function pageContentHandler(currentConfig) {
         passenger.dob.mm,
         passenger.dob.dd
       );
-      // const travelDateDefault = moment().add(10, "days");
-      // await setEnjazDate(
-      //   "#ExpectedEntryDate",
-      //   travelDateDefault.year(),
-      //   travelDateDefault.month(),
-      //   travelDateDefault.day().toString()
-      // );
+      const travelDateDefault = moment().add(10, "day");
+      console.log('%c 🦐 travelDateDefault: ', 'font-size:20px;background-color: #4b4b4b;color:#fff;', travelDateDefault);
+      await setEnjazDate(
+        "#ExpectedEntryDate",
+        travelDateDefault.format('YYYY'),
+        travelDateDefault.format('MM'),
+        travelDateDefault.format('DD')
+        );
       await page.click("#HaveTraveledToOtherCountriesNo");
       mofaPage = await util.newPage(onMofaContentLoaded, onMofaContentClosed);
       await mofaPage.goto("https://visa.mofa.gov.sa", {
@@ -421,6 +414,7 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function setEnjazDate(dateSelector, year, month, day) {
+  await page.emulateVisionDeficiency('blurredVision');
   await page.click(dateSelector);
   const yearSelector =
     "body > div.calendars-popup > div > div.calendars-month-row > div > div > select.floatleft.calendars-month-year";
@@ -451,5 +445,7 @@ async function setEnjazDate(dateSelector, year, month, day) {
   }
 
   await page.waitForTimeout(1000);
+  await page.emulateVisionDeficiency('none');
+
 }
 module.exports = { send };
