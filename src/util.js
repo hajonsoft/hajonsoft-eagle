@@ -452,7 +452,7 @@ function createMRZImage(fileName, codeline) {
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "black";
-  ctx.font = "12px Tahoma, Geneva, sans-serif"; // Verdana, Verdana, Geneva, sans-serif
+  ctx.font = "11px Verdana, Verdana, Geneva, sans-serif"; // Verdana, Verdana, Geneva, sans-serif
   ctx.fillText(codeline.substring(0, 44), 15, canvas.height - 45);
   ctx.fillText(codeline.substring(44), 15, canvas.height - 20);
 
@@ -480,15 +480,9 @@ function endCase(name) {
 async function sniff(page, details) {
   for (const detail of details) {
     if (detail.autocomplete) {
-      await page.waitForSelector(detail.selector);
-      let value = await page.$eval(
-        detail.selector,
-        (el) => {
-          return el.value || el.innerText}
-        );
-
-      // const fieldHandle = await page.$(detail.selector);
-      // console.log(await page.evaluate(x => x.value, fieldHandle));
+      let element = await page.$(detail.selector)
+      let value = await page.evaluate(el => el.textContent, element)
+      console.log('%c 🌽 value: ', 'font-size:20px;background-color: #FCA650;color:#fff;', value);
 
       if (detail.autocomplete && value) {
         budgie.save(detail.autocomplete, value);
