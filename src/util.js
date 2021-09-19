@@ -81,113 +81,95 @@ async function newPage(onMofaContentLoaded, onMofaContentClosed) {
   return _newPage;
 }
 
-async function storeControls(pageWithControls, url) {
+async function storeControls(container, url) {
   console.log(
     "%c 🥔 url: ",
     "font-size:20px;background-color: #4b4b4b;color:#fff;",
-    `------------------starting verbose output on ${url}--------`
+    `VERBOSE-URL: ${url}`
   );
   const logFolder = __dirname + "/../log/";
   if (!fs.existsSync(logFolder)) {
     fs.mkdirSync(logFolder);
   }
   const fileNameBase = logFolder + _.last(url.split("/"));
-  const pageInputs = await pageWithControls.$$eval("input", (inputs) =>
-    inputs
-      .filter((i) => i.type !== "hidden")
-      .map((i) => i.getAttribute("id") + "\n" + i.outerHTML)
-  );
-  const pageSelects = await pageWithControls.$$eval("select", (selects) =>
+  const containerInputs = await container.$$("input");
+  const containerSelects = await container.$$eval("select", (selects) =>
     selects.map((s) => s.outerHTML.replace(/\t/g, ""))
   );
+  const containerButtons = await container.$$eval("button", (buttons) =>
+    buttons.map((s) => s.outerHTML.replace(/\t/g, ""))
+  );
 
-  const pageFrames = await pageWithControls.$$eval("iframe", (frames) =>
+  const containerFrames = await container.$$eval("iframe", (frames) =>
     frames.map((f) => f.outerHTML)
   );
   console.log(
-    `inputs/selects/frames: ${pageInputs.length}/${pageSelects.length}/${pageFrames.length}`
+    `inputs/selects/frames: ${containerInputs?.length}/${containerSelects?.length}/${containerFrames?.length}`
   );
 
-  // frameId's
-  const framesIds = await pageWithControls.$$eval("iframe", (frames) =>
-    frames.map((f) => f.id)
-  );
-
-  await pageWithControls.waitForTimeout(10000); //wait for frames to render - need to find a better solution - This is ok it is a debug feature anyway
-
-  for (let i = 0; i < framesIds.length; i = i + 1) {
-    let frameHandle = await pageWithControls.$(`iframe[id='${framesIds[i]}']`);
-    let frame = await frameHandle.contentFrame();
-
-    let frameInputs = await frame.$$eval("input", (inputs) =>
-      inputs.filter((i) => i.type !== "hidden").map((i) => i.outerHTML)
-    );
-
-    let frameSelects = await frame.$$eval("select", (selects) =>
-      selects.map((s) => s.outerHTML.replace(/\t/g, ""))
-    );
-
-    if (frameInputs && frameInputs.length > 0) {
-      let inputsString = `<html>${url}\n\n\n${frameInputs
-        .toString()
-        .replace(/,/g, "\n")}</html>`;
-      fs.writeFileSync(
-        fileNameBase + "_frame_" + framesIds[i] + "_inputs.html",
-        inputsString
-      );
+  if (containerInputs && containerInputs?.length > 0) {
+    let inputsString;
+    for (const containerInput of containerInputs) {
+      const selector = getSelector(containerInput.asElement());
+      const outerHtml = await containerInput.evaluate((ele) => ele.outerHTML);
+      inputsString += `\nselector: ${selector}\n${outerHtml}`;
     }
-    if (frameSelects && frameSelects.length > 0) {
-      let selectsString = `<html>${url}\n\n\n${frameSelects
-        .toString()
-        .replace(/,/g, "\n")}</html>`;
-      fs.writeFileSync(
-        fileNameBase + "_frame_" + framesIds[i] + "_selects.html",
-        selectsString
-      );
-    }
-  }
+    inputsString = `<html>${url}\n\n\n${inputsString})}</html>`;
 
-  if (pageInputs && pageInputs.length > 0) {
-    const inputsString = `<html>${url}\n\n\n${pageInputs
-      .toString()
-      .replace(/,/g, "\n")}</html>`;
     fs.writeFileSync(fileNameBase + "_inputs.html", inputsString);
   }
-  if (pageSelects && pageSelects.length > 0) {
-    const selectsString = `<html>${url}\n\n\n${pageSelects
+  if (containerSelects && containerSelects.length > 0) {
+    const selectsString = `<html>${url}\n\n\n${containerSelects
       .toString()
       .replace(/,/g, "\n")}</html>`;
     fs.writeFileSync(fileNameBase + "_selects.html", selectsString);
   }
+  if (containerButtons && containerButtons.length > 0) {
+    const buttonsString = `<html>${url}\n\n\n${containerButtons
+      .toString()
+      .replace(/,/g, "\n")}</html>`;
+    fs.writeFileSync(fileNameBase + "_buttons.html", buttonsString);
+  }
 
-  if (pageFrames && pageFrames.length > 0) {
-    const framesString = `<html>${url}\n\n\n${pageFrames
+  if (containerFrames && containerFrames.length > 0) {
+    const framesString = `<html>${url}\n\n\n${containerFrames
       .toString()
       .replace(/,/g, "\n")}</html>`;
     fs.writeFileSync(fileNameBase + "_frames.html", framesString);
+  }
+
+  // frameId's
+  const framesIds = await container.$$eval("iframe", (frames) =>
+    frames.map((f) => f.id)
+  );
+  for (let i = 0; i < framesIds.length; i = i + 1) {
+    let frameHandle = await container.$(`iframe[id='${framesIds[i]}']`);
+    if (frameHandle) {
+      storeControls(frameHandle, `frame_${framesIds[i]}`);
+    }
   }
 }
 
 function findConfig(url, config) {
   let lowerUrl = url.toLowerCase();
-  for (const param of process.argv) {
-    if (param === "verbose_url=" ) {
-      console.log(`Verbose Mode: Navigation: ${url}`);
-      storeControls(page, lowerUrl);
-      break;
-    }
-  }
-  
-
-  if (process.argv.includes(`verbose-url=${url}`)) {
-    storeControls(page, lowerUrl);
-  }
-
   const urlConfig = config.find(
     (x) =>
       (x.url && x.url.toLowerCase() === lowerUrl) ||
       (x.regex && RegExp(x.regex.toLowerCase()).test(lowerUrl))
   );
+
+  for (const param of process.argv) {
+    if (param === "verbose-url=") {
+      setInterval(function () {
+        console.log(`Verbose Mode: Navigation: ${url}`);
+        storeControls(page, lowerUrl);
+      }, 5000);
+    }
+  }
+
+  if (process.argv.includes(`verbose-url=${url}`)) {
+    storeControls(page, lowerUrl);
+  }
 
   if (urlConfig) {
     console.log("Workflow: ", urlConfig.name);
@@ -196,11 +178,30 @@ function findConfig(url, config) {
   return {};
 }
 
+function getSelector(el) {
+    var names = [];
+    while (el.parentNode){
+      if (el.id){
+        names.unshift('#'+el.id);
+        break;
+      }else{
+        if (el==el.ownerDocument.documentElement) names.unshift(el.tagName);
+        else{
+          for (var c=1,e=el;e.previousElementSibling;e=e.previousElementSibling,c++);
+          names.unshift(el.tagName+":nth-child("+c+")");
+        }
+        el=el.parentNode;
+      }
+    }
+    return names.join(" > ");
+  
+}
+
 async function commit(page, details, info) {
-  await page.emulateVisionDeficiency('blurredVision');
+  await page.emulateVisionDeficiency("blurredVision");
   for (const detail of details) {
     await page.title(detail.selector);
-    await page.waitForSelector(detail.selector, {timeout: 0});
+    await page.waitForSelector(detail.selector, { timeout: 0 });
     let value;
     let txt;
     if (detail.value) {
@@ -259,7 +260,7 @@ async function commit(page, details, info) {
         break;
     }
   }
-  await page.emulateVisionDeficiency('none');
+  await page.emulateVisionDeficiency("none");
 }
 
 async function selectByValue(selector, txt) {
@@ -273,7 +274,6 @@ async function selectByValue(selector, txt) {
   if (found && found.length >= 2) {
     await page.select(selector, found[1]);
   }
-
 }
 
 async function controller(page, structure, travellers) {
@@ -480,9 +480,13 @@ function endCase(name) {
 async function sniff(page, details) {
   for (const detail of details) {
     if (detail.autocomplete) {
-      let element = await page.$(detail.selector)
-      let value = await page.evaluate(el => el.textContent, element)
-      console.log('%c 🌽 value: ', 'font-size:20px;background-color: #FCA650;color:#fff;', value);
+      let element = await page.$(detail.selector);
+      let value = await page.evaluate((el) => el.textContent, element);
+      console.log(
+        "%c 🌽 value: ",
+        "font-size:20px;background-color: #FCA650;color:#fff;",
+        value
+      );
 
       if (detail.autocomplete && value) {
         budgie.save(detail.autocomplete, value);
