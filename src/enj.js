@@ -155,6 +155,16 @@ const config = [
         value: (row) => "",
         autocomplete: "credit-card-name",
       },
+      {
+        selector: "#ExpirationMonth",
+        value: (row) => "12",
+        autocomplete: "credit-card-expire-month",
+      },
+      {
+        selector: "#ExpirationYear",
+        value: (row) => "2025",
+        autocomplete: "credit-card-expire-year",
+      },
     ],
   },
 ];
@@ -286,10 +296,8 @@ async function onMofaContentClosed(res) {
   await util.commit(page, [
     { selector: "#RESIDENCY_IN_KSA", value: (row) => `${mofaData.duration}` },
   ]);
-  await page.emulateVisionDeficiency("none");
-
-  await util.waitForCaptcha("#Captcha"), 6;
-
+  await page.emulateVisionDeficiency("none"); // Just in case 
+  await util.waitForCaptcha("#Captcha", 6);
   await util.sniff(page, [
     {
       selector: "#ENTRY_POINT",
@@ -344,10 +352,15 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "main":
-      // Automatically click add new application. Disable/Enable as desired
-      // const addNewApplicationSelector =
-      //   "#content > div > div.row.page-user-container > div > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid > div > div.col-md-4 > a";
-      // await page.waitForSelector(addNewApplicationSelector);
+      const addNewApplicationSelector =
+        "#content > div > div.row.page-user-container > div > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid > div > div.col-md-4 > a";
+      await page.waitForSelector(addNewApplicationSelector);
+      await page.evaluate((cap) => {
+        const captchaElement = document.querySelector(cap);
+        captchaElement.scrollIntoView({ block: "end" });
+      }, addNewApplicationSelector);
+      await page.focus(addNewApplicationSelector);
+      await page.hover(addNewApplicationSelector);
       // await page.click(addNewApplicationSelector);
       break;
     case "agreement":
@@ -367,6 +380,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "create-passenger":
       // counter = util.useCounter(counter);
+      await page.emulateVisionDeficiency(util.VISION_DEFICIENCY);
       const passenger = data.travellers[counter];
       await util.controller(page, currentConfig, data.travellers);
       await page.waitForSelector("#PASSPORTnumber");
@@ -378,7 +392,6 @@ async function pageContentHandler(currentConfig) {
       if (passportNumber || util.isCodelineLooping(passenger)) {
         return;
       }
-      await page.emulateVisionDeficiency("blurredVision");
       let resizedPhotoPath = await util.downloadAndResizeImage(
         passenger,
         200,
@@ -413,17 +426,13 @@ async function pageContentHandler(currentConfig) {
         passenger.dob.dd
       );
       const travelDateDefault = moment().add(10, "day");
-      console.log(
-        "%c 🦐 travelDateDefault: ",
-        "font-size:20px;background-color: #4b4b4b;color:#fff;",
-        travelDateDefault
-      );
       await setEnjazDate(
         "#ExpectedEntryDate",
         travelDateDefault.format("YYYY"),
         travelDateDefault.format("MM"),
         travelDateDefault.format("DD")
       );
+      await page.emulateVisionDeficiency('none');
       await page.click("#HaveTraveledToOtherCountriesNo");
       mofaPage = await util.newPage(onMofaContentLoaded, onMofaContentClosed);
       await mofaPage.goto("https://visa.mofa.gov.sa", {
@@ -435,10 +444,8 @@ async function pageContentHandler(currentConfig) {
       break;
     case "pay-passenger":
       await util.commit(page, currentConfig.details, {});
-      const ccSelector = "#CreditNumber";
-      const waitForCC = `document.querySelector('${ccSelector}').value.length === 16`
-      await page.waitForFunction(waitForCC);
-      await util.sniff(page, currentConfig.details);
+      // await util.waitForCaptcha("#CreditNumber", 16)
+      // await util.sniff(page, currentConfig.details);
       break;
     default:
       break;
@@ -446,7 +453,6 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function setEnjazDate(dateSelector, year, month, day) {
-  await page.emulateVisionDeficiency("blurredVision");
   await page.click(dateSelector);
   const yearSelector =
     "body > div.calendars-popup > div > div.calendars-month-row > div > div > select.floatleft.calendars-month-year";
@@ -477,6 +483,5 @@ async function setEnjazDate(dateSelector, year, month, day) {
   }
 
   await page.waitForTimeout(1000);
-  await page.emulateVisionDeficiency("none");
 }
 module.exports = { send };

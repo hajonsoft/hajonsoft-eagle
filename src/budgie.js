@@ -21,9 +21,10 @@ function save(key, value) {
   if (!db) {
     db = {};
   }
-  db[key] = value; //TODO AA: Make this an array with useCount
+  const oldValue = db[key];
+  db[key] = value;
   fs.writeFileSync(dbFile, JSON.stringify(db));
-  console.log("Budgie+: ", key, value);
+  console.log(`Budgie ===> KEY ==> ${key}: {oldValue: ${oldValue}, newValue: ${value}}`);
 }
 
 function read() {

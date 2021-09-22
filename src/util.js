@@ -17,6 +17,8 @@ let page;
 const photosFolder = path.join(homedir, "hajonsoft", "photos");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
 const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
+const VISION_DEFICIENCY = "none";
+
 let browser;
 async function initPage(config, onContentLoaded) {
   browser = await puppeteer.launch({
@@ -198,7 +200,6 @@ function getSelector(el) {
 }
 
 async function commit(page, details, info) {
-  await page.emulateVisionDeficiency("blurredVision");
   for (const detail of details) {
     await page.title(detail.selector);
     await page.waitForSelector(detail.selector, { timeout: 0 });
@@ -260,7 +261,6 @@ async function commit(page, details, info) {
         break;
     }
   }
-  await page.emulateVisionDeficiency("none");
 }
 
 async function selectByValue(selector, txt) {
@@ -480,17 +480,22 @@ function endCase(name) {
 async function sniff(page, details) {
   for (const detail of details) {
     if (detail.autocomplete) {
-      let element = await page.$(detail.selector);
-      let value = await page.evaluate((el) => el.textContent, element);
-      console.log(
-        "%c 🌽 value: ",
-        "font-size:20px;background-color: #FCA650;color:#fff;",
-        value
-      );
-
-      if (detail.autocomplete && value) {
-        budgie.save(detail.autocomplete, value);
+      let tagName = await page.$eval(detail.selector, (el)=> el.tagName);
+      switch (tagName.toLowerCase()) {
+        case 'input':
+          let inputText = await page.$eval(detail.selector, (el) => el.value || el.innerText);
+          if (detail.autocomplete && inputText) {
+            budgie.save(detail.autocomplete, inputText);
+          }
+          break
+        case 'select':
+          let selectedValue = await page.$eval(detail.selector, (el) => el.value, tagName);
+          if (detail.autocomplete && selectedValue) {
+            budgie.save(detail.autocomplete, selectedValue);
+          }
+          break
       }
+
     }
   }
 }
@@ -507,6 +512,7 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
   }
   switch (url.toLowerCase()) {
     case "https://visa.mofa.gov.sa/".toLowerCase():
+      case "https://visa.mofa.gov.sa".toLowerCase():
       mofaData = {};
       const closeButtonSelector =
         "#dlgMessageContent > div.modal-footer > button";
@@ -515,31 +521,20 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
         btn.click();
       });
 
-      if (mofa_visaTypeValue) {
+      if (mofa_visaTypeValue && /^[0-9]{1,5}$/.test(mofa_visaTypeValue)) {
         await currentPage.select("#SearchingType", mofa_visaTypeValue);
       }
       await currentPage.waitForSelector("#ApplicationNumber");
       await currentPage.type("#ApplicationNumber", id1);
       await currentPage.type("#SponserID", id2);
 
-      const captchaSelector = "#Captcha";
-      await currentPage.waitForSelector(captchaSelector);
-      await currentPage.$eval(captchaSelector, (e) => e.scrollIntoView());
-      await currentPage.bringToFront();
-      await currentPage.focus(captchaSelector);
-      if (!process.argv.includes("slow")) {
-        await currentPage.waitForFunction(
-          "document.querySelector('#Captcha').value.length === 6",
-          { timeout: 0 }
-        );
-        await sniff(currentPage, [
-          { selector: "#SearchingType", autocomplete: "mofa_visaType" },
-          { selector: "#ApplicationNumber", autocomplete: "mofa_id1" },
-          { selector: "#SponserID", autocomplete: "mofa_id2" },
-        ]);
-
-        await currentPage.click("#btnSearch");
-      }
+      await waitForPageCaptcha(currentPage, "#Captcha", 6);
+      await sniff(currentPage, [
+        { selector: "#SearchingType", autocomplete: "mofa_visaType" },
+        { selector: "#ApplicationNumber", autocomplete: "mofa_id1" },
+        { selector: "#SponserID", autocomplete: "mofa_id2" },
+      ]);
+      await currentPage.click("#btnSearch");
       break;
     case "https://visa.mofa.gov.sa/Home/PrintVisa".toLowerCase():
       const applicationTypeSelector =
@@ -669,6 +664,22 @@ async function waitForCaptcha(selector, captchaLength, timeout = 0) {
   );
 }
 
+async function waitForPageCaptcha(captchaPage,selector, captchaLength, timeout = 0) {
+  await captchaPage.waitForSelector(selector);
+  await captchaPage.bringToFront();
+  await captchaPage.evaluate((cap) => {
+    const captchaElement = document.querySelector(cap);
+    captchaElement.scrollIntoView({ block: "end" });
+    captchaElement.value = "";
+  }, selector);
+  await captchaPage.focus(selector);
+  await captchaPage.hover(selector);
+  await captchaPage.waitForFunction(
+    `document.querySelector('${selector}').value.length === ${captchaLength}`,
+    { timeout }
+  );
+}
+
 module.exports = {
   findConfig,
   commit,
@@ -692,5 +703,7 @@ module.exports = {
   mofaData,
   getMofaData,
   waitForCaptcha,
+  waitForPageCaptcha,
+  VISION_DEFICIENCY,
   downloadAndResizeImage,
 };
