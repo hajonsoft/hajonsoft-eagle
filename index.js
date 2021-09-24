@@ -9,6 +9,7 @@ const Cryptr = require("cryptr");
 const fs = require("fs");
 const extract = require("extract-zip");
 const { homedir } = require("os");
+const moment = require('moment');
 const version = "0.1.1";
 
 async function main() {
@@ -80,7 +81,7 @@ async function getDataFileName() {
       console.log(`File not found ${fileName}`);
       process.exit(1);
     }
-    if (!fs.existsSync(dataFileName)) {
+    if (fs.existsSync(dataFileName)) {
       try {
         await fs.rename(
           dataFileName,
