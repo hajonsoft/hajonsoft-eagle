@@ -74,19 +74,19 @@ const config = [
       },
       {
         selector: "#txtAfirstname",
-        value: (row) => row.nameArabic.first,
+        value: (row) => row?.nameArabic?.first?.match(/[a-zA-Z]/) ? '' :  row?.nameArabic?.first,
       },
       {
         selector: "#txtAfamilyname",
-        value: (row) => row.nameArabic.last,
+        value: (row) => row?.nameArabic?.last?.match(/[a-zA-Z]/) ? '' :  row?.nameArabic?.last,
       },
       {
         selector: "#txtAgfathername",
-        value: (row) => row.nameArabic.grand,
+        value: (row) => row?.nameArabic?.grand?.match(/[a-zA-Z]/) ? '' :  row?.nameArabic?.grand,
       },
       {
         selector: "#txtAfathername",
-        value: (row) => row.nameArabic.father,
+        value: (row) => row?.nameArabic?.father?.match(/[a-zA-Z]/) ? '' :  row?.nameArabic?.father,
       },
       {
         selector: "#txtppissdd",
@@ -220,7 +220,7 @@ async function pageContentHandler(currentConfig) {
       }
       await page.waitForSelector("#ddlgroupname");
       await page.select("#ddlgroupname", groupNumber);
-      await page.waitFor(3000);
+      await page.waitForTimeout(3000);
       await page.waitForSelector("#btnppscan");
       await page.evaluate(() => {
         const divBtn = document.querySelector("#btnppscan");
@@ -233,7 +233,7 @@ async function pageContentHandler(currentConfig) {
       await page.type("#divshowmsg", passenger.codeline, {
         delay: 0,
       });
-      await page.waitFor(5000);
+      await page.waitForTimeout(5000);
       await util.commit(page, currentConfig.details, passenger);
       if (passenger.gender == "Female") {
         await page.waitForSelector("#ddlrelation");

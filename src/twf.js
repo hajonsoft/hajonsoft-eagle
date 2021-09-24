@@ -214,7 +214,7 @@ async function pageContentHandler(currentConfig) {
       }
       await page.waitForSelector("#ddlgroupname");
       await page.select("#ddlgroupname", groupNumber);
-      await page.waitFor(3000);
+      await page.waitForTimeout(3000);
       await page.waitForSelector("#btnppscan");
       await page.evaluate(() => {
         const divBtn = document.querySelector("#btnppscan");
@@ -227,7 +227,7 @@ async function pageContentHandler(currentConfig) {
       await page.type("#divshowmsg", passenger.codeline, {
         delay: 0,
       });
-      await page.waitFor(5000);
+      await page.waitForTimeout(5000);
       await util.commit(page, currentConfig.details, passenger);
       if (passenger.gender == "Female") {
         await page.waitForSelector("#ddlrelation");

@@ -94,7 +94,7 @@ async function storeControls(container, url) {
     fs.mkdirSync(logFolder);
   }
   const fileNameBase = logFolder + _.last(url.split("/"));
-  const containerInputs = await container.$$("input");
+  const containerInputs = await container.$x("//input");
   const containerSelects = await container.$$eval("select", (selects) =>
     selects.map((s) => s.outerHTML.replace(/\t/g, ""))
   );
@@ -111,10 +111,12 @@ async function storeControls(container, url) {
 
   if (containerInputs && containerInputs?.length > 0) {
     let inputsString;
-    for (const containerInput of containerInputs) {
-      const selector = getSelector(containerInput.asElement());
+    for (let i = 0; i < containerInputs.length; i++) {
+      const containerInput = containerInputs[i];
+      const selectorText = `//input[${i}]`;
       const outerHtml = await containerInput.evaluate((ele) => ele.outerHTML);
-      inputsString += `\nselector: ${selector}\n${outerHtml}`;
+      inputsString += `\nselector: ${selectorText}\n${outerHtml}`;
+      // await containerInput.type(selectorText);
     }
     inputsString = `<html>${url}\n\n\n${inputsString})}</html>`;
 
@@ -181,84 +183,87 @@ function findConfig(url, config) {
 }
 
 function getSelector(el) {
-    var names = [];
-    while (el.parentNode){
-      if (el.id){
-        names.unshift('#'+el.id);
-        break;
-      }else{
-        if (el==el.ownerDocument.documentElement) names.unshift(el.tagName);
-        else{
-          for (var c=1,e=el;e.previousElementSibling;e=e.previousElementSibling,c++);
-          names.unshift(el.tagName+":nth-child("+c+")");
-        }
-        el=el.parentNode;
+  var names = [];
+  while (el.parentNode) {
+    if (el.id) {
+      names.unshift("#" + el.id);
+      break;
+    } else {
+      if (el == el.ownerDocument.documentElement) names.unshift(el.tagName);
+      else {
+        for (
+          var c = 1, e = el;
+          e.previousElementSibling;
+          e = e.previousElementSibling, c++
+        );
+        names.unshift(el.tagName + ":nth-child(" + c + ")");
       }
+      el = el.parentNode;
     }
-    return names.join(" > ");
-  
+  }
+  return names.join(" > ");
 }
 
 async function commit(page, details, info) {
   for (const detail of details) {
     await page.title(detail.selector);
-    await page.waitForSelector(detail.selector, { timeout: 0 });
     let value;
     let txt;
     if (detail.value) {
       value = detail.value(info); // call value function and pass current row info
-      if (!value && details.autocomplete) {
+      if (!value && detail.autocomplete) {
         value = budgie.get(detail.autocomplete);
       }
     }
     if (detail.txt) {
       txt = detail.txt(info); // call txt function and pass current row info
     }
-    const elementType = await page.$eval(detail.selector, (e) =>
-      e.outerHTML
-        .match(/<(.*?) /g)[0]
-        .replace(/</g, "")
-        .replace(/ /g, "")
-        .toLowerCase()
-    );
-    // Budgie entry point
-    switch (elementType) {
-      case "input":
-        await page.waitForSelector(detail.selector);
-        await page.focus(detail.selector);
-        await page.type(detail.selector, "");
-        await page.evaluate((element) => {
-          const field = document.querySelector(element.selector);
-          if (field) {
-            field.value = "";
-            field.setAttribute("value", "");
-          }
-        }, detail);
+    if (value || txt) {
+      const elementType = await page.$eval(detail.selector, (e) =>
+        e.outerHTML
+          .match(/<(.*?) /g)[0]
+          .replace(/</g, "")
+          .replace(/ /g, "")
+          .toLowerCase()
+      );
+      // Budgie entry point
+      switch (elementType) {
+        case "input":
+          await page.waitForSelector(detail.selector);
+          await page.focus(detail.selector);
+          await page.type(detail.selector, "");
+          await page.evaluate((element) => {
+            const field = document.querySelector(element.selector);
+            if (field) {
+              field.value = "";
+              field.setAttribute("value", "");
+            }
+          }, detail);
 
-        await page.waitForSelector(detail.selector);
-        if (value) {
-          await page.type(detail.selector, value);
-        } else if (detail.autocomplete) {
-          await page.type(
-            detail.selector,
-            budgie.get(detail.autocomplete, detail.defaultValue)
-          );
-        }
-        break;
-      case "select":
-        if (value) {
-          await page.select(detail.selector, value);
+          if (value) {
+            await page.type(detail.selector, value);
+          } else if (detail.autocomplete) {
+            await page.type(
+              detail.selector,
+              budgie.get(detail.autocomplete, detail.defaultValue)
+            );
+          }
           break;
-        } else if (detail.autocomplete) {
-          await page.select(detail.selector, budgie.get(detail.autocomplete));
-        }
-        if (txt) {
-          await selectByValue(detail.selector, txt);
+        case "select":
+          if (value) {
+            await page.select(detail.selector, value);
+            break;
+          } else if (detail.autocomplete) {
+            await page.select(detail.selector, budgie.get(detail.autocomplete));
+          }
+          if (txt) {
+            await selectByValue(detail.selector, txt);
+            break;
+          }
           break;
-        }
-        break;
-      default:
-        break;
+        default:
+          break;
+      }
     }
   }
 }
@@ -480,22 +485,28 @@ function endCase(name) {
 async function sniff(page, details) {
   for (const detail of details) {
     if (detail.autocomplete) {
-      let tagName = await page.$eval(detail.selector, (el)=> el.tagName);
+      let tagName = await page.$eval(detail.selector, (el) => el.tagName);
       switch (tagName.toLowerCase()) {
-        case 'input':
-          let inputText = await page.$eval(detail.selector, (el) => el.value || el.innerText);
+        case "input":
+          let inputText = await page.$eval(
+            detail.selector,
+            (el) => el.value || el.innerText
+          );
           if (detail.autocomplete && inputText) {
             budgie.save(detail.autocomplete, inputText);
           }
-          break
-        case 'select':
-          let selectedValue = await page.$eval(detail.selector, (el) => el.value, tagName);
+          break;
+        case "select":
+          let selectedValue = await page.$eval(
+            detail.selector,
+            (el) => el.value,
+            tagName
+          );
           if (detail.autocomplete && selectedValue) {
             budgie.save(detail.autocomplete, selectedValue);
           }
-          break
+          break;
       }
-
     }
   }
 }
@@ -512,7 +523,7 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
   }
   switch (url.toLowerCase()) {
     case "https://visa.mofa.gov.sa/".toLowerCase():
-      case "https://visa.mofa.gov.sa".toLowerCase():
+    case "https://visa.mofa.gov.sa".toLowerCase():
       mofaData = {};
       const closeButtonSelector =
         "#dlgMessageContent > div.modal-footer > button";
@@ -664,7 +675,12 @@ async function waitForCaptcha(selector, captchaLength, timeout = 0) {
   );
 }
 
-async function waitForPageCaptcha(captchaPage,selector, captchaLength, timeout = 0) {
+async function waitForPageCaptcha(
+  captchaPage,
+  selector,
+  captchaLength,
+  timeout = 0
+) {
   await captchaPage.waitForSelector(selector);
   await captchaPage.bringToFront();
   await captchaPage.evaluate((cap) => {
