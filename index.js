@@ -83,9 +83,9 @@ async function getDataFileName() {
     }
     if (fs.existsSync(dataFileName)) {
       try {
-        await fs.rename(
+        await fs.renameSync(
           dataFileName,
-          path.join(__dirname, `data_${moment().format("DDHHmmss")}.json`)
+          path.join(__dirname, `data_${moment().format()}.json`)
         );
       } catch (err) {
         console.log("unable to rename ", dataFileName, err);
