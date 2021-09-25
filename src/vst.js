@@ -408,7 +408,7 @@ async function runPageConfiguration(currentConfig) {
       await page.click("#btnAdd");
       break;
     case "login":
-      await page.waitFor(3000);
+      await page.waitForTimeout(3000);
       await util.commit(page, currentConfig.details, data.system);
       await page.waitForSelector("#CaptchaCode");
       await page.focus("#CaptchaCode");

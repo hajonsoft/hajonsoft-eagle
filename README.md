@@ -1,10 +1,10 @@
 # Eagle
 
-Use puppeteer to automate google chrome. automation include logging in to third party websites and fill forms.
+We control chrome using eagle. Eagle is built on top of puppeteer and can send data to any website.
 
 # Getting started 
 
-Note: for Apple M1 Chip try this. But it didnt work for me 
+Note: for Apple M1 Chip try this. But it didn't work for me 
 https://github.com/puppeteer/puppeteer/issues/6622
 https://linguinecode.com/post/how-to-fix-m1-mac-puppeteer-chromium-arm64-bug
 
@@ -12,7 +12,7 @@ https://linguinecode.com/post/how-to-fix-m1-mac-puppeteer-chromium-arm64-bug
 git clone https://github.com/hajonsoft/hajonsoft-eagle.git
 cd hajonsoft-eagle
 npm i
-node . [file=FILENAME[.zip]] [noimage] [debug] [WORKFLOWNAME-only] [verbose-url=url] [slow]
+node . [file=FILENAME[.zip]] [noimage] [debug] [WORKFLOWNAME-only] [verbose-url=[url]] [slow]
 
 ```
 
@@ -37,6 +37,7 @@ npx @puppeteer/recorder [url]
 
 npx @puppeteer/recorder https://www.waytoumrah.com/prj_umrah/eng/eng_frmlogin.aspx
 npx @puppeteer/recorder https://eumra.com/
+npx @puppeteer/recorder https://www.etawaf.com/tawaf43/index.html?locale=en
 ```
 
 To send a photo

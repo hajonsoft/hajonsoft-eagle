@@ -14,11 +14,10 @@ let groupNumber;
 const config = [
   {
     name: "login",
-    regex: "https://www.waytoumrah.com/prj_umrah/eng/Eng_frmlogin.aspx",
-    url: "https://www.waytoumrah.com/prj_umrah/eng/Eng_frmlogin.aspx",
+    url: "https://www.etawaf.com/tawaf43/index.html?locale=en",
     details: [
-      { selector: "#txtUserName", value: (system) => system.username },
-      { selector: "#txtPwd", value: (system) => system.password },
+      { selector: "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr > td:nth-child(2) > input", value: (system) => system.username },
+      { selector: "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td:nth-child(2) > input", value: (system) => system.password },
     ],
   },
   {
@@ -74,19 +73,19 @@ const config = [
       },
       {
         selector: "#txtAfirstname",
-        value: (row) => row?.nameArabic?.first?.match(/[a-zA-Z]/) ? '' :  row?.nameArabic?.first,
+        value: (row) => row.nameArabic.first,
       },
       {
         selector: "#txtAfamilyname",
-        value: (row) => row?.nameArabic?.last?.match(/[a-zA-Z]/) ? '' :  row?.nameArabic?.last,
+        value: (row) => row.nameArabic.last,
       },
       {
         selector: "#txtAgfathername",
-        value: (row) => row?.nameArabic?.grand?.match(/[a-zA-Z]/) ? '' :  row?.nameArabic?.grand,
+        value: (row) => row.nameArabic.grand,
       },
       {
         selector: "#txtAfathername",
-        value: (row) => row?.nameArabic?.father?.match(/[a-zA-Z]/) ? '' :  row?.nameArabic?.father,
+        value: (row) => row.nameArabic.father,
       },
       {
         selector: "#txtppissdd",
@@ -154,13 +153,8 @@ async function pageContentHandler(currentConfig) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
       util.endCase(currentConfig.name);
-      await util.waitForCaptcha("#txtImagetext",6);
-      await page.click("#cmdlogin");
-      await page.waitForTimeout(2000);
-      const isIDo = await page.$("#Button4");
-      if (isIDo) {
-        await page.click('aria/button[name="Yes, I DO"]');
-      }
+      await util.waitForCaptcha("#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(2) > input",5);
+      await page.click("#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button");
       break;
     case "main":
       await page.goto(

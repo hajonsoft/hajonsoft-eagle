@@ -3,6 +3,7 @@ const { send: sendWtu } = require("./src/wtu");
 const { send: sendGma } = require("./src/gma");
 const { send: sendVst } = require("./src/vst");
 const { send: sendEnj } = require("./src/enj");
+const { send: sendTwf } = require("./src/twf");
 
 const path = require("path");
 const Cryptr = require("cryptr");
@@ -40,9 +41,9 @@ async function main() {
     case "gma":
       return sendGma(data);
     case "twf":
-      return sendBau(data);
-    case "mot":
-      return sendBau(data);
+      return sendTwf(data);
+    // case "mot":
+    //   return sendMot(data);
     case "vst":
       return sendVst(data);
     case "enj":

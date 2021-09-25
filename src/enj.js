@@ -136,6 +136,37 @@ const config = [
       { selector: "#PersonId", value: (row) => row.passportNumber },
     ],
   },
+  {
+    name: "pay-passenger",
+    regex: "https://enjazit.com.sa/payment.appno=.*",
+    details: [
+      {
+        selector: "#CreditNumber",
+        value: (row) => "",
+        autocomplete: "credit-card",
+      },
+      {
+        selector: "#CVV2",
+        value: (row) => "",
+        autocomplete: "credit-card-cvv2",
+      },
+      {
+        selector: "#CardName",
+        value: (row) => "",
+        autocomplete: "credit-card-name",
+      },
+      {
+        selector: "#ExpirationMonth",
+        value: (row) => "12",
+        autocomplete: "credit-card-expire-month",
+      },
+      {
+        selector: "#ExpirationYear",
+        value: (row) => "2025",
+        autocomplete: "credit-card-expire-year",
+      },
+    ],
+  },
 ];
 
 async function send(sendData) {
@@ -265,19 +296,8 @@ async function onMofaContentClosed(res) {
   await util.commit(page, [
     { selector: "#RESIDENCY_IN_KSA", value: (row) => `${mofaData.duration}` },
   ]);
-  await page.waitForSelector("#Captcha");
-  await page.focus("#Captcha");
-
-  await page.evaluate(() => {
-    const captchaElement = document.querySelector("#Captcha");
-    captchaElement.scrollIntoView({ block: "end" });
-  });
-
-  await page.waitForFunction(
-    "document.querySelector('#Captcha').value.length === 6",
-    { timeout: 0 }
-  );
-
+  await page.emulateVisionDeficiency("none"); // Just in case 
+  await util.waitForCaptcha("#Captcha", 6);
   await util.sniff(page, [
     {
       selector: "#ENTRY_POINT",
@@ -335,7 +355,13 @@ async function pageContentHandler(currentConfig) {
       const addNewApplicationSelector =
         "#content > div > div.row.page-user-container > div > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid > div > div.col-md-4 > a";
       await page.waitForSelector(addNewApplicationSelector);
-      await page.click(addNewApplicationSelector);
+      await page.evaluate((cap) => {
+        const captchaElement = document.querySelector(cap);
+        captchaElement.scrollIntoView({ block: "end" });
+      }, addNewApplicationSelector);
+      await page.focus(addNewApplicationSelector);
+      await page.hover(addNewApplicationSelector);
+      // await page.click(addNewApplicationSelector);
       break;
     case "agreement":
       const agreeSelector =
@@ -354,6 +380,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "create-passenger":
       // counter = util.useCounter(counter);
+      await page.emulateVisionDeficiency(util.VISION_DEFICIENCY);
       const passenger = data.travellers[counter];
       await util.controller(page, currentConfig, data.travellers);
       await page.waitForSelector("#PASSPORTnumber");
@@ -365,7 +392,6 @@ async function pageContentHandler(currentConfig) {
       if (passportNumber || util.isCodelineLooping(passenger)) {
         return;
       }
-
       let resizedPhotoPath = await util.downloadAndResizeImage(
         passenger,
         200,
@@ -399,13 +425,14 @@ async function pageContentHandler(currentConfig) {
         passenger.dob.mm,
         passenger.dob.dd
       );
-      // const travelDateDefault = moment().add(10, "days");
-      // await setEnjazDate(
-      //   "#ExpectedEntryDate",
-      //   travelDateDefault.year(),
-      //   travelDateDefault.month(),
-      //   travelDateDefault.day().toString()
-      // );
+      const travelDateDefault = moment().add(10, "day");
+      await setEnjazDate(
+        "#ExpectedEntryDate",
+        travelDateDefault.format("YYYY"),
+        travelDateDefault.format("MM"),
+        travelDateDefault.format("DD")
+      );
+      await page.emulateVisionDeficiency('none');
       await page.click("#HaveTraveledToOtherCountriesNo");
       mofaPage = await util.newPage(onMofaContentLoaded, onMofaContentClosed);
       await mofaPage.goto("https://visa.mofa.gov.sa", {
@@ -414,6 +441,11 @@ async function pageContentHandler(currentConfig) {
 
       counter = counter + 1;
       // util.setCounter(counter + 1);
+      break;
+    case "pay-passenger":
+      await util.commit(page, currentConfig.details, {});
+      // await util.waitForCaptcha("#CreditNumber", 16)
+      // await util.sniff(page, currentConfig.details);
       break;
     default:
       break;
