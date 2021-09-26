@@ -16,8 +16,16 @@ const config = [
     name: "login",
     url: "https://www.etawaf.com/tawaf43/index.html?locale=en",
     details: [
-      { selector: "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr > td:nth-child(2) > input", value: (system) => system.username },
-      { selector: "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td:nth-child(2) > input", value: (system) => system.password },
+      {
+        selector:
+          "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr > td:nth-child(2) > input",
+        value: (system) => system.username,
+      },
+      {
+        selector:
+          "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td:nth-child(2) > input",
+        value: (system) => system.password,
+      },
     ],
   },
   {
@@ -63,7 +71,7 @@ const config = [
       {
         selector: "#txtprofession",
         value: (row) => decodeURI(row.profession),
-        autocomplete: 'wtu_profession',
+        autocomplete: "wtu_profession",
       },
       { selector: "#ddlmstatus", value: (row) => "99" },
       { selector: "#ddleducation", value: (row) => "99" },
@@ -106,23 +114,22 @@ const config = [
       {
         selector: "#txtcity",
         value: (row) => "",
-        autocomplete: 'wtu_address_city',
+        autocomplete: "wtu_address_city",
       },
       {
         selector: "#txtstreet",
         value: (row) => "",
-        autocomplete: 'wtu_address_street',
+        autocomplete: "wtu_address_street",
       },
       {
         selector: "#txtstate",
         value: (row) => "",
-        autocomplete: 'wtu_address_state'
-
+        autocomplete: "wtu_address_state",
       },
       {
         selector: "#txtzipcode",
         value: (row) => "",
-        autocomplete: 'wtu_address_zipcode'
+        autocomplete: "wtu_address_zipcode",
       },
     ],
   },
@@ -153,153 +160,22 @@ async function pageContentHandler(currentConfig) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
       util.endCase(currentConfig.name);
-      await util.waitForCaptcha("#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(2) > input",5);
-      await page.click("#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button");
+      await util.waitForCaptcha(
+        "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(2) > input",
+        5
+      );
+      await page.click(
+        "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button"
+      );
       break;
     case "main":
       await page.goto(
         "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx?PageId=M"
       );
-      break;
-    case "create-group":
-      await util.commit(page, currentConfig.details, data.travellers[0]);
-      const firstOption = await page.$eval("#cmbEmb", (e) => {
-        const options = e.querySelectorAll("option");
-        for (const opt of options) {
-          if (opt.value && /[0-9]/.test(opt.value)) {
-            return { value: opt.value, label: opt.innerText };
-          }
-        }
-      });
-      if (firstOption) {
-        await page.$eval(
-          "#cmbEmb_chosen > a > span",
-          (e, val) => (e.innerText = val),
-          firstOption.label
-        );
-        await page.select("#cmbEmb", firstOption.value);
+      await page.waitForXPath("//input[10]");
+      for (let i = 0; i < 30; i++) {
+        await page.type(`//input[${i}]`, "input" + i);
       }
-      const arrivalDate = moment()
-        .add(10, "days")
-        .toDate()
-        .toLocaleDateString();
-
-      await page.$eval("#txtEADate", (e, dt) => (e.value = dt), arrivalDate);
-      await page.focus('#BtnSave')
-      await page.hover('#BtnSave')
-
-      // Wait for this string: Group saved successfully, Group code is 153635
-      const groupCreatedSuccessfullyElement =
-        "body > div.lobibox.lobibox-success.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span";
-      await page.waitForSelector(groupCreatedSuccessfullyElement, {
-        visible: true,
-        timeout: 0,
-      });
-      const groupCreatedSuccessfullyElementText = await page.$eval(
-        groupCreatedSuccessfullyElement,
-        (el) => el.innerText
-      );
-      groupNumber = groupCreatedSuccessfullyElementText.match(/\d+/g)[0];
-      await page.goto(
-        "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
-      );
-      break;
-    case "create-mutamer":
-      await util.controller(page, currentConfig, data.travellers);
-      await page.waitForSelector("#txtppno");
-      const passportNumber = await page.$eval("#txtppno", (e) => e.value);
-      // Do not continue if the passport number field is not empty - This could be a manual page refresh
-      if (passportNumber || util.isCodelineLooping(passenger)) {
-        return;
-      }
-      await page.waitForSelector("#ddlgroupname");
-      await page.select("#ddlgroupname", groupNumber);
-      await page.waitForTimeout(3000);
-      await page.waitForSelector("#btnppscan");
-      await page.evaluate(() => {
-        const divBtn = document.querySelector("#btnppscan");
-        if (divBtn) {
-          divBtn.click();
-        }
-      });
-
-      await page.waitForSelector("#divshowmsg");
-      await page.type("#divshowmsg", passenger.codeline, {
-        delay: 0,
-      });
-      await page.waitForTimeout(5000);
-      await util.commit(page, currentConfig.details, passenger);
-      if (passenger.gender == "Female") {
-        await page.waitForSelector("#ddlrelation");
-        await page.select("#ddlrelation", "15");
-      }
-
-      const blankPassportPath = util.createMRZImage(
-        path.join(
-          util.passportsFolder,
-          passenger.passportNumber + "_400x300_mrz.jpg"
-        ),
-        passenger.codeline
-      );
-
-      let resizedPhotoPath = await util.downloadAndResizeImage(
-        passenger,
-        200,
-        200,
-        "photo"
-      );
-      const resizedPassportPath = await util.downloadAndResizeImage(
-        passenger,
-        400,
-        300,
-        "passport"
-      );
-      const resizedVaccinePath = await util.downloadAndResizeImage(
-        passenger,
-        100,
-        100,
-        "vaccine"
-      );
-
-      await page.select("#cmbVacc_cert_type", "2");
-      await page.waitForSelector("#img_vaccination_copy");
-
-      if (!process.argv.includes("noimage")) {
-        await page.click("#btn_uploadImage");
-        await util.commitFile("#file_photo_upload", resizedPhotoPath);
-        await page.waitForNavigation();
-      }
-
-      await page.waitForSelector("#imgppcopy");
-      if (
-        !process.argv.includes("noimage")
-      ) {
-        await util.commitFile("#fuppcopy", resizedPassportPath);
-      }
-
-      await page.waitForSelector("#img_vaccination_copy")
-      if (
-        !process.argv.includes("noimage")
-      ) {
-        await util.commitFile("#F_Vaccinationcopy", resizedVaccinePath);
-      }
-
-      await util.waitForCaptcha("#txtImagetext", 5);
-      await util.sniff(page,currentConfig.details)
-      await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
-      counter = counter + 1;
-      // TODO: Wait for success message before advancing the counter
-      await page.waitForSelector("body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span");
-      const errorButton = await page.waitForSelector('body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-footer.text-center > button')
-      await errorButton.click();
-      await page.waitForSelector("#imgppcopy");
-      if (
-        !process.argv.includes("noimage")
-      ) {
-        await util.commitFile("#fuppcopy", blankPassportPath);
-      }
-      await util.waitForCaptcha("#txtImagetext", 5);
-      await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
       break;
     default:
       break;

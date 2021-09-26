@@ -183,6 +183,7 @@ function findConfig(url, config) {
 }
 
 async function commit(page, details, row) {
+  await page.waitForSelector(details[0].selector);
   for (const detail of details) {
     let value;
     let txt;
