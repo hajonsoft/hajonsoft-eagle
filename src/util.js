@@ -193,20 +193,22 @@ function findConfig(url, config) {
   return {};
 }
 
-async function commit(page, details, info) {
+async function commit(page, details, row) {
   for (const detail of details) {
-    await page.title(detail.selector);
-    await page.waitForSelector(detail.selector);
     let value;
     let txt;
     if (detail.value) {
-      value = detail.value(info); // call value function and pass current row info
+      value = detail.value(row); // call value function and pass current row info
       if (!value && details.autocomplete) {
         value = budgie.get(detail.autocomplete);
       }
     }
     if (detail.txt) {
-      txt = detail.txt(info); // call txt function and pass current row info
+      txt = detail.txt(row); // call txt function and pass current row info
+    }
+    const element = await page.$(detail.selector);
+    if (!element || (!value && !txt)) {
+      continue;
     }
     const elementType = await page.$eval(detail.selector, (e) =>
       e.outerHTML
@@ -215,7 +217,6 @@ async function commit(page, details, info) {
         .replace(/ /g, "")
         .toLowerCase()
     );
-    // Budgie entry point
     switch (elementType) {
       case "input":
         await page.waitForSelector(detail.selector);
@@ -229,7 +230,6 @@ async function commit(page, details, info) {
           }
         }, detail);
 
-        await page.waitForSelector(detail.selector);
         if (value) {
           await page.type(detail.selector, value);
         } else if (detail.autocomplete) {
