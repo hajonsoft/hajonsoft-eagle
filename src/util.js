@@ -17,6 +17,8 @@ let page;
 const photosFolder = path.join(homedir, "hajonsoft", "photos");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
 const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
+const VISION_DEFICIENCY = "none";
+
 let browser;
 async function initPage(config, onContentLoaded) {
   browser = await puppeteer.launch({
@@ -30,7 +32,6 @@ async function initPage(config, onContentLoaded) {
     ],
   });
   const pages = await browser.pages();
-  // page = await browser.pages();
   page = pages[0];
   await page.bringToFront();
   page.on("domcontentloaded", onContentLoaded);
@@ -76,115 +77,103 @@ async function initPage(config, onContentLoaded) {
 }
 
 async function newPage(onMofaContentLoaded, onMofaContentClosed) {
-  const sameBrowserNewPage = await browser.newPage(); // TODO AA: I had to hardcoded for readability
-  sameBrowserNewPage.on("domcontentloaded", onMofaContentLoaded);
-  sameBrowserNewPage.on("close", onMofaContentClosed);
-  return sameBrowserNewPage;
+  const _newPage = await browser.newPage();
+  _newPage.on("domcontentloaded", onMofaContentLoaded);
+  _newPage.on("close", onMofaContentClosed);
+  return _newPage;
 }
 
-async function storeControls(pageWithControls, url) {
+async function storeControls(container, url) {
   console.log(
     "%c 🥔 url: ",
     "font-size:20px;background-color: #4b4b4b;color:#fff;",
-    `------------------starting verbose output on ${url}--------`
+    `VERBOSE-URL: ${url}`
   );
   const logFolder = __dirname + "/../log/";
   if (!fs.existsSync(logFolder)) {
     fs.mkdirSync(logFolder);
   }
   const fileNameBase = logFolder + _.last(url.split("/"));
-  const pageInputs = await pageWithControls.$$eval("input", (inputs) =>
-    inputs
-      .filter((i) => i.type !== "hidden")
-      .map((i) => i.getAttribute("id") + "\n" + i.outerHTML)
-  );
-  const pageSelects = await pageWithControls.$$eval("select", (selects) =>
+  const containerInputs = await container.$x("//input");
+  const containerSelects = await container.$$eval("select", (selects) =>
     selects.map((s) => s.outerHTML.replace(/\t/g, ""))
   );
+  const containerButtons = await container.$$eval("button", (buttons) =>
+    buttons.map((s) => s.outerHTML.replace(/\t/g, ""))
+  );
 
-  const pageFrames = await pageWithControls.$$eval("iframe", (frames) =>
+  const containerFrames = await container.$$eval("iframe", (frames) =>
     frames.map((f) => f.outerHTML)
   );
   console.log(
-    `inputs/selects/frames: ${pageInputs.length}/${pageSelects.length}/${pageFrames.length}`
+    `inputs/selects/frames: ${containerInputs?.length}/${containerSelects?.length}/${containerFrames?.length}`
   );
 
-  // frameId's
-  const framesIds = await pageWithControls.$$eval("iframe", (frames) =>
-    frames.map((f) => f.id)
-  );
-
-  await pageWithControls.waitFor(10000); //wait for frames to render - need to find a better solution - This is ok it is a debug feature anyway
-
-  for (let i = 0; i < framesIds.length; i = i + 1) {
-    console.log(
-      "%c 🥩 i: ",
-      "font-size:20px;background-color: #2EAFB0;color:#fff;",
-      i
-    );
-    let frameHandle = await pageWithControls.$(`iframe[id='${framesIds[i]}']`);
-    let frame = await frameHandle.contentFrame();
-
-    let frameInputs = await frame.$$eval("input", (inputs) =>
-      inputs.filter((i) => i.type !== "hidden").map((i) => i.outerHTML)
-    );
-
-    let frameSelects = await frame.$$eval("select", (selects) =>
-      selects.map((s) => s.outerHTML.replace(/\t/g, ""))
-    );
-
-    if (frameInputs && frameInputs.length > 0) {
-      let inputsString = `<html>${url}\n\n\n${frameInputs
-        .toString()
-        .replace(/,/g, "\n")}</html>`;
-      fs.writeFileSync(
-        fileNameBase + "_frame_" + framesIds[i] + "_inputs.html",
-        inputsString
-      );
+  if (containerInputs && containerInputs?.length > 0) {
+    let inputsString;
+    for (let i = 0; i < containerInputs.length; i++) {
+      const containerInput = containerInputs[i];
+      const selectorText = `//input[${i}]`;
+      const outerHtml = await containerInput.evaluate((ele) => ele.outerHTML);
+      inputsString += `\nselector: ${selectorText}\n${outerHtml}`;
+      // await containerInput.type(selectorText);
     }
-    if (frameSelects && frameSelects.length > 0) {
-      let selectsString = `<html>${url}\n\n\n${frameSelects
-        .toString()
-        .replace(/,/g, "\n")}</html>`;
-      fs.writeFileSync(
-        fileNameBase + "_frame_" + framesIds[i] + "_selects.html",
-        selectsString
-      );
-    }
-  }
+    inputsString = `<html>${url}\n\n\n${inputsString})}</html>`;
 
-  if (pageInputs && pageInputs.length > 0) {
-    const inputsString = `<html>${url}\n\n\n${pageInputs
-      .toString()
-      .replace(/,/g, "\n")}</html>`;
     fs.writeFileSync(fileNameBase + "_inputs.html", inputsString);
   }
-  if (pageSelects && pageSelects.length > 0) {
-    const selectsString = `<html>${url}\n\n\n${pageSelects
+  if (containerSelects && containerSelects.length > 0) {
+    const selectsString = `<html>${url}\n\n\n${containerSelects
       .toString()
       .replace(/,/g, "\n")}</html>`;
     fs.writeFileSync(fileNameBase + "_selects.html", selectsString);
   }
+  if (containerButtons && containerButtons.length > 0) {
+    const buttonsString = `<html>${url}\n\n\n${containerButtons
+      .toString()
+      .replace(/,/g, "\n")}</html>`;
+    fs.writeFileSync(fileNameBase + "_buttons.html", buttonsString);
+  }
 
-  if (pageFrames && pageFrames.length > 0) {
-    const framesString = `<html>${url}\n\n\n${pageFrames
+  if (containerFrames && containerFrames.length > 0) {
+    const framesString = `<html>${url}\n\n\n${containerFrames
       .toString()
       .replace(/,/g, "\n")}</html>`;
     fs.writeFileSync(fileNameBase + "_frames.html", framesString);
+  }
+
+  // frameId's
+  const framesIds = await container.$$eval("iframe", (frames) =>
+    frames.map((f) => f.id)
+  );
+  for (let i = 0; i < framesIds.length; i = i + 1) {
+    let frameHandle = await container.$(`iframe[id='${framesIds[i]}']`);
+    if (frameHandle) {
+      storeControls(frameHandle, `frame_${framesIds[i]}`);
+    }
   }
 }
 
 function findConfig(url, config) {
   let lowerUrl = url.toLowerCase();
-  if (process.argv.length > 2 && process.argv.includes(`verbose-url=${url}`)) {
-    storeControls(page, lowerUrl);
-  }
-
   const urlConfig = config.find(
     (x) =>
       (x.url && x.url.toLowerCase() === lowerUrl) ||
       (x.regex && RegExp(x.regex.toLowerCase()).test(lowerUrl))
   );
+
+  for (const param of process.argv) {
+    if (param === "verbose-url=") {
+      setInterval(function () {
+        console.log(`Verbose Mode: Navigation: ${url}`);
+        storeControls(page, lowerUrl);
+      }, 5000);
+    }
+  }
+
+  if (process.argv.includes(`verbose-url=${url}`)) {
+    storeControls(page, lowerUrl);
+  }
 
   if (urlConfig) {
     console.log("Workflow: ", urlConfig.name);
@@ -242,13 +231,6 @@ async function commit(page, details, row) {
       case "select":
         if (value) {
           await page.select(detail.selector, value);
-          break;
-        } else if (detail.autocomplete) {
-          await page.select(detail.selector, budgie.get(detail.autocomplete));
-        }
-        if (txt) {
-          await selectByValue(detail.selector, txt);
-          break;
         }
         break;
       default:
@@ -256,7 +238,6 @@ async function commit(page, details, row) {
     }
   }
 }
-
 async function selectByValue(selector, txt) {
   await page.waitForSelector(selector);
   const options = await page.$eval(selector, (e) => e.innerHTML);
@@ -446,7 +427,7 @@ function createMRZImage(fileName, codeline) {
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = "black";
-  ctx.font = "12px Tahoma, Geneva, sans-serif"; // Verdana, Verdana, Geneva, sans-serif
+  ctx.font = "11px Verdana, Verdana, Geneva, sans-serif"; // Verdana, Verdana, Geneva, sans-serif
   ctx.fillText(codeline.substring(0, 44), 15, canvas.height - 45);
   ctx.fillText(codeline.substring(44), 15, canvas.height - 20);
 
@@ -474,13 +455,27 @@ function endCase(name) {
 async function sniff(page, details) {
   for (const detail of details) {
     if (detail.autocomplete) {
-      await page.waitForSelector(detail.selector);
-      let value = await page.$eval(
-        detail.selector,
-        (el) => el.value || el.innerText
-      );
-      if (detail.autocomplete && value) {
-        budgie.save(detail.autocomplete, value);
+      let tagName = await page.$eval(detail.selector, (el) => el.tagName);
+      switch (tagName.toLowerCase()) {
+        case "input":
+          let inputText = await page.$eval(
+            detail.selector,
+            (el) => el.value || el.innerText
+          );
+          if (detail.autocomplete && inputText) {
+            budgie.save(detail.autocomplete, inputText);
+          }
+          break;
+        case "select":
+          let selectedValue = await page.$eval(
+            detail.selector,
+            (el) => el.value,
+            tagName
+          );
+          if (detail.autocomplete && selectedValue) {
+            budgie.save(detail.autocomplete, selectedValue);
+          }
+          break;
       }
     }
   }
@@ -498,6 +493,7 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
   }
   switch (url.toLowerCase()) {
     case "https://visa.mofa.gov.sa/".toLowerCase():
+    case "https://visa.mofa.gov.sa".toLowerCase():
       mofaData = {};
       const closeButtonSelector =
         "#dlgMessageContent > div.modal-footer > button";
@@ -506,31 +502,20 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
         btn.click();
       });
 
-      if (mofa_visaTypeValue) {
+      if (mofa_visaTypeValue && /^[0-9]{1,5}$/.test(mofa_visaTypeValue)) {
         await currentPage.select("#SearchingType", mofa_visaTypeValue);
       }
       await currentPage.waitForSelector("#ApplicationNumber");
       await currentPage.type("#ApplicationNumber", id1);
       await currentPage.type("#SponserID", id2);
 
-      const captchaSelector = "#Captcha";
-      await currentPage.waitForSelector(captchaSelector);
-      await currentPage.$eval(captchaSelector, (e) => e.scrollIntoView());
-      await currentPage.bringToFront();
-      await currentPage.focus(captchaSelector);
-      if (!process.argv.includes("slow")) {
-        await currentPage.waitForFunction(
-          "document.querySelector('#Captcha').value.length === 6",
-          { timeout: 0 }
-        );
-        await sniff(currentPage, [
-          { selector: "#SearchingType", autocomplete: "mofa_visaType" },
-          { selector: "#ApplicationNumber", autocomplete: "mofa_id1" },
-          { selector: "#SponserID", autocomplete: "mofa_id2" },
-        ]);
-
-        await currentPage.click("#btnSearch");
-      }
+      await waitForPageCaptcha(currentPage, "#Captcha", 6);
+      await sniff(currentPage, [
+        { selector: "#SearchingType", autocomplete: "mofa_visaType" },
+        { selector: "#ApplicationNumber", autocomplete: "mofa_id1" },
+        { selector: "#SponserID", autocomplete: "mofa_id2" },
+      ]);
+      await currentPage.click("#btnSearch");
       break;
     case "https://visa.mofa.gov.sa/Home/PrintVisa".toLowerCase():
       const applicationTypeSelector =
@@ -660,6 +645,27 @@ async function waitForCaptcha(selector, captchaLength, timeout = 0) {
   );
 }
 
+async function waitForPageCaptcha(
+  captchaPage,
+  selector,
+  captchaLength,
+  timeout = 0
+) {
+  await captchaPage.waitForSelector(selector);
+  await captchaPage.bringToFront();
+  await captchaPage.evaluate((cap) => {
+    const captchaElement = document.querySelector(cap);
+    captchaElement.scrollIntoView({ block: "end" });
+    captchaElement.value = "";
+  }, selector);
+  await captchaPage.focus(selector);
+  await captchaPage.hover(selector);
+  await captchaPage.waitForFunction(
+    `document.querySelector('${selector}').value.length === ${captchaLength}`,
+    { timeout }
+  );
+}
+
 module.exports = {
   findConfig,
   commit,
@@ -683,5 +689,7 @@ module.exports = {
   mofaData,
   getMofaData,
   waitForCaptcha,
+  waitForPageCaptcha,
+  VISION_DEFICIENCY,
   downloadAndResizeImage,
 };

@@ -3,12 +3,14 @@ const { send: sendWtu } = require("./src/wtu");
 const { send: sendGma } = require("./src/gma");
 const { send: sendVst } = require("./src/vst");
 const { send: sendEnj } = require("./src/enj");
+const { send: sendTwf } = require("./src/twf");
 
 const path = require("path");
 const Cryptr = require("cryptr");
 const fs = require("fs");
 const extract = require("extract-zip");
 const { homedir } = require("os");
+const moment = require('moment');
 const version = "0.1.1";
 
 async function main() {
@@ -39,9 +41,9 @@ async function main() {
     case "gma":
       return sendGma(data);
     case "twf":
-      return sendBau(data);
-    case "mot":
-      return sendBau(data);
+      return sendTwf(data);
+    // case "mot":
+    //   return sendMot(data);
     case "vst":
       return sendVst(data);
     case "enj":
@@ -80,11 +82,11 @@ async function getDataFileName() {
       console.log(`File not found ${fileName}`);
       process.exit(1);
     }
-    if (!fs.existsSync(dataFileName)) {
+    if (fs.existsSync(dataFileName)) {
       try {
-        await fs.rename(
+        await fs.renameSync(
           dataFileName,
-          path.join(__dirname, `data_${moment().format("DDHHmmss")}.json`)
+          path.join(__dirname, `data_${moment().format()}.json`)
         );
       } catch (err) {
         console.log("unable to rename ", dataFileName, err);

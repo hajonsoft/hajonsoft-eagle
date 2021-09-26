@@ -171,7 +171,7 @@ async function runPageConfiguration(currentConfig) {
       if (passportNumber) {
         return;
       }
-      await page.waitFor(3000);
+      await page.waitForTimeout(3000);
       await page.waitForSelector("#btnclick");
       await page.evaluate(() => {
         const divBtn = document.querySelector("#btnclick");
@@ -188,7 +188,7 @@ async function runPageConfiguration(currentConfig) {
           delay: 0,
         }
       );
-      await page.waitFor(4000);
+      await page.waitForTimeout(4000);
       await util.commit(page, currentConfig.details, data.travellers[counter]);
       let photoPath = path.join(
         util.photosFolder,
