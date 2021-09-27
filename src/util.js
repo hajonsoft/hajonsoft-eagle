@@ -189,7 +189,7 @@ async function commit(page, details, row) {
     let txt;
     if (detail.value) {
       value = detail.value(row); // call value function and pass current row info
-      if (!value && details.autocomplete) {
+      if (!value && detail.autocomplete) {
         value = budgie.get(detail.autocomplete);
       }
     }
@@ -232,6 +232,8 @@ async function commit(page, details, row) {
       case "select":
         if (value) {
           await page.select(detail.selector, value);
+        } else if (txt) {
+          await selectByValue(detail.selector, txt);
         }
         break;
       default:
@@ -271,6 +273,7 @@ async function controller(page, structure, travellers) {
       .join(" ");
 
   try {
+    await page.waitForSelector(structure.controller.selector);
     await page.evaluate(
       (params) => {
         const structureParam = params[0];
