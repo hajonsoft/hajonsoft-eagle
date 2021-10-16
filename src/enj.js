@@ -197,14 +197,49 @@ async function onMofaContentLoaded(res) {
 async function onMofaContentClosed(res) {
   await page.bringToFront();
   const mofaData = util.getMofaData();
+  await pasteMofaData(mofaData);
+  await page.emulateVisionDeficiency("none"); // Just in case 
+  await util.waitForCaptcha("#Captcha", 6);
+  await util.sniff(page, [
+    {
+      selector: "#ENTRY_POINT",
+      autocomplete: "portOfEntry",
+    },
+    {
+      selector: "#DEGREE",
+      autocomplete: "degree",
+    },
+    {
+      selector: "#DEGREE_SOURCE",
+      autocomplete: "degreeSource",
+    },
+    {
+      selector: "#ADDRESS_HOME",
+      autocomplete: "homeAddress",
+    },
+    {
+      selector: "#COMING_THROUGH",
+      autocomplete: "transportationMode",
+    },
+    {
+      selector: "#car_number",
+      autocomplete: "flightNumber",
+    },
+    { selector: "#porpose", autocomplete: "visaPurpose" },
+  ]);
+
+  await page.click(
+    "#myform > div.form-actions.fluid.right > div > div > button"
+  );
+}
+
+async function pasteMofaData(mofaData) {
+  console.log('mofaData',mofaData)
   const numberOfEntries = mofaData?.numberOfEntries?.split("-")?.[0]?.trim();
   const validityDuration = mofaData?.numberOfEntries
     ?.split("-")?.[1]
     ?.match(/[0-9]+/)?.[0];
 
-  if (mofaData.applicationType == "invitation") {
-    return;
-  }
   await util.commit(page, [
     {
       selector: "#JOB_OR_RELATION",
@@ -235,7 +270,7 @@ async function onMofaContentClosed(res) {
     },
     {
       selector: "#SPONSER_NUMBER",
-      value: (row) => `${mofaData.id2}`,
+      value: (row) => !mofaData.applicationType == "invitation" && `${mofaData.id2}`,
     },
     {
       selector: "#SPONSER_PHONE",
@@ -296,41 +331,15 @@ async function onMofaContentClosed(res) {
   await util.commit(page, [
     { selector: "#RESIDENCY_IN_KSA", value: (row) => `${mofaData.duration}` },
   ]);
-  await page.emulateVisionDeficiency("none"); // Just in case 
-  await util.waitForCaptcha("#Captcha", 6);
-  await util.sniff(page, [
-    {
-      selector: "#ENTRY_POINT",
-      autocomplete: "portOfEntry",
-    },
-    {
-      selector: "#DEGREE",
-      autocomplete: "degree",
-    },
-    {
-      selector: "#DEGREE_SOURCE",
-      autocomplete: "degreeSource",
-    },
-    {
-      selector: "#ADDRESS_HOME",
-      autocomplete: "homeAddress",
-    },
-    {
-      selector: "#COMING_THROUGH",
-      autocomplete: "transportationMode",
-    },
-    {
-      selector: "#car_number",
-      autocomplete: "flightNumber",
-    },
-    { selector: "#porpose", autocomplete: "visaPurpose" },
-  ]);
 
-  await page.click(
-    "#myform > div.form-actions.fluid.right > div > div > button"
-  );
+  //Process ny additional data for type = invitation here
+  if (mofaData.applicationType == "invitation") {
+    await util.commit(page, [
+      {selector: '#Personal_Phone', value: (row) => `${mofaData.tel}`}
+    ])
+    return;
+  }
 }
-
 async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
