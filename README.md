@@ -29,6 +29,16 @@ Use node and puppeteer https://github.com/puppeteer/puppeteer/tree/main#readme t
 * Visit Saudi
 * other local visa systems
 
+M1
+https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html?prefix=Mac/818858/
+(it's the Intel build, but runs fine via Rosetta 2 – get chrome-mac.zip)
+
+https://linguinecode.com/post/how-to-fix-m1-mac-puppeteer-chromium-arm64-bug
+
+~/.zshrc
+export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+export PUPPETEER_EXECUTABLE_PATH=`which chromium`
+
 
 To start a recorder
 
