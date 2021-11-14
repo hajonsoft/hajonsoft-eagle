@@ -99,7 +99,17 @@ async function getDataFileName() {
   }
 
   if (!fs.existsSync(dataFileName)) {
-    console.log(`Passenger file missing, I looked for ${dataFileName}`);
+
+    if (process.argv.includes("-d")) {
+      fs.writeFileSync(dataFileName, JSON.stringify({
+        system: {
+          name: "wtu"
+        }
+      }))
+      return dataFileName;
+
+    }
+    console.log(`Passenger file missing. I looked in ${dataFileName}\nuse -d to generate and use empty data.json.`);
     process.exit(1);
   }
   return dataFileName;

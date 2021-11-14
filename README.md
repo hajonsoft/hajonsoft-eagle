@@ -4,23 +4,33 @@ We control chrome using eagle. Eagle is built on top of puppeteer and can send d
 
 # Getting started 
 
-Note: for Apple M1 Chip try this. But it didn't work for me 
-https://github.com/puppeteer/puppeteer/issues/6622
-https://linguinecode.com/post/how-to-fix-m1-mac-puppeteer-chromium-arm64-bug
+Note: for Apple M1 Chip choose ["open with rosetta"](https://www.courier.com/blog/tips-and-tricks-to-setup-your-apple-m1-for-development) when configuring your terminal in order to succesfully install packages.
+
+Once packages are installed via rosetta, you can use `node .` from a regular terminal without a problem.
+
+You may need to install [chromium via brew](https://linguinecode.com/post/how-to-fix-m1-mac-puppeteer-chromium-arm64-bug).
+
 
 ```
 git clone https://github.com/hajonsoft/hajonsoft-eagle.git
 cd hajonsoft-eagle
 npm i
-node . [file=FILENAME[.zip]] [noimage] [debug] [WORKFLOWNAME-only] [verbose-url=[url]] [slow]
+node . [file=FILENAME[.zip]] [noimage] [WORKFLOWNAME-only] [verbose-url=[url]] [slow]
 
 ```
 
 Note: Eagle will use data.json from its root, WORKFLOWNAME values (login, main, create-group, create-mutamer)
 
+# Debug mode
+node . verbose-url=
+
+use without any parameters to enable pre-emptive listen to the DOM to log process
+
+node . verbose-url="https://www.etawaf.com/tawaf43/index.html?locale=en"
+
 # Puppeteer
 
-Use node and puppeteer https://github.com/puppeteer/puppeteer/tree/main#readme to automate passenger data exchange with 
+Use node and [puppeteer](https://github.com/puppeteer/puppeteer/tree/main#readme) to automate passenger data exchange with 
 * Way to Umrah
 * Bab Al Umrah
 * Gabul Ya Hajj
@@ -40,7 +50,7 @@ export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 export PUPPETEER_EXECUTABLE_PATH=`which chromium`
 
 
-To start a recorder
+To start a recorder (not helpful)
 
 ```
 npx @puppeteer/recorder [url]

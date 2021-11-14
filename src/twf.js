@@ -28,111 +28,6 @@ const config = [
       },
     ],
   },
-  {
-    name: "main",
-    url: "https://www.waytoumrah.com/prj_umrah/Eng/Eng_Waytoumrah_EA.aspx",
-  },
-  {
-    name: "create-group",
-    regex:
-      "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx\\?PageId=M.*",
-    details: [
-      {
-        selector: "#txtGrpdesc",
-        value: (row) =>
-          `${row.name.first}-${row.name.last}-${moment().format("HH:mm:ss")}`,
-      },
-    ],
-  },
-  {
-    name: "create-mutamer",
-    url: "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx",
-    controller: {
-      selector:
-        "#Table2 > tbody > tr > td > div > div > div > div.widget-title",
-      action: async () => {
-        const selectedTraveller = await page.$eval(
-          "#hajonsoft_select",
-          (el) => el.value
-        );
-        if (selectedTraveller) {
-          fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
-          await page.goto(await page.url());
-        }
-      },
-    },
-    details: [
-      { selector: "#ddlgroupname", value: (row) => groupNumber },
-      { selector: "#ddltitle", value: (row) => "99" },
-      { selector: "#ddlpptype", value: (row) => "1" },
-      { selector: "#ddlbirthcountry", value: (row) => row.nationality.telCode },
-      { selector: "#ddladdcountry", value: (row) => row.nationality.telCode },
-      { selector: "#ddlhealth", value: (row) => "0" },
-      {
-        selector: "#txtprofession",
-        value: (row) => decodeURI(row.profession),
-        autocomplete: "wtu_profession",
-      },
-      { selector: "#ddlmstatus", value: (row) => "99" },
-      { selector: "#ddleducation", value: (row) => "99" },
-      {
-        selector: "#txtbirthcity",
-        value: (row) => decodeURI(row.birthPlace),
-      },
-      {
-        selector: "#txtAfirstname",
-        value: (row) => row.nameArabic.first,
-      },
-      {
-        selector: "#txtAfamilyname",
-        value: (row) => row.nameArabic.last,
-      },
-      {
-        selector: "#txtAgfathername",
-        value: (row) => row.nameArabic.grand,
-      },
-      {
-        selector: "#txtAfathername",
-        value: (row) => row.nameArabic.father,
-      },
-      {
-        selector: "#txtppissdd",
-        value: (row) => row.passIssueDt.dd,
-      },
-      {
-        selector: "#ddlppissmm",
-        txt: (row) => row.passIssueDt.mmm,
-      },
-      {
-        selector: "#txtppissyy",
-        value: (row) => row.passIssueDt.yyyy,
-      },
-      {
-        selector: "#txtppisscity",
-        value: (row) => decodeURI(row.placeOfIssue),
-      },
-      {
-        selector: "#txtcity",
-        value: (row) => "",
-        autocomplete: "wtu_address_city",
-      },
-      {
-        selector: "#txtstreet",
-        value: (row) => "",
-        autocomplete: "wtu_address_street",
-      },
-      {
-        selector: "#txtstate",
-        value: (row) => "",
-        autocomplete: "wtu_address_state",
-      },
-      {
-        selector: "#txtzipcode",
-        value: (row) => "",
-        autocomplete: "wtu_address_zipcode",
-      },
-    ],
-  },
 ];
 
 async function send(sendData) {
@@ -143,7 +38,7 @@ async function send(sendData) {
 
 async function onContentLoaded(res) {
   counter = util.useCounter(counter);
-  if (counter >= data.travellers.length) {
+  if (counter >= data?.travellers?.length) {
     return;
   }
   const currentConfig = util.findConfig(await page.url(), config);
@@ -167,15 +62,46 @@ async function pageContentHandler(currentConfig) {
       await page.click(
         "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button"
       );
-      break;
-    case "main":
-      await page.goto(
-        "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx?PageId=M"
-      );
-      await page.waitForXPath("//input[10]");
-      for (let i = 0; i < 30; i++) {
-        await page.type(`//input[${i}]`, "input" + i);
-      }
+      await page.waitForXPath("//button[contains(text(), 'Upload Passport')]");
+      // const inputs = await page.$x(`//input[@type="text"]`);
+      // console.log('%cMyProject%cline:67%cinput.length', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(3, 101, 100);padding:3px;border-radius:2px', inputs.length)
+      // if (inputs.length){
+      //   let i = 1;
+      //   for (const input of inputs){
+      //     await input.type((i++).toString());
+
+      //   }
+      // }
+
+      await util.commit(page, [
+        {
+          xPath: '//input[@type="text"]',
+          index: 38,
+          value: (row) => row.name.first
+        },
+        {
+          xPath: '//input[@type="text"]',
+          index: 39,
+          value: (row) => row.name.father
+        },
+        {
+          xPath: '//input[@type="text"]',
+          index: 40,
+          value: (row) => row.name.grand
+        },
+        {
+          xPath: '//input[@type="text"]',
+          index: 41,
+          value: (row) => row.name.last
+        },
+        {
+          xPath: '//input[@type="text"]',
+          index: 46,
+          value: (row) => row.birthPlace
+        },
+      ], data.travellers[0]);
+
+
       break;
     default:
       break;
