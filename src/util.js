@@ -51,7 +51,7 @@ async function initPage(config, onContentLoaded) {
   } else {
     fs.readdir(photosFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(photosFolder, file), (err) => {});
+        fs.unlink(path.join(photosFolder, file), (err) => { });
       }
     });
   }
@@ -60,7 +60,7 @@ async function initPage(config, onContentLoaded) {
   } else {
     fs.readdir(passportsFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(passportsFolder, file), (err) => {});
+        fs.unlink(path.join(passportsFolder, file), (err) => { });
       }
     });
   }
@@ -69,7 +69,7 @@ async function initPage(config, onContentLoaded) {
   } else {
     fs.readdir(vaccineFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(vaccineFolder, file), (err) => {});
+        fs.unlink(path.join(vaccineFolder, file), (err) => { });
       }
     });
   }
@@ -94,7 +94,14 @@ async function storeControls(container, url) {
     fs.mkdirSync(logFolder);
   }
   const fileNameBase = logFolder + _.last(url.split("/"));
-  const containerInputs = await container.$x("//input");
+  const containerInputs = await container.$x(`//input[@type="text"]`);
+  let i = 0;
+  for (const containerInput of containerInputs) {
+    await containerInput.type('');
+    await containerInput.type((i).toString());
+    i++;
+  }
+  // TODO get labels as well
   const containerSelects = await container.$$eval("select", (selects) =>
     selects.map((s) => s.outerHTML.replace(/\t/g, ""))
   );
@@ -163,11 +170,11 @@ function findConfig(url, config) {
   );
 
   for (const param of process.argv) {
-    if (param === "verbose-url=") {
+    if (param === "verbose-url=" || param === "verbose-url") {
       setInterval(function () {
         console.log(`Verbose Mode: Navigation: ${url}`);
         storeControls(page, lowerUrl);
-      }, 5000);
+      }, 30000);
     }
   }
 
@@ -183,7 +190,12 @@ function findConfig(url, config) {
 }
 
 async function commit(page, details, row) {
-  await page.waitForSelector(details[0].selector);
+  if (details?.[0].selector) {
+    await page.waitForSelector(details?.[0].selector);
+  }
+  if (details?.[0].xPath) {
+    await page.$x(details?.[0].xPath);
+  }
   for (const detail of details) {
     let value;
     let txt;
@@ -196,37 +208,69 @@ async function commit(page, details, row) {
     if (detail.txt) {
       txt = detail.txt(row); // call txt function and pass current row info
     }
-    const element = await page.$(detail.selector);
+
+    let element;
+    if (detail.selector) {
+      element = await page.$(detail.selector);
+    }
+    if (detail.xPath) {
+      const xElements = await page.$x(detail.xPath);
+      element = xElements[detail.index || 0]
+    }
     if (!element || (!value && !txt)) {
       continue;
     }
-    const elementType = await page.$eval(detail.selector, (e) =>
-      e.outerHTML
-        .match(/<(.*?) /g)[0]
-        .replace(/</g, "")
-        .replace(/ /g, "")
-        .toLowerCase()
-    );
+    let elementType;
+    if (detail.selector) {
+      elementType = await page.$eval(detail.selector, (e) =>
+        e.outerHTML
+          .match(/<(.*?) /g)[0]
+          .replace(/</g, "")
+          .replace(/ /g, "")
+          .toLowerCase()
+      );
+    }
+    if (detail.xPath) {
+      const xElements = await page.$x(detail.xPath);
+      const xElement = xElements[detail.index];
+      elementType = "input";
+    }
     switch (elementType) {
       case "input":
-        await page.waitForSelector(detail.selector);
-        await page.focus(detail.selector);
-        await page.type(detail.selector, "");
-        await page.evaluate((element) => {
-          const field = document.querySelector(element.selector);
-          if (field) {
-            field.value = "";
-            field.setAttribute("value", "");
-          }
-        }, detail);
+        if (detail.selector) {
+          await page.waitForSelector(detail.selector);
+          await page.focus(detail.selector);
+          await page.type(detail.selector, "");
+          await page.evaluate((element) => {
+            const field = document.querySelector(element.selector);
+            if (field) {
+              field.value = "";
+              field.setAttribute("value", "");
+            }
+          }, detail);
+        }
 
         if (value) {
-          await page.type(detail.selector, value);
+          if (detail.selector) {
+            await page.type(detail.selector, value);
+          }
+          if (detail.xPath) {
+            const xElements = await page.$x(detail.xPath);
+            const xElement = xElements[detail.index];
+            await xElement.type(value);
+          }
         } else if (detail.autocomplete) {
-          await page.type(
-            detail.selector,
-            budgie.get(detail.autocomplete, detail.defaultValue)
-          );
+          if (detail.selector) {
+            await page.type(
+              detail.selector,
+              budgie.get(detail.autocomplete, detail.defaultValue)
+            );
+          }
+          if (detail.xPath) {
+            const xElements = await page.$x(detail.xPath);
+            const xElement = xElements[detail.index];
+            await xElement.type(budgie.get(detail.autocomplete, detail.defaultValue));
+          }
         }
         break;
       case "select":
@@ -241,6 +285,7 @@ async function commit(page, details, row) {
     }
   }
 }
+
 async function selectByValue(selector, txt) {
   await page.waitForSelector(selector);
   const options = await page.$eval(selector, (e) => e.innerHTML);

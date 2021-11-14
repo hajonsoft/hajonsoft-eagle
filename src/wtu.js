@@ -137,7 +137,7 @@ async function send(sendData) {
 
 async function onContentLoaded(res) {
   counter = util.useCounter(counter);
-  if (counter >= data.travellers.length) {
+  if (counter >= data?.travellers?.length) {
     return;
   }
   const currentConfig = util.findConfig(await page.url(), config);
@@ -149,7 +149,7 @@ async function onContentLoaded(res) {
 }
 
 async function pageContentHandler(currentConfig) {
-  const passenger = data.travellers[counter];
+  const passenger = data?.travellers?.[counter];
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);

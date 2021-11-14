@@ -375,7 +375,7 @@ async function send(sendData) {
 
 async function onContentLoaded(res) {
   counter = util.useCounter(counter);
-  if (counter >= data.travellers.length) {
+  if (counter >= data?.travellers?.length) {
     return;
   }
   const currentConfig = util.findConfig(await page.url(), config);
