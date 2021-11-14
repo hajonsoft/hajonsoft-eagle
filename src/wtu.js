@@ -185,12 +185,7 @@ async function pageContentHandler(currentConfig) {
         );
         await page.select("#cmbEmb", firstOption.value);
       }
-      const arrivalDate = moment()
-        .add(10, "days")
-        .toDate()
-        .toLocaleDateString();
 
-      await page.$eval("#txtEADate", (e, dt) => (e.value = dt), arrivalDate);
       await page.focus('#BtnSave')
       await page.hover('#BtnSave')
 
