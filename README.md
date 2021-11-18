@@ -22,7 +22,7 @@ node . [file=FILENAME[.zip]] [noimage] [WORKFLOWNAME-only] [verbose-url=[url]] [
 Note: Eagle will use data.json from its root, WORKFLOWNAME values (login, main, create-group, create-mutamer)
 
 # Debug mode
-node . verbose-url=
+node . verbose
 
 use without any parameters to enable pre-emptive listen to the DOM to log process
 
