@@ -348,6 +348,11 @@ function setCounter(currentCounter) {
 }
 
 async function commitFile(selector, fileName) {
+
+  if (!fs.existsSync(fileName) || process.argv.includes("noimage")) {
+    return;
+  }
+
   await page.waitForSelector(selector);
   let [fileChooser] = await Promise.all([
     page.waitForFileChooser(),
@@ -391,7 +396,7 @@ async function downloadImage(url, imagePath) {
 }
 
 async function downloadAndResizeImage(
-  traveller,
+  passenger,
   width,
   height,
   imageType = "photo"
@@ -400,20 +405,20 @@ async function downloadAndResizeImage(
   if (imageType == "vaccine") {
     folder = vaccineFolder;
   }
-  let url = traveller.images.photo;
-  if (imageType == "passport" && traveller.images.passport) {
-    url = traveller.images.passport;
+  let url = passenger.images.photo;
+  if (imageType == "passport" && passenger.images.passport) {
+    url = passenger.images.passport;
   }
-  if (imageType == "vaccine" && traveller.images.vaccine) {
-    url = traveller.images.vaccine;
+  if (imageType == "vaccine" && passenger.images.vaccine) {
+    url = passenger.images.vaccine;
   }
-  let imagePath = path.join(folder, `${traveller.passportNumber}.jpg`);
+  let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
   const resizedPath = path.join(
     folder,
-    `${traveller.passportNumber}_${width}x${height}.jpg`
+    `${passenger.passportNumber}_${width}x${height}.jpg`
   );
   if (fs.existsSync(imagePath) && fs.existsSync(resizedPath)) {
-    return;
+    return resizedPath;
   }
   const writer = fs.createWriteStream(imagePath);
   const response = await axios({
@@ -659,18 +664,22 @@ async function readValue(currentPage, selector) {
 }
 
 async function waitForCaptcha(selector, captchaLength, timeout = 0) {
-  await page.waitForSelector(selector);
-  await page.evaluate((cap) => {
-    const captchaElement = document.querySelector(cap);
-    captchaElement.scrollIntoView({ block: "end" });
-    captchaElement.value = "";
-  }, selector);
-  await page.focus(selector);
-  await page.hover(selector);
-  await page.waitForFunction(
-    `document.querySelector('${selector}').value.length === ${captchaLength}`,
-    { timeout }
-  );
+  try {
+    await page.waitForSelector(selector);
+    await page.evaluate((cap) => {
+      const captchaElement = document.querySelector(cap);
+      captchaElement.scrollIntoView({ block: "end" });
+      captchaElement.value = "";
+    }, selector);
+    await page.focus(selector);
+    await page.hover(selector);
+    await page.waitForFunction(
+      `document.querySelector('${selector}').value.length === ${captchaLength}`,
+      { timeout }
+    );
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 async function waitForPageCaptcha(

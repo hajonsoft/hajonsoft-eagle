@@ -55,17 +55,17 @@ async function pageContentHandler(currentConfig) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
       util.endCase(currentConfig.name);
-      await util.waitForCaptcha(
-        "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(2) > input",
-        5
-      );
-      await page.click(
-        "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button"
-      );
+      // await util.waitForCaptcha(
+      //   "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(2) > input",
+      //   5
+      // );
+      // await page.click(
+      //   "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button"
+      // );
       await page.waitForXPath("//button[contains(text(), 'Upload Passport')]");
       await util.controller(page, {
         controller: {
-          selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(1) > td > table > tbody > tr > td:nth-child(3)',
+          selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(1) > table > tbody',
           action: async () => {
             const selectedTraveller = await page.$eval(
               "#hajonsoft_select",
@@ -143,17 +143,17 @@ async function pageContentHandler(currentConfig) {
                   },
                   {
                     xPath: '//input[@type="text"]',
-                    index: 54,
+                    index: 53,
                     value: (row) => row.passIssueDt.dd
                   },
                   {
                     xPath: '//input[@type="text"]',
-                    index: 55,
+                    index: 54,
                     value: (row) => row.passIssueDt.mm
                   },
                   {
                     xPath: '//input[@type="text"]',
-                    index: 56,
+                    index: 55,
                     value: (row) => row.passIssueDt.yyyy
                   },
                   {
@@ -172,84 +172,43 @@ async function pageContentHandler(currentConfig) {
                     value: (row) => "99"
                   },
                 ], passenger);
-                // BEGIN PHOTO UPLOAD
-                let photoPath = path.join(
-                  util.photosFolder,
-                  `${passenger.passportNumber}.jpg`
-                );
-                await util.downloadImage(passenger.images.photo, photoPath);
-                const resizedPhotoPath = path.join(
-                  util.photosFolder,
-                  `${passenger.passportNumber}_200x200.jpg`
-                );
-                await sharp(photoPath).resize(200, 200).toFile(resizedPhotoPath);
-                if (!process.argv.includes("noimage")) {
-                  let futureFileChooser = page.waitForFileChooser();
-                  await page.evaluate(() =>
-                    document.querySelector("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(1) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input").click()
-                  );
-                  let fileChooser = await futureFileChooser;
-                  await fileChooser.accept([resizedPhotoPath]);
-                }
 
-                // BEGIN PASSPORT UPLOAD
-                const passportPath = path.join(
-                  util.passportsFolder,
-                  `${passenger.passportNumber}.jpg`
-                );
-                await util.downloadImage(passenger.images.passport, passportPath);
-                let resizedPassportFile = path.join(
-                  util.passportsFolder,
-                  `${passenger.passportNumber}_400x300.jpg`
-                );
-                await sharp(passportPath)
-                  .resize(400, 300)
-                  .toFile(resizedPassportFile);
-                if (fs.existsSync(passportPath) && !process.argv.includes("noimage")) {
-                  const uploadPassportButtonSelector = "#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > button";
-                  await page.click(uploadPassportButtonSelector);
-                  // const passportSelector = "#wrapper > div:nth-child(16) > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > table > tbody > tr:nth-child(1) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input"
-                  await page.waitForXPath("//*[@id='wrapper']/div[5]/div/table/tbody/tr[2]/td[2]/div/table/tbody/tr[1]/td/table/tbody/tr/td[2]/table/tbody/tr[2]/td/div/table/tbody/tr/td[1]/form/div/input")
-
-                  futureFileChooser = page.waitForFileChooser();
-                  const uplodButton2 = await page.$x("//*[@id='wrapper']/div[5]/div/table/tbody/tr[2]/td[2]/div/table/tbody/tr[1]/td/table/tbody/tr/td[2]/table/tbody/tr[2]/td/div/table/tbody/tr/td[1]/form/div/input")
-                  await uplodButton2.evaluate(e => e.click());
-                  // await page.evaluate(() =>
-                  //   document.querySelector("#wrapper > div:nth-child(16) > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > table > tbody > tr:nth-child(1) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input").click()
-                  // );
-                  fileChooser = await futureFileChooser;
-                  await fileChooser.accept([resizedPassportFile]);
-                  await page.waitForSelector("#wrapper > div:nth-child(18) > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > table > tbody > tr:nth-child(2) > td > div > div > table > tbody > tr > td > div > div > div.GDECWS3CF > img");
-
-                }
-                // // BEGIN Vaccine UPLOAD
-                // const vaccineSelector = "#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(12) > td:nth-child(3) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input"
-                // const passportPath = path.join(
-                //   util.passportsFolder,
-                //   `${passenger.passportNumber}.jpg`
-                // );
-                // await util.downloadImage(passenger.images.passport, passportPath);
-                // if (fs.existsSync(passportPath)) {
-                //   futureFileChooser = page.waitForFileChooser();
-                //   await page.click(vaccineSelector)
-                //   // await page.evaluate(() =>
-                //   //   document.querySelector("#wrapper > div:nth-child(17) > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > table > tbody > tr:nth-child(1) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input").click()
-                //   // );
-                //   fileChooser = await futureFileChooser;
-                //   let resizedPassportFile = path.join(
+                // const blankPassportPath = util.createMRZImage(
+                //   path.join(
                 //     util.passportsFolder,
-                //     `${passenger.passportNumber}_400x300.jpg`
-                //   );
-                //   await sharp(passportPath)
-                //     .resize(400, 300)
-                //     .toFile(resizedPassportFile);
-                //   await fileChooser.accept([resizedPassportFile]);
-                // }
+                //     passenger.passportNumber + "_400x300_mrz.jpg"
+                //   ),
+                //   passenger.codeline
+                // );
 
-                // passport image button 
-                // await page.click("#wrapper > div:nth-child(15) > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > button")
-                // "#wrapper > div:nth-child(15) > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > button"
+                let portraitImage = await util.downloadAndResizeImage(
+                  passenger,
+                  200,
+                  200,
+                  "photo"
+                );
+                const resizedPassportPath = await util.downloadAndResizeImage(
+                  passenger,
+                  400,
+                  300,
+                  "passport"
+                );
+                const vaccineImage = await util.downloadAndResizeImage(
+                  passenger,
+                  100,
+                  100,
+                  "vaccine"
+                );
 
+                await util.commitFile("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(1) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", portraitImage);
+                await util.commitFile("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(12) > td:nth-child(3) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", vaccineImage);
+                  await page.evaluate(() => {
+                    const uplodPassportBtn = document.querySelector("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > button");
+                    if (uplodPassportBtn) {
+                      uplodPassportBtn.click();
+                    }
+                  });
+                  await util.commitFile("#wrapper > div:nth-child(18) > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > table > tbody > tr:nth-child(1) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", resizedPassportPath);
               } catch (err) {
                 console.log(err.message);
               }
