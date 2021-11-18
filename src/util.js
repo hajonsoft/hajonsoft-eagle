@@ -666,6 +666,10 @@ async function readValue(currentPage, selector) {
 }
 
 async function waitForCaptcha(selector, captchaLength, timeout = 0) {
+  const captchaElement = await page.$(selector);
+  if (!captchaElement) {
+    return ;
+  }
   try {
     await page.waitForSelector(selector);
     await page.evaluate((cap) => {

@@ -55,13 +55,13 @@ async function pageContentHandler(currentConfig) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
       util.endCase(currentConfig.name);
-      // await util.waitForCaptcha(
-      //   "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(2) > input",
-      //   5
-      // );
-      // await page.click(
-      //   "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button"
-      // );
+      await util.waitForCaptcha(
+        "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(2) > input",
+        5
+      );
+      await page.click(
+        "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button"
+      );
       await page.waitForXPath("//button[contains(text(), 'Upload Passport')]");
       await util.controller(page, {
         controller: {
@@ -123,22 +123,22 @@ async function pageContentHandler(currentConfig) {
                   },
                   {
                     xPath: '//input[@type="text"]',
-                    index: 46,
+                    index: 45,
                     value: (row) => row.birthPlace
                   },
                   {
                     xPath: '//input[@type="text"]',
-                    index: 49,
+                    index: 48,
                     value: (row) => 'Paris'
                   },
                   {
                     xPath: '//input[@type="text"]',
-                    index: 50,
+                    index: 49,
                     value: (row) => row.profession
                   },
                   {
                     xPath: '//input[@type="text"]',
-                    index: 52,
+                    index: 51,
                     value: (row) => row.placeOfIssue
                   },
                   {
