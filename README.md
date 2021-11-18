@@ -21,12 +21,15 @@ node . [file=FILENAME[.zip]] [noimage] [WORKFLOWNAME-only] [verbose-url=[url]] [
 
 Note: Eagle will use data.json from its root, WORKFLOWNAME values (login, main, create-group, create-mutamer)
 
-# Debug mode
-node . verbose-url=
+# Verbose mode
 
-use without any parameters to enable pre-emptive listen to the DOM to log process
+node . verbose
+
+Enable extraction of DOM elements every few seconds to a log file as they appear
 
 node . verbose-url="https://www.etawaf.com/tawaf43/index.html?locale=en"
+
+Extrct DOM elements for one page only and only one time no intervals
 
 # Puppeteer
 
@@ -61,6 +64,15 @@ npx @puppeteer/recorder https://www.etawaf.com/tawaf43/index.html?locale=en
 ```
 
 To send a photo
+
+I used this site for testing
+https://anonfiles.com/
+
+a better approach to uploading file is https://www.codegrepper.com/code-examples/javascript/upload+file+from+local+puppeteer
+
+Basically 
+await input.uploadFile(`${pathFile}/travis_1.png`)
+instead of fileChooser below
 
 ```
       // 1. Create pointer for fileChooser

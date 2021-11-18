@@ -1,27 +1,27 @@
 {
-  "name": "HAJonSoft_App",
+  "name": "hajonsoft-eagle",
   "version": "1.0.0",
-  "description": "HAJonSoft desktop application",
+  "description": "HAJonSoft node app to submit passengers to visa systems",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Ayman A",
   "license": "ISC",
   "dependencies": {
-    "add-text-to-image": "^1.0.1",
-    "axios": "^0.21.1",
-    "canvas": "2.8.0",
+    "axios": "^0.24.0",
+    "beautify": "^0.0.8",
+    "canvas": "^2.8.0",
     "cryptr": "^6.0.2",
     "downloads-folder": "^3.0.1",
     "extract-zip": "^2.0.1",
-    "lodash": "^4.17.20",
-    "moment": "2.29.1",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.1",
     "node-canvas": "^2.7.0",
-    "puppeteer": "11.0.0",
-    "puppeteer-extra": "3.2.3",
-    "puppeteer-extra-plugin-stealth": "2.9.0",
-    "sharp": "0.29.2"
+    "puppeteer": "^11.0.0",
+    "puppeteer-extra": "^3.2.3",
+    "puppeteer-extra-plugin-stealth": "^2.9.0",
+    "sharp": "^0.29.3"
   }
 }

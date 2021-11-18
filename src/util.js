@@ -11,6 +11,7 @@ const axios = require("axios");
 const moment = require("moment");
 const { createCanvas, loadImage } = require("canvas");
 const _ = require("lodash");
+const beautify = require('beautify');
 const homedir = require("os").homedir();
 console.log("HOME: " + homedir);
 let page;
@@ -73,6 +74,10 @@ async function initPage(config, onContentLoaded) {
       }
     });
   }
+  // remove this event to enable right click on the page
+  // await page.evaluate(() => {
+  //   window.removeEventListener('contextmenu', {});
+  // });
   return page;
 }
 
@@ -83,82 +88,43 @@ async function newPage(onMofaContentLoaded, onMofaContentClosed) {
   return _newPage;
 }
 
-async function storeControls(container, url) {
-  console.log(
-    "%c 🥔 url: ",
-    "font-size:20px;background-color: #4b4b4b;color:#fff;",
-    `VERBOSE-URL: ${url}`
-  );
+async function createControlsFile(url, container, xPath, fieldFunction = async () => { }) {
   const logFolder = __dirname + "/../log/";
   if (!fs.existsSync(logFolder)) {
     fs.mkdirSync(logFolder);
   }
-  const fileNameBase = logFolder + _.last(url.split("/"));
-  const containerInputs = await container.$x(`//input[@type="text"]`);
+  const fileName = logFolder + _.last(url.split("/")).replace(/[^a-z0-9]/gmi, '') + '_' + xPath.replace(/[^a-z0-9]/gmi, '') + ".html";
+  const handlers = await container.$x(xPath);
+
   let i = 0;
-  for (const containerInput of containerInputs) {
-    await containerInput.type('');
-    await containerInput.type((i).toString());
+  let allText = ''
+  for (const handler of handlers) {
+    await fieldFunction(handler, i);
+    const outerHtml = await handler.evaluate(e => e.outerHTML.replace(/\t/g, ""));
+    allText += `${xPath}-${i}\n`;
+    allText += `\t${beautify(outerHtml, { format: 'html' })}\n\n`;
+    // if select // .replace(/,/g, "\n")}</html>`;
     i++;
   }
-  // TODO get labels as well
-  const containerSelects = await container.$$eval("select", (selects) =>
-    selects.map((s) => s.outerHTML.replace(/\t/g, ""))
-  );
-  const containerButtons = await container.$$eval("button", (buttons) =>
-    buttons.map((s) => s.outerHTML.replace(/\t/g, ""))
-  );
+  allText += "\n\n\n-------------------BEGIN HTML DUMP-------------------\n\n\n\n\n";
+  const html = await container.content();
+  console.log(html);
+  allText += beautify(html, { format: 'html' });
+  fs.writeFileSync(fileName, allText);
+}
 
-  const containerFrames = await container.$$eval("iframe", (frames) =>
-    frames.map((f) => f.outerHTML)
-  );
-  console.log(
-    `inputs/selects/frames: ${containerInputs?.length}/${containerSelects?.length}/${containerFrames?.length}`
-  );
-
-  if (containerInputs && containerInputs?.length > 0) {
-    let inputsString;
-    for (let i = 0; i < containerInputs.length; i++) {
-      const containerInput = containerInputs[i];
-      const selectorText = `//input[${i}]`;
-      const outerHtml = await containerInput.evaluate((ele) => ele.outerHTML);
-      inputsString += `\nselector: ${selectorText}\n${outerHtml}`;
-      // await containerInput.type(selectorText);
-    }
-    inputsString = `<html>${url}\n\n\n${inputsString})}</html>`;
-
-    fs.writeFileSync(fileNameBase + "_inputs.html", inputsString);
-  }
-  if (containerSelects && containerSelects.length > 0) {
-    const selectsString = `<html>${url}\n\n\n${containerSelects
-      .toString()
-      .replace(/,/g, "\n")}</html>`;
-    fs.writeFileSync(fileNameBase + "_selects.html", selectsString);
-  }
-  if (containerButtons && containerButtons.length > 0) {
-    const buttonsString = `<html>${url}\n\n\n${containerButtons
-      .toString()
-      .replace(/,/g, "\n")}</html>`;
-    fs.writeFileSync(fileNameBase + "_buttons.html", buttonsString);
-  }
-
-  if (containerFrames && containerFrames.length > 0) {
-    const framesString = `<html>${url}\n\n\n${containerFrames
-      .toString()
-      .replace(/,/g, "\n")}</html>`;
-    fs.writeFileSync(fileNameBase + "_frames.html", framesString);
-  }
-
-  // frameId's
-  const framesIds = await container.$$eval("iframe", (frames) =>
-    frames.map((f) => f.id)
-  );
-  for (let i = 0; i < framesIds.length; i = i + 1) {
-    let frameHandle = await container.$(`iframe[id='${framesIds[i]}']`);
-    if (frameHandle) {
-      storeControls(frameHandle, `frame_${framesIds[i]}`);
-    }
-  }
+async function storeControls(container, url) {
+  createControlsFile(url, container, `//input[@type="text"]`, async (handler, index) => {
+    await handler.evaluate(e => {
+      e.disabled = false;
+      e.readonly = false;
+    });
+    await handler.type((index).toString());
+  });
+  createControlsFile(url, container, `//input[@type="file"]`);
+  createControlsFile(url, container, `//select`);
+  createControlsFile(url, container, `//button`);
+  createControlsFile(url, container, `//iframe`);
 }
 
 function findConfig(url, config) {
@@ -170,7 +136,7 @@ function findConfig(url, config) {
   );
 
   for (const param of process.argv) {
-    if (param === "verbose-url=" || param === "verbose-url") {
+    if (param === "verbose-url=" || param === "verbose-url" || param === "verbose" || param === "-verbose") {
       setInterval(function () {
         console.log(`Verbose Mode: Navigation: ${url}`);
         storeControls(page, lowerUrl);
@@ -233,7 +199,11 @@ async function commit(page, details, row) {
     if (detail.xPath) {
       const xElements = await page.$x(detail.xPath);
       const xElement = xElements[detail.index];
-      elementType = "input";
+      elementType = await xElement.evaluate(e => e.outerHTML
+        .match(/<(.*?) /g)[0]
+        .replace(/</g, "")
+        .replace(/ /g, "")
+        .toLowerCase());
     }
     switch (elementType) {
       case "input":
@@ -275,9 +245,18 @@ async function commit(page, details, row) {
         break;
       case "select":
         if (value) {
-          await page.select(detail.selector, value);
+          if (detail.selector) {
+            await page.select(detail.selector, value);
+          }
+          if (detail.xPath) {
+            const xElements = await page.$x(detail.xPath);
+            const xElement = xElements[detail.index];
+            xElement.select(value);
+          }
         } else if (txt) {
-          await selectByValue(detail.selector, txt);
+          if (detail.selector) {
+            await selectByValue(detail.selector, txt);
+          }
         }
         break;
       default:
@@ -369,17 +348,24 @@ function setCounter(currentCounter) {
 }
 
 async function commitFile(selector, fileName) {
-  await page.waitForSelector(selector);
-  let [fileChooser] = await Promise.all([
-    page.waitForFileChooser(),
-    page.evaluate(
-      (fileUploaderSelector) =>
-        document.querySelector(fileUploaderSelector).click(),
-      selector
-    ),
-  ]);
 
-  const result = await fileChooser.accept([fileName]);
+  if (!fs.existsSync(fileName) || process.argv.includes("noimage")) {
+    return;
+  }
+
+  await page.waitForSelector(selector);
+  // let [fileChooser] = await Promise.all([
+  //   page.waitForFileChooser(),
+  //   page.evaluate(
+  //     (fileUploaderSelector) =>
+  //       document.querySelector(fileUploaderSelector).click(),
+  //     selector
+  //   ),
+  // ]);
+
+  // const result = await fileChooser.accept([fileName]);
+  const input = await page.$(selector);
+  await input.uploadFile(fileName);
 }
 
 async function captchaClick(selector, numbers, actionSelector) {
@@ -412,7 +398,7 @@ async function downloadImage(url, imagePath) {
 }
 
 async function downloadAndResizeImage(
-  traveller,
+  passenger,
   width,
   height,
   imageType = "photo"
@@ -421,20 +407,20 @@ async function downloadAndResizeImage(
   if (imageType == "vaccine") {
     folder = vaccineFolder;
   }
-  let url = traveller.images.photo;
-  if (imageType == "passport" && traveller.images.passport) {
-    url = traveller.images.passport;
+  let url = passenger.images.photo;
+  if (imageType == "passport" && passenger.images.passport) {
+    url = passenger.images.passport;
   }
-  if (imageType == "vaccine" && traveller.images.vaccine) {
-    url = traveller.images.vaccine;
+  if (imageType == "vaccine" && passenger.images.vaccine) {
+    url = passenger.images.vaccine;
   }
-  let imagePath = path.join(folder, `${traveller.passportNumber}.jpg`);
+  let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
   const resizedPath = path.join(
     folder,
-    `${traveller.passportNumber}_${width}x${height}.jpg`
+    `${passenger.passportNumber}_${width}x${height}.jpg`
   );
   if (fs.existsSync(imagePath) && fs.existsSync(resizedPath)) {
-    return;
+    return resizedPath;
   }
   const writer = fs.createWriteStream(imagePath);
   const response = await axios({
@@ -680,18 +666,26 @@ async function readValue(currentPage, selector) {
 }
 
 async function waitForCaptcha(selector, captchaLength, timeout = 0) {
-  await page.waitForSelector(selector);
-  await page.evaluate((cap) => {
-    const captchaElement = document.querySelector(cap);
-    captchaElement.scrollIntoView({ block: "end" });
-    captchaElement.value = "";
-  }, selector);
-  await page.focus(selector);
-  await page.hover(selector);
-  await page.waitForFunction(
-    `document.querySelector('${selector}').value.length === ${captchaLength}`,
-    { timeout }
-  );
+  const captchaElement = await page.$(selector);
+  if (!captchaElement) {
+    return ;
+  }
+  try {
+    await page.waitForSelector(selector);
+    await page.evaluate((cap) => {
+      const captchaElement = document.querySelector(cap);
+      captchaElement.scrollIntoView({ block: "end" });
+      captchaElement.value = "";
+    }, selector);
+    await page.focus(selector);
+    await page.hover(selector);
+    await page.waitForFunction(
+      `document.querySelector('${selector}').value.length === ${captchaLength}`,
+      { timeout }
+    );
+  } catch (err) {
+    console.log(err);
+  }
 }
 
 async function waitForPageCaptcha(
