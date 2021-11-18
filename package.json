@@ -12,6 +12,7 @@
   "dependencies": {
     "add-text-to-image": "^1.0.1",
     "axios": "^0.21.1",
+    "beautify": "^0.0.8",
     "canvas": "2.8.0",
     "cryptr": "^6.0.2",
     "downloads-folder": "^3.0.1",
