@@ -354,16 +354,18 @@ async function commitFile(selector, fileName) {
   }
 
   await page.waitForSelector(selector);
-  let [fileChooser] = await Promise.all([
-    page.waitForFileChooser(),
-    page.evaluate(
-      (fileUploaderSelector) =>
-        document.querySelector(fileUploaderSelector).click(),
-      selector
-    ),
-  ]);
+  // let [fileChooser] = await Promise.all([
+  //   page.waitForFileChooser(),
+  //   page.evaluate(
+  //     (fileUploaderSelector) =>
+  //       document.querySelector(fileUploaderSelector).click(),
+  //     selector
+  //   ),
+  // ]);
 
-  const result = await fileChooser.accept([fileName]);
+  // const result = await fileChooser.accept([fileName]);
+  const input = await page.$(selector);
+  await input.uploadFile(fileName);
 }
 
 async function captchaClick(selector, numbers, actionSelector) {
