@@ -103,22 +103,22 @@ async function pageContentHandler(currentConfig) {
                   },
                   {
                     xPath: '//input[@type="text"]',
-                    index: 34,
+                    index: 33,
                     value: (row) => row.nationality.isArabic && row.nameArabic.first
                   },
                   {
                     xPath: '//input[@type="text"]',
-                    index: 35,
+                    index: 34,
                     value: (row) => row.nationality.isArabic && row.nameArabic.father
                   },
                   {
                     xPath: '//input[@type="text"]',
-                    index: 36,
+                    index: 35,
                     value: (row) => row.nationality.isArabic && row.nameArabic.grand
                   },
                   {
                     xPath: '//input[@type="text"]',
-                    index: 37,
+                    index: 36,
                     value: (row) => row.nationality.isArabic && row.nameArabic.last
                   },
                   {
@@ -171,15 +171,27 @@ async function pageContentHandler(currentConfig) {
                     index: 4,
                     value: (row) => "99"
                   },
+                  {
+                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td:nth-child(2) > select',
+                    value: (row) => "15"
+                  },
                 ], passenger);
 
-                // const blankPassportPath = util.createMRZImage(
-                //   path.join(
-                //     util.passportsFolder,
-                //     passenger.passportNumber + "_400x300_mrz.jpg"
-                //   ),
-                //   passenger.codeline
-                // );
+                if (passenger.gender === "Female") {
+                  await util.commit(page, [
+                    {
+                      selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td:nth-child(2) > select',
+                      value: (row) => "15"
+                    }
+                  ], passenger)
+                } else {
+                  await util.commit(page, [
+                    {
+                      selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td:nth-child(2) > select',
+                      value: (row) => "0"
+                    }
+                  ], passenger)
+                }
 
                 let portraitImage = await util.downloadAndResizeImage(
                   passenger,
@@ -202,13 +214,15 @@ async function pageContentHandler(currentConfig) {
 
                 await util.commitFile("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(1) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", portraitImage);
                 await util.commitFile("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(12) > td:nth-child(3) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", vaccineImage);
-                  await page.evaluate(() => {
-                    const uplodPassportBtn = document.querySelector("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > button");
-                    if (uplodPassportBtn) {
-                      uplodPassportBtn.click();
-                    }
-                  });
-                  await util.commitFile("#wrapper > div:nth-child(18) > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > table > tbody > tr:nth-child(1) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", resizedPassportPath);
+                await page.evaluate(() => {
+                  const uplodPassportBtn = document.querySelector("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > button");
+                  if (uplodPassportBtn) {
+                    uplodPassportBtn.click();
+                  }
+                });
+                await util.commitFile("#wrapper > div:nth-child(18) > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > table > tbody > tr:nth-child(1) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", resizedPassportPath);
+
+                // Clip Crop photo here
               } catch (err) {
                 console.log(err.message);
               }

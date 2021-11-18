@@ -136,7 +136,7 @@ function findConfig(url, config) {
   );
 
   for (const param of process.argv) {
-    if (param === "verbose-url=" || param === "verbose-url" || param === "verbose") {
+    if (param === "verbose-url=" || param === "verbose-url" || param === "verbose" || param === "-verbose") {
       setInterval(function () {
         console.log(`Verbose Mode: Navigation: ${url}`);
         storeControls(page, lowerUrl);
