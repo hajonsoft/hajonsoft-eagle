@@ -82,17 +82,17 @@ async function getDataFileName() {
       console.log(`File not found ${fileName}`);
       process.exit(1);
     }
-    if (fs.existsSync(dataFileName)) {
-      try {
-        await fs.renameSync(
-          dataFileName,
-          path.join(__dirname, `data_${moment().format()}.json`)
-        );
-      } catch (err) {
-        console.log("unable to rename ", dataFileName, err);
-        process.exit(1);
-      }
-    }
+    // if (fs.existsSync(dataFileName)) {
+    //   try {
+    //     await fs.renameSync(
+    //       dataFileName,
+    //       path.join(__dirname, `data_${moment().format()}.json`)
+    //     );
+    //   } catch (err) {
+    //     console.log("unable to rename ", dataFileName, err);
+    //     process.exit(1);
+    //   }
+    // }
     console.log("unziping ...... to ", __dirname, "/data.json");
     await unzipFile(fileName);
     console.log(fileName);
