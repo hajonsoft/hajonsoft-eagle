@@ -403,17 +403,17 @@ async function downloadAndResizeImage(
   height,
   imageType = "photo"
 ) {
-  let folder = imageType == "photo" ? photosFolder : passportsFolder;
-  if (imageType == "vaccine") {
-    folder = vaccineFolder;
-  }
+  let folder = photosFolder;
   let url = passenger.images.photo;
-  if (imageType == "passport" && passenger.images.passport) {
+  if (imageType == "passport") {
+    folder = passportsFolder;
     url = passenger.images.passport;
   }
-  if (imageType == "vaccine" && passenger.images.vaccine) {
+  if (imageType == "vaccine") {
+    folder = vaccineFolder;
     url = passenger.images.vaccine;
   }
+
   let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
   const resizedPath = path.join(
     folder,

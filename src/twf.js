@@ -207,8 +207,8 @@ async function pageContentHandler(currentConfig) {
                 );
                 const vaccineImage = await util.downloadAndResizeImage(
                   passenger,
-                  100,
-                  100,
+                  400,
+                  400,
                   "vaccine"
                 );
 
