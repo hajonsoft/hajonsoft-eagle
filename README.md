@@ -97,3 +97,10 @@ instead of fileChooser below
       // 5. Accept the image into the file chooser
       await fileChooser.accept([resizedPhotoPath]);
 ```
+## user message
+Since we communicate with advanced eagle users in these messages, we color console.log messages 
+
+`console.log('\x1b[7m', "message","\x1b[0m");`
+
+If you use ansi color your must reset using "\x1b[0m"
+Here is the reference for [ansi colors](https://telepathy.freedesktop.org/doc/telepathy-glib/telepathy-glib-debug-ansi.html#TP-ANSI-RESET:CAPS) 

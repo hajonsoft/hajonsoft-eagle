@@ -14,7 +14,8 @@ let groupNumber;
 const config = [
   {
     name: "login",
-    url: "https://www.etawaf.com/tawaf43/index.html?locale=en",
+    url: "https://www.etawaf.com/tawaf43/index.html",
+    regex: "https:\/\/www.etawaf.com\/tawaf43\/index.html\?locale=([a-z]{2})",
     details: [
       {
         selector:
@@ -55,14 +56,16 @@ async function pageContentHandler(currentConfig) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
       util.endCase(currentConfig.name);
-      await util.waitForCaptcha(
-        "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(2) > input",
-        5
-      );
-      await page.click(
-        "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button"
-      );
-      await page.waitForXPath("//button[contains(text(), 'Upload Passport')]");
+      // await util.waitForCaptcha(
+      //   "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(2) > input",
+      //   5
+      // );
+      // if (await page.$("#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button")) {
+      //   await page.click(
+      //     "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button"
+      //   );
+      // }
+      await page.waitForXPath("//button[contains(text(), 'Upload Passport')]", { timeout: 0 });
       await util.controller(page, {
         controller: {
           selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(1) > table > tbody',
@@ -192,7 +195,7 @@ async function pageContentHandler(currentConfig) {
                     }
                   ], passenger)
                 }
-
+                await page.emulateVisionDeficiency("blurredVision"); 
                 let portraitImage = await util.downloadAndResizeImage(
                   passenger,
                   200,
@@ -214,6 +217,7 @@ async function pageContentHandler(currentConfig) {
 
                 await util.commitFile("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(1) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", portraitImage);
                 await util.commitFile("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(12) > td:nth-child(3) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", vaccineImage);
+                await page.emulateVisionDeficiency("none"); 
                 await page.evaluate(() => {
                   const uplodPassportBtn = document.querySelector("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > button");
                   if (uplodPassportBtn) {

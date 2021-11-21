@@ -32,7 +32,7 @@ async function main() {
       // console.log(data.system.password);
     }
   }
-
+  console.log('\x1b[32m', `starting chrome ...`, "\x1b[0m");
   switch (data.system.name) {
     case "bau":
       return sendBau(data);
@@ -82,20 +82,8 @@ async function getDataFileName() {
       console.log(`File not found ${fileName}`);
       process.exit(1);
     }
-    // if (fs.existsSync(dataFileName)) {
-    //   try {
-    //     await fs.renameSync(
-    //       dataFileName,
-    //       path.join(__dirname, `data_${moment().format()}.json`)
-    //     );
-    //   } catch (err) {
-    //     console.log("unable to rename ", dataFileName, err);
-    //     process.exit(1);
-    //   }
-    // }
-    console.log("unziping ...... to ", __dirname, "/data.json");
     await unzipFile(fileName);
-    console.log(fileName);
+    console.log('\x1b[7m', `Success: ${fileName} => ${__dirname}/data.json`, "\x1b[0m");
   }
 
   if (!fs.existsSync(dataFileName)) {
