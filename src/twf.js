@@ -15,7 +15,7 @@ const config = [
   {
     name: "login",
     url: "https://www.etawaf.com/tawaf43/index.html",
-    regex: "https:\/\/www.etawaf.com\/tawaf43\/index.html\?locale=([a-z]{2})",
+    regex: "https:\/\/www.etawaf.com\/tawaf43\/index(_ar)?.html\?locale=([a-z]{2})",
     details: [
       {
         selector:
@@ -56,16 +56,8 @@ async function pageContentHandler(currentConfig) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
       util.endCase(currentConfig.name);
-      // await util.waitForCaptcha(
-      //   "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(2) > input",
-      //   5
-      // );
-      // if (await page.$("#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button")) {
-      //   await page.click(
-      //     "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button"
-      //   );
-      // }
-      await page.waitForXPath("//button[contains(text(), 'Upload Passport')]", { timeout: 0 });
+      // await page.waitForXPath("//button[contains(text(), 'Upload Passport')]", { timeout: 0 });
+      await page.waitForSelector("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(1) > table > tbody > tr > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(3) > td > img", { timeout: 0 });
       await util.controller(page, {
         controller: {
           selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(1) > table > tbody',

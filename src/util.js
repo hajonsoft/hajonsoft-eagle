@@ -78,6 +78,7 @@ async function initPage(config, onContentLoaded) {
   // await page.evaluate(() => {
   //   window.removeEventListener('contextmenu', {});
   // });
+
   return page;
 }
 
@@ -288,11 +289,11 @@ async function controller(page, structure, travellers) {
   }
 
   const options =
-    "<option>Select person and click send</option>" +
+    "<option>Select passenger click send حدد الراكب انقر إرسل</option>" +
     travellers
       .map(
         (traveller, cursor) =>
-          `<option value="${cursor}">${cursor} - ${traveller.name.full} - ${traveller.gender} - ${traveller.dob.age} years old</option>`
+          `<option value="${cursor}">${cursor} - ${traveller.nationality.isArabic ? traveller.nameArabic.given + ' ' + traveller.nameArabic.last : traveller.name.full} - ${traveller.gender} - ${traveller.dob.age} years old</option>`
       )
       .join(" ");
 
@@ -311,7 +312,7 @@ async function controller(page, structure, travellers) {
           <select id="hajonsoft_select" style='flex-grow: 1; margin-right: 0.5rem' > 
           ${optionsParam}
           </select>  
-          <button style='background-color: #2196f3; color: #ffffff; width: 5rem, padding: 0.5rem' type="button" onclick="handleSendClick();return false">Send</button> 
+          <button style='background-color: #2196f3; color: #ffffff; width: 6rem, padding: 0.5rem; margin: 0 5px; border-radius: 8px;' type="button" onclick="handleSendClick();return false">Send إرسل</button> 
           </div>`;
       },
       [structure, options]
@@ -670,7 +671,7 @@ async function readValue(currentPage, selector) {
 async function waitForCaptcha(selector, captchaLength, timeout = 0) {
   const captchaElement = await page.$(selector);
   if (!captchaElement) {
-    return ;
+    return;
   }
   try {
     await page.waitForSelector(selector);

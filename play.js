@@ -50,25 +50,58 @@
 // )
 
 
-const puppeteer = require("puppeteer-extra");
+// const puppeteer = require("puppeteer-extra");
 
-async function main() {
-browser = await puppeteer.launch({
-    headless: false,
-    defaultViewport: null,
-    args: [
-      "--start-fullscreen",
-      "--incognito",
-      "--disable-web-security",
-      "--disable-features=IsolateOrigins,site-per-process",
-    ],
-  });
-  const pages = await browser.pages();
-  // page = await browser.pages();
-  page = pages[0];
-  const page2 = await browser.newPage();
-  await page2.close();
-  await page.bringToFront();
+// async function main() {
+// browser = await puppeteer.launch({
+//     headless: false,
+//     defaultViewport: null,
+//     args: [
+//       "--start-fullscreen",
+//       "--incognito",
+//       "--disable-web-security",
+//       "--disable-features=IsolateOrigins,site-per-process",
+//     ],
+//   });
+//   const pages = await browser.pages();
+//   // page = await browser.pages();
+//   page = pages[0];
+//   const page2 = await browser.newPage();
+//   await page2.close();
+//   await page.bringToFront();
 
+// }
+// main()
+
+
+const object1 = {
+  "ayman" : {
+    "-Mp4LNyeBmlGuA459JLB" : {
+      "columns" : [ {
+        "Header" : "Name",
+        "accessor" : "name"
+      }, {
+        "Header" : "Gender",
+        "accessor" : "gender"
+      }, {
+        "Header" : "Passport Number",
+        "accessor" : "passportNumber"
+      }, {
+        "Header" : "Profession",
+        "accessor" : "profession"
+      } ]
+    }
+  }
 }
-main()
+const array = [];
+    for (const [key, value] of Object.entries(object1)) {
+      console.log(Object.values(value)[0].columns)
+
+      array.push({
+        name: key,
+        columns: Object.values(value)[0].columns
+      })
+      //  const valueValue = Object.values(value)[0];
+      //  array.push({ columns: valueValue, name: key });
+    }
+      console.log(array)
