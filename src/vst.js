@@ -309,7 +309,7 @@ const config = [
       },
       { selector: "#CityOfBirth", value: (row) => row.birthPlace },
       { selector: "#Profession", value: (row) => row.profession },
-      { selector: "#City", value: (row) => row.address || "utopia" },
+      { selector: "#City", value: (row) => row.address || "main" },
       {
         selector: "#PostalCode",
         value: (row) => row.passportNumber.substring(0, 5),
@@ -317,7 +317,7 @@ const config = [
       {
         selector: "#Address",
         value: (row) =>
-          row.address || row.passportNumber.substring(3) + " utopia street",
+          row.address || row.passportNumber.substring(3) + " main street",
       },
     ],
     controller: {
