@@ -4,7 +4,7 @@ We control chrome using eagle. Eagle is built on top of puppeteer and can send d
 
 # Getting started 
 
-Note: for Apple M1 Chip choose ["open with rosetta"](https://www.courier.com/blog/tips-and-tricks-to-setup-your-apple-m1-for-development) when configuring your terminal in order to succesfully install packages.
+Note: for Apple M1 Chip choose ["open with rosetta"](https://www.courier.com/blog/tips-and-tricks-to-setup-your-apple-m1-for-development) when configuring your terminal in order to successfully install packages.
 
 Once packages are installed via rosetta, you can use `node .` from a regular terminal without a problem.
 

@@ -74,19 +74,19 @@ const config = [
       },
       {
         selector: "#txtAfirstname",
-        value: (row) => row?.nameArabic?.first?.match(/[a-zA-Z]/) ? '' :  row?.nameArabic?.first,
+        value: (row) => row?.nameArabic?.first?.match(/[a-zA-Z]/) ? '' : row?.nameArabic?.first,
       },
       {
         selector: "#txtAfamilyname",
-        value: (row) => row?.nameArabic?.last?.match(/[a-zA-Z]/) ? '' :  row?.nameArabic?.last,
+        value: (row) => row?.nameArabic?.last?.match(/[a-zA-Z]/) ? '' : row?.nameArabic?.last,
       },
       {
         selector: "#txtAgfathername",
-        value: (row) => row?.nameArabic?.grand?.match(/[a-zA-Z]/) ? '' :  row?.nameArabic?.grand,
+        value: (row) => row?.nameArabic?.grand?.match(/[a-zA-Z]/) ? '' : row?.nameArabic?.grand,
       },
       {
         selector: "#txtAfathername",
-        value: (row) => row?.nameArabic?.father?.match(/[a-zA-Z]/) ? '' :  row?.nameArabic?.father,
+        value: (row) => row?.nameArabic?.father?.match(/[a-zA-Z]/) ? '' : row?.nameArabic?.father,
       },
       {
         selector: "#txtppissdd",
@@ -154,7 +154,7 @@ async function pageContentHandler(currentConfig) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
       util.endCase(currentConfig.name);
-      await util.waitForCaptcha("#txtImagetext",6);
+      await util.waitForCaptcha("#txtImagetext", 6);
       await page.click("#cmdlogin");
       await page.waitForTimeout(2000);
       const isIDo = await page.$("#Button4");
@@ -235,13 +235,19 @@ async function pageContentHandler(currentConfig) {
         await page.select("#ddlrelation", "15");
       }
 
-      const blankPassportPath = util.createMRZImage(
-        path.join(
-          util.passportsFolder,
-          passenger.passportNumber + "_400x300_mrz.jpg"
-        ),
-        passenger.codeline
-      );
+      let blankPassportPath;
+
+      try {
+        blankPassportPath = util.createMRZImage(
+          path.join(
+            util.passportsFolder,
+            passenger.passportNumber + "_400x300_mrz.jpg"
+          ),
+          passenger?.codeline
+        );
+      } catch (err) {
+        console.log(err)
+      }
 
       let resizedPhotoPath = await util.downloadAndResizeImage(
         passenger,
@@ -286,7 +292,7 @@ async function pageContentHandler(currentConfig) {
       }
 
       await util.waitForCaptcha("#txtImagetext", 5);
-      await util.sniff(page,currentConfig.details)
+      await util.sniff(page, currentConfig.details)
       await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
       counter = counter + 1;
       // TODO: Wait for success message before advancing the counter
