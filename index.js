@@ -12,12 +12,27 @@ const extract = require("extract-zip");
 const { homedir } = require("os");
 const moment = require('moment');
 const version = "0.1.1";
+const budgie = require("./src/budgie");
+
 
 async function main() {
   if (process.argv.includes("-v")) {
     console.log("version: " + version);
     process.exit(0);
   }
+
+  if (process.argv.includes("budgie")) {
+    const colonSeparatedKeys = process.argv.filter(arg => arg.includes(":"));
+    if (colonSeparatedKeys && colonSeparatedKeys.length > 0){
+      colonSeparatedKeys.forEach(colonSeparatedKey => {
+        const [key, value] = colonSeparatedKey.split(':');
+        budgie.save(key, value)
+      }) 
+    }
+    budgie.print();
+    process.exit(0);
+  }
+
   const dataFileName = await getDataFileName();
   const content = fs.readFileSync(dataFileName, "utf8");
   const data = JSON.parse(content);

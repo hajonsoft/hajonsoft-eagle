@@ -2,18 +2,22 @@ const fs = require("fs");
 const path = require("path");
 
 const dbFile = path.join(__dirname, "budgie.json");
+
+function print() {
+  const data = readKey();
+  console.log("Budgie: ", data)
+}
+
 function get(key, defaultValue) {
   if (!key) {
-    return "unknown key"; 
+    return defaultValue || "unknown key";
   }
   const data = readKey(key);
   if (data) {
     return data;
   }
-  if (defaultValue || defaultValue === ""){
-    return defaultValue;
-  }
-  return key;
+  save(key, defaultValue);
+  return defaultValue || key;
 }
 
 function save(key, value) {
@@ -41,7 +45,10 @@ function readKey(key) {
     try {
       const db = fs.readFileSync(dbFile, "utf-8");
       if (db) {
-        return JSON.parse(db)[key];
+        if (key) {
+          return JSON.parse(db)[key];
+        }
+        return JSON.parse(db)
       }
     } catch (err) {
       console.log(err)
@@ -52,4 +59,5 @@ function readKey(key) {
 module.exports = {
   get,
   save,
+  print
 };

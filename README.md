@@ -104,3 +104,12 @@ Since we communicate with advanced eagle users in these messages, we color conso
 
 If you use ansi color your must reset using "\x1b[0m"
 Here is the reference for [ansi colors](https://telepathy.freedesktop.org/doc/telepathy-glib/telepathy-glib-debug-ansi.html#TP-ANSI-RESET:CAPS) 
+
+## Budgie
+
+node . budgie
+_List all budgie entries_
+
+node . budgie [key:value] [key:value]
+node . budgie PlaceOfResidence:"New place of birth"
+_Set PlaceOfResidence to new value_

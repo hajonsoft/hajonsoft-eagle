@@ -288,7 +288,7 @@ const config = [
       {
         selector: "#FatherNameEnglish",
         value: (row) =>
-          row.name.father + row.name.grand && " " + row.name.grand,
+          (row?.name?.father + row?.name?.grand)?.trim(),
       },
       {
         selector: "#Gender",
@@ -309,7 +309,7 @@ const config = [
       },
       { selector: "#CityOfBirth", value: (row) => row.birthPlace },
       { selector: "#Profession", value: (row) => row.profession },
-      { selector: "#City", value: (row) => row.address || "main" },
+      { selector: "#City", value: (row) => row.address, autocomplete: 'VisaCity', defaultValue: 'main'  },
       {
         selector: "#PostalCode",
         value: (row) => row.passportNumber.substring(0, 5),
@@ -317,7 +317,7 @@ const config = [
       {
         selector: "#Address",
         value: (row) =>
-          row.address || row.passportNumber.substring(3) + " main street",
+          row.address , autocomplete: 'visaAddress', defaultValue: '123 main street',
       },
     ],
     controller: {
@@ -342,11 +342,11 @@ const config = [
     details: [
       { selector: "#PassportNumber", value: (row) => row.passportNumber },
       { selector: "#PassportIssuePlace", value: (row) => row.placeOfIssue },
-      { selector: "#PlaceOfResidence", value: (row) => "Mohamed Mohamed" },
+      { selector: "#PlaceOfResidence", value: (row) => '', autocomplete: "PlaceOfResidence", defaultValue: "Mohamed Mohamed" },
       { selector: "#CityId", value: (row) => "33" },
       {
         selector: "#Address1",
-        value: (row) => row.passportNumber.substring(5) + " main street",
+        value: (row) => '', autocomplete: 'visaAddress1', defaultValue: "123 main street",
       },
     ],
   },
@@ -466,12 +466,18 @@ async function runPageConfiguration(currentConfig) {
         util.photosFolder,
         `${passenger.passportNumber}_200x200.jpg`
       );
-      const photoFile = `./photos/${passenger.passportNumber}.jpg`;
-      await sharp(photoPath).resize(200, 200).toFile(resizedPhotoPath);
+      const sharpImage = await sharp(photoPath);
+      const sharpImageMetadata = await sharpImage.metadata();
+      if (sharpImageMetadata.width === 200 && sharpImageMetadata.height === 200) {
+        await sharpImage.clone().jpeg({ quality: 100 }).toFile(resizedPhotoPath);
+      } else {
+        await sharpImage.resize(200, 200).toFile(resizedPhotoPath);
+      }
       await fileChooser.accept([resizedPhotoPath]);
       await page.waitForSelector(
         "#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result"
       );
+      const cropSelector = await page.$("#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result")
       await page.click(
         "#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result"
       );

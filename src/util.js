@@ -169,7 +169,7 @@ async function commit(page, details, row) {
     if (detail.value) {
       value = detail.value(row); // call value function and pass current row info
       if (!value && detail.autocomplete) {
-        value = budgie.get(detail.autocomplete);
+        value = budgie.get(detail.autocomplete, detail.defaultValue);
       }
     }
     if (detail.txt) {
@@ -232,6 +232,7 @@ async function commit(page, details, row) {
           }
         } else if (detail.autocomplete) {
           if (detail.selector) {
+            console.log('%cMyProject%cline:237%cdetail', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(114, 83, 52);padding:3px;border-radius:2px', detail)
             await page.type(
               detail.selector,
               budgie.get(detail.autocomplete, detail.defaultValue)
