@@ -456,12 +456,6 @@ async function runPageConfiguration(currentConfig) {
         `${passenger.passportNumber}.jpg`
       );
       await util.downloadImage(passenger.images.photo, photoPath);
-      let futureFileChooser = page.waitForFileChooser();
-      await page.waitForSelector("#AttachmentPersonalPicture");
-      await page.evaluate(() =>
-        document.querySelector("#AttachmentPersonalPicture").click()
-      );
-      let fileChooser = await futureFileChooser;
       const resizedPhotoPath = path.join(
         util.photosFolder,
         `${passenger.passportNumber}_200x200.jpg`
@@ -473,7 +467,7 @@ async function runPageConfiguration(currentConfig) {
       } else {
         await sharpImage.resize(200, 200).toFile(resizedPhotoPath);
       }
-      await fileChooser.accept([resizedPhotoPath]);
+      await util.commitFile("#AttachmentPersonalPicture", resizedPhotoPath);
       await page.waitForSelector(
         "#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result"
       );

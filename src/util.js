@@ -354,18 +354,7 @@ async function commitFile(selector, fileName) {
   if (!fs.existsSync(fileName) || process.argv.includes("noimage")) {
     return;
   }
-
   await page.waitForSelector(selector);
-  // let [fileChooser] = await Promise.all([
-  //   page.waitForFileChooser(),
-  //   page.evaluate(
-  //     (fileUploaderSelector) =>
-  //       document.querySelector(fileUploaderSelector).click(),
-  //     selector
-  //   ),
-  // ]);
-
-  // const result = await fileChooser.accept([fileName]);
   const input = await page.$(selector);
   await input.uploadFile(fileName);
 }
