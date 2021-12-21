@@ -85,6 +85,13 @@ async function getDataFileName() {
 
   if (fileParam) {
     let fileName = fileParam.substring(5);
+    console.log('%cMyProject%cline:87%cfileName', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(17, 63, 61);padding:3px;border-radius:2px', fileName)
+    if (!fileName) {
+      fileName = "bundle.zip";
+    }
+    if (/^[0-9]$/.test(fileName)) {
+      fileName = "bundle (" + fileName + ").zip";
+    }
     if (!fileName.endsWith(".zip")) {
       fileName = fileName + ".zip";
     }
