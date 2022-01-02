@@ -30,6 +30,7 @@ async function main() {
       }) 
     }
     budgie.print();
+    console.log("To edit budgie entries, use the following syntax: node . budgie key:value example node . homeAddress:\"123 main street\"");
     process.exit(0);
   }
 
