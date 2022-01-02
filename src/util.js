@@ -14,12 +14,12 @@ const _ = require("lodash");
 const beautify = require('beautify');
 const homedir = require("os").homedir();
 console.log("HOME: " + homedir);
-let page;
 const photosFolder = path.join(homedir, "hajonsoft", "photos");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
 const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
 const VISION_DEFICIENCY = "none";
 
+let page;
 let browser;
 async function initPage(config, onContentLoaded) {
   browser = await puppeteer.launch({
