@@ -7,6 +7,8 @@ const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
+const budgie = require("./budgie");
+
 let page;
 let data;
 let counter = 0;
@@ -55,7 +57,7 @@ const config = [
       },
     },
     details: [
-      { selector: "#ddlgroupname", value: (row) => groupNumber },
+      { selector: "#ddlgroupname", value: (row) => groupNumber, autocomplete: 'wtu_group' },
       { selector: "#ddltitle", value: (row) => "99" },
       { selector: "#ddlpptype", value: (row) => "1" },
       { selector: "#ddlbirthcountry", value: (row) => row.nationality.telCode },
@@ -201,6 +203,7 @@ async function pageContentHandler(currentConfig) {
         (el) => el.innerText
       );
       groupNumber = groupCreatedSuccessfullyElementText.match(/\d+/g)[0];
+      budgie.save("wtu_group", groupNumber);
       await page.goto(
         "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
       );
@@ -214,7 +217,7 @@ async function pageContentHandler(currentConfig) {
         return;
       }
       await page.waitForSelector("#ddlgroupname");
-      await page.select("#ddlgroupname", groupNumber);
+      await page.select("#ddlgroupname", budgie.get("wtu_group"));
       await page.waitForTimeout(3000);
       await page.waitForSelector("#btnppscan");
       await page.evaluate(() => {
