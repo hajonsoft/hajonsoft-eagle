@@ -202,8 +202,12 @@ async function pageContentHandler(currentConfig) {
         groupCreatedSuccessfullyElement,
         (el) => el.innerText
       );
-      groupNumber = groupCreatedSuccessfullyElementText.match(/\d+/g)[0];
-      budgie.save("wtu_group", groupNumber);
+      const numberMatch = groupCreatedSuccessfullyElementText.match(/\d+/g);
+      if (numberMatch){
+        groupNumber = numberMatch[0];
+        budgie.save("wtu_group", groupNumber);
+      } 
+
       await page.goto(
         "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
       );
@@ -217,7 +221,10 @@ async function pageContentHandler(currentConfig) {
         return;
       }
       await page.waitForSelector("#ddlgroupname");
-      await page.select("#ddlgroupname", budgie.get("wtu_group"));
+      if (!groupNumber) {
+        groupNumber = budgie.get("wtu_group");
+      }
+      await page.select("#ddlgroupname", groupNumber);
       await page.waitForTimeout(3000);
       await page.waitForSelector("#btnppscan");
       await page.evaluate(() => {
