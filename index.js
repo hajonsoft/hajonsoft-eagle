@@ -4,6 +4,7 @@ const { send: sendGma } = require("./src/gma");
 const { send: sendVst } = require("./src/vst");
 const { send: sendEnj } = require("./src/enj");
 const { send: sendTwf } = require("./src/twf");
+const { send: sendHsf } = require("./src/hsf");
 
 const path = require("path");
 const Cryptr = require("cryptr");
@@ -23,11 +24,11 @@ async function main() {
 
   if (process.argv.includes("budgie")) {
     const colonSeparatedKeys = process.argv.filter(arg => arg.includes(":"));
-    if (colonSeparatedKeys && colonSeparatedKeys.length > 0){
+    if (colonSeparatedKeys && colonSeparatedKeys.length > 0) {
       colonSeparatedKeys.forEach(colonSeparatedKey => {
         const [key, value] = colonSeparatedKey.split(':');
         budgie.save(key, value)
-      }) 
+      })
     }
     budgie.print();
     console.log("To edit budgie entries, use the following syntax: node . budgie key:value example node . homeAddress:\"123 main street\"");
@@ -64,6 +65,8 @@ async function main() {
       return sendVst(data);
     case "enj":
       return sendEnj(data);
+    case "hsf":
+      return sendHsf(data);
     default:
       console.log("unknown system");
   }
