@@ -31,14 +31,16 @@ const config = [
     ],
   },
   {
+    name: "agreement",
+    url: "https://visa.mofa.gov.sa/HajSmartForm/ElectronicAgreement",
+  },
+  {
     name: "step1",
-    regex:
-    "https://visa.mofa.gov.sa/HajSmartForm/Step1/\\d+",
+    regex: "https://visa.mofa.gov.sa/HajSmartForm/Step1/\\d+",
   },
   {
     name: "step2",
-    regex:
-    "https://visa.mofa.gov.sa/HajSmartForm/Step2/\\d+",
+    regex: "https://visa.mofa.gov.sa/HajSmartForm/Step2/\\d+",
     details: [
       {
         selector: "#AddressContactInfoModel_Address",
@@ -69,23 +71,18 @@ const config = [
         value: (row) => row.profession,
       },
       {
-        selector: "",
-        value: (row) => row.cell,
+        selector: "#SOCIAL_STATUS",
+        value: (row) => "5",
       },
       {
-        selector: "",
-        value: (row) => row.cell,
-      },
-      {
-        selector: "",
-        value: (row) => row.cell,
+        selector: "#FlightDataModel_TransportModeID",
+        value: (row) => "2",
       },
     ],
   },
   {
     name: "step3",
-    regex:
-    "https://visa.mofa.gov.sa/HajSmartForm/Step3/\\d+",
+    regex: "https://visa.mofa.gov.sa/HajSmartForm/Step3/\\d+",
   },
 ];
 
@@ -114,181 +111,59 @@ async function pageContentHandler(currentConfig) {
     case "login":
       await util.commit(page, currentConfig.details, passenger);
       util.endCase(currentConfig.name);
-      await util.controller(page, {
-        controller: {
-          selector: '#content > div > div > h4',
-          action: async () => {
-            const selectedTraveller = await page.$eval(
-              "#hajonsoft_select",
-              (el) => el.value
-            );
-            if (selectedTraveller) {
-              try {
-                await page.click('#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(5) > td > fieldset > table > tbody > tr > td:nth-child(1) > button');
-                fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
-                const data = fs.readFileSync("./data.json", "utf-8");
-                var passengersData = JSON.parse(data);
-                var passenger = passengersData.travellers[selectedTraveller];
-                await page.keyboard.type(passenger.codeline);
-                await page.keyboard.type("{ENTER}");
-                await util.commit(page, [
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 38,
-                    value: (row) => row.name.first
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 39,
-                    value: (row) => row.name.father
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 40,
-                    value: (row) => row.name.grand
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 41,
-                    value: (row) => row.name.last
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 33,
-                    value: (row) => row.nationality.isArabic && row.nameArabic.first
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 34,
-                    value: (row) => row.nationality.isArabic && row.nameArabic.father
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 35,
-                    value: (row) => row.nationality.isArabic && row.nameArabic.grand
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 36,
-                    value: (row) => row.nationality.isArabic && row.nameArabic.last
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 45,
-                    value: (row) => row.birthPlace
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 48,
-                    value: (row) => 'Paris'
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 49,
-                    value: (row) => row.profession
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 51,
-                    value: (row) => row.placeOfIssue
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 53,
-                    value: (row) => row.passIssueDt.dd
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 54,
-                    value: (row) => row.passIssueDt.mm
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 55,
-                    value: (row) => row.passIssueDt.yyyy
-                  },
-                  {
-                    xPath: '//select',
-                    index: 6,
-                    value: (row) => "99"
-                  },
-                  {
-                    xPath: '//select',
-                    index: 7,
-                    value: (row) => "99"
-                  },
-                  {
-                    xPath: '//select',
-                    index: 4,
-                    value: (row) => "99"
-                  },
-                  {
-                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td:nth-child(2) > select',
-                    value: (row) => "15"
-                  },
-                ], passenger);
-
-                if (passenger.gender === "Female") {
-                  await util.commit(page, [
-                    {
-                      selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td:nth-child(2) > select',
-                      value: (row) => "15"
-                    }
-                  ], passenger)
-                } else {
-                  await util.commit(page, [
-                    {
-                      selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td:nth-child(2) > select',
-                      value: (row) => "0"
-                    }
-                  ], passenger)
+      await util.controller(
+        page,
+        {
+          controller: {
+            selector: "#content > div > div > h4",
+            action: async () => {
+              const selectedTraveller = await page.$eval(
+                "#hajonsoft_select",
+                (el) => el.value
+              );
+              if (selectedTraveller) {
+                try {
+                  fs.writeFileSync(
+                    "./selectedTraveller.txt",
+                    selectedTraveller
+                  );
+                  const data = fs.readFileSync("./data.json", "utf-8");
+                  var passengersData = JSON.parse(data);
+                  var passenger = passengersData.travellers[selectedTraveller];
+                  await util.commit(
+                    page,
+                    config.find((con) => con.name === "login").details,
+                    passenger
+                  );
+                } catch (err) {
+                  console.log(err.message);
                 }
-                await page.emulateVisionDeficiency("blurredVision");
-                let portraitImage = await util.downloadAndResizeImage(
-                  passenger,
-                  200,
-                  200,
-                  "photo"
-                );
-                const resizedPassportPath = await util.downloadAndResizeImage(
-                  passenger,
-                  400,
-                  300,
-                  "passport"
-                );
-                const vaccineImage = await util.downloadAndResizeImage(
-                  passenger,
-                  400,
-                  400,
-                  "vaccine"
-                );
-
-                await util.commitFile("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(1) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", portraitImage);
-                await util.commitFile("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(12) > td:nth-child(3) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", vaccineImage);
-                await page.emulateVisionDeficiency("none");
-                await page.evaluate(() => {
-                  const uplodPassportBtn = document.querySelector("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > button");
-                  if (uplodPassportBtn) {
-                    uplodPassportBtn.click();
-                  }
-                });
-                await util.commitFile("#wrapper > div:nth-child(18) > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > table > tbody > tr:nth-child(1) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", resizedPassportPath);
-
-                // Clip Crop photo here
-              } catch (err) {
-                console.log(err.message);
               }
-            }
-          }
+            },
+          },
         },
-      }, data.travellers);
-      await page.click('#Captcha')
+        data.travellers
+      );
+      await page.click("#Captcha");
+      break;
+    case "agreement":
+      await page.waitForSelector(
+        "#content > div > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid.right > div > div > a.btn.green"
+      );
+      await page.click(
+        "#content > div > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid.right > div > div > a.btn.green"
+      );
       break;
     case "step1":
       break;
     case "step2":
       await util.commit(page, currentConfig.details, passenger);
       await page.click("#HaveTraveledToOtherCountriesNo");
+      await page.waitForSelector("#CarNumber");
+      const flightNumber = await page.$eval("#CarNumber", (el) => el.value);
+      if (!flightNumber) {
+        await page.type("#CarNumber", "SV216");
+      }
       break;
     case "step3":
       await util.commit(page, currentConfig.details, passenger);
@@ -302,11 +177,19 @@ async function pageContentHandler(currentConfig) {
       await page.click("#QuestionModelList_9__AnswerNo");
       await page.click("#QuestionModelList_10__AnswerNo");
       await page.click("#QuestionModelList_11__AnswerNo");
-      await page.click("#QuestionModelList_12__AnswerNo");
       await page.click("#QuestionModelList_1__AnswerNo");
+      await page.waitForSelector("#QuestionModelList_12__AnswerNo");
+      await page.click("#QuestionModelList_12__AnswerNo");
+      await page.waitForSelector("#QuestionModelList_3__AnswerYes");
       await page.click("#QuestionModelList_3__AnswerYes");
-      await page.waitForSelector('#QuestionModelList_3__Note')
-      await page.type('#QuestionModelList_3__Note', 'anti meningite, anti covid, anti flu');
+      await page.waitForSelector("#QuestionModelList_3__Note");
+      const vaccineNote = await page.$eval('#QuestionModelList_3__Note', (el) => el.value);
+      if (!vaccineNote) {
+        await page.type(
+          "#QuestionModelList_3__Note",
+          "anti meningite, anti covid, anti flu"
+        );
+      }
 
       const resizedPassportPath = await util.downloadAndResizeImage(
         passenger,
@@ -316,13 +199,37 @@ async function pageContentHandler(currentConfig) {
       );
       const resizedVaccinePath = await util.downloadAndResizeImage(
         passenger,
-        100,
-        100,
+        200,
+        200,
         "vaccine"
       );
       await util.commitFile("#PassportImageFile", resizedPassportPath);
       await util.commitFile("#VaccinationImageFile", resizedVaccinePath);
       await util.commitFile("#MahramRelationFile", resizedPassportPath);
+
+      await page.evaluate((passenger) => {
+        const passportContainer = document.querySelector(
+          "#myform > div.form-body.form-horizontal > div.table-scrollable.table-scrollable-borderless.table-fileupload > table > tbody > tr:nth-child(1) > td:nth-child(3)"
+        );
+        passportContainer.innerHTML = `
+              <img src='${passenger.images.passport}' width="50" height="25"/>
+              `;
+
+        const vaccineContainer = document.querySelector(
+          "#myform > div.form-body.form-horizontal > div.table-scrollable.table-scrollable-borderless.table-fileupload > table > tbody > tr.warning > td:nth-child(3)"
+        );
+        vaccineContainer.innerHTML = `
+                <img src='${passenger.images.vaccine}' width="50" height="25"/>
+                `;
+
+        const muhramContainer = document.querySelector(
+          "#myform > div.form-body.form-horizontal > div.table-scrollable.table-scrollable-borderless.table-fileupload > table > tbody > tr:nth-child(3) > td:nth-child(3)"
+        );
+        muhramContainer.innerHTML = `
+                  <img src='${passenger.images.passport}' width="50" height="25"/>
+                  `;
+      }, passenger);
+
       break;
     default:
       break;

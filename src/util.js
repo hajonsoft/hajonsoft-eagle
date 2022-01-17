@@ -296,7 +296,7 @@ async function controller(page, structure, travellers) {
     travellers
       .map(
         (traveller, cursor) =>
-          `<option value="${cursor}">${cursor} - ${traveller.nationality.isArabic ? traveller.nameArabic.given + ' ' + traveller.nameArabic.last : traveller.name.full} - ${traveller.gender} - ${traveller.dob.age} years old</option>`
+          `<option value="${cursor}">${cursor} - ${traveller.nationality.isArabic ? traveller.nameArabic.given + ' ' + traveller.nameArabic.last : traveller.name.full} - ${traveller.passportNumber} - ${traveller.gender} - ${traveller.dob.age} years old</option>`
       )
       .join(" ");
 
