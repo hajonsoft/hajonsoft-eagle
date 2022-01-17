@@ -123,6 +123,7 @@ async function storeControls(container, url) {
     await handler.type((index).toString());
   });
   createControlsFile(url, container, `//input[@type="file"]`);
+  createControlsFile(url, container, `//input[@type="radio"]`);
   createControlsFile(url, container, `//select`);
   createControlsFile(url, container, `//button`);
   createControlsFile(url, container, `//iframe`);
@@ -157,6 +158,7 @@ function findConfig(url, config) {
 }
 
 async function commit(page, details, row) {
+  if (!details) return;
   if (details?.[0].selector) {
     await page.waitForSelector(details?.[0].selector);
   }

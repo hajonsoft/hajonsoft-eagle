@@ -29,7 +29,7 @@ Enable extraction of DOM elements every few seconds to a log file as they appear
 
 node . verbose-url="https://www.etawaf.com/tawaf43/index.html?locale=en"
 
-Extrct DOM elements for one page only and only one time no intervals
+Extract DOM elements for one page only and only one time no intervals
 
 # Puppeteer
 
