@@ -160,7 +160,9 @@ function findConfig(url, config) {
 async function commit(page, details, row) {
   if (!details) return;
   if (details?.[0].selector) {
-    await page.waitForSelector(details?.[0].selector);
+    await page.waitForSelector(details?.[0].selector, {
+      timeout: 120000
+    });
   }
   if (details?.[0].xPath) {
     await page.$x(details?.[0].xPath);
