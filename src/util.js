@@ -9,9 +9,8 @@ const budgie = require("./budgie");
 
 const axios = require("axios");
 const moment = require("moment");
-const { createCanvas, loadImage } = require("canvas");
 const _ = require("lodash");
-const beautify = require('beautify');
+const beautify = require("beautify");
 const homedir = require("os").homedir();
 console.log("HOME: " + homedir);
 const photosFolder = path.join(homedir, "hajonsoft", "photos");
@@ -52,7 +51,7 @@ async function initPage(config, onContentLoaded) {
   } else {
     fs.readdir(photosFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(photosFolder, file), (err) => { });
+        fs.unlink(path.join(photosFolder, file), (err) => {});
       }
     });
   }
@@ -61,7 +60,7 @@ async function initPage(config, onContentLoaded) {
   } else {
     fs.readdir(passportsFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(passportsFolder, file), (err) => { });
+        fs.unlink(path.join(passportsFolder, file), (err) => {});
       }
     });
   }
@@ -70,7 +69,7 @@ async function initPage(config, onContentLoaded) {
   } else {
     fs.readdir(vaccineFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(vaccineFolder, file), (err) => { });
+        fs.unlink(path.join(vaccineFolder, file), (err) => {});
       }
     });
   }
@@ -89,39 +88,57 @@ async function newPage(onMofaContentLoaded, onMofaContentClosed) {
   return _newPage;
 }
 
-async function createControlsFile(url, container, xPath, fieldFunction = async () => { }) {
+async function createControlsFile(
+  url,
+  container,
+  xPath,
+  fieldFunction = async () => {}
+) {
   const logFolder = __dirname + "/../log/";
   if (!fs.existsSync(logFolder)) {
     fs.mkdirSync(logFolder);
   }
-  const fileName = logFolder + _.last(url.split("/")).replace(/[^a-z0-9]/gmi, '') + '_' + xPath.replace(/[^a-z0-9]/gmi, '') + ".html";
+  const fileName =
+    logFolder +
+    _.last(url.split("/")).replace(/[^a-z0-9]/gim, "") +
+    "_" +
+    xPath.replace(/[^a-z0-9]/gim, "") +
+    ".html";
   const handlers = await container.$x(xPath);
 
   let i = 0;
-  let allText = ''
+  let allText = "";
   for (const handler of handlers) {
     await fieldFunction(handler, i);
-    const outerHtml = await handler.evaluate(e => e.outerHTML.replace(/\t/g, ""));
+    const outerHtml = await handler.evaluate((e) =>
+      e.outerHTML.replace(/\t/g, "")
+    );
     allText += `${xPath}-${i}\n`;
-    allText += `\t${beautify(outerHtml, { format: 'html' })}\n\n`;
+    allText += `\t${beautify(outerHtml, { format: "html" })}\n\n`;
     // if select // .replace(/,/g, "\n")}</html>`;
     i++;
   }
-  allText += "\n\n\n-------------------BEGIN HTML DUMP-------------------\n\n\n\n\n";
+  allText +=
+    "\n\n\n-------------------BEGIN HTML DUMP-------------------\n\n\n\n\n";
   const html = await container.content();
   console.log(html);
-  allText += beautify(html, { format: 'html' });
+  allText += beautify(html, { format: "html" });
   fs.writeFileSync(fileName, allText);
 }
 
 async function storeControls(container, url) {
-  createControlsFile(url, container, `//input[@type="text"]`, async (handler, index) => {
-    await handler.evaluate(e => {
-      e.disabled = false;
-      e.readonly = false;
-    });
-    await handler.type((index).toString());
-  });
+  createControlsFile(
+    url,
+    container,
+    `//input[@type="text"]`,
+    async (handler, index) => {
+      await handler.evaluate((e) => {
+        e.disabled = false;
+        e.readonly = false;
+      });
+      await handler.type(index.toString());
+    }
+  );
   createControlsFile(url, container, `//input[@type="file"]`);
   createControlsFile(url, container, `//input[@type="radio"]`);
   createControlsFile(url, container, `//select`);
@@ -138,7 +155,12 @@ function findConfig(url, config) {
   );
 
   for (const param of process.argv) {
-    if (param === "verbose-url=" || param === "verbose-url" || param === "verbose" || param === "-verbose") {
+    if (
+      param === "verbose-url=" ||
+      param === "verbose-url" ||
+      param === "verbose" ||
+      param === "-verbose"
+    ) {
       setInterval(function () {
         console.log(`Verbose Mode: Navigation: ${url}`);
         storeControls(page, lowerUrl);
@@ -161,7 +183,7 @@ async function commit(page, details, row) {
   if (!details) return;
   if (details?.[0].selector) {
     await page.waitForSelector(details?.[0].selector, {
-      timeout: 120000
+      timeout: 240000,
     });
   }
   if (details?.[0].xPath) {
@@ -186,7 +208,7 @@ async function commit(page, details, row) {
     }
     if (detail.xPath) {
       const xElements = await page.$x(detail.xPath);
-      element = xElements[detail.index || 0]
+      element = xElements[detail.index || 0];
     }
     if (!element || (!value && !txt)) {
       continue;
@@ -204,11 +226,13 @@ async function commit(page, details, row) {
     if (detail.xPath) {
       const xElements = await page.$x(detail.xPath);
       const xElement = xElements[detail.index];
-      elementType = await xElement.evaluate(e => e.outerHTML
-        .match(/<(.*?) /g)[0]
-        .replace(/</g, "")
-        .replace(/ /g, "")
-        .toLowerCase());
+      elementType = await xElement.evaluate((e) =>
+        e.outerHTML
+          .match(/<(.*?) /g)[0]
+          .replace(/</g, "")
+          .replace(/ /g, "")
+          .toLowerCase()
+      );
     }
     switch (elementType) {
       case "input":
@@ -236,7 +260,13 @@ async function commit(page, details, row) {
           }
         } else if (detail.autocomplete) {
           if (detail.selector) {
-            console.log('%cMyProject%cline:237%cdetail', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(114, 83, 52);padding:3px;border-radius:2px', detail)
+            console.log(
+              "%cMyProject%cline:237%cdetail",
+              "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
+              "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
+              "color:#fff;background:rgb(114, 83, 52);padding:3px;border-radius:2px",
+              detail
+            );
             await page.type(
               detail.selector,
               budgie.get(detail.autocomplete, detail.defaultValue)
@@ -245,7 +275,9 @@ async function commit(page, details, row) {
           if (detail.xPath) {
             const xElements = await page.$x(detail.xPath);
             const xElement = xElements[detail.index];
-            await xElement.type(budgie.get(detail.autocomplete, detail.defaultValue));
+            await xElement.type(
+              budgie.get(detail.autocomplete, detail.defaultValue)
+            );
           }
         }
         break;
@@ -298,7 +330,13 @@ async function controller(page, structure, travellers) {
     travellers
       .map(
         (traveller, cursor) =>
-          `<option value="${cursor}">${cursor} - ${traveller.nationality.isArabic ? traveller.nameArabic.given + ' ' + traveller.nameArabic.last : traveller.name.full} - ${traveller.passportNumber} - ${traveller.gender} - ${traveller.dob.age} years old</option>`
+          `<option value="${cursor}">${cursor} - ${
+            traveller.nationality.isArabic
+              ? traveller.nameArabic.given + " " + traveller.nameArabic.last
+              : traveller.name.full
+          } - ${traveller.passportNumber} - ${traveller.gender} - ${
+            traveller.dob.age
+          } years old</option>`
       )
       .join(" ");
 
@@ -354,7 +392,6 @@ function setCounter(currentCounter) {
 }
 
 async function commitFile(selector, fileName) {
-
   if (!fs.existsSync(fileName) || process.argv.includes("noimage")) {
     return;
   }
@@ -452,26 +489,30 @@ function isCodelineLooping(traveller, numberOfEntries = 1) {
 function createMRZImage(fileName, codeline) {
   // let f = new FontFace("test", "url(x)");
   // await f.load();
-  const canvas = createCanvas(400, 300);
-  const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "white";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "black";
-  ctx.font = "11px Verdana, Verdana, Geneva, sans-serif"; // Verdana, Verdana, Geneva, sans-serif
-  ctx.fillText(codeline.substring(0, 44), 15, canvas.height - 45);
-  ctx.fillText(codeline.substring(44), 15, canvas.height - 20);
+  if (!process.argv.includes("nocanvas")) {
+    const { createCanvas } = require("canvas");
 
-  ctx.lineWidth = 2;
-  ctx.strokeRect(20, 20, 120, 150);
-  ctx.fillStyle = "blue";
-  ctx.strokeRect(180, 20, 200, 150);
+    const canvas = createCanvas(400, 300);
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "black";
+    ctx.font = "11px Verdana, Verdana, Geneva, sans-serif"; // Verdana, Verdana, Geneva, sans-serif
+    ctx.fillText(codeline.substring(0, 44), 15, canvas.height - 45);
+    ctx.fillText(codeline.substring(44), 15, canvas.height - 20);
 
-  const out = fs.createWriteStream(fileName);
-  const stream = canvas.createJPEGStream({
-    quality: 0.95,
-    chromaSubsampling: false,
-  });
-  stream.pipe(out);
+    ctx.lineWidth = 2;
+    ctx.strokeRect(20, 20, 120, 150);
+    ctx.fillStyle = "blue";
+    ctx.strokeRect(180, 20, 200, 150);
+
+    const out = fs.createWriteStream(fileName);
+    const stream = canvas.createJPEGStream({
+      quality: 0.95,
+      chromaSubsampling: false,
+    });
+    stream.pipe(out);
+  }
   return fileName;
 }
 

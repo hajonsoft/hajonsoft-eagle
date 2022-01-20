@@ -10,7 +10,6 @@ const sharp = require("sharp");
 let page;
 let data;
 let counter = 0;
-let groupNumber;
 const config = [
   {
     name: "login",
@@ -51,7 +50,6 @@ async function onContentLoaded(res) {
 }
 
 async function pageContentHandler(currentConfig) {
-  const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
@@ -75,6 +73,7 @@ async function pageContentHandler(currentConfig) {
                 var passenger = passengersData.travellers[selectedTraveller];
                 await page.keyboard.type(passenger.codeline);
                 await page.keyboard.type("{ENTER}");
+                await page.waitForXPath('//input[@type="text"]', { timeout: 240000 });
                 await util.commit(page, [
                   {
                     xPath: '//input[@type="text"]',
@@ -124,7 +123,7 @@ async function pageContentHandler(currentConfig) {
                   {
                     xPath: '//input[@type="text"]',
                     index: 48,
-                    value: (row) => 'Paris'
+                    value: (row) => 'city'
                   },
                   {
                     xPath: '//input[@type="text"]',
