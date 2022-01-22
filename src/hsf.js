@@ -164,6 +164,10 @@ async function pageContentHandler(currentConfig) {
       if (!flightNumber) {
         await page.type("#CarNumber", "SV216");
       }
+      const emailAddress = await page.$eval("#AddressContactInfoModel\\.Email", (el) => el.value);
+      if (!emailAddress) {
+        await page.type("#AddressContactInfoModel\\.Email", passenger.name.full.replace(/ /g,'') + "@alldrys.com");
+      }
       break;
     case "step3":
       await util.commit(page, currentConfig.details, passenger);
@@ -183,7 +187,10 @@ async function pageContentHandler(currentConfig) {
       await page.waitForSelector("#QuestionModelList_3__AnswerYes");
       await page.click("#QuestionModelList_3__AnswerYes");
       await page.waitForSelector("#QuestionModelList_3__Note");
-      const vaccineNote = await page.$eval('#QuestionModelList_3__Note', (el) => el.value);
+      const vaccineNote = await page.$eval(
+        "#QuestionModelList_3__Note",
+        (el) => el.value
+      );
       if (!vaccineNote) {
         await page.type(
           "#QuestionModelList_3__Note",
