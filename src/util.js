@@ -240,6 +240,10 @@ async function commit(page, details, row) {
           await page.waitForSelector(detail.selector);
           await page.focus(detail.selector);
           await page.type(detail.selector, "");
+          const removeReadOnlyAttribute = `document.querySelector('${detail.select}').removeAttribute('readonly')`
+          const removeDisabledAttribute = `document.querySelector('${detail.select}').removeAttribute('disabled')`
+          await page.evaluate(removeDisabledAttribute)
+          await page.evaluate(removeReadOnlyAttribute)
           await page.evaluate((element) => {
             const field = document.querySelector(element.selector);
             if (field) {
