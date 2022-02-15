@@ -499,20 +499,23 @@ async function runPageConfiguration(currentConfig) {
       await page.$eval("#ExpectedDateOfEntry", (e) => {
         e.removeAttribute("readonly");
         e.removeAttribute("disabled");
+        e.setAttribute("value", "");
+
       });
       await page.type(
         "#ExpectedDateOfEntry",
-        moment().add(7, "days").format("DD/MM/YYYY")
+        moment().add(21, "days").format("DD/MM/YYYY")
       );
 
       await page.waitForSelector("#ExpectedDateOfLeave");
       await page.$eval("#ExpectedDateOfLeave", (e) => {
         e.removeAttribute("readonly");
         e.removeAttribute("disabled");
+        e.setAttribute("value", "");
       });
       await page.type(
         "#ExpectedDateOfLeave",
-        moment().add(17, "days").format("DD/MM/YYYY")
+        moment().add(31, "days").format("DD/MM/YYYY")
       );
       await page.click("#chkSelectDeselectAll");
       break;
