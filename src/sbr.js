@@ -21,7 +21,7 @@ const config = [
   {
     name: "main",
     url: "https://accounts.havail.sabre.com/login/",
-    regex: 'https://accounts.havail.sabre.com/login/',
+    regex: "https://accounts.havail.sabre.com/login/",
     details: [
       {
         selector: "#username",
@@ -34,12 +34,12 @@ const config = [
       {
         selector: "#pcc",
         value: (system) => system.embassy,
-      }
+      },
     ],
   },
   {
-    name: "agreement",
-    url: "https://enjazit.com.sa/SmartForm/Agreement",
+    name: "data-entry",
+    regex: "https://srw.sabre.com/21.12.12/.ts=",
   },
   {
     name: "electronic-agreement",
@@ -192,171 +192,32 @@ async function onContentLoaded(res) {
   }
 }
 
-async function onMofaContentLoaded(res) {
-  const mofa_visaType = budgie.get("mofa_visaType");
-  const mofa_id1 = budgie.get("mofa_id1");
-  const mofa_id2 = budgie.get("mofa_id2");
-  util.handleMofa(mofaPage, mofa_id1, mofa_id2, mofa_visaType);
-}
-
-async function onMofaContentClosed(res) {
-  await page.bringToFront();
-  const mofaData = util.getMofaData();
-  await pasteMofaData(mofaData);
-  await page.emulateVisionDeficiency("none"); // Just in case 
-  await util.waitForCaptcha("#Captcha", 6);
-  await util.sniff(page, [
-    {
-      selector: "#ENTRY_POINT",
-      autocomplete: "portOfEntry",
-    },
-    {
-      selector: "#DEGREE",
-      autocomplete: "degree",
-    },
-    {
-      selector: "#DEGREE_SOURCE",
-      autocomplete: "degreeSource",
-    },
-    {
-      selector: "#ADDRESS_HOME",
-      autocomplete: "homeAddress",
-    },
-    {
-      selector: "#COMING_THROUGH",
-      autocomplete: "transportationMode",
-    },
-    {
-      selector: "#car_number",
-      autocomplete: "flightNumber",
-    },
-    { selector: "#porpose", autocomplete: "visaPurpose" },
-  ]);
-
-  await page.click(
-    "#myform > div.form-actions.fluid.right > div > div > button"
-  );
-}
-
-async function pasteMofaData(mofaData) {
-  console.log('mofaData',mofaData)
-  const numberOfEntries = mofaData?.numberOfEntries?.split("-")?.[0]?.trim();
-  const validityDuration = mofaData?.numberOfEntries
-    ?.split("-")?.[1]
-    ?.match(/[0-9]+/)?.[0];
-
-  await util.commit(page, [
-    {
-      selector: "#JOB_OR_RELATION",
-      value: () => `${mofaData.profession}`,
-    },
-    { selector: "#VisaKind", txt: (row) => `${mofaData.visaType}` },
-    {
-      selector: "#ENTRY_POINT",
-      value: (row) => ``,
-      autocomplete: "portOfEntry",
-    },
-    {
-      selector: "#COMING_THROUGH",
-      txt: (row) => ``,
-      autocomplete: "transportationMode",
-    },
-    {
-      selector: "#SPONSER_NAME",
-      value: (row) => `${mofaData.sponsorName}`,
-    },
-    {
-      selector: "#SPONSER_ADDRESS",
-      value: (row) => `${mofaData.address}`,
-    },
-    {
-      selector: "#DocumentNumber",
-      value: (row) => `${mofaData.id1}`,
-    },
-    {
-      selector: "#SPONSER_NUMBER",
-      value: (row) => !mofaData.applicationType == "invitation" && `${mofaData.id2}`,
-    },
-    {
-      selector: "#SPONSER_PHONE",
-      value: (row) => `${mofaData.tel}`,
-    },
-    {
-      selector: "#car_number",
-      value: (row) => ``,
-      autocomplete: "flightNumber",
-    },
-    { selector: "#porpose", value: (row) => ``, autocomplete: "visaPurpose" },
-  ]);
-
-  // paste the name in the four fields at the end
-  const nameParts = mofaData.name.split(" ");
-  if (nameParts.length > 0) {
-    if (nameParts.length == 1) {
-      nameParts.push();
-      nameParts.push();
-      nameParts.push(nameParts[0]);
-    }
-    if (nameParts.length == 2) {
-      nameParts.push();
-      nameParts.push(nameParts[1]);
-      nameParts[1] = "";
-    }
-    if (nameParts.length == 3) {
-      nameParts.push(nameParts[2]);
-      nameParts[2] = "";
-    }
-    if (nameParts.length > 4) {
-      nameParts[3] = nameParts.slice(3).join(" ");
-    }
-    await util.commit(page, [
-      { selector: "#AFIRSTNAME", value: (row) => nameParts[0] },
-      { selector: "#AFAMILY", value: (row) => nameParts[3] },
-      { selector: "#AGRAND", value: (row) => nameParts[2] },
-      { selector: "#AFATHER", value: (row) => nameParts[1] },
-    ]);
-  }
-
-  await page.waitForTimeout(2000);
-  await util.selectByValue("#EmbassyCode", `${mofaData.embassy}`);
-  await page.click("#PerformUmrahNo");
-
-  await util.commit(page, [
-    { selector: "#NUMBER_OF_ENTRIES", txt: (row) => `${numberOfEntries}` },
-  ]);
-
-  await page.waitForTimeout(2000);
-  await util.commit(page, [
-    {
-      selector: "#Number_Entry_Day",
-      value: (row) => `${validityDuration.match(/[0-9]+/)}`,
-    },
-  ]);
-  await page.waitForTimeout(2000);
-  await util.commit(page, [
-    { selector: "#RESIDENCY_IN_KSA", value: (row) => `${mofaData.duration}` },
-  ]);
-
-  //Process ny additional data for type = invitation here
-  if (mofaData.applicationType == "invitation") {
-    await util.commit(page, [
-      {selector: '#Personal_Phone', value: (row) => `${mofaData.tel}`}
-    ])
-    return;
-  }
-}
 async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       break;
     case "main":
       await util.commit(page, currentConfig.details, data.system);
+      await page.click("#submitButton");
       break;
-    case "agreement":
-      const agreeSelector =
-        "#content > div > div.row.page-user-container > div > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid.right > div > div > a.btn.green";
-      await page.waitForSelector(agreeSelector);
-      await page.click(agreeSelector);
+    case "data-entry":
+      // await page.waitForTimeout(5000);
+      // const nextButton = await page.$(
+      //   "body > div.app > div > div.dn-layer.ui-container.qa-container.ui-container-view368.dn-layer-view368.qa-container-view368 > div.ui-container-items.dn-layer-items.qa-container-items.ui-container-items-view368 > li > div > div > div > div > div > div.modal-footer > button.btn-success.btn.btn-default"
+      // );
+      // if (nextButton) {
+      //   await nextButton.click();
+      // }
+      await page.waitForSelector("#cmdln");
+      await page.waitForTimeout(5000);
+      const firstPassenger = data.travellers[counter];
+      await page.type(
+        "#cmdln",
+        `*-${firstPassenger.name.last}/${firstPassenger.name.first}`
+      );
+      await page.click(
+        "body > div.app > div > div.area-in > div > ul > li > div > ul > li.ui-container-item.command-line-envelope-item.main-command-bar-item.qa-container-item.send-button-parent > button"
+      );
       break;
     case "error-main":
       await page.goto(config[0].url);
@@ -421,7 +282,7 @@ async function pageContentHandler(currentConfig) {
         travelDateDefault.format("MM"),
         travelDateDefault.format("DD")
       );
-      await page.emulateVisionDeficiency('none');
+      await page.emulateVisionDeficiency("none");
       await page.click("#HaveTraveledToOtherCountriesNo");
       mofaPage = await util.newPage(onMofaContentLoaded, onMofaContentClosed);
       await mofaPage.goto("https://visa.mofa.gov.sa", {
