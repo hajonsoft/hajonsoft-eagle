@@ -5,6 +5,7 @@ const { send: sendVst } = require("./src/vst");
 const { send: sendEnj } = require("./src/enj");
 const { send: sendTwf } = require("./src/twf");
 const { send: sendHsf } = require("./src/hsf");
+const { send: sendSbr} = require("./src/sbr");
 
 const path = require("path");
 const Cryptr = require("cryptr");
@@ -67,6 +68,8 @@ async function main() {
       return sendEnj(data);
     case "hsf":
       return sendHsf(data);
+      case "sbr":
+        return sendSbr(data);
     default:
       console.log("unknown system");
   }
