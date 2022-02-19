@@ -16,21 +16,26 @@ const defaultNoImage = false;
 const config = [
   {
     name: "login",
-    url: "https://https://srw.sabre.com/",
-    details: [
-      {
-        selector: "#UserName",
-        value: (system) => system.username,
-      },
-      {
-        selector: "#Password",
-        value: (system) => system.password,
-      },
-    ],
+    url: "https://srw.sabre.com",
   },
   {
     name: "main",
-    url: "https://enjazit.com.sa/SmartForm",
+    url: "https://accounts.havail.sabre.com/login/",
+    regex: 'https://accounts.havail.sabre.com/login/',
+    details: [
+      {
+        selector: "#username",
+        value: (system) => system.username,
+      },
+      {
+        selector: "#password",
+        value: (system) => system.password,
+      },
+      {
+        selector: "#pcc",
+        value: (system) => system.embassy,
+      }
+    ],
   },
   {
     name: "agreement",
@@ -343,34 +348,9 @@ async function pasteMofaData(mofaData) {
 async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
-      await util.commit(page, currentConfig.details, data.system);
-      const captchaSelector = "#Captcha";
-      await page.waitForSelector(captchaSelector);
-      await page.evaluate((selector) => {
-        document.querySelector(selector).scrollIntoView();
-      }, captchaSelector);
-      await page.focus(captchaSelector);
-      if (!process.argv.includes("slow")) {
-        await page.waitForFunction(
-          "document.querySelector('#Captcha').value.length === 6",
-          { timeout: 0 }
-        );
-        util.endCase(currentConfig.name);
-        await util.sniff(page, currentConfig.details);
-        await page.click("#btnSubmit");
-      }
       break;
     case "main":
-      const addNewApplicationSelector =
-        "#content > div > div.row.page-user-container > div > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid > div > div.col-md-4 > a";
-      await page.waitForSelector(addNewApplicationSelector);
-      await page.evaluate((cap) => {
-        const captchaElement = document.querySelector(cap);
-        captchaElement.scrollIntoView({ block: "end" });
-      }, addNewApplicationSelector);
-      await page.focus(addNewApplicationSelector);
-      await page.hover(addNewApplicationSelector);
-      // await page.click(addNewApplicationSelector);
+      await util.commit(page, currentConfig.details, data.system);
       break;
     case "agreement":
       const agreeSelector =

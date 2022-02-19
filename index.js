@@ -5,7 +5,7 @@ const { send: sendVst } = require("./src/vst");
 const { send: sendEnj } = require("./src/enj");
 const { send: sendTwf } = require("./src/twf");
 const { send: sendHsf } = require("./src/hsf");
-const { send: sendSbr } = require("./src/Sbr");
+const { send: sendSbr} = require("./src/sbr");
 
 const path = require("path");
 const Cryptr = require("cryptr");
