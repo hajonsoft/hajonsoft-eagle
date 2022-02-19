@@ -5,6 +5,7 @@ const { send: sendVst } = require("./src/vst");
 const { send: sendEnj } = require("./src/enj");
 const { send: sendTwf } = require("./src/twf");
 const { send: sendHsf } = require("./src/hsf");
+const { send: sendSbr } = require("./src/Sbr");
 
 const path = require("path");
 const Cryptr = require("cryptr");
@@ -14,12 +15,18 @@ const { homedir } = require("os");
 const moment = require('moment');
 const version = "0.1.1";
 const budgie = require("./src/budgie");
+const inquirer = require('inquirer');
+
 
 
 async function main() {
   if (process.argv.includes("-v")) {
     console.log("version: " + version);
     process.exit(0);
+  }
+
+  if (process.argv.includes("-f")) {
+    return runInteractive()
   }
 
   if (process.argv.includes("budgie")) {
@@ -67,6 +74,8 @@ async function main() {
       return sendEnj(data);
     case "hsf":
       return sendHsf(data);
+      case "sbr":
+        return sendSbr(data);
     default:
       console.log("unknown system");
   }
@@ -126,6 +135,32 @@ async function getDataFileName() {
     process.exit(1);
   }
   return dataFileName;
+}
+
+function runInteractive() {
+
+inquirer
+  .prompt([
+    {
+      name: 'action',
+      message: 'What advanced thing you want to do today?',
+      choices: [
+        '1- Run eagle default file [PASSENGER-SLUG]',
+        '2- Run Budgie display',
+        '3- Update Budgie... [will prompt]',
+        '4- Set download folder. [CURRENT-FOLDER]',
+        '5- Activate with Service Key',
+        '6- Show Activated Services',
+        '7- Get SMS number',
+        '8- Show SMS-ACTIVATE balance',
+        '9- Exit',
+
+      ]
+    },
+  ])
+  .then(answers => {
+    console.info('Answer:', answers.action);
+  });
 }
 
 main();

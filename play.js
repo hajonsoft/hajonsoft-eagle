@@ -1,10 +1,10 @@
-
+const axios = require('axios');
 // const fs = require('fs')
 // const { createCanvas, loadImage } = require('canvas')
 // // https://github.com/Automattic/node-canvas
 // function createPassport() {
 
- 
+
 //     const canvas = createCanvas(400, 300)
 //     const ctx = canvas.getContext('2d')
 //     ctx.fillStyle = "white";
@@ -13,8 +13,8 @@
 //     ctx.font = '12px Arial'
 //     ctx.fillText('P<UZBALIAKHUNOVA<<ROBIYA<<<<<<<<<<<<<<<<<<<<', 25, canvas.height -40)
 //     ctx.fillText('AA43573271UZB9802023F24021924020298658002462', 25, canvas.height - 20)
-    
-    
+
+
 //     const out = fs.createWriteStream(__dirname + '/test.jpeg')
 //     const stream = canvas.createJPEGStream({
 //         quality: 0.95,
@@ -74,34 +74,126 @@
 // main()
 
 
-const object1 = {
-  "ayman" : {
-    "-Mp4LNyeBmlGuA459JLB" : {
-      "columns" : [ {
-        "Header" : "Name",
-        "accessor" : "name"
-      }, {
-        "Header" : "Gender",
-        "accessor" : "gender"
-      }, {
-        "Header" : "Passport Number",
-        "accessor" : "passportNumber"
-      }, {
-        "Header" : "Profession",
-        "accessor" : "profession"
-      } ]
-    }
-  }
-}
-const array = [];
-    for (const [key, value] of Object.entries(object1)) {
-      console.log(Object.values(value)[0].columns)
+// const object1 = {
+//   "ayman" : {
+//     "-Mp4LNyeBmlGuA459JLB" : {
+//       "columns" : [ {
+//         "Header" : "Name",
+//         "accessor" : "name"
+//       }, {
+//         "Header" : "Gender",
+//         "accessor" : "gender"
+//       }, {
+//         "Header" : "Passport Number",
+//         "accessor" : "passportNumber"
+//       }, {
+//         "Header" : "Profession",
+//         "accessor" : "profession"
+//       } ]
+//     }
+//   }
+// }
+// const array = [];
+//     for (const [key, value] of Object.entries(object1)) {
+//       console.log(Object.values(value)[0].columns)
 
-      array.push({
-        name: key,
-        columns: Object.values(value)[0].columns
-      })
-      //  const valueValue = Object.values(value)[0];
-      //  array.push({ columns: valueValue, name: key });
+//       array.push({
+//         name: key,
+//         columns: Object.values(value)[0].columns
+//       })
+//       //  const valueValue = Object.values(value)[0];
+//       //  array.push({ columns: valueValue, name: key });
+//     }
+//       console.log(array)
+
+
+
+// private string GetSMSCode(string requestId)
+// {
+//     var webClient = new WebClient();
+//     var url = MakeSMSString("http://sms-activate.ru/stubs/handler_api.php?api_key=$api_key&action=getStatus&id=$id".Replace("$id", requestId));
+//     for (int i = 0; i < 60; i++)
+//     {
+//         Thread.Sleep(1000);
+//         var number = webClient.DownloadString(url);
+
+//         if (Regex.IsMatch(number, @"(\d{6})"))
+//         {
+//             number = Regex.Match(number, @"\d{6}").ToString();
+//             url = "http://sms-activate.ru/stubs/handler_api.php?api_key=$api_key&action=setStatus&status=$status&id=$id&forward=$forward";
+//             url = url.Replace("$id", telephoneRequestId).Replace("$status", "6");
+//             url = MakeSMSString(url);
+//             var result = webClient.DownloadString(url);
+
+
+//             return number;
+//         }
+//     }
+
+//     //"STATUS_OK:confirmation Code 137961"
+
+
+
+//     return string.Empty;
+// }
+
+// private string GetSMSNumber(string service)
+// {
+//     // Connect using API key
+//     var webClient = new WebClient();
+//     var url = MakeSMSString("http://sms-activate.ru/stubs/handler_api.php?api_key=$api_key&action=getNumber&service=$service&forward=$forward&operator=$operator&ref=$ref&country=$country");
+//     var requestResult = webClient.DownloadString(url);
+
+//     var pattern = @".*?:(.*?):(\d+)";
+//     var number = Regex.Match(requestResult, pattern).Groups[2].ToString();
+//     if (string.IsNullOrEmpty(number)) return string.Empty;
+//     telephoneRequestId = Regex.Match(requestResult, pattern).Groups[1].ToString();
+//     // ACCESS_NUMBER:158008768:79262397137
+//     // Order number in russia 
+
+//     // click SMS Sent
+
+//     url = "http://sms-activate.ru/stubs/handler_api.php?api_key=$api_key&action=setStatus&status=$status&id=$id&forward=$forward";
+//     url = url.Replace("$id", telephoneRequestId).Replace("$status", "1");
+//     url = MakeSMSString(url, service);
+//     var result = webClient.DownloadString(url);
+
+
+//     return number.Substring(1);
+// }
+
+// { "api_key", "A81982dcb45b99bdffc17d868Ab1cb0A"},
+// { "service", service}, //fb or ot
+// { "forward", "0"},
+// { "operator", ""},
+// { "ref", ""},
+// { "country", smsCountryCode}
+const api_key = "88fd2e1A3f4d327740A9408c12872A39";
+
+//https://sms-activate.org/en/api2
+async function sms() {
+  // const getBalanceResult = await axios.get('https://api.sms-activate.org/stubs/handler_api.php?api_key=88fd2e1A3f4d327740A9408c12872A39&action=getBalance');
+  // if (getBalanceResult.status === 200) {
+  //   const getBalanceData = getBalanceResult.data.split(':');
+  //   const getBalanceResponse = {
+  //     balance: getBalanceData[1]
+  //   }
+  //   console.log('%cMyProject%cline:178%cgetBalanceResponse', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(60, 79, 57);padding:3px;border-radius:2px', getBalanceResponse)
+  // } else {
+  //   // TODO: Print error details
+  //   console.log('error')
+  // }
+
+  const getNumberResult = await axios.get(`https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getNumber&service=ot&country=0&freePrice=true&maxPrice=1`)
+  if (getNumberResult.status === 200){
+    const getNumberData = getNumberResult.data.split(':');
+    const getNumberResponse =  {
+      id: getNumberData[1],
+      phoneNumber: getNumberData[2]
     }
-      console.log(array)
+    console.log('%cMyProject%cline:187%cresponse', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(222, 125, 44);padding:3px;border-radius:2px', getNumberResponse)
+  }
+
+}
+
+sms()
