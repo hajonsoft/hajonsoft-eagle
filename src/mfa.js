@@ -8,11 +8,11 @@ const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
+
 let page;
 let mofaPage;
 let data;
 let counter = 0;
-const defaultNoImage = false;
 const config = [
   {
     name: "login",

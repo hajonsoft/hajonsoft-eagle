@@ -6,10 +6,10 @@ const fs = require("fs");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
+
 let page;
 let data;
 let counter = 0;
-let groupNumber;
 const config = [
   {
     name: "login",
