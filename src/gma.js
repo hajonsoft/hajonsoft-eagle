@@ -11,7 +11,6 @@ const sharp = require("sharp");
 let page;
 let data;
 let counter = 0;
-let groupNumber;
 
 const mutamerConfig = {
   details: [
