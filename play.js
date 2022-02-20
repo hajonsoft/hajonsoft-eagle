@@ -158,6 +158,5 @@ const axios = require('axios');
 //     url = MakeSMSString(url, service);
 //     var result = webClient.DownloadString(url);
 
-
 //     return number.Substring(1);
 // }

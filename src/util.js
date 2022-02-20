@@ -6,7 +6,6 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const sharp = require("sharp");
 const budgie = require("./budgie");
-
 const axios = require("axios");
 const moment = require("moment");
 const _ = require("lodash");

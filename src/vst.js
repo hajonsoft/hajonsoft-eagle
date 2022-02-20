@@ -12,6 +12,7 @@ let page;
 let email;
 let data;
 let counter = 0;
+
 const countryCodes = {
   afghanistan: "2",
   albania: "5",

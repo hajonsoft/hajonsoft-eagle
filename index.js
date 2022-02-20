@@ -188,7 +188,7 @@ async function runGetSMSNumber() {
       }
       if (activation) {
         if (activation === 'NO_NUMBERS') {
-          return fs.unlinkSync('./activation')
+          fs.unlinkSync('./activation')
           return console.log(balance, activation)
         }
         console.log(`existing activation ${activation} must be used first, can not request new number`)
