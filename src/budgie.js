@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+
 const dbFile = path.join(__dirname, "budgie.json");
 
 function print() {

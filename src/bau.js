@@ -10,6 +10,7 @@ const sharp = require("sharp");
 let page;
 let data;
 let counter = 0;
+
 const config = [
   {
     name: "login",

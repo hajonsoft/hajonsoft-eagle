@@ -14,12 +14,11 @@ const axios = require('axios');
 const extract = require("extract-zip");
 const { homedir } = require("os");
 const moment = require('moment');
+
 const version = "0.1.1";
 const budgie = require("./src/budgie");
 const inquirer = require('inquirer');
 const defaultSMSAPIKeyMustOverride = "88fd2e1A3f4d327740A9408c12872A39";
-
-
 
 async function main() {
   if (process.argv.includes("-v")) {

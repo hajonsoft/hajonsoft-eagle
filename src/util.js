@@ -19,6 +19,7 @@ const VISION_DEFICIENCY = "none";
 
 let page;
 let browser;
+
 async function initPage(config, onContentLoaded) {
   browser = await puppeteer.launch({
     headless: false,

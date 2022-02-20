@@ -13,6 +13,7 @@ let page;
 let mofaPage;
 let data;
 let counter = 0;
+
 const config = [
   {
     name: "login",

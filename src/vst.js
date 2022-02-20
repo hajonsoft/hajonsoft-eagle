@@ -11,6 +11,7 @@ const sharp = require("sharp");
 let page;
 let email;
 let data;
+
 let counter = 0;
 
 const countryCodes = {
