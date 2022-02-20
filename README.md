@@ -1,4 +1,4 @@
-# Eagle
+# 🦅 Eagle
 
 We control chrome using eagle. Eagle is built on top of puppeteer and can send data to any website.
 
