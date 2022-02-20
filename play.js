@@ -161,39 +161,3 @@ const axios = require('axios');
 
 //     return number.Substring(1);
 // }
-
-// { "api_key", "A81982dcb45b99bdffc17d868Ab1cb0A"},
-// { "service", service}, //fb or ot
-// { "forward", "0"},
-// { "operator", ""},
-// { "ref", ""},
-// { "country", smsCountryCode}
-const api_key = "88fd2e1A3f4d327740A9408c12872A39";
-
-//https://sms-activate.org/en/api2
-async function sms() {
-  // const getBalanceResult = await axios.get('https://api.sms-activate.org/stubs/handler_api.php?api_key=88fd2e1A3f4d327740A9408c12872A39&action=getBalance');
-  // if (getBalanceResult.status === 200) {
-  //   const getBalanceData = getBalanceResult.data.split(':');
-  //   const getBalanceResponse = {
-  //     balance: getBalanceData[1]
-  //   }
-  //   console.log('%cMyProject%cline:178%cgetBalanceResponse', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(60, 79, 57);padding:3px;border-radius:2px', getBalanceResponse)
-  // } else {
-  //   // TODO: Print error details
-  //   console.log('error')
-  // }
-
-  const getNumberResult = await axios.get(`https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getNumber&service=ot&country=0&freePrice=true&maxPrice=1`)
-  if (getNumberResult.status === 200){
-    const getNumberData = getNumberResult.data.split(':');
-    const getNumberResponse =  {
-      id: getNumberData[1],
-      phoneNumber: getNumberData[2]
-    }
-    console.log('%cMyProject%cline:187%cresponse', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(222, 125, 44);padding:3px;border-radius:2px', getNumberResponse)
-  }
-
-}
-
-sms()

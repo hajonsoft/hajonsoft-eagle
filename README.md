@@ -113,3 +113,8 @@ _List all budgie entries_
 node . budgie [key:value] [key:value]
 node . budgie PlaceOfResidence:"New place of birth"
 _Set PlaceOfResidence to new value_
+
+## SMS
+We use third party provider for SMS, you must have an api_key to purchase sms tokens. HAJonSoft gladly shares api_key, but feel free to override with your own api_key with, contact us for details. 
+https://sms-activate.org/en/getNumber
+
