@@ -8,7 +8,6 @@ const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
-
 let page;
 let mofaPage;
 let data;

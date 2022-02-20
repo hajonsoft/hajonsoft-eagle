@@ -146,7 +146,7 @@ async function storeControls(container, url) {
 }
 
 function findConfig(url, config) {
-  let lowerUrl = url.toLowerCase();
+  let lowerUrl = url?.toLowerCase();
   const urlConfig = config.find(
     (x) =>
       (x.url && x.url.toLowerCase() === lowerUrl) ||
