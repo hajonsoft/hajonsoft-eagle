@@ -81,10 +81,10 @@ async function initPage(config, onContentLoaded) {
   return page;
 }
 
-async function newPage(onMofaContentLoaded, onMofaContentClosed) {
+async function newPage(onNewPageLoaded, onNewPageClosed) {
   const _newPage = await browser.newPage();
-  _newPage.on("domcontentloaded", onMofaContentLoaded);
-  _newPage.on("close", onMofaContentClosed);
+  _newPage.on("domcontentloaded", onNewPageLoaded);
+  _newPage.on("close", onNewPageClosed);
   return _newPage;
 }
 
@@ -356,15 +356,22 @@ async function controller(page, structure, travellers) {
           <h5 style='margin-right: 0.5rem; color: #311b92'> HAJonSoft </h5> 
           <select id="hajonsoft_select" style='flex-grow: 1; margin-right: 0.5rem' > 
           ${optionsParam}
-          </select>  
+          </select>
           <button style='background-color: #2196f3; color: #ffffff; width: 6rem, padding: 0.5rem; margin: 0 5px; border-radius: 8px;' type="button" onclick="handleSendClick();return false">Send إرسل</button> 
-          </div>`;
+          </div>
+          ${controller.mokhaa ? 
+            '<div style="width: 100%; display: flex; justify-content: center; gap: 20px; margin-top: 10px"><button onclick="handleWTUClick();return false" >Way to umrah (download)</button> <button onclick="handleTWFClick();return false">Tawaf (download)</button> <button onclick="handleGMAClick();return false">Gabul ya hajj (download)</button></div>'
+            : ''}
+          `;
       },
       [structure, options]
     );
     const isExposed = await page.evaluate(() => window.handleSendClick);
     if (!isExposed) {
       await page.exposeFunction("handleSendClick", structure.controller.action);
+      await page.exposeFunction("handleWTUClick", structure.controller.wtuAction);
+      await page.exposeFunction("handleGMAClick", structure.controller.gmaAction);
+      await page.exposeFunction("handleTWFClick", structure.controller.twfAction);
     }
   } catch (err) {
     console.log(err);

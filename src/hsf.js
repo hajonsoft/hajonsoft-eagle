@@ -11,6 +11,7 @@ const sharp = require("sharp");
 let page;
 let data;
 let counter = 0;
+let mofas = [];
 
 const config = [
   {
@@ -105,7 +106,7 @@ async function onContentLoaded(res) {
     console.log(err);
   }
 }
-
+let mokhaaPage;
 async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[counter];
   switch (currentConfig.name) {
@@ -117,6 +118,7 @@ async function pageContentHandler(currentConfig) {
         {
           controller: {
             selector: "#content > div > div > h4",
+            mokhaa: true,
             action: async () => {
               const selectedTraveller = await page.$eval(
                 "#hajonsoft_select",
@@ -131,6 +133,14 @@ async function pageContentHandler(currentConfig) {
                   const data = fs.readFileSync("./data.json", "utf-8");
                   var passengersData = JSON.parse(data);
                   var passenger = passengersData.travellers[selectedTraveller];
+                  if (!passenger.mofaNumber) {
+                    const found = mofas.find(
+                      (mofa) => mofa.passportNumber === passenger.passportNumber
+                    );
+                    if (found) {
+                      passenger.mofaNumber = found.mofaNumber;
+                    }
+                  }
                   await util.commit(
                     page,
                     config.find((con) => con.name === "login").details,
@@ -140,6 +150,15 @@ async function pageContentHandler(currentConfig) {
                   console.log(err.message);
                 }
               }
+            },
+            wtuAction: async () => {
+              mokhaaPage = await util.newPage(onWTOLoad, onWTOClosed);
+              await mokhaaPage.goto(
+                "https://www.waytoumrah.com/prj_umrah/eng/eng_frmlogin.aspx",
+                {
+                  waitUntil: "domcontentloaded",
+                }
+              );
             },
           },
         },
@@ -165,9 +184,15 @@ async function pageContentHandler(currentConfig) {
       if (!flightNumber) {
         await page.type("#CarNumber", "SV216");
       }
-      const emailAddress = await page.$eval("#AddressContactInfoModel\\.Email", (el) => el.value);
+      const emailAddress = await page.$eval(
+        "#AddressContactInfoModel\\.Email",
+        (el) => el.value
+      );
       if (!emailAddress) {
-        await page.type("#AddressContactInfoModel\\.Email", passenger.name.full.replace(/ /g,'') + "@alldrys.com");
+        await page.type(
+          "#AddressContactInfoModel\\.Email",
+          passenger.name.full.replace(/ /g, "") + "@alldrys.com"
+        );
       }
       break;
     case "step3":
@@ -241,6 +266,44 @@ async function pageContentHandler(currentConfig) {
       break;
     default:
       break;
+  }
+}
+async function onWTOLoad(res) {
+  const url = await mokhaaPage.url();
+  if (!url) {
+    return;
+  }
+  if (url.toLowerCase().includes("Eng_RptMofaRtp.aspx?".toLowerCase())) {
+    for (let i = 1; i < 1000; i++) {
+      try {
+        let passSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(7)`;
+        let mofaSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(8)`;
+        let nationalitySelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(13)`;
+        let passportNumber = await mokhaaPage.$eval(
+          passSelector,
+          (e) => e.innerText
+        );
+        let mofaNumber = await mokhaaPage.$eval(
+          mofaSelector,
+          (e) => e.innerText
+        );
+        let nationality = await mokhaaPage.$eval(
+          nationalitySelector,
+          (e) => e.innerText
+        );
+        mofas.push({ passportNumber, mofaNumber, nationality });
+      } catch {
+        console.log("mofa downloaded");
+        return;
+      }
+    }
+  }
+}
+
+async function onWTOClosed(res) {
+  const url = await mokhaaPage.url();
+  if (!url) {
+    return;
   }
 }
 
