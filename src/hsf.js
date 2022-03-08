@@ -11,6 +11,7 @@ const sharp = require("sharp");
 let page;
 let data;
 let counter = 0;
+let browser;
 let mofas = [];
 
 const config = [
@@ -139,6 +140,12 @@ async function pageContentHandler(currentConfig) {
                     );
                     if (found) {
                       passenger.mofaNumber = found.mofaNumber;
+                    } else if (fs.existsSync("./" + passenger.passportNumber)) {
+                      const data = fs.readFileSync(
+                        "./" + passenger.passportNumber,
+                        "utf-8"
+                      );
+                      passenger.mofaNumber = JSON.parse(data)?.mofaNumber;
                     }
                   }
                   await util.commit(
@@ -152,7 +159,9 @@ async function pageContentHandler(currentConfig) {
               }
             },
             wtuAction: async () => {
-              mokhaaPage = await util.newPage(onWTOLoad, onWTOClosed);
+              mokhaaPage = await util.newPage(onWTULoad, () => {});
+              // browser = await mokhaaPage.browser();
+              // browser.on("targetcreated", onWTULoad);
               await mokhaaPage.goto(
                 "https://www.waytoumrah.com/prj_umrah/eng/eng_frmlogin.aspx",
                 {
@@ -268,17 +277,23 @@ async function pageContentHandler(currentConfig) {
       break;
   }
 }
-async function onWTOLoad(res) {
-  const url = await mokhaaPage.url();
-  if (!url) {
+async function onWTULoad(res) {
+  // const pages = await browser.pages();
+  // const mofaUrl = await pages[pages.length - 1].url();
+  const mofaUrl = await mokhaaPage.url();
+  if (!mofaUrl) {
     return;
   }
-  if (url.toLowerCase().includes("Eng_RptMofaRtp.aspx?".toLowerCase())) {
+  if (mofaUrl.toLowerCase().includes("Eng_RptMofaRtp.aspx?".toLowerCase())) {
     for (let i = 1; i < 1000; i++) {
       try {
+        // #dgrdMofaRpt > tbody > tr:nth-child(1) > td:nth-child(8)
         let passSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(7)`;
         let mofaSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(8)`;
         let nationalitySelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(13)`;
+        // await page.waitForSelector(passSelector)
+        // await page.waitForSelector(mofaSelector)
+        // await page.waitForSelector(nationalitySelector)
         let passportNumber = await mokhaaPage.$eval(
           passSelector,
           (e) => e.innerText
@@ -292,9 +307,14 @@ async function onWTOLoad(res) {
           (e) => e.innerText
         );
         mofas.push({ passportNumber, mofaNumber, nationality });
-      } catch {
-        console.log("mofa downloaded");
-        return;
+        if (passportNumber) {
+          fs.writeFileSync(
+            passportNumber,
+            JSON.stringify({ mofaNumber, nationality })
+          );
+        }
+      } catch (err) {
+        return console.log("mofas downloaded and saved", mofas);
       }
     }
   }
