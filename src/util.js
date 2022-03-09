@@ -249,6 +249,7 @@ async function commit(page, details, row) {
               field.setAttribute("value", "");
             }
           }, detail);
+          await page.waitForTimeout(10)
         }
 
         if (value) {
@@ -400,13 +401,18 @@ function setCounter(currentCounter) {
   );
 }
 
-async function commitFile(selector, fileName) {
+async function commitFile(selector, fileName, imgElementSelector) {
   if (!fs.existsSync(fileName) || process.argv.includes("noimage")) {
     return;
   }
   await page.waitForSelector(selector);
+  if (imgElementSelector) {
+    await page.waitForSelector(imgElementSelector);
+  }
+// This must be an input with type="file"
   const input = await page.$(selector);
   await input.uploadFile(fileName);
+  // await page.$eval(imgElementSelector, e=> e.setAttribute('src', fileName))
 }
 
 async function captchaClick(selector, numbers, actionSelector) {

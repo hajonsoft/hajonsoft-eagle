@@ -135,42 +135,41 @@ const config = [
               util.photosFolder,
               `${passenger.passportNumber}.jpg`
             );
+
             await util.downloadImage(passenger.images.photo, photoPath);
-            await page.waitForSelector("#img_Mutamer");
-            let futureFileChooser = page.waitForFileChooser();
-            await page.evaluate(() =>
-              document.querySelector("#img_Mutamer").click()
-            );
-            let fileChooser = await futureFileChooser;
             const resizedPhotoPath = path.join(
               util.photosFolder,
               `${passenger.passportNumber}_200x200.jpg`
             );
             await sharp(photoPath).resize(200, 200).toFile(resizedPhotoPath);
-            await fileChooser.accept([resizedPhotoPath]);
+            if (
+              !process.argv.includes("noimage")
+            ) {
+              await util.commitFile("#img_Mutamer", resizedPhotoPath);
+            }
 
             const passportPath = path.join(
               util.passportsFolder,
               `${passenger.passportNumber}.jpg`
             );
             await util.downloadImage(passenger.images.passport, passportPath);
-            if (fs.existsSync(passportPath)) {
-              futureFileChooser = page.waitForFileChooser();
-              await page.evaluate(() =>
-                document.querySelector("#img_MutamerPP").click()
-              );
-              fileChooser = await futureFileChooser;
-              let resizedPassportFile = path.join(
-                util.passportsFolder,
-                `${passenger.passportNumber}_400x300.jpg`
-              );
-              await sharp(passportPath)
-                .resize(400, 300)
-                .toFile(resizedPassportFile);
-              await fileChooser.accept([resizedPassportFile]);
-            }
+            let resizedPassportFile = path.join(
+              util.passportsFolder,
+              `${passenger.passportNumber}_400x300.jpg`
+            );
+            await sharp(passportPath)
+              .resize(400, 300)
+              .toFile(resizedPassportFile);
 
-            await page.focus("#CodeNumberTextBox");
+            await page.waitForSelector("#Mutamer_imgPP")
+            if (
+              !process.argv.includes("noimage")
+            ) {
+              await util.commitFile("#img_MutamerPP", resizedPassportFile);
+            }  
+
+            await util.waitForCaptcha("#CodeNumberTextBox", 5);
+            await page.click('#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success');
           } catch (err) {
             console.log(err.message);
           }
