@@ -167,7 +167,18 @@ const config = [
             ) {
               await util.commitFile("#img_MutamerPP", resizedPassportFile);
             }  
-
+            // const resizedVaccinePath = await util.downloadAndResizeImage(
+            //   passenger,
+            //   100,
+            //   100,
+            //   "vaccine"
+            // );
+            // if (
+            //   !process.argv.includes("noimage")
+            // ) {
+            //   await util.commitFile("#VaccineCertificate", resizedVaccinePath);
+            // }  
+            
             await util.waitForCaptcha("#CodeNumberTextBox", 5);
             await page.click('#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success');
           } catch (err) {
