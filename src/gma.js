@@ -79,7 +79,6 @@ const mutamerConfig = {
   ],
 };
 
-
 const config = [
   {
     name: "login",
@@ -88,6 +87,10 @@ const config = [
       { selector: "#LoginName", value: (system) => system.username },
       { selector: "#password", value: (system) => system.password },
     ],
+  },
+  {
+    name: "download",
+    url: "https://eumra.com/homepage.aspx?P=downloads",
   },
   {
     name: "main",
@@ -100,8 +103,7 @@ const config = [
       {
         selector: "#txt_GroupName",
         value: (row) =>
-        `${row.name.first}-${row.name.last}-${moment().format("HH:mm:ss")}`,
-
+          `${row.name.first}-${row.name.last}-${moment().format("HH:mm:ss")}`,
       },
     ],
     controller: {
@@ -113,13 +115,20 @@ const config = [
         );
         if (selectedTraveller) {
           try {
-            await page.click('#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-warning');
+            await page.click(
+              "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-warning"
+            );
             fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
             const data = fs.readFileSync("./data.json", "utf-8");
             var passengersData = JSON.parse(data);
             var passenger = passengersData.travellers[selectedTraveller];
-            await page.evaluate(() => document.querySelector("#txt_Mrz").disabled = false);
-            await page.type("#txt_Mrz",passenger.codeline || 'codeline missing');
+            await page.evaluate(
+              () => (document.querySelector("#txt_Mrz").disabled = false)
+            );
+            await page.type(
+              "#txt_Mrz",
+              passenger.codeline || "codeline missing"
+            );
             await util.commit(page, mutamerConfig.details, passenger);
             await page.click("#CodeNumberTextBox");
             let photoPath = path.join(
@@ -194,10 +203,11 @@ async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      await util.waitForCaptcha("#CodeNumberTextBox", 5)
+      await util.waitForCaptcha("#CodeNumberTextBox", 5);
       await page.click("#btn_Login");
       break;
     case "main":
+    case "download":
       await page.goto("https://eumra.com/auploader.aspx#/tab1_1", {
         waitUntil: "networkidle2",
       });
