@@ -11,7 +11,6 @@ const sharp = require("sharp");
 let page;
 let data;
 let counter = 0;
-let browser;
 let mofas = [];
 
 const config = [
@@ -159,9 +158,7 @@ async function pageContentHandler(currentConfig) {
               }
             },
             wtuAction: async () => {
-              mokhaaPage = await util.newPage(onWTULoad, () => {});
-              // browser = await mokhaaPage.browser();
-              // browser.on("targetcreated", onWTULoad);
+              mokhaaPage = await util.newPage(onWTUPageLoad, () => {});
               await mokhaaPage.goto(
                 "https://www.waytoumrah.com/prj_umrah/eng/eng_frmlogin.aspx",
                 {
@@ -277,47 +274,82 @@ async function pageContentHandler(currentConfig) {
       break;
   }
 }
-async function onWTULoad(res) {
-  // const pages = await browser.pages();
-  // const mofaUrl = await pages[pages.length - 1].url();
+
+async function handleImportMofa() {
+  console.log('babatunde import ')
+  alert('hi')
+}
+
+async function onWTUPageLoad(res) {
   const mofaUrl = await mokhaaPage.url();
   if (!mofaUrl) {
     return;
   }
-  if (mofaUrl.toLowerCase().includes("Eng_RptMofaRtp.aspx?".toLowerCase())) {
-    for (let i = 1; i < 1000; i++) {
-      try {
-        // #dgrdMofaRpt > tbody > tr:nth-child(1) > td:nth-child(8)
-        let passSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(7)`;
-        let mofaSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(8)`;
-        let nationalitySelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(13)`;
-        // await page.waitForSelector(passSelector)
-        // await page.waitForSelector(mofaSelector)
-        // await page.waitForSelector(nationalitySelector)
-        let passportNumber = await mokhaaPage.$eval(
-          passSelector,
-          (e) => e.innerText
-        );
-        let mofaNumber = await mokhaaPage.$eval(
-          mofaSelector,
-          (e) => e.innerText
-        );
-        let nationality = await mokhaaPage.$eval(
-          nationalitySelector,
-          (e) => e.innerText
-        );
-        mofas.push({ passportNumber, mofaNumber, nationality });
-        if (passportNumber) {
-          fs.writeFileSync(
-            passportNumber,
-            JSON.stringify({ mofaNumber, nationality })
-          );
-        }
-      } catch (err) {
-        return console.log("mofas downloaded and saved", mofas);
-      }
-    }
+
+  if (mofaUrl.toLowerCase().includes("_frmlogin.aspx".toLowerCase())) {
+    await mokhaaPage.waitForSelector("#txtUserName");
+    await mokhaaPage.type("#txtUserName", data.system.username);
+    await mokhaaPage.type("#txtPwd", data.system.password);
+    return;
   }
+  if (mofaUrl.toLowerCase().includes("Waytoumrah".toLowerCase()) && mofaUrl.toLowerCase().includes("prj_umrah".toLowerCase()) && !mofaUrl.toLowerCase().includes("frmMofaRtp".toLowerCase())) {
+    await mokhaaPage.goto('https://www.waytoumrah.com/prj_umrah/eng/Eng_frmMofaRtp.aspx')
+    return;
+  }
+
+  if (mofaUrl.toLowerCase().includes("Eng_frmMofaRtp".toLowerCase())) {
+    const tdSelector = '#Table1 > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(3) > td:nth-child(2)';
+    await mokhaaPage.waitForSelector(tdSelector, {timeout: 0});
+    const isExposed = await mokhaaPage.evaluate(() => window.handleImportMofa);
+    if (!isExposed) {
+      await mokhaaPage.exposeFunction('handleImportMofa', async (mofa) => {});
+    }
+    await mokhaaPage.$eval(tdSelector, (el) => el.innerHTML = `<button style="color: white; background-color: forestgreen; border-radius: 16px; padding: 16px;" type="button"  onclick="handleImportMofa(); return false">Import with Eagle</button>`);
+  
+  }
+  // if (
+  //   mofaUrl.toLowerCase().includes("_RptMofaRtp.aspx?".toLowerCase()) ||
+  //   mofaUrl.toLowerCase().includes("Waytoumrah".toLowerCase())
+  // ) {
+  //   // Work with babatunde from here
+  //   // Can read up to 100 page refreshes. wait for the selector, if it is available make one cycle
+  //   for (let j = 0; j < 1; j++) {
+  //     //#dgrdMofaRpt > tbody > tr > td:nth-child(7)
+  //     await mokhaaPage.waitForSelector(
+  //       `#dgrdMofaRpt > tbody > tr:nth-child(0) > td:nth-child(7)`
+  //     );
+
+  //     try {
+  //       for (let i = 1; i < 1000; i++) {
+  //         let passSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(7)`;
+  //         let mofaSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(8)`;
+  //         let nationalitySelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(13)`;
+  //         let passportNumber = await mokhaaPage.$eval(
+  //           passSelector,
+  //           (e) => e.innerText
+  //         );
+  //         let mofaNumber = await mokhaaPage.$eval(
+  //           mofaSelector,
+  //           (e) => e.innerText
+  //         );
+  //         let nationality = await mokhaaPage.$eval(
+  //           nationalitySelector,
+  //           (e) => e.innerText
+  //         );
+  //         mofas.push({ passportNumber, mofaNumber, nationality });
+  //         if (passportNumber) {
+  //           fs.writeFileSync(
+  //             passportNumber,
+  //             JSON.stringify({ mofaNumber, nationality })
+  //           );
+  //         }
+  //       }
+  //     } catch (err) {
+  //       return console.log("mofas downloaded and saved", mofas);
+  //     }
+  //   }
+  // }
+
 }
 
 async function onWTOClosed(res) {
