@@ -367,8 +367,8 @@ async function controller(page, structure, travellers) {
             <button onclick="handleWTUClick();return false" style="color: white; background-color: forestgreen; font-size: 1.5rem; font-weight: bold; border-radius: 16px; padding: 8px">Way to umrah</button> 
             <button onclick="handleTWFClick();return false" style="color: #8f006b; background-color: lime; font-size: 1.5rem; font-weight: bold; border-radius: 16px; padding: 8px">Tawaf</button> 
             <button onclick="handleGMAClick();return false" style="color: white; background-color: forestgreen; font-size: 1.5rem; font-weight: bold; border-radius: 16px; padding: 8px">Gabul ya hajj</button>
-            </div>
             <div>Import mofa number</div>
+            </div>
             `
             : ''}
           `;
