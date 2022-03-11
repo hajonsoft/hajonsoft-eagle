@@ -163,6 +163,7 @@ async function pageContentHandler(currentConfig) {
             },
             wtuAction: async () => {
               mokhaaPage = await util.newPage(onWTUPageLoad, () => {});
+              mokhaaPage.on("response", injectEagleButton);
               await mokhaaPage.goto(
                 "https://www.waytoumrah.com/prj_umrah/eng/eng_frmlogin.aspx",
                 {
@@ -292,8 +293,17 @@ async function pageContentHandler(currentConfig) {
       if (!fs.existsSync(visaFolder)) {
         fs.mkdirSync(visaFolder);
       }
-      const visaElement = await page.$('body > form > page > div')
-      await visaElement.screenshot({ path: path.join(visaFolder, passenger.passportNumber + '_' + passenger.name.full.replace(/ /,'_')) + '.png', type: "png"});
+      const visaElement = await page.$("body > form > page > div");
+      await visaElement.screenshot({
+        path:
+          path.join(
+            visaFolder,
+            passenger.passportNumber +
+              "_" +
+              passenger.name.full.replace(/ /, "_")
+          ) + ".png",
+        type: "png",
+      });
       await page.goto(config[0].url);
       break;
     default:
@@ -302,8 +312,47 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function handleImportMofa() {
-  console.log("babatunde import ");
-  alert("hi");
+  const tableSelector = "#dgrdMofaRpt";
+  const table = await mokhaaPage.$(tableSelector);
+  if (!table) {
+return;
+  }
+
+  const tableRows = await mokhaaPage.$$("#dgrdMofaRpt > tbody tr");
+  const passports = [];
+  for (let i = 1; i <= tableRows.length; i++) {
+    const rowPassportNumberSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(6)`;
+    const passportNumber = await mokhaaPage.$eval(
+      rowPassportNumberSelector,
+      (el) => el.innerText
+    );
+    passports.push(passportNumber);
+
+    const rowMofaSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(7)`;
+    const mofaNumber = await mokhaaPage.$eval(
+      rowMofaSelector,
+      (el) => el.innerText
+    );
+
+    const rowNationalitySelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(12)`;
+    const nationality = await mokhaaPage.$eval(
+      rowNationalitySelector,
+      (el) => el.innerText
+    );
+
+    mofas.push({ passportNumber, mofaNumber, nationality });
+    if (passportNumber) {
+      fs.writeFileSync(
+        passportNumber,
+        JSON.stringify({ mofaNumber, nationality })
+      );
+    }
+  }
+  await mokhaaPage.evaluate((passportsArrayFromNode) => {
+    const eagleButton = document.querySelector('#Table1 > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(3) > td:nth-child(2) > button');
+    eagleButton.textContent = `Done... [${passportsArrayFromNode[0]}-${passportsArrayFromNode[passportsArrayFromNode.length-1]}]`
+
+  } , passports)
 }
 
 async function onWTUPageLoad(res) {
@@ -330,61 +379,23 @@ async function onWTUPageLoad(res) {
   }
 
   if (mofaUrl.toLowerCase().includes("Eng_frmMofaRtp".toLowerCase())) {
-    const tdSelector =
-      "#Table1 > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(3) > td:nth-child(2)";
-    await mokhaaPage.waitForSelector(tdSelector, { timeout: 0 });
-    const isExposed = await mokhaaPage.evaluate(() => window.handleImportMofa);
-    if (!isExposed) {
-      await mokhaaPage.exposeFunction("handleImportMofa", async (mofa) => {});
-    }
-    await mokhaaPage.$eval(
-      tdSelector,
-      (el) =>
-        (el.innerHTML = `<button style="color: white; background-color: forestgreen; border-radius: 16px; padding: 16px;" type="button"  onclick="handleImportMofa(); return false">Import with Eagle</button>`)
-    );
+    await injectEagleButton();
   }
-  // if (
-  //   mofaUrl.toLowerCase().includes("_RptMofaRtp.aspx?".toLowerCase()) ||
-  //   mofaUrl.toLowerCase().includes("Waytoumrah".toLowerCase())
-  // ) {
-  //   // Work with babatunde from here
-  //   // Can read up to 100 page refreshes. wait for the selector, if it is available make one cycle
-  //   for (let j = 0; j < 1; j++) {
-  //     //#dgrdMofaRpt > tbody > tr > td:nth-child(7)
-  //     await mokhaaPage.waitForSelector(
-  //       `#dgrdMofaRpt > tbody > tr:nth-child(0) > td:nth-child(7)`
-  //     );
+}
 
-  //     try {
-  //       for (let i = 1; i < 1000; i++) {
-  //         let passSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(7)`;
-  //         let mofaSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(8)`;
-  //         let nationalitySelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(13)`;
-  //         let passportNumber = await mokhaaPage.$eval(
-  //           passSelector,
-  //           (e) => e.innerText
-  //         );
-  //         let mofaNumber = await mokhaaPage.$eval(
-  //           mofaSelector,
-  //           (e) => e.innerText
-  //         );
-  //         let nationality = await mokhaaPage.$eval(
-  //           nationalitySelector,
-  //           (e) => e.innerText
-  //         );
-  //         mofas.push({ passportNumber, mofaNumber, nationality });
-  //         if (passportNumber) {
-  //           fs.writeFileSync(
-  //             passportNumber,
-  //             JSON.stringify({ mofaNumber, nationality })
-  //           );
-  //         }
-  //       }
-  //     } catch (err) {
-  //       return console.log("mofas downloaded and saved", mofas);
-  //     }
-  //   }
-  // }
+async function injectEagleButton() {
+  const tdSelector =
+    "#Table1 > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(3) > td:nth-child(2)";
+  await mokhaaPage.waitForSelector(tdSelector, { timeout: 0 });
+  const isExposed = await mokhaaPage.evaluate("!!window.handleImportMofa");
+  if (!isExposed) {
+    await mokhaaPage.exposeFunction("handleImportMofa", handleImportMofa);
+  }
+  await mokhaaPage.$eval(
+    tdSelector,
+    (el) =>
+      (el.innerHTML = `<button style="color: white; background-color: forestgreen; border-radius: 16px; padding: 16px;" type="button"  onclick="handleImportMofa(); return false">Eagle current page</button>`)
+  );
 }
 
 async function onWTOClosed(res) {
