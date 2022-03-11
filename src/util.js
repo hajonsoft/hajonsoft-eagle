@@ -362,7 +362,14 @@ async function controller(page, structure, travellers) {
           <button style='background-color: #2196f3; color: #ffffff; width: 6rem, padding: 0.5rem; margin: 0 5px; border-radius: 8px;' type="button" onclick="handleSendClick();return false">Send إرسل</button> 
           </div>
           ${controller.mokhaa ? 
-            '<div style="width: 100%; display: flex; justify-content: center; gap: 20px; margin-top: 10px"><button onclick="handleWTUClick();return false" style="color: white; background-color: forestgreen; font-size: 1rem; border-radius: 16px; padding: 16px">Way to umrah (download)</button> <button onclick="handleTWFClick();return false">Tawaf (download)</button> <button onclick="handleGMAClick();return false">Gabul ya hajj (download)</button></div>'
+            `<div style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 10px">
+            <div>جلب ارقام المراجع</div>
+            <button onclick="handleWTUClick();return false" style="color: white; background-color: forestgreen; font-size: 1.5rem; font-weight: bold; border-radius: 16px; padding: 8px">Way to umrah</button> 
+            <button onclick="handleTWFClick();return false" style="color: #8f006b; background-color: lime; font-size: 1.5rem; font-weight: bold; border-radius: 16px; padding: 8px">Tawaf</button> 
+            <button onclick="handleGMAClick();return false" style="color: white; background-color: forestgreen; font-size: 1.5rem; font-weight: bold; border-radius: 16px; padding: 8px">Gabul ya hajj</button>
+            </div>
+            <div>Import mofa number</div>
+            `
             : ''}
           `;
       },

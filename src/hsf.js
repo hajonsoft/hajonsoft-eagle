@@ -7,7 +7,7 @@ const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
-
+const homedir = require("os").homedir();
 let page;
 let data;
 let counter = 0;
@@ -38,7 +38,7 @@ const config = [
   },
   {
     name: "step1",
-    regex: "https://visa.mofa.gov.sa/HajSmartForm/Step1/\\d+",
+    regex: "https://visa.mofa.gov.sa/HajSmartForm/Step1",
   },
   {
     name: "step2",
@@ -85,6 +85,10 @@ const config = [
   {
     name: "step3",
     regex: "https://visa.mofa.gov.sa/HajSmartForm/Step3/\\d+",
+  },
+  {
+    name: "step4",
+    regex: "https://visa.mofa.gov.sa/HajSmartForm/Step4/\\d+",
   },
 ];
 
@@ -181,6 +185,13 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "step1":
+      await page.waitForSelector(
+        "#myform > div.form-actions.fluid.right > div > div > button:nth-child(2)"
+      );
+      //#myform > div.form-actions.fluid.right > div > div > button:nth-child(2)
+      await page.click(
+        "#myform > div.form-actions.fluid.right > div > div > button:nth-child(2)"
+      );
       break;
     case "step2":
       await util.commit(page, currentConfig.details, passenger);
@@ -200,6 +211,7 @@ async function pageContentHandler(currentConfig) {
           passenger.name.full.replace(/ /g, "") + "@alldrys.com"
         );
       }
+      await page.type("#FlightDataModel\\.ExpectedStayDuration", "15");
       break;
     case "step3":
       await util.commit(page, currentConfig.details, passenger);
@@ -270,14 +282,28 @@ async function pageContentHandler(currentConfig) {
       }, passenger);
 
       break;
+    case "step4":
+      const printButtonSelector =
+        "#myform > div.form-actions.fluid.right > div > div > a.btn.btn-default.green";
+      await page.waitForSelector(printButtonSelector);
+      const href = await page.$eval(printButtonSelector, (el) => el.href);
+      await page.goto(href, { waitUntil: "domcontentloaded" });
+      const visaFolder = path.join(homedir, "hajonsoft", "visa");
+      if (!fs.existsSync(visaFolder)) {
+        fs.mkdirSync(visaFolder);
+      }
+      const visaElement = await page.$('body > form > page > div')
+      await visaElement.screenshot({ path: path.join(visaFolder, passenger.passportNumber + '_' + passenger.name.full.replace(/ /,'_')) + '.png', type: "png"});
+      await page.goto(config[0].url);
+      break;
     default:
       break;
   }
 }
 
 async function handleImportMofa() {
-  console.log('babatunde import ')
-  alert('hi')
+  console.log("babatunde import ");
+  alert("hi");
 }
 
 async function onWTUPageLoad(res) {
@@ -292,20 +318,30 @@ async function onWTUPageLoad(res) {
     await mokhaaPage.type("#txtPwd", data.system.password);
     return;
   }
-  if (mofaUrl.toLowerCase().includes("Waytoumrah".toLowerCase()) && mofaUrl.toLowerCase().includes("prj_umrah".toLowerCase()) && !mofaUrl.toLowerCase().includes("frmMofaRtp".toLowerCase())) {
-    await mokhaaPage.goto('https://www.waytoumrah.com/prj_umrah/eng/Eng_frmMofaRtp.aspx')
+  if (
+    mofaUrl.toLowerCase().includes("Waytoumrah".toLowerCase()) &&
+    mofaUrl.toLowerCase().includes("prj_umrah".toLowerCase()) &&
+    !mofaUrl.toLowerCase().includes("frmMofaRtp".toLowerCase())
+  ) {
+    await mokhaaPage.goto(
+      "https://www.waytoumrah.com/prj_umrah/eng/Eng_frmMofaRtp.aspx"
+    );
     return;
   }
 
   if (mofaUrl.toLowerCase().includes("Eng_frmMofaRtp".toLowerCase())) {
-    const tdSelector = '#Table1 > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(3) > td:nth-child(2)';
-    await mokhaaPage.waitForSelector(tdSelector, {timeout: 0});
+    const tdSelector =
+      "#Table1 > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(3) > td:nth-child(2)";
+    await mokhaaPage.waitForSelector(tdSelector, { timeout: 0 });
     const isExposed = await mokhaaPage.evaluate(() => window.handleImportMofa);
     if (!isExposed) {
-      await mokhaaPage.exposeFunction('handleImportMofa', async (mofa) => {});
+      await mokhaaPage.exposeFunction("handleImportMofa", async (mofa) => {});
     }
-    await mokhaaPage.$eval(tdSelector, (el) => el.innerHTML = `<button style="color: white; background-color: forestgreen; border-radius: 16px; padding: 16px;" type="button"  onclick="handleImportMofa(); return false">Import with Eagle</button>`);
-  
+    await mokhaaPage.$eval(
+      tdSelector,
+      (el) =>
+        (el.innerHTML = `<button style="color: white; background-color: forestgreen; border-radius: 16px; padding: 16px;" type="button"  onclick="handleImportMofa(); return false">Import with Eagle</button>`)
+    );
   }
   // if (
   //   mofaUrl.toLowerCase().includes("_RptMofaRtp.aspx?".toLowerCase()) ||
@@ -349,7 +385,6 @@ async function onWTUPageLoad(res) {
   //     }
   //   }
   // }
-
 }
 
 async function onWTOClosed(res) {
