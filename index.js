@@ -26,6 +26,11 @@ async function main() {
     process.exit(0);
   }
 
+  const selectedTravellerFile = "./selectedTraveller.txt";
+  if (fs.existsSync(selectedTravellerFile)) {
+      fs.unlinkSync(selectedTravellerFile);
+  }
+
   if (process.argv.includes("-i")) {
     return runInteractive()
   }
