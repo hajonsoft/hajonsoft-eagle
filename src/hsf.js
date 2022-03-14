@@ -402,6 +402,7 @@ async function onWTUPageLoad(res) {
 }
 
 async function injectEagleButton() {
+  try {
   const tdSelector =
     "#Table1 > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(3) > td:nth-child(2)";
   await mokhaaPage.waitForSelector(tdSelector, { timeout: 0 });
@@ -420,6 +421,9 @@ async function injectEagleButton() {
       </div>
       `)
   );
+  } catch (err) {
+    console.log('Eagle error: Wrapped', err)
+  }
 }
 
 async function onWTOClosed(res) {
