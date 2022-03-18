@@ -37,7 +37,7 @@ const config = [
       {
         selector: "#txtGrpdesc",
         value: (row) =>
-          `${row.name.first}-${row.name.last}-${moment().format("HH:mm:ss")}`,
+          `${row.caravan}-${moment().format("HH:mm:ss")}`,
       },
     ],
   },
@@ -172,7 +172,7 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "create-group":
-      await util.commit(page, currentConfig.details, data.travellers[0]);
+      await util.commit(page, currentConfig.details, data.info);
       const firstOption = await page.$eval("#cmbEmb", (e) => {
         const options = e.querySelectorAll("option");
         for (const opt of options) {
