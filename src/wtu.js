@@ -215,6 +215,7 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "create-mutamer":
+      await page.emulateVisionDeficiency("blurredVision"); 
       await util.controller(page, currentConfig, data.travellers);
       await page.waitForSelector("#txtppno");
       const passportNumber = await page.$eval("#txtppno", (e) => e.value);
@@ -273,15 +274,16 @@ async function pageContentHandler(currentConfig) {
         300,
         "passport"
       );
-      const resizedVaccinePath = await util.downloadAndResizeImage(
-        passenger,
-        100,
-        100,
-        "vaccine"
-      );
+      // removing vaccine submit since it became optionsl
+      // const resizedVaccinePath = await util.downloadAndResizeImage(
+      //   passenger,
+      //   100,
+      //   100,
+      //   "vaccine"
+      // );
 
-      await page.select("#cmbVacc_cert_type", "2");
-      await page.waitForSelector("#img_vaccination_copy");
+      // await page.select("#cmbVacc_cert_type", "2");
+      // await page.waitForSelector("#img_vaccination_copy");
 
       if (!process.argv.includes("noimage")) {
         await page.click("#btn_uploadImage");
@@ -296,13 +298,13 @@ async function pageContentHandler(currentConfig) {
         await util.commitFile("#fuppcopy", resizedPassportPath);
       }
 
-      await page.waitForSelector("#img_vaccination_copy")
-      if (
-        !process.argv.includes("noimage")
-      ) {
-        await util.commitFile("#F_Vaccinationcopy", resizedVaccinePath);
-      }
-
+      // await page.waitForSelector("#img_vaccination_copy")
+      // if (
+      //   !process.argv.includes("noimage")
+      // ) {
+      //   await util.commitFile("#F_Vaccinationcopy", resizedVaccinePath);
+      // }
+      await page.emulateVisionDeficiency("none"); 
       await util.waitForCaptcha("#txtImagetext", 5);
       await util.sniff(page, currentConfig.details)
       await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
