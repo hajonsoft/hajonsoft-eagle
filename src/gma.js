@@ -129,7 +129,16 @@ const config = [
               "#txt_Mrz",
               passenger.codeline || "codeline missing"
             );
+            await page.emulateVisionDeficiency("blurredVision");
+
+            await page.waitForTimeout(5000);
             await util.commit(page, mutamerConfig.details, passenger);
+            for (const field of mutamerConfig.details) {
+              await page.$eval(field.selector, e=> {
+                e.removeAttribute('readonly');
+                e.removeAttribute('disabled');
+              });
+            }
             await page.click("#CodeNumberTextBox");
             let photoPath = path.join(
               util.photosFolder,
@@ -142,9 +151,7 @@ const config = [
               `${passenger.passportNumber}_200x200.jpg`
             );
             await sharp(photoPath).resize(200, 200).toFile(resizedPhotoPath);
-            if (
-              !process.argv.includes("noimage")
-            ) {
+            if (!process.argv.includes("noimage")) {
               await util.commitFile("#img_Mutamer", resizedPhotoPath);
             }
 
@@ -161,12 +168,10 @@ const config = [
               .resize(400, 300)
               .toFile(resizedPassportFile);
 
-            await page.waitForSelector("#Mutamer_imgPP")
-            if (
-              !process.argv.includes("noimage")
-            ) {
+            await page.waitForSelector("#Mutamer_imgPP");
+            if (!process.argv.includes("noimage")) {
               await util.commitFile("#img_MutamerPP", resizedPassportFile);
-            }  
+            }
             // const resizedVaccinePath = await util.downloadAndResizeImage(
             //   passenger,
             //   100,
@@ -177,10 +182,12 @@ const config = [
             //   !process.argv.includes("noimage")
             // ) {
             //   await util.commitFile("#VaccineCertificate", resizedVaccinePath);
-            // }  
-            
+            // }
+            await page.emulateVisionDeficiency("none");
             await util.waitForCaptcha("#CodeNumberTextBox", 5);
-            await page.click('#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success');
+            await page.click(
+              "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success"
+            );
           } catch (err) {
             console.log(err.message);
           }
