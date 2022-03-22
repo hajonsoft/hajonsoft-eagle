@@ -48,21 +48,9 @@ async function initPage(config, onContentLoaded) {
 
   if (!fs.existsSync(photosFolder)) {
     fs.mkdirSync(photosFolder);
-  } else {
-    fs.readdir(photosFolder, (err, files) => {
-      for (const file of files) {
-        fs.unlink(path.join(photosFolder, file), (err) => {});
-      }
-    });
-  }
+  } 
   if (!fs.existsSync(passportsFolder)) {
     fs.mkdirSync(passportsFolder);
-  } else {
-    fs.readdir(passportsFolder, (err, files) => {
-      for (const file of files) {
-        fs.unlink(path.join(passportsFolder, file), (err) => {});
-      }
-    });
   }
   if (!fs.existsSync(vaccineFolder)) {
     fs.mkdirSync(vaccineFolder);
