@@ -467,7 +467,10 @@ async function runPageConfiguration(currentConfig) {
       if (sharpImageMetadata.width === 200 && sharpImageMetadata.height === 200) {
         await sharpImage.clone().jpeg({ quality: 100 }).toFile(resizedPhotoPath);
       } else {
-        await sharpImage.resize(200, 200).toFile(resizedPhotoPath);
+        await sharpImage.resize(200, 200, {
+          fit: sharp.fit.inside,
+          withoutEnlargement: true,
+        }).toFile(resizedPhotoPath);
       }
       await util.commitFile("#AttachmentPersonalPicture", resizedPhotoPath);
       await page.waitForSelector(

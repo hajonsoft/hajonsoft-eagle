@@ -92,7 +92,10 @@ instead of fileChooser below
         util.photosFolder,
         `${data.travellers[counter].passportNumber}_200x200.jpg`
       );
-      await sharp(photoPath).resize(200, 200).toFile(resizedPhotoPath);
+      await sharp(photoPath, {
+              fit: sharp.fit.inside,
+              withoutEnlargement: true,
+            }).resize(200, 200).toFile(resizedPhotoPath);
 
       // 5. Accept the image into the file chooser
       await fileChooser.accept([resizedPhotoPath]);

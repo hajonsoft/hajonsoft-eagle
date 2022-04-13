@@ -479,7 +479,10 @@ async function downloadAndResizeImage(
     writer.on("error", reject);
   });
   await result;
-  await sharp(imagePath).resize(width, height).toFile(resizedPath);
+  await sharp(imagePath).resize(width, height, {
+    fit: sharp.fit.inside,
+    withoutEnlargement: true,
+  }).toFile(resizedPath);
   return resizedPath;
 }
 

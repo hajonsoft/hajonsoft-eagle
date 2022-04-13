@@ -150,7 +150,10 @@ const config = [
               util.photosFolder,
               `${passenger.passportNumber}_200x200.jpg`
             );
-            await sharp(photoPath).resize(200, 200).toFile(resizedPhotoPath);
+            await sharp(photoPath).resize(200, 200, {
+              fit: sharp.fit.inside,
+              withoutEnlargement: true,
+            }).toFile(resizedPhotoPath);
             if (!process.argv.includes("noimage")) {
               await util.commitFile("#img_Mutamer", resizedPhotoPath);
             }
@@ -165,7 +168,10 @@ const config = [
               `${passenger.passportNumber}_400x300.jpg`
             );
             await sharp(passportPath)
-              .resize(400, 300)
+              .resize(400, 300, {
+                fit: sharp.fit.inside,
+                withoutEnlargement: true,
+              })
               .toFile(resizedPassportFile);
 
             await page.waitForSelector("#Mutamer_imgPP");

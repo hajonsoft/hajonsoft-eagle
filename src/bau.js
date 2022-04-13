@@ -211,7 +211,10 @@ async function runPageConfiguration(currentConfig) {
         util.photosFolder,
         `${data.travellers[counter].passportNumber}_200x200.jpg`
       );
-      await sharp(photoPath).resize(200, 200).toFile(resizedPhotoPath);
+      await sharp(photoPath).resize(200, 200, {
+        fit: sharp.fit.inside,
+        withoutEnlargement: true,
+      }).toFile(resizedPhotoPath);
       await fileChooser.accept([resizedPhotoPath]);
 
       const passportPath = path.join(
@@ -234,7 +237,10 @@ async function runPageConfiguration(currentConfig) {
           util.passportsFolder,
           `${data.travellers[counter].passportNumber}_400x300.jpg`
         );
-        await sharp(passportPath).resize(400, 300).toFile(resizedPassportFile);
+        await sharp(passportPath).resize(400, 300, {
+          fit: sharp.fit.inside,
+          withoutEnlargement: true,
+        }).toFile(resizedPassportFile);
         await fileChooser.accept([resizedPassportFile]);
       }
       await page.waitForSelector("#ctl00_ContentHolder_rdCap_CaptchaTextBox");
