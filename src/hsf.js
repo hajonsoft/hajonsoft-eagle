@@ -450,6 +450,7 @@ async function handleImportGMAMofa() {
         passportNumber,
         JSON.stringify({ mofaNumber, nationality })
       );
+      // Add this passport to data.json if it is not present. This way you will be able to import from GMA and proceed with HSF even if the traveler is not present in HAJonSoft
     }
   }
   await gmaPage.evaluate((passportsArrayFromNode) => {
