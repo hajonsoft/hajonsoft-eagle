@@ -15,8 +15,8 @@ let counter = 0;
 const config = [
   {
     name: "login",
-    url: "https://www.etawaf.com/tawaf43/index.html",
-    regex: "https:\/\/www.etawaf.com\/tawaf43\/index(_ar)?.html\?locale=([a-z]{2})",
+    url: `https://www.etawaf.com/tawaf${util.hijriYear}/index.html`,
+    regex: `https:\/\/www.etawaf.com\/tawaf${util.hijriYear}\/index(_ar)?.html\?locale=([a-z]{2})`,
     details: [
       {
         selector:
@@ -62,17 +62,17 @@ async function pageContentHandler(currentConfig) {
         controller: {
           selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(1) > table > tbody',
           action: async () => {
-            const selectedTraveller = await page.$eval(
+            const selectedTraveler = await page.$eval(
               "#hajonsoft_select",
               (el) => el.value
             );
-            if (selectedTraveller) {
+            if (selectedTraveler) {
               try {
                 await page.click('#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(5) > td > fieldset > table > tbody > tr > td:nth-child(1) > button');
-                fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
+                fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
                 const data = fs.readFileSync("./data.json", "utf-8");
                 var passengersData = JSON.parse(data);
-                var passenger = passengersData.travellers[selectedTraveller];
+                var passenger = passengersData.travellers[selectedTraveler];
                 await page.keyboard.type(passenger.codeline);
                 await page.keyboard.type("{ENTER}");
                 await page.waitForXPath('//input[@type="text"]', { timeout: 240000 });
@@ -233,4 +233,4 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
-module.exports = { send };
+module.exports = { send, config };
