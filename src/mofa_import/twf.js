@@ -1,34 +1,27 @@
 const { config } = require("../twf");
-const util = require('../util');
+const util = require("../util");
+const fs = require("fs");
+const { homedir } = require("os");
+const path = require("path");
 
 let page;
 let data;
-function initialize (pg, dta) {
+async function initialize(pg, dta) {
   page = pg;
   data = dta;
-};
+}
 
 async function injectTWFEagleButton(res) {
-    try {
-        if (res){
-            const buffer = await res.buffer();
-            const csvFile = buffer.toString('utf8');
-            if (csvFile.includes("Group Code") && csvFile.includes("Group Name") && csvFile.includes("Mofa No")) {
-                console.log('%c 🌽 csvFile: ', 'font-size:20px;background-color: #465975;color:#fff;', csvFile);
-            }
-        }
-    } catch (err) {
-        console.log('%c 🍵 err: ', 'font-size:20px;background-color: #465975;color:#fff;', err);
-
-    }
   try {
     const tdSelector =
       "#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > table > tbody > tr:nth-child(2) > td > table > tbody > tr > td > table > tbody > tr:nth-child(1) > td > table";
     await page.waitForSelector(tdSelector, { timeout: 0 });
-    const isExposed = await page.evaluate("!!window.handleImportTWFMofa");
-    if (!isExposed) {
-      await page.exposeFunction("handleImportTWFMofa", handleImportTWFMofa);
-    }
+    try {
+      const isExposed = await page.evaluate(() => !!window.handleImportTWFMofa);
+      if (!isExposed) {
+        await page.exposeFunction("handleImportTWFMofa", handleImportTWFMofa);
+      }
+    } catch {}
     await page.$eval(
       tdSelector,
       (el) =>
@@ -44,10 +37,54 @@ async function injectTWFEagleButton(res) {
     console.log("Eagle error: Wrapped", err);
   }
 }
-
+let fileName;
 async function handleImportTWFMofa() {
-await page.click('#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > table > tbody > tr:nth-child(2) > td > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td:nth-child(1) > table > tbody > tr > td:nth-child(2) > button')
-};
+  fileName = '';
+  fs.watch(path.join(homedir(), "Downloads"), (eventType, filename) => {
+    if (eventType === "rename") {
+      try {
+        if (
+          filename.startsWith("GotMofa") &&
+          filename.endsWith(".csv") &&
+          !fileName
+        ) {
+          fileName = path.join(homedir(), "Downloads", filename);
+          setTimeout(async () => {
+            const passports = [];
+            const data = fs.readFileSync(fileName, "utf8");
+            const lines = data.split("\n");
+            for (let i = 1; i < lines.length; i++) {
+              const columns = lines[i].split(",");
+              const passportNumber = columns?.[8];
+              const mofaNumber = columns?.[4];
+              const nationality = columns?.[7];
+              if (passportNumber) {
+                passports.push(passportNumber);
+                fs.writeFileSync(
+                  passportNumber,
+                  JSON.stringify({ mofaNumber, nationality })
+                );
+              }
+            }
+            await page.evaluate((passportsArrayFromNode) => {
+              const eagleButton = document.querySelector(
+                "#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > table > tbody > tr:nth-child(2) > td > table > tbody > tr > td > table > tbody > tr:nth-child(1) > td > table > div > button"
+              );
+              eagleButton.textContent = `Done... [${
+                passportsArrayFromNode[0]
+              }-${passportsArrayFromNode[passportsArrayFromNode.length - 1]}] (${passportsArrayFromNode.length} passports)`;
+            }, passports);
+          }, 3000);
+        }
+      } catch (err) {
+        console.log('%c 🍻 err: ', 'font-size:20px;background-color: #B03734;color:#fff;', err);
+      }
+    }
+  });
+  await page.click(
+    "#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > table > tbody > tr:nth-child(2) > td > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td:nth-child(1) > table > tbody > tr > td:nth-child(2) > button"
+  );
+}
 
 async function onTWFPageLoad(res) {
   const mofaUrl = await page.url();
@@ -60,12 +97,7 @@ async function onTWFPageLoad(res) {
       await util.commit(page, currentConfig.details, data.system);
       break;
   }
-  // Wait for a specific element to be present on the page, then inject Eagle into the page
-//   await page.waitForSelector("#mofa_import_button", { visible: true });
-
-  // if (mofaUrl.toLowerCase().includes("Eng_frmMofaRtp".toLowerCase())) {
-    await injectTWFEagleButton();
-  // }
+  await injectTWFEagleButton();
 }
 
-module.exports = {initialize, injectTWFEagleButton, onTWFPageLoad };
+module.exports = { initialize, injectTWFEagleButton, onTWFPageLoad };
