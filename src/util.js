@@ -318,7 +318,7 @@ async function controller(page, structure, travellers) {
 
   let lastTraveller = useCounter();
 
-  const options =
+  let options =
     "<option>Select passenger click send حدد الراكب انقر إرسل</option>" +
     travellers
       .map(
@@ -334,6 +334,18 @@ async function controller(page, structure, travellers) {
           } years old</option>`
       )
       .join(" ");
+    
+    // options += `<option>--------------------------------</option>`
+    // const files = fs.readdirSync('./');
+    // for (const file of files) {
+    //   try {
+    //     const data = fs.readFileSync(path.join('./',file), 'utf8');
+    //     if (data.includes("mofaNumber")) {
+    //       options+= `<option>${file}</option>`
+    //     }
+    //   } catch {}
+
+    // }
 
   try {
     await page.waitForSelector(structure.controller.selector);

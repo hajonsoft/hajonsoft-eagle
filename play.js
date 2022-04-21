@@ -1,9 +1,8 @@
-const axios = require('axios');
-// const fs = require('fs')
+const axios = require("axios");
+const fs = require("fs");
 // const { createCanvas, loadImage } = require('canvas')
 // // https://github.com/Automattic/node-canvas
 // function createPassport() {
-
 
 //     const canvas = createCanvas(400, 300)
 //     const ctx = canvas.getContext('2d')
@@ -13,7 +12,6 @@ const axios = require('axios');
 //     ctx.font = '12px Arial'
 //     ctx.fillText('P<UZBALIAKHUNOVA<<ROBIYA<<<<<<<<<<<<<<<<<<<<', 25, canvas.height -40)
 //     ctx.fillText('AA43573271UZB9802023F24021924020298658002462', 25, canvas.height - 20)
-
 
 //     const out = fs.createWriteStream(__dirname + '/test.jpeg')
 //     const stream = canvas.createJPEGStream({
@@ -26,8 +24,6 @@ const axios = require('axios');
 // }
 // createPassport()
 // module.exports = {ayman: createPassport}
-
-
 
 //           // fs.writeFileSync(
 //           //   pngFile,
@@ -48,7 +44,6 @@ const axios = require('axios');
 // console.log(
 // /login[_-]only/.test('login_sonly')
 // )
-
 
 // const puppeteer = require("puppeteer-extra");
 
@@ -72,7 +67,6 @@ const axios = require('axios');
 
 // }
 // main()
-
 
 // const object1 = {
 //   "ayman" : {
@@ -106,8 +100,6 @@ const axios = require('axios');
 //     }
 //       console.log(array)
 
-
-
 // private string GetSMSCode(string requestId)
 // {
 //     var webClient = new WebClient();
@@ -125,14 +117,11 @@ const axios = require('axios');
 //             url = MakeSMSString(url);
 //             var result = webClient.DownloadString(url);
 
-
 //             return number;
 //         }
 //     }
 
 //     //"STATUS_OK:confirmation Code 137961"
-
-
 
 //     return string.Empty;
 // }
@@ -149,7 +138,7 @@ const axios = require('axios');
 //     if (string.IsNullOrEmpty(number)) return string.Empty;
 //     telephoneRequestId = Regex.Match(requestResult, pattern).Groups[1].ToString();
 //     // ACCESS_NUMBER:158008768:79262397137
-//     // Order number in russia 
+//     // Order number in russia
 
 //     // click SMS Sent
 
@@ -160,3 +149,22 @@ const axios = require('axios');
 
 //     return number.Substring(1);
 // }
+
+const pricesRaw = fs.readFileSync("./prices.json", "utf8");
+const prices = JSON.parse(pricesRaw);
+const pricesArray = [];
+for (const [key, value] of Object.entries(prices)) {
+  for (const [serviceKey, serviceValue] of Object.entries(value)) {
+    const price = {
+      country: key,
+      service: serviceKey,
+      cost: serviceValue.cost,
+      count: serviceValue.count,
+    };
+    if (price.count > 0) {
+      pricesArray.push(price);
+    }
+  }
+}
+pricesArray.sort((a, b) => a.cost - b.cost);
+console.log(pricesArray);
