@@ -33,6 +33,8 @@ Extract DOM elements for one page only and only one time no intervals
 
 # Puppeteer
 
+We use chromium version 818858
+
 Use node and [puppeteer](https://github.com/puppeteer/puppeteer/tree/main#readme) to automate passenger data exchange with 
 * Way to Umrah
 * Bab Al Umrah
