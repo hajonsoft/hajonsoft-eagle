@@ -7,7 +7,11 @@ const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
-const { injectTWFEagleButton, onTWFPageLoad, initialize } = require("./mofa_import/twf");
+const {
+  injectTWFEagleButton,
+  onTWFPageLoad,
+  initialize,
+} = require("./mofa_import/twf");
 const homedir = require("os").homedir();
 let page;
 let data;
@@ -90,6 +94,85 @@ const config = [
   {
     name: "step4",
     regex: "https://visa.mofa.gov.sa/HajSmartForm/Step4/\\d+",
+  },
+  {
+    name: "add",
+    regex: "https://visa.mofa.gov.sa/HajSmartForm/Add",
+    details: [
+      {
+        selector: "#AFIRSTNAME",
+        value: (row) => row.nameArabic.first,
+      },
+      {
+        selector: "#AFAMILY",
+        value: (row) => row.nameArabic.last,
+      },
+      {
+        selector: "#AGRAND",
+        value: (row) => row.nameArabic.grand,
+      },
+      {
+        selector: "#AFATHER",
+        value: (row) => row.nameArabic.father,
+      },
+      {
+        selector: "#EFIRSTNAME",
+        value: (row) => row.name.first,
+      },
+      {
+        selector: "#EFATHER",
+        value: (row) => row.name.father,
+      },
+      {
+        selector: "#EGRAND",
+        value: (row) => row.name.grand,
+      },
+      {
+        selector: "#EFAMILY",
+        value: (row) => row.name.last,
+      },
+      {
+        selector: "#PASSPORTnumber",
+        value: (row) => row.passportNumber,
+      },
+      {
+        selector: "#BIRTH_PLACE",
+        value: (row) => decodeURI(row.birthPlace),
+        autocomplete: "birthPlace",
+      },
+      {
+        selector: "#PASSPORT_ISSUE_PLACE",
+        value: (row) => decodeURI(row.placeOfIssue),
+        autocomplete: "passportIssuePlace",
+      },
+      {
+        selector: "#JOB_OR_RELATION",
+        value: (row) => decodeURI(row.profession),
+        autocomplete: "profession",
+      },
+      {
+        selector: "#DEGREE",
+        value: (row) => "",
+        autocomplete: "degree",
+      },
+      {
+        selector: "#DEGREE_SOURCE",
+        value: (row) => "",
+        autocomplete: "degreeSource",
+      },
+      {
+        selector: "#ADDRESS_HOME",
+        value: (row) => "",
+        autocomplete: "homeAddress",
+      },
+      { selector: "#PASSPORType", value: (row) => "1" },
+      { selector: "#NATIONALITY", value: (row) => row.nationality.code },
+      { selector: "#NATIONALITY_FIRST", value: (row) => row.nationality.code },
+      { selector: "#RELIGION", value: (row) => "1" },
+      { selector: "#SOCIAL_STATUS", value: (row) => "5" },
+      { selector: "#Sex", value: (row) => (row.gender === "Male" ? "1" : "2") },
+      { selector: "#PersonId", value: (row) => row.passportNumber },
+    ],
   },
 ];
 
@@ -264,9 +347,11 @@ async function pageContentHandler(currentConfig) {
       await page.waitForSelector("#QuestionModelList_3__AnswerYes");
       await page.click("#QuestionModelList_3__AnswerYes");
       await page.waitForSelector("#QuestionModelList_3__Note");
-      const eNumber = await page.$eval("#myform > div.form-body.form-horizontal > div:nth-child(2) > div", el=> el.innerText);
+      const eNumber = await page.$eval(
+        "#myform > div.form-body.form-horizontal > div:nth-child(2) > div",
+        (el) => el.innerText
+      );
       if (eNumber && fs.existsSync("./" + passenger.passportNumber)) {
-
         const existingPassengerDataString = fs.readFileSync(
           "./" + passenger.passportNumber,
           "utf-8"
@@ -274,11 +359,10 @@ async function pageContentHandler(currentConfig) {
         const existingPassengerData = JSON.parse(existingPassengerDataString);
         existingPassengerData["eNumber"] = eNumber;
 
-          fs.writeFileSync(
-            passenger.passportNumber,
-            JSON.stringify(existingPassengerData)
-          );
-        
+        fs.writeFileSync(
+          passenger.passportNumber,
+          JSON.stringify(existingPassengerData)
+        );
       }
       const vaccineNote = await page.$eval(
         "#QuestionModelList_3__Note",
@@ -358,6 +442,41 @@ async function pageContentHandler(currentConfig) {
         type: "png",
       });
       await page.goto(config[0].url);
+      break;
+    case "add":
+      await util.controller(
+        page,
+        {
+          controller: {
+            selector: "body > div.page-header > div.page-head",
+            action: async () => {
+              const selectedTraveller = await page.$eval(
+                "#hajonsoft_select",
+                (el) => el.value
+              );
+              if (selectedTraveller) {
+                try {
+                  fs.writeFileSync(
+                    "./selectedTraveller.txt",
+                    selectedTraveller
+                  );
+                  const data = fs.readFileSync("./data.json", "utf-8");
+                  var passengersData = JSON.parse(data);
+                  var passenger = passengersData.travellers[selectedTraveller];
+                  await util.commit(
+                    page,
+                    config.find((con) => con.name === "add").details,
+                    passenger
+                  );
+                } catch (err) {
+                  console.log(err.message);
+                }
+              }
+            },
+          },
+        },
+        data.travellers
+      );
       break;
     default:
       break;
