@@ -33,9 +33,8 @@ Extract DOM elements for one page only and only one time no intervals
 
 # Puppeteer
 
-We use chromium version 818858
+Use node and [puppeteer](https://github.com/puppeteer/puppeteer/tree/main#readme) to automate passenger data exchange with third party sites like
 
-Use node and [puppeteer](https://github.com/puppeteer/puppeteer/tree/main#readme) to automate passenger data exchange with 
 * Way to Umrah
 * Bab Al Umrah
 * Gabul Ya Hajj
@@ -44,15 +43,18 @@ Use node and [puppeteer](https://github.com/puppeteer/puppeteer/tree/main#readme
 * Visit Saudi
 * other local visa systems
 
-M1
-https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html?prefix=Mac/818858/
-(it's the Intel build, but runs fine via Rosetta 2 – get chrome-mac.zip)
+Puppeteer should easily be installed using `npm i puppeteer` check package.json for the version we use. If it is 5.5.0 then this uses chromium version 818858
 
-https://linguinecode.com/post/how-to-fix-m1-mac-puppeteer-chromium-arm64-bug
+Some machines refuse to install puppeteer and chromium and one way of overcoming this install error is by installing manually from [here](https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html).
 
+For example on M1 machine you can download [here](https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html?prefix=Mac/818858/) directly (it's an Intel build, but runs fine via Rosetta 2 on M1 – get chrome-mac.zip). Also notice the revision for chromium in the url. Read this [article](https://linguinecode.com/post/how-to-fix-m1-mac-puppeteer-chromium-arm64-bug) for more info.
+
+You will need these two env variables before `npm i` eagle after the manual install above.
 ~/.zshrc
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 export PUPPETEER_EXECUTABLE_PATH=`which chromium`
+
+Make sure which chromium points to the correct path and that you can open it free of warnings, try right click open if you get warnings.
 
 
 To start a recorder (not helpful)
