@@ -449,6 +449,7 @@ async function pageContentHandler(currentConfig) {
         {
           controller: {
             selector: "body > div.page-header > div.page-head",
+            name: "add",
             action: async () => {
               const selectedTraveller = await page.$eval(
                 "#hajonsoft_select",
@@ -463,11 +464,47 @@ async function pageContentHandler(currentConfig) {
                   const data = fs.readFileSync("./data.json", "utf-8");
                   var passengersData = JSON.parse(data);
                   var passenger = passengersData.travellers[selectedTraveller];
+                
                   await util.commit(
                     page,
                     config.find((con) => con.name === "add").details,
                     passenger
                   );
+
+                  let resizedPhotoPath = await util.downloadAndResizeImage(
+                    passenger,
+                    200,
+                    200,
+                    "photo"
+                  );
+                  await page.waitForSelector("#PersonalImage");
+                  const portraitSrc = await page.$eval("#image", (e) =>
+                    e.getAttribute("src")
+                  );
+                  await util.commitFile("#PersonalImage", resizedPhotoPath);
+                  
+                  
+                  await setHSFDate(
+                    "#PASSPORT_ISSUE_DATE",
+                    passenger.passIssueDt.yyyy,
+                    passenger.passIssueDt.mm,
+                    passenger.passIssueDt.dd
+                  );
+
+                  await setHSFDate(
+                    "#PASSPORT_EXPIRY_DATe",
+                    passenger.passExpireDt.yyyy,
+                    passenger.passExpireDt.mm,
+                    passenger.passExpireDt.dd
+                  );
+            
+                  await setHSFDate(
+                    "#BIRTH_DATE",
+                    passenger.dob.yyyy,
+                    passenger.dob.mm,
+                    passenger.dob.dd
+                  );
+
                 } catch (err) {
                   console.log(err.message);
                 }
@@ -722,6 +759,39 @@ async function onWTOClosed(res) {
   if (!url) {
     return;
   }
+}
+
+async function setHSFDate(dateSelector, year, month, day) {
+  await page.click(dateSelector);
+  const yearSelector =
+    "body > div.calendars-popup > div > div.calendars-month-row > div > div > select.floatleft.calendars-month-year";
+  await page.waitForSelector(yearSelector);
+  await util.selectByValue(yearSelector, `${year}`);
+
+  const monthSelector =
+    "body > div.calendars-popup > div > div.calendars-month-row > div > div > select:nth-child(1)";
+  await page.waitForSelector(monthSelector);
+  // TODO AA: Replace with page.waitForXPath(xpath[, options])
+  await page.waitForFunction(
+    (info) => document.querySelector(info[0])?.innerHTML?.includes(info[1]),
+    {},
+    [monthSelector, `${parseInt(month)}/${year}`]
+  );
+  await page.select(monthSelector, `${parseInt(month)}/${year}`);
+  await page.waitForTimeout(1000);
+  const dayTds = await page.$$("td");
+  for (const dayTd of dayTds) {
+    const dayAnchor = await dayTd.$("a");
+    if (dayAnchor) {
+      const anchorContent = await dayAnchor.evaluate((node) => node.innerText);
+      if (anchorContent == parseInt(day)) {
+        dayTd.focus();
+        dayTd.click();
+      }
+    }
+  }
+
+  await page.waitForTimeout(1000);
 }
 
 module.exports = { send };
