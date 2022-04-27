@@ -8,6 +8,7 @@ puppeteer.use(StealthPlugin());
 const sharp = require("sharp");
 const budgie = require("./budgie");
 const axios = require("axios");
+const nationalities = require("./data/nationalities");
 const moment = require("moment");
 const _ = require("lodash");
 const beautify = require("beautify");
@@ -432,8 +433,15 @@ async function handleLoadImportedOnlyClick() {
         const data = fs.readFileSync(path.join("./", file), "utf8");
         if (data.includes("mofaNumber")) {
           const jsonData = JSON.parse(data);
+          const nationality = nationalities.nationalities.find(
+            (n) => n.name === jsonData.nationality
+          );
           travellersData.push({
-            nationality: { name: jsonData.nationality },
+            nationality: {
+              name: jsonData.nationality,
+              code: nationality?.code,
+              telCode: nationality?.telCode,
+            },
             name: { full: jsonData.name },
             passportNumber: jsonData.passportNumber,
           });
