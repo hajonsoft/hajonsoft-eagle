@@ -150,21 +150,28 @@ const fs = require("fs");
 //     return number.Substring(1);
 // }
 
-const pricesRaw = fs.readFileSync("./prices.json", "utf8");
-const prices = JSON.parse(pricesRaw);
-const pricesArray = [];
-for (const [key, value] of Object.entries(prices)) {
-  for (const [serviceKey, serviceValue] of Object.entries(value)) {
-    const price = {
-      country: key,
-      service: serviceKey,
-      cost: serviceValue.cost,
-      count: serviceValue.count,
-    };
-    if (price.count > 0) {
-      pricesArray.push(price);
-    }
-  }
-}
-pricesArray.sort((a, b) => a.cost - b.cost);
-console.log(pricesArray);
+// const pricesRaw = fs.readFileSync("./prices.json", "utf8");
+// const prices = JSON.parse(pricesRaw);
+// const pricesArray = [];
+// for (const [key, value] of Object.entries(prices)) {
+//   for (const [serviceKey, serviceValue] of Object.entries(value)) {
+//     const price = {
+//       country: key,
+//       service: serviceKey,
+//       cost: serviceValue.cost,
+//       count: serviceValue.count,
+//     };
+//     if (price.count > 0) {
+//       pricesArray.push(price);
+//     }
+//   }
+// }
+// pricesArray.sort((a, b) => a.cost - b.cost);
+// console.log(pricesArray);
+
+const totp = require("totp-generator");
+
+// Keys provided must be base32 strings, ie. only containing characters matching (A-Z, 2-7, =).
+const token = totp("JBSWY3DPEHPK3PXP");
+
+console.log(token); // prints a 6-digit time-based token based on provided key and current time
