@@ -4,3 +4,4 @@ data.json
 data*.json
 budgie*.json
 selectedTraveller.txt
+/scan
