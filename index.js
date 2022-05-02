@@ -15,6 +15,8 @@ const axios = require("axios");
 const extract = require("extract-zip");
 const { homedir } = require("os");
 const moment = require("moment");
+const vision = require("@google-cloud/vision");
+
 
 const version = "0.1.1";
 const budgie = require("./src/budgie");
@@ -311,6 +313,75 @@ async function runGetSMSNumber() {
     });
 }
 
+async function runScanDocument() {
+  let inputPath = "./scan/input";
+  let outputPath = "./scan/input/done";
+  let visionKeyFilePath = "./scan/auth/key.json";
+  inquirer
+    .prompt({
+      type: "input",
+      message: `where are the images? $[${inputPath}]`,
+      name: "scanDocumentPath",
+    })
+    .then(async (answers) => {
+      inputPath = inputPath || answers.scanDocumentPath;
+      console.log('read images from => ', inputPath);
+      if (!fs.existsSync(inputPath)) {
+        return console.log(`folder does not exist ${inputPath}`);
+      } else {
+        outputPath = `${inputPath}/done`;
+        if (!fs.existsSync(outputPath)) {
+          fs.mkdirSync(outputPath);
+        }
+        inquirer
+          .prompt({
+            type: "input",
+            message: `Google vision auth file location? $[${visionKeyFilePath}]`,
+            name: "visionAuthKeyFilePath",
+          })
+          .then(async (answers) => {
+            visionKeyFilePath = visionKeyFilePath || answers.visionAuthKeyFilePath;
+            console.log('vision authorization from => ', visionKeyFilePath)
+            if (!fs.existsSync(visionKeyFilePath)) {
+              return console.log(`file not found ${visionKeyFilePath}`);
+            } else {
+              const images = fs.readdirSync(inputPath);
+              const imagesToProcess = images.filter((image) =>
+              image.toLowerCase().endsWith(".jpg"));
+              for (const img of imagesToProcess) {
+                console.log("processing", img);
+                // google vision api
+                const client = new vision.ImageAnnotatorClient({
+                  keyFilename: visionKeyFilePath,
+                });
+                client
+                  .textDetection(path.join(__dirname,inputPath,img))
+                  .then((results) => {
+                    const labels = results[0].textAnnotations;
+                    labels.forEach((label) => {
+                      // find MRZ and write it to CODELINE.txt
+                      // find egyptianId number and write it to nn-ID.txt
+                      // find issue date and write it to nn-ISSUEDT.txt
+                      // find profession and write it to nn-profession.txt
+                      // find issue place/ office and write it to nn-issueplace.txt
+                      // find arabic name and write it to nn-arabic-name.txt
+                      // find address and write it to nn-address.txt
+                      // etc ..
+                      // tODO:Inquire about output path
+                    });
+                    console.log('write to => ', path.join(__dirname,outputPath,img.replace('.jpg','.txt')));
+                    fs.writeFileSync( path.join(__dirname,outputPath,`${img}.txt`), JSON.stringify(results, null, 2));
+                  })
+                  .catch((err) => {
+                    console.error("ERROR:", err);
+                  });
+              }
+            }
+          });
+}
+    });
+}
+
 function runInteractive() {
   let currentSlug = "";
   if (fs.existsSync("./data.json")) {
@@ -336,6 +407,7 @@ function runInteractive() {
           "3- Update Budgie... [will prompt]",
           "4- Set download folder. [CURRENT-FOLDER]",
           "5- Get SMS number",
+          "6- ML Kit image to text (scan image)",
           "0- Exit",
         ],
       },
@@ -353,6 +425,9 @@ function runInteractive() {
       }
       if (answers.action.startsWith("5-")) {
         return runGetSMSNumber();
+      }
+      if (answers.action.startsWith("6-")) {
+        return runScanDocument();
       }
       if (answers.action.startsWith("0-")) {
         process.exit(0);
