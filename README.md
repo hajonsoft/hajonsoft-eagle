@@ -43,7 +43,7 @@ Use node and [puppeteer](https://github.com/puppeteer/puppeteer/tree/main#readme
 * Visit Saudi
 * other local visa systems
 
-Puppeteer should easily be installed using `npm i puppeteer` check package.json for the version we use. If it is 5.5.0 then this uses chromium version 818858
+Puppeteer should easily be installed using `npm i puppeteer` check package.json for the version we use. If it is 5.5.0 then this uses chromium version 818858 (go using 997535)
 
 Some machines refuse to install puppeteer and chromium and one way of overcoming this install error is by installing manually from [here](https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html).
 
@@ -126,4 +126,8 @@ We use third party provider for SMS, you must have an api_key to purchase sms to
 https://sms-activate.org/en/getNumber
 
 alialiayman@gmail.com/(Paris123)
+
+## Vision Api
+
+To use vision api, enable billing in [console.googlcloud.com](https://console.cloud.google.com/), search for Vision api, enable it, create service account in credentials, then download a json in to ./scan/auth/key.json and you are good to image to text with google latest ML 
 
