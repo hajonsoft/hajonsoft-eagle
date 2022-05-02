@@ -342,6 +342,8 @@ async function runScanDocument() {
           // find profession and write it to nn-profession.txt
           // find issue place/ office and write it to nn-issueplace.txt
           // find arabic name and write it to nn-arabic-name.txt
+          // find address and write it to nn-address.txt
+          
           // etc ..
           
           console.log(label.description)});
