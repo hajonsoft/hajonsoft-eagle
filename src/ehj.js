@@ -37,6 +37,27 @@ const config = [
     name: "reserve",
     regex: "https://ehaj.haj.gov.sa/EPATH",
   },
+  {
+    name: "sms",
+    regex: "https://ehaj.haj.gov.sa/EH/sms.xhtml",
+  },
+  {
+    name: "sms-confirm",
+    regex: "https://ehaj.haj.gov.sa/EH/sms-confirm.xhtml",
+
+  },
+  {
+    name: 'add-passenger',
+    regex: 'https://ehaj.haj.gov.sa/EH/add-passenger.xhtml',
+  },
+  {
+    name: 'add-passenger-1',
+    regex: 'https://ehaj.haj.gov.sa/EH/add-passenger-1.xhtml',
+  },
+  {
+    name: 'add-passenger-2',
+    regex: 'https://ehaj.haj.gov.sa/EH/add-passenger-2.xhtml',
+  }
 ];
 
 async function send(sendData) {
