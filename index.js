@@ -311,6 +311,47 @@ async function runGetSMSNumber() {
     });
 }
 
+async function runScanDocument() {
+  console.log("scan document in scan/input");
+  if (!fs.existsSync("./scan/input")) {
+    return console.log("folder not found: scan/input");
+  }
+  if (!fs.existsSync("./scan/auth/key.json")) {
+    return console.log("file not found: scan/auth/key.json");
+  }
+  const images = fs.readdirSync("./scan/input");
+  const imagesToProcess = images.filter((image) => image.toLowerCase().endsWith(".jpg"));
+  for (const img of imagesToProcess) {
+    console.log("processing", img);
+    // google vision api
+    const vision = require("@google-cloud/vision");
+    const client = new vision.ImageAnnotatorClient({
+      keyFilename: "./scan/auth/key.json",
+    });
+    client
+      .textDetection(__dirname + `/scan/input/${img}`)
+      .then((results) => {
+        const labels = results[0].textAnnotations.filter(
+          (ann) => ann.description.length > 20
+        );
+        console.log("Labels:");
+        labels.forEach((label) => {
+          // find MRZ and write it to CODELINE.txt
+          // find egyptianId number and write it to nn-ID.txt
+          // find issue date and write it to nn-ISSUEDT.txt
+          // find profession and write it to nn-profession.txt
+          // find issue place/ office and write it to nn-issueplace.txt
+          // find arabic name and write it to nn-arabic-name.txt
+          // etc ..
+          
+          console.log(label.description)});
+      })
+      .catch((err) => {
+        console.error("ERROR:", err);
+      });
+  }
+}
+
 function runInteractive() {
   let currentSlug = "";
   if (fs.existsSync("./data.json")) {
@@ -336,6 +377,7 @@ function runInteractive() {
           "3- Update Budgie... [will prompt]",
           "4- Set download folder. [CURRENT-FOLDER]",
           "5- Get SMS number",
+          "6- ML Kit image to text (scan image)",
           "0- Exit",
         ],
       },
@@ -353,6 +395,9 @@ function runInteractive() {
       }
       if (answers.action.startsWith("5-")) {
         return runGetSMSNumber();
+      }
+      if (answers.action.startsWith("6-")) {
+        return runScanDocument();
       }
       if (answers.action.startsWith("0-")) {
         process.exit(0);
