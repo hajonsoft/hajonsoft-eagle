@@ -7,6 +7,7 @@ const { send: sendEnj } = require("./src/enj");
 const { send: sendTwf } = require("./src/twf");
 const { send: sendHsf } = require("./src/hsf");
 const { send: sendSbr } = require("./src/sbr");
+const { send: sendVsn } = require("./src/vsn");
 
 const path = require("path");
 const Cryptr = require("cryptr");
@@ -75,7 +76,8 @@ async function submitToProvider() {
       // console.log(data.system.password);
     }
   }
-  console.log("\x1b[32m", `starting chrome ...`, "\x1b[0m");
+  console.log("\x1b[32m", `starting process ...`, "\x1b[0m");
+
   switch (data.system.name) {
     case "ehj":
       return sendEhj(data);
@@ -97,6 +99,8 @@ async function submitToProvider() {
       return sendHsf(data);
     case "sbr":
       return sendSbr(data);
+      case "vsn":
+        return sendVsn(data);
     default:
       console.log("unknown system");
   }
