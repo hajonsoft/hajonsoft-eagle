@@ -1,30 +1,23 @@
-const puppeteer = require("puppeteer-extra");
-// Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
-const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-puppeteer.use(StealthPlugin());
 const fs = require("fs");
-const budgie = require("./budgie");
 const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
 const vision = require("@google-cloud/vision");
+const _ = require("lodash");
 
-let page;
-let mofaPage;
 let data;
-let counter = 0;
 
 async function send(sendData) {
   data = sendData;
-  const inputFolder = path.join(__dirname, "..", "scan", "input");
-  if (!fs.existsSync(inputFolder)) {
-    return fs.mkdirSync(inputFolder, { recursive: true });
+  const scanInput = path.join(__dirname, "..", "scan", "input");
+  if (!fs.existsSync(scanInput)) {
+    return fs.mkdirSync(scanInput, { recursive: true });
   }
 
-  const outputFolder = path.join(__dirname, "..", "scan", "input", "done");
-  if (!fs.existsSync(outputFolder)) {
-    fs.mkdirSync(outputFolder, { recursive: true });
+  const scanInputDone = path.join(__dirname, "..", "scan", "input", "done");
+  if (!fs.existsSync(scanInputDone)) {
+    fs.mkdirSync(scanInputDone, { recursive: true });
   }
 
   let visionKeyFilePath = "./scan/auth/key.json";
@@ -40,7 +33,7 @@ async function send(sendData) {
     const traveler = data.travellers[i];
     // if passport seen by vision api then continue with eagle detection
     // else perform vision api label annotation
-    const documentJsonPath = path.join(
+    const visionResultPath = path.join(
       __dirname,
       "..",
       "scan",
@@ -48,66 +41,114 @@ async function send(sendData) {
       "done",
       `${traveler.nationality.name}-${traveler.passportNumber.toString()}.json`
     );
-    const document_seen = fs.existsSync(documentJsonPath);
-    if (document_seen) {
-      const rawData = fs.readFileSync(documentJsonPath, "utf-8");
-      const annotations = JSON.parse(rawData);
-      const eagleExtract = runEagleExtract(annotations);
+
+    const imgPath = path.join(
+      scanInput,
+      traveler.nationality.name + "-" + traveler.passportNumber.toString()
+    );
+
+    if (processExistingFiles(visionResultPath, imgPath)) {
       continue;
     }
-   //  await seeTravelerDocuments(inputFolder, traveler, client, documentJsonPath);
-    // TODO: save the parsed passport data to firebase or create another data.json file that can be imported to firebase
+
+    await downloadVision(imgPath, traveler, client, visionResultPath);
+    processExistingFiles(visionResultPath, imgPath);
   }
 }
 
 module.exports = { send };
 
-async function seeTravelerDocuments(
-  inputFolder,
+function processExistingFiles(visionResultPath, imgPath) {
+  if (fs.existsSync(visionResultPath)) {
+    const rawData = fs.readFileSync(visionResultPath, "utf-8");
+    const annotations = JSON.parse(rawData);
+    const extract = runEagleExtract(annotations);
+    prepare();
+    createDeviceFiles(extract, imgPath);
+    return true;
+  }
+  return false;
+}
+async function downloadVision(
+  downloadPath,
   traveler,
   client,
   done_already_path
 ) {
-  const downloadPath = path.join(
-    inputFolder,
-    traveler.nationality.name + "-" + traveler.passportNumber.toString()
-  );
   const passportUrl = traveler.images.passport;
-  await util.downloadImage(passportUrl, downloadPath);
-  client
-    .textDetection(downloadPath)
-    .then((results) => {
-      console.log("write to => ", done_already_path);
-      fs.writeFileSync(done_already_path, JSON.stringify(results, null, 2));
-    })
-    .catch((err) => {
-      console.error("ERROR:", err);
-    });
+  if (!fs.existsSync(downloadPath)) {
+    await util.downloadImage(passportUrl, downloadPath);
+  }
+  const detectionResult = await client.textDetection(downloadPath);
+  console.log("write to => ", done_already_path);
+  fs.writeFileSync(done_already_path, JSON.stringify(detectionResult, null, 2));
 }
 
-let eagleVisionResult = {};
 function runEagleExtract(annotations) {
   eagleVisionResult = {};
   const labels = annotations[0].textAnnotations;
-  const interestingLabels = labels.filter((label) => {
-    return label.description.length > 0;
+  const filteredLabels = labels.filter((label) => {
+    return label.description.length > 1;
   });
   const extract = {
-    ...getMRZ(interestingLabels),
-    ...getDates(interestingLabels),
-    ...getProfession(interestingLabels),
-    ...getEgyptianId(interestingLabels),
-    ...getIssuePlace(interestingLabels),
-    ...getArabicName(interestingLabels),
-    ...getAddress(interestingLabels),
+    eagle: {
+      comments: filteredLabels.map((l) => l.description),
+      passIssueDt: getIssueDate(filteredLabels),
+      passIssuePlace: "invalid",
+      arabicName: "invalid",
+      egyptianId: getEgyptianId(filteredLabels),
+      birthPlace: "invalid",
+      profession: getProfession(filteredLabels),
+    },
+    ...getMRZ(filteredLabels),
+    ...getIssuePlace(filteredLabels),
+    ...getArabicName(filteredLabels),
+    ...getAddress(filteredLabels),
   };
-  createDeviceFiles(extract);
   return extract;
 }
 
-function createDeviceFiles(extract) {
-  // 3M files are codeline, IMAGEVIS, PHOTO
-  // fs.writeFileSync("codeline.txt", extract.mrz);
+function prepare() {
+  const folder3M = "./scan/input/done/3M";
+  if (fs.existsSync(folder3M)) {
+    fs.readdirSync(folder3M).forEach((file) => {
+      fs.unlinkSync(path.join(folder3M, file));
+    });
+  }
+}
+
+function createDeviceFiles(extract, imgPath) {
+  const unique = moment().valueOf();
+  const folder3M = "./scan/input/done/3M";
+  if (!fs.existsSync(folder3M)) {
+    return fs.mkdirSync(folder3M, { recursive: true });
+  }
+  fs.copyFile(imgPath, `${folder3M}/${unique}-IMAGEVIS.jpg`, (err) => {
+    if (err) {
+      return console.log(err);
+    }
+    console.log(`${folder3M}/${unique}-IMAGEVIS.jpg`);
+  });
+
+  sharp(imgPath)
+    .extract({ left: 100, top: 100, width: 500, height: 700 })
+    .toFile(`${folder3M}/${unique}-IMAGEPHOTO.jpg`, function (err) {
+      if (err) {
+        console.log(err);
+      }
+      console.log(`${folder3M}/${unique}-IMAGEPHOTO.jpg`);
+    });
+
+  fs.writeFileSync(
+    `${folder3M}/${unique}-CODELINE.txt`,
+    extract?.mrz?.join("\n")
+  );
+  console.log(`${folder3M}/${unique}-CODELINE.txt`);
+  fs.writeFileSync(
+    `${folder3M}/${unique}-EAGLE.json`,
+    JSON.stringify(extract.eagle)
+  );
+  console.log(`${folder3M}/${unique}-EAGLE.json`);
 }
 
 function getMRZ(labels) {
@@ -115,39 +156,49 @@ function getMRZ(labels) {
     return /^[A-Z0-9<]{22,88}$/.test(label.description);
   });
 
-  if (mrz) {
-    eagleVisionResult.mrz = mrz.map((label) => {
-      return label.description;
-    });
+  if (mrz && mrz.length > 0) {
+    return {
+      mrz: mrz.map((label) => label.description),
+    };
   }
 }
-function getDates(labels) {
-  // Better regex to match date is needed
-  // const dates = labels.map((label) => {
-  //   return label.description.match(/[0-9]{2,4}.?[0-9]{2}.?[0-9]{2,4}/)?.[0];
-  // })?.filter(x => x);
-  // let earliest ;
+function getIssueDate(labels) {
+  let dates = [];
+  labels.forEach((label) => {
+    const match = label.description.match(
+      /[0-9]{2,4}[/\.-][0-9]{2}[/\.-][0-9]{2,4}/g
+    );
+    if (match) {
+      dates = [...dates, ...match];
+    }
+  });
+  dates = _.uniq(dates);
 
-  // for (const oneDate of dates) {
-  //   const aDate = moment(oneDate);
-  //   if (!aDate.isValid()) {
-  //     continue;
-  //   }
+  dates = dates.sort((a, b) => {
+    return moment(a.trim()).isBefore(b.trim()) ? -1 : 1;
+  });
 
-  //   if (!earliest) {
-  //     earliest = oneDate;
-  //   } else {
-  //     if (moment(oneDate).isBefore(earliest)) {
-  //       earliest = oneDate;
-  //     }
-  //   }
-  // }
-  // if (earliest) {
-  //   eagleVisionResult.dateOfBirth = moment(earliest).format("DD/MM/YYYY");
-  // }
+  if (dates && dates.length > 1) {
+    return moment(dates[0]).format("DD-MMM-YYYY");
+  } else {
+    return "invalid";
+  }
 }
 
-function getProfession(labels) {}
+function getProfession(labels) {
+  const professions = labels.filter((label) => {
+    return /profession:/i.test(label.description);
+  });
+
+  if (professions && professions.length > 0) {
+    return _.uniq(
+      professions.map((label) =>
+        label.description.match(/profession:(.*)/i)?.[1]?.trim()
+      )
+    )?.join(" ");
+  }
+  return "unknown";
+}
 function getEgyptianId(labels) {}
 function getIssuePlace(labels) {}
 function getArabicName(labels) {}
