@@ -121,12 +121,12 @@ async function downloadVision(
           face.boundingPoly.vertices[2].y - face.boundingPoly.vertices[0].y,
       })
       .toFile(detectedFaceResultPath);
-    console.log("write detected face to => ", detectedFaceResultPath);
+  } else {
+    fs.copyFile(downloadPath, detectedFaceResultPath, );
   }
 
   // text detection
   const detectionResult = await client.textDetection(downloadPath);
-  console.log("write detected text to => ", detectedTextResultPath);
   fs.writeFileSync(
     detectedTextResultPath,
     JSON.stringify(detectionResult, null, 2)
@@ -177,7 +177,6 @@ async function createDeviceFiles(extract, passImgPath, detectedFaceResultPath) {
     if (err) {
       return console.log(err);
     }
-    console.log(`${folder3M}/${unique}-IMAGEVIS.jpg`);
   });
 
   if (detectedFaceResultPath && fs.existsSync(detectedFaceResultPath)) {
@@ -188,18 +187,15 @@ async function createDeviceFiles(extract, passImgPath, detectedFaceResultPath) {
         if (err) {
           return console.log(err);
         }
-        console.log(`${folder3M}/${unique}-IMAGEPHOTO.jpg`);
       }
     );
   }
 
   fs.writeFileSync(`${folder3M}/${unique}-CODELINE.txt`, extract?.mrz);
-  console.log(`${folder3M}/${unique}-CODELINE.txt`);
   fs.writeFileSync(
     `${folder3M}/${unique}-EAGLE.json`,
     JSON.stringify(extract.eagle)
   );
-  console.log(`${folder3M}/${unique}-EAGLE.json`);
 }
 
 function getMRZ(labels) {
