@@ -12,7 +12,7 @@ async function send(sendData) {
   data = sendData;
   const scanInput = path.join(__dirname, "..", "scan", "input");
   if (!fs.existsSync(scanInput)) {
-    return fs.mkdirSync(scanInput, { recursive: true });
+    fs.mkdirSync(scanInput, { recursive: true });
   }
 
   const scanInputDone = path.join(__dirname, "..", "scan", "input", "done");
@@ -28,12 +28,13 @@ async function send(sendData) {
   const client = new vision.ImageAnnotatorClient({
     keyFilename: visionKeyFilePath,
   });
+  delete3MExistingFiles();
 
   for (let i = 0; i < data?.travellers?.length; i++) {
     const traveler = data.travellers[i];
     // if passport seen by vision api then continue with eagle detection
     // else perform vision api label annotation
-    const visionResultPath = path.join(
+    const detectedTextResultPath = path.join(
       __dirname,
       "..",
       "scan",
@@ -42,46 +43,94 @@ async function send(sendData) {
       `${traveler.nationality.name}-${traveler.passportNumber.toString()}.json`
     );
 
-    const imgPath = path.join(
+    const detectedFaceResultPath = path.join(
+      __dirname,
+      "..",
+      "scan",
+      "input",
+      "done",
+      `${traveler.nationality.name}-${traveler.passportNumber.toString()}.jpg`
+    );
+
+    const passportImgPath = path.join(
       scanInput,
       traveler.nationality.name + "-" + traveler.passportNumber.toString()
     );
 
-    if (processExistingFiles(visionResultPath, imgPath)) {
-      continue;
-    }
-
-    await downloadVision(imgPath, traveler, client, visionResultPath);
-    processExistingFiles(visionResultPath, imgPath);
+    await downloadVision(
+      passportImgPath,
+      traveler,
+      client,
+      detectedTextResultPath,
+      detectedFaceResultPath
+    );
+    await processExistingFiles(
+      detectedTextResultPath,
+      passportImgPath,
+      detectedFaceResultPath
+    );
   }
 }
 
 module.exports = { send };
 
-function processExistingFiles(visionResultPath, imgPath) {
+async function processExistingFiles(
+  visionResultPath,
+  passportImgPath,
+  detectedFaceResultPath
+) {
   if (fs.existsSync(visionResultPath)) {
     const rawData = fs.readFileSync(visionResultPath, "utf-8");
-    const annotations = JSON.parse(rawData);
-    const extract = runEagleExtract(annotations);
-    prepare();
-    createDeviceFiles(extract, imgPath);
+    try {
+      const annotations = JSON.parse(rawData);
+      const extract = runEagleExtract(annotations);
+      await createDeviceFiles(extract, passportImgPath, detectedFaceResultPath);
+    } catch (err) {
+      console.log(err);
+    }
     return true;
   }
   return false;
 }
+
 async function downloadVision(
   downloadPath,
   traveler,
   client,
-  done_already_path
+  detectedTextResultPath,
+  detectedFaceResultPath
 ) {
   const passportUrl = traveler.images.passport;
   if (!fs.existsSync(downloadPath)) {
     await util.downloadImage(passportUrl, downloadPath);
   }
+
+  // face detection
+  const [result] = await client.faceDetection(downloadPath);
+  const faces = result.faceAnnotations;
+  if (faces && faces.length > 0) {
+    const face = faces[0];
+    await sharp(downloadPath)
+      .extract({
+        top: face.boundingPoly.vertices[0].y,
+        left: face.boundingPoly.vertices[0].x,
+        width:
+          face.boundingPoly.vertices[2].x - face.boundingPoly.vertices[0].x,
+        height:
+          face.boundingPoly.vertices[2].y - face.boundingPoly.vertices[0].y,
+      })
+      .toFile(detectedFaceResultPath);
+    console.log("write detected face to => ", detectedFaceResultPath);
+  }
+
+  // text detection
   const detectionResult = await client.textDetection(downloadPath);
-  console.log("write to => ", done_already_path);
-  fs.writeFileSync(done_already_path, JSON.stringify(detectionResult, null, 2));
+  console.log("write detected text to => ", detectedTextResultPath);
+  fs.writeFileSync(
+    detectedTextResultPath,
+    JSON.stringify(detectionResult, null, 2)
+  );
+  return downloadPath;
 }
 
 function runEagleExtract(annotations) {
@@ -108,7 +157,7 @@ function runEagleExtract(annotations) {
   return extract;
 }
 
-function prepare() {
+function delete3MExistingFiles() {
   const folder3M = "./scan/input/done/3M";
   if (fs.existsSync(folder3M)) {
     fs.readdirSync(folder3M).forEach((file) => {
@@ -117,32 +166,33 @@ function prepare() {
   }
 }
 
-function createDeviceFiles(extract, imgPath) {
+async function createDeviceFiles(extract, passImgPath, detectedFaceResultPath) {
   const unique = moment().valueOf();
   const folder3M = "./scan/input/done/3M";
   if (!fs.existsSync(folder3M)) {
-    return fs.mkdirSync(folder3M, { recursive: true });
+    fs.mkdirSync(folder3M, { recursive: true });
   }
-  fs.copyFile(imgPath, `${folder3M}/${unique}-IMAGEVIS.jpg`, (err) => {
+  fs.copyFile(passImgPath, `${folder3M}/${unique}-IMAGEVIS.jpg`, (err) => {
     if (err) {
       return console.log(err);
     }
     console.log(`${folder3M}/${unique}-IMAGEVIS.jpg`);
   });
 
-  sharp(imgPath)
-    .extract({ left: 100, top: 100, width: 500, height: 700 })
-    .toFile(`${folder3M}/${unique}-IMAGEPHOTO.jpg`, function (err) {
-      if (err) {
-        console.log(err);
+  if (detectedFaceResultPath && fs.existsSync(detectedFaceResultPath)) {
+    fs.copyFile(
+      detectedFaceResultPath,
+      `${folder3M}/${unique}-IMAGEPHOTO.jpg`,
+      (err) => {
+        if (err) {
+          return console.log(err);
+        }
+        console.log(`${folder3M}/${unique}-IMAGEPHOTO.jpg`);
       }
-      console.log(`${folder3M}/${unique}-IMAGEPHOTO.jpg`);
-    });
+    );
+  }
 
-  fs.writeFileSync(
-    `${folder3M}/${unique}-CODELINE.txt`,
-    extract?.mrz?.join("\n")
-  );
+  fs.writeFileSync(`${folder3M}/${unique}-CODELINE.txt`, extract?.mrz);
   console.log(`${folder3M}/${unique}-CODELINE.txt`);
   fs.writeFileSync(
     `${folder3M}/${unique}-EAGLE.json`,
@@ -152,36 +202,78 @@ function createDeviceFiles(extract, imgPath) {
 }
 
 function getMRZ(labels) {
-  const mrz = labels.filter((label) => {
-    return /^[A-Z0-9<]{22,88}$/.test(label.description);
-  });
+  const mrzRegEx = new RegExp("P[A-Z<][A-Z<]{42}\\n?[A-Z0-9<]{44}", "gm");
+  let mrz = "";
 
-  if (mrz && mrz.length > 0) {
-    return {
-      mrz: mrz.map((label) => label.description),
-    };
-  }
-}
-function getIssueDate(labels) {
-  let dates = [];
-  labels.forEach((label) => {
-    const match = label.description.match(
-      /[0-9]{2,4}[/\.-][0-9]{2}[/\.-][0-9]{2,4}/g
-    );
-    if (match) {
-      dates = [...dates, ...match];
+  labels.forEach((lbl) => {
+    if (lbl.description.length > 44) {
+      const match = lbl.description.match(mrzRegEx);
+      if (match) {
+        mrz = match[0];
+        return;
+      }
     }
   });
-  dates = _.uniq(dates);
 
-  dates = dates.sort((a, b) => {
-    return moment(a.trim()).isBefore(b.trim()) ? -1 : 1;
-  });
+  if (!mrz) {
+    mrz =
+      "P<XXXPASSENGER<<ERROR<<<<<<<<<<<<<<<<<<<<<<<\n1234567897XXX0001018M3001019<<<<<<<<<<<<<<06";
+  }
+  return { mrz };
+}
+function getIssueDate(labels) {
+  try {
+    let dates = [];
+    labels.forEach((label) => {
+      const match = label.description.match(
+        /[0-9]{2,4}[/\.-][0-9]{2}[/\.-][0-9]{2,4}/g
+      );
+      if (match) {
+        dates = [...dates, ...match];
+      }
+    });
+    dates = _.uniq(dates);
+    let parsedDates = [];
+    dates.forEach((dt) => {
+      if (dt.includes("/")) {
+        const date = moment(dt, "DD/MM/YYYY");
+        if (date.isValid()) {
+          parsedDates.push(date.format("YYYY-MM-DD"));
+        }
+      } else if (dt.includes(".")) {
+        const date = moment(dt, "DD.MM.YYYY");
+        if (date.isValid()) {
+          parsedDates.push(date.format("YYYY-MM-DD"));
+        }
+      } else if (dt.includes("-")) {
+        const date = moment(dt, "YYYY-MM-DD");
+        if (date.isValid()) {
+          parsedDates.push(date.format("YYYY-MM-DD"));
+        }
+      }
+    });
+    parsedDates = parsedDates.filter(
+      (dt) =>
+        moment(dt).isBefore(moment()) &&
+        moment(dt).isAfter(moment().subtract(10, "year"))
+    );
 
-  if (dates && dates.length > 1) {
-    return moment(dates[0]).format("DD-MMM-YYYY");
-  } else {
-    return "invalid";
+    if (!parsedDates || parsedDates.length === 0) {
+      return "invalid";
+    }
+
+    parsedDates = parsedDates.sort((a, b) => {
+      return moment(a.trim()).isBefore(b.trim()) ? -1 : 1;
+    });
+
+    if (parsedDates.length === 1) {
+      return parsedDates[0];
+    }
+    if (parsedDates.length > 1) {
+      return parsedDates[1];
+    }
+  } catch (err) {
+    console.log(err);
   }
 }
 
