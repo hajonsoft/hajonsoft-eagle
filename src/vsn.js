@@ -122,7 +122,7 @@ async function downloadVision(
       })
       .toFile(detectedFaceResultPath);
   } else {
-    fs.copyFile(downloadPath, detectedFaceResultPath, );
+    fs.copyFile(downloadPath, detectedFaceResultPath );
   }
 
   // text detection
