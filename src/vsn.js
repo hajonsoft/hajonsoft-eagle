@@ -31,6 +31,7 @@ async function send(sendData) {
   delete3MExistingFiles();
 
   for (let i = 0; i < data?.travellers?.length; i++) {
+    console.log('processing traveler => ', i, ' of ', data.travellers.length);
     const traveler = data.travellers[i];
     // if passport seen by vision api then continue with eagle detection
     // else perform vision api label annotation
