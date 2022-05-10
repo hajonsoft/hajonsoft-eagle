@@ -31,7 +31,6 @@ async function send(sendData) {
   delete3MExistingFiles();
 
   for (let i = 0; i < data?.travellers?.length; i++) {
-    console.log('processing traveler => ', i, ' of ', data.travellers.length);
     const traveler = data.travellers[i];
     // if passport seen by vision api then continue with eagle detection
     // else perform vision api label annotation
@@ -65,17 +64,26 @@ async function send(sendData) {
       detectedTextResultPath,
       detectedFaceResultPath
     );
-    await processExistingFiles(
+    const extractedData = await eagleExtract(
       detectedTextResultPath,
       passportImgPath,
       detectedFaceResultPath
+    );
+
+    const message = extractedData.mrz && !extractedData.mrz.startsWith("P<XXX") ? `Success => ${extractedData.mrz.replace(/\n/,'')}` : "error";
+    console.log(
+      "processing passenger => ",
+      i + 1,
+      " of ",
+      data.travellers.length,
+      message
     );
   }
 }
 
 module.exports = { send };
 
-async function processExistingFiles(
+async function eagleExtract(
   visionResultPath,
   passportImgPath,
   detectedFaceResultPath
@@ -86,12 +94,12 @@ async function processExistingFiles(
       const annotations = JSON.parse(rawData);
       const extract = runEagleExtract(annotations);
       await createDeviceFiles(extract, passportImgPath, detectedFaceResultPath);
+      return extract;
     } catch (err) {
       console.log(err);
     }
-    return true;
   }
-  return false;
+  return {};
 }
 
 async function downloadVision(
@@ -122,7 +130,11 @@ async function downloadVision(
       })
       .toFile(detectedFaceResultPath);
   } else {
-    fs.copyFile(downloadPath, detectedFaceResultPath );
+    fs.copyFile(downloadPath, detectedFaceResultPath, (err) => {
+      if (err) {
+        return console.log(err);
+      }
+    });
   }
 
   // text detection
@@ -199,25 +211,39 @@ async function createDeviceFiles(extract, passImgPath, detectedFaceResultPath) {
 }
 
 function getMRZ(labels) {
-  const mrzRegEx = new RegExp("P[A-Z<][A-Z<]{42}\\n?[A-Z0-9<]{44}", "gm");
-  let mrz = "";
-
-  labels.forEach((lbl) => {
-    if (lbl.description.length > 44) {
-      const match = lbl.description.match(mrzRegEx);
-      if (match) {
-        mrz = match[0];
-        return;
-      }
+  const labelPositions = [];
+  labels.forEach((label) => {
+    if (
+      label.description.length != 44 ||
+      /[^A-Z0-9<]/.test(label.description)
+    ) {
+      return;
     }
+    labelPositions.push({
+      text: label.description,
+      y: label.boundingPoly.vertices
+        .map((v) => v.y)
+        .reduce((acc, v) => (acc + v)),
+    });
   });
+  const sorted = labelPositions.sort((a, b) => b.y - a.y);
 
-  if (!mrz) {
-    mrz =
-      "P<XXXPASSENGER<<ERROR<<<<<<<<<<<<<<<<<<<<<<<\n1234567897XXX0001018M3001019<<<<<<<<<<<<<<06";
+  let mrz2;
+  let mrz1;
+
+  if (sorted.length <= 1) {
+    return {
+      mrz: `P<XXXPASSENGER<<ERROR<<<<<<<<<<<<<<<<<<<<<<<\n${moment().format(
+        "HHmmssSSS"
+      )}7XXX0001018M3001019<<<<<<<<<<<<<<06`,
+    };
   }
-  return { mrz };
+
+  mrz2 = sorted[0].text;
+  mrz1 = sorted[1].text;
+  return { mrz: mrz1 + "\n" + mrz2 };
 }
+
 function getIssueDate(labels) {
   try {
     let dates = [];
@@ -272,6 +298,36 @@ function getIssueDate(labels) {
   } catch (err) {
     console.log(err);
   }
+}
+
+function getLabel0Mrz(label0) {
+  let workText = label0;
+  let indexOfP = workText.indexOf("\nP");
+  try {
+    while (indexOfP > -1) {
+      const testMrz = workText
+        .substring(indexOfP)
+        .replace(/[^A-Z0-9<]/, "")
+        .substring(0, 88);
+      if (testMrz.includes("<")) {
+        const goodMrz = testMrz.replace(/[^A-Z0-9<]/, "");
+        const goodMrzLines = goodMrz.split("\n");
+        let mrz1;
+        let mrz2;
+        if (goodMrzLines.length > 0) {
+          mrz1 = goodMrzLines[0].replace(/\s/, "").padEnd(44, "<");
+        }
+        if (goodMrzLines.length > 1) {
+          mrz2 = goodMrzLines[1].replace(/\s/, "").padEnd(44, "<");
+          return mrz1 + "\n" + mrz2;
+        }
+        return goodMrz;
+      } else {
+        workText = workText.substring(indexOfP + 4);
+        indexOfP = workText.indexOf("\nP");
+      }
+    }
+  } catch {}
 }
 
 function getProfession(labels) {
