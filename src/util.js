@@ -31,12 +31,14 @@ async function initPage(config, onContentLoaded) {
       "--incognito",
       "--disable-web-security",
       "--disable-features=IsolateOrigins,site-per-process",
+      "--allow-running-insecure-content"
     ],
   });
   const pages = await browser.pages();
   page = pages[0];
   await page.bringToFront();
   page.on("domcontentloaded", onContentLoaded);
+  
   if (process.argv.length > 2) {
     page.on("console", (msg) => console.log(msg.text()));
   }
