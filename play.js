@@ -170,12 +170,12 @@ const fs = require("fs");
 // pricesArray.sort((a, b) => a.cost - b.cost);
 // console.log(pricesArray);
 
-// const totp = require("totp-generator");
+const totp = require("totp-generator");
 
-// // Keys provided must be base32 strings, ie. only containing characters matching (A-Z, 2-7, =).
-// const token = totp("JBSWY3DPEHPK3PXP");
+// Keys provided must be base32 strings, ie. only containing characters matching (A-Z, 2-7, =).
+const token = totp("DPJ5CZPPY2IC7BFV");
 
-// console.log(token); // prints a 6-digit time-based token based on provided key and current time
+console.log(token); // prints a 6-digit time-based token based on provided key and current time
 
 // const cleaned = "SODENMANE OUSSEINI\nConissaire de Police\nPasseport Passport\nRépublique du Niger\n01. Type / Type 02. Code du pays / Country Code 03 N° du Passeport / Passport Nc\n....\nOrdinaire\n04. Nom / Suname\n10PC37000\n06. Date de naissance / Date of Birth.\nNER\nALMOU CHEFOU\n12.07.1984\n05 Prénoms / Given names\n07 Sexe / Sex\nADAMOU\nM\n08 Lieu de naissance / Place of Birth\n09. Nationalité / Nationality\nNIAMEY\n10. N de contróle / Control No\nNigérienne\n11 Adresse / Address\nAKOKAN VILLA NO 104\nEN782VN\nCEL 90 39 17 51\n15 Autorité / Authority\nD.G.P.N/D.ST\nCre Principal de Police\nAbdourahmane Alfa\n12 Date de délivrance / Date of issue\n16.08.2017\n13 Date d'expiration / Date of Expiry\n15.08.2022\n14 Signature du titulaire / Holder's signature\nPONERALMOU<CHEFOU<<ADAMOU<<<<<<<<<<<<<<<<<<<\n10PC370002NER8407122M2208154EN782VN<<<<<<<82\n非00LC340\n1000\nFait à / Performed a\naua / ne,nbsn\nProrogation de validité / Ertenston of ealidit\nne,nbsnf ajqeje\n".replace(/[^A-Z0-9<]/g, "")
 // const mrzRegEx = new RegExp("\\nP[A-Z<][A-Z<]{42}\\n?[A-Z0-9<]{44}", "gm");
@@ -184,44 +184,44 @@ const fs = require("fs");
 //     console.log(match)
 // }
 
-let mrz1;
-let mrz2;
+// let mrz1;
+// let mrz2;
 
-let workSet = [];
-const files = fs.readdirSync("scan/input/done");
-for (const file of files) {
-  if (!file.endsWith(".json")) {
-    continue;
-  }
-  const ff = fs.readFileSync(__dirname + "/scan/input/done/" + file, "utf8");
-  const json = JSON.parse(ff);
-  const annotations = json[0].textAnnotations;
-  for (const ano of annotations) {
-    if (
-      ano.description.length > 90 ||
-      ano.description.length < 44 ||
-      /[^A-Z0-9<]/.test(ano.description)
-    ) {
-      continue;
-    }
-    workSet.push({
-      text: ano.description,
-      len: ano.description.length,
-      y: ano.boundingPoly.vertices
-        .map((v) => v.y)
-        .reduce((acc, v) => (acc += v)),
-    });
-  }
-  const sorted = workSet.sort((a, b) => b.y - a.y);
-  //   console.log(sorted);
-  if (sorted.length <= 1) {
-    workSet = [];
-    continue;
-  }
+// let workSet = [];
+// const files = fs.readdirSync("scan/input/done");
+// for (const file of files) {
+//   if (!file.endsWith(".json")) {
+//     continue;
+//   }
+//   const ff = fs.readFileSync(__dirname + "/scan/input/done/" + file, "utf8");
+//   const json = JSON.parse(ff);
+//   const annotations = json[0].textAnnotations;
+//   for (const ano of annotations) {
+//     if (
+//       ano.description.length > 90 ||
+//       ano.description.length < 44 ||
+//       /[^A-Z0-9<]/.test(ano.description)
+//     ) {
+//       continue;
+//     }
+//     workSet.push({
+//       text: ano.description,
+//       len: ano.description.length,
+//       y: ano.boundingPoly.vertices
+//         .map((v) => v.y)
+//         .reduce((acc, v) => (acc += v)),
+//     });
+//   }
+//   const sorted = workSet.sort((a, b) => b.y - a.y);
+//   //   console.log(sorted);
+//   if (sorted.length <= 1) {
+//     workSet = [];
+//     continue;
+//   }
 
-  console.log('%cMyProject%cline:222%csorted', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(3, 38, 58);padding:3px;border-radius:2px', sorted)
-  mrz2 = sorted[0].text;
-  mrz1 = sorted[1].text;
-  console.log(mrz1, mrz2);
-  workSet = [];
-}
+//   console.log('%cMyProject%cline:222%csorted', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(3, 38, 58);padding:3px;border-radius:2px', sorted)
+//   mrz2 = sorted[0].text;
+//   mrz1 = sorted[1].text;
+//   console.log(mrz1, mrz2);
+//   workSet = [];
+// }
