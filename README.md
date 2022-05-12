@@ -43,7 +43,7 @@ Use node and [puppeteer](https://github.com/puppeteer/puppeteer/tree/main#readme
 * Visit Saudi
 * other local visa systems
 
-Puppeteer should easily be installed using `npm i puppeteer` check package.json for the version we use. If it is 5.5.0 then this uses chromium version 818858 (go using 997535)
+Puppeteer should easily be installed using `npm i puppeteer` check package.json for the version we use. If it is 5.5.0 then this uses chromium version 818858 (go using 997535). If 14.0.0no then r991974
 
 Some machines refuse to install puppeteer and chromium and one way of overcoming this install error is by installing manually from [here](https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html).
 

@@ -25,6 +25,7 @@ let browser;
 async function initPage(config, onContentLoaded) {
   browser = await puppeteer.launch({
     headless: false,
+    ignoreHTTPSErrors: true,
     defaultViewport: null,
     args: [
       "--start-fullscreen",
@@ -403,15 +404,15 @@ async function controller(page, structure, travellers) {
       );
       await page.exposeFunction(
         "handleWTUClick",
-        structure.controller.wtuAction
+        structure.controller.wtuAction || (() => {})
       );
       await page.exposeFunction(
         "handleGMAClick",
-        structure.controller.gmaAction
+        structure.controller.gmaAction || (() => {})
       );
       await page.exposeFunction(
         "handleTWFClick",
-        structure.controller.twfAction
+        structure.controller.twfAction || (() => {})
       );
       await page.exposeFunction(
         "handleLoadImportedOnlyClick",

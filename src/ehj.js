@@ -72,7 +72,7 @@ const config = [
     details: [
       {
         selector: "#reference1",
-        value: (row) => row.slug,
+        value: (row) => row.slug < 40 ? row.slug : row.slug.substring(row.slug.length - 40, row.slug.length),
       },
       {
         selector: "#fatherNameEn",
@@ -93,6 +93,19 @@ const config = [
       {
         selector: "#passportIssueDate",
         value: (row) => row.passIssueDt.dmy,
+      },
+      // TODO: Replace with true values
+      {
+        selector: "#iqamaNo",
+        value: (row) => '123456789',
+      },
+      {
+        selector: "#iqamaIssueDate",
+        value: (row) => row.passIssueDt.dmy,
+      },
+      {
+        selector: "#iqamaExpiryDate",
+        value: (row) => row.passExpireDt.dmy,
       },
     ],
   },
@@ -207,6 +220,9 @@ async function pageContentHandler(currentConfig) {
         "#hdcviSecondDoseDate",
         moment().add(-30, "days").format("DD/MM/YYYY")
       );
+      // TODO: // Wait for #iqamaNo if the passenger nationality is not equal to local nationality
+
+      // await page.waitForSelector("#iqamaNo")
       let resizedPhotoPath = await util.downloadAndResizeImage(
         passenger,
         200,
