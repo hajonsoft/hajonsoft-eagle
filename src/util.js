@@ -324,7 +324,7 @@ async function controller(page, structure, travellers) {
   let lastTraveller = useCounter();
 
   let options =
-    "<option>Select passenger click send حدد الراكب انقر إرسل</option>" +
+    "<option value='-1'>Select passenger click send حدد الراكب انقر إرسل</option>" +
     travellers
       .map(
         (traveller, cursor) =>

@@ -131,3 +131,10 @@ alialiayman@gmail.com/(Paris123)
 
 To use vision api, enable billing in [console.googlcloud.com](https://console.cloud.google.com/), search for Vision api, enable it, create service account in credentials, then download a json in to ./scan/auth/key.json and you are good to image to text with google latest ML 
 
+## Benefits of Eagle
+
+1- Quick atomic send (no looking for photos, vaccine file or residence permit) especially if you have to resent
+2- Resending is awesome
+3- Reuse the same data to print artifacts
+4- capture important data as they appear on screen like mofa number
+
