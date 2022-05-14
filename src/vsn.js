@@ -32,6 +32,9 @@ async function send(sendData) {
 
   for (let i = 0; i < data?.travellers?.length; i++) {
     const traveler = data.travellers[i];
+    if (traveler.images.passport.includes('placeholder')) {
+      continue;
+    }
     // if passport seen by vision api then continue with eagle detection
     // else perform vision api label annotation
     const detectedTextResultPath = path.join(
@@ -162,7 +165,7 @@ function runEagleExtract(annotations) {
       birthPlace: "invalid",
       profession: getProfession(filteredLabels),
     },
-    ...getMRZ(filteredLabels),
+    ...getMRZ(annotations[0]),
     ...getIssuePlace(filteredLabels),
     ...getArabicName(filteredLabels),
     ...getAddress(filteredLabels),
@@ -208,40 +211,6 @@ async function createDeviceFiles(extract, passImgPath, detectedFaceResultPath) {
     `${folder3M}/${unique}-EAGLE.json`,
     JSON.stringify(extract.eagle)
   );
-}
-
-function getMRZ(labels) {
-  const labelPositions = [];
-  labels.forEach((label) => {
-    if (
-      label.description.length != 44 ||
-      /[^A-Z0-9<]/.test(label.description)
-    ) {
-      return;
-    }
-    labelPositions.push({
-      text: label.description,
-      y: label.boundingPoly.vertices
-        .map((v) => v.y)
-        .reduce((acc, v) => (acc + v)),
-    });
-  });
-  const sorted = labelPositions.sort((a, b) => b.y - a.y);
-
-  let mrz2;
-  let mrz1;
-
-  if (sorted.length <= 1) {
-    return {
-      mrz: `P<XXXPASSENGER<<ERROR<<<<<<<<<<<<<<<<<<<<<<<\n${moment().format(
-        "HHmmssSSS"
-      )}7XXX0001018M3001019<<<<<<<<<<<<<<06`,
-    };
-  }
-
-  mrz2 = sorted[0].text;
-  mrz1 = sorted[1].text;
-  return { mrz: mrz1 + "\n" + mrz2 };
 }
 
 function getIssueDate(labels) {
@@ -348,3 +317,55 @@ function getEgyptianId(labels) {}
 function getIssuePlace(labels) {}
 function getArabicName(labels) {}
 function getAddress(labels) {}
+
+function getMRZ(json) {
+  let labelsWithPosition = [];
+  json.textAnnotations.forEach((text) => {
+    const bottomLeft = text.boundingPoly.vertices[0];
+    const topLeft = text.boundingPoly.vertices[1];
+    const topRight = text.boundingPoly.vertices[2];
+    const midPointX = (topRight.x - topLeft.x) / 2 + topLeft.x;
+    const midPointY = (bottomLeft.y - topLeft.y) / 2 + topLeft.y;
+    labelsWithPosition.push({
+      text: text.description,
+      point: {
+        x: midPointX,
+        y: midPointY,
+      },
+      length: text.description.length,
+    });
+  });
+
+  const sortedLabels = labelsWithPosition.sort((a, b) => {
+    if (a.point.y < b.point.y && a.point.x < b.point.x) {
+      return 1;
+    } else {
+      return -1;
+    }
+  });
+
+  if (sortedLabels[0].text === 44 && sortedLabels[1].text === 44) {
+    return {mrz: sortedLabels[0].text + "\n" + sortedLabels[1].text}
+  }
+
+  // Sort and take lines only until you get to P<
+  const mrzLines = [];
+  let line = "";
+  for (const label of sortedLabels) {
+    if (/^P[A-Z<]{1}[A-Z]{3}.*<.*/.test(label.text)) {
+      line = label.text.replace(/[^A-Z0-9<]/, "") + line;
+      mrzLines.push(line.padEnd(44, "<"));
+      break;
+    }
+    if (line.length + label.text.length <= 44) {
+      line = label.text.replace(/[^A-Z0-9<]/, "") + line;
+    } else {
+      mrzLines.push(line);
+      line = label.text.replace(/[^A-Z0-9<]/, "");
+    }
+  }
+  const oneLine = mrzLines.join("");
+  const output = oneLine.substring(0, 44) + "\n" + oneLine.substring(44);
+  return {mrz: output};
+}
+

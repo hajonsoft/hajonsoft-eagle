@@ -170,12 +170,12 @@ const fs = require("fs");
 // pricesArray.sort((a, b) => a.cost - b.cost);
 // console.log(pricesArray);
 
-const totp = require("totp-generator");
+// const totp = require("totp-generator");
 
-// Keys provided must be base32 strings, ie. only containing characters matching (A-Z, 2-7, =).
-const token = totp("DPJ5CZPPY2IC7BFV");
+// // Keys provided must be base32 strings, ie. only containing characters matching (A-Z, 2-7, =).
+// const token = totp("DPJ5CZPPY2IC7BFV");
 
-console.log(token); // prints a 6-digit time-based token based on provided key and current time
+// console.log(token); // prints a 6-digit time-based token based on provided key and current time
 
 // const cleaned = "SODENMANE OUSSEINI\nConissaire de Police\nPasseport Passport\nRépublique du Niger\n01. Type / Type 02. Code du pays / Country Code 03 N° du Passeport / Passport Nc\n....\nOrdinaire\n04. Nom / Suname\n10PC37000\n06. Date de naissance / Date of Birth.\nNER\nALMOU CHEFOU\n12.07.1984\n05 Prénoms / Given names\n07 Sexe / Sex\nADAMOU\nM\n08 Lieu de naissance / Place of Birth\n09. Nationalité / Nationality\nNIAMEY\n10. N de contróle / Control No\nNigérienne\n11 Adresse / Address\nAKOKAN VILLA NO 104\nEN782VN\nCEL 90 39 17 51\n15 Autorité / Authority\nD.G.P.N/D.ST\nCre Principal de Police\nAbdourahmane Alfa\n12 Date de délivrance / Date of issue\n16.08.2017\n13 Date d'expiration / Date of Expiry\n15.08.2022\n14 Signature du titulaire / Holder's signature\nPONERALMOU<CHEFOU<<ADAMOU<<<<<<<<<<<<<<<<<<<\n10PC370002NER8407122M2208154EN782VN<<<<<<<82\n非00LC340\n1000\nFait à / Performed a\naua / ne,nbsn\nProrogation de validité / Ertenston of ealidit\nne,nbsnf ajqeje\n".replace(/[^A-Z0-9<]/g, "")
 // const mrzRegEx = new RegExp("\\nP[A-Z<][A-Z<]{42}\\n?[A-Z0-9<]{44}", "gm");
@@ -225,3 +225,59 @@ console.log(token); // prints a 6-digit time-based token based on provided key a
 //   console.log(mrz1, mrz2);
 //   workSet = [];
 // }
+const files = fs.readdirSync("scan/input/done");
+for (const file of files.filter((f) => f.endsWith("XXX-1652112365402.json"))) {
+  console.log('%cMyProject%cline:229%cfile', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(89, 61, 67);padding:3px;border-radius:2px', file)
+  const rawData = fs.readFileSync("./scan/input/done/" + file, "utf-8");
+  const json = JSON.parse(rawData);
+  console.log('%cMyProject%cline:232%cjson', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(95, 92, 51);padding:3px;border-radius:2px', json)
+  const result = getSplitMrz(json[0]);
+  console.log('%cMyProject%cline:232%cresult', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(153, 80, 84);padding:3px;border-radius:2px', result)
+}
+
+function getSplitMrz(json) {
+  let labelsWithPosition = [];
+  json.textAnnotations.forEach((text) => {
+    const bottomLeft = text.boundingPoly.vertices[0];
+    const topLeft = text.boundingPoly.vertices[1];
+    const topRight = text.boundingPoly.vertices[2];
+    const midPointX = (topRight.x - topLeft.x) / 2 + topLeft.x;
+    const midPointY = (bottomLeft.y - topLeft.y) / 2 + topLeft.y;
+    labelsWithPosition.push({
+      text: text.description,
+      point: {
+        x: midPointX,
+        y: midPointY,
+      },
+      length: text.description.length,
+    });
+  });
+
+  const sortedLabels = labelsWithPosition.sort((a, b) => {
+    if (a.point.y < b.point.y && a.point.x < b.point.x) {
+      return 1;
+    } else {
+      return -1;
+    }
+  });
+
+  // Sort and take lines only until you get to P<
+  const mrzLines = [];
+  let line = "";
+  for (const label of sortedLabels) {
+    if (/^P[A-Z<]{1}[A-Z]{3}.*<.*/.test(label.text)) {
+      line = label.text.replace(/[^A-Z0-9<]/, "") + line;
+      mrzLines.push(line.padEnd(44, "<"));
+      break;
+    }
+    if (line.length + label.text.length <= 44) {
+      line = label.text.replace(/[^A-Z0-9<]/, "") + line;
+    } else {
+      mrzLines.push(line);
+      line = label.text.replace(/[^A-Z0-9<]/, "");
+    }
+  }
+  const oneLine = mrzLines.join("");
+  const output = oneLine.substring(0, 44) + "\n" + oneLine.substring(44);
+  return output;
+}
