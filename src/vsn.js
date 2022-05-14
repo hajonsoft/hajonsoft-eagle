@@ -7,84 +7,98 @@ const vision = require("@google-cloud/vision");
 const _ = require("lodash");
 
 let data;
+let scanInputFolder;
+let visionResultFolder;
+ const visionKeyFilePath = "./scan/auth/key.json";
+
+function createSandbox() {
+  scanInputFolder = path.join(__dirname, "..", "scan", "input");
+  if (!fs.existsSync(scanInputFolder)) {
+    fs.mkdirSync(scanInputFolder, { recursive: true });
+  }
+
+  visionResultFolder = path.join(__dirname, "..", "scan", "output", "vision");
+  if (!fs.existsSync(visionResultFolder)) {
+    fs.mkdirSync(visionResultFolder, { recursive: true });
+  }
+
+  if (!fs.existsSync(visionKeyFilePath)) {
+    throw new Error("vision key file not found");
+  }
+}
 
 async function send(sendData) {
   data = sendData;
-  const scanInput = path.join(__dirname, "..", "scan", "input");
-  if (!fs.existsSync(scanInput)) {
-    fs.mkdirSync(scanInput, { recursive: true });
-  }
-
-  const scanInputDone = path.join(__dirname, "..", "scan", "input", "done");
-  if (!fs.existsSync(scanInputDone)) {
-    fs.mkdirSync(scanInputDone, { recursive: true });
-  }
-
-  let visionKeyFilePath = "./scan/auth/key.json";
-  if (!fs.existsSync(visionKeyFilePath)) {
-    return console.log("vision key file not found", visionKeyFilePath);
-  }
+  createSandbox();
 
   const client = new vision.ImageAnnotatorClient({
     keyFilename: visionKeyFilePath,
   });
-  delete3MExistingFiles();
 
   for (let i = 0; i < data?.travellers?.length; i++) {
     const traveler = data.travellers[i];
-    if (traveler.images.passport.includes('placeholder')) {
+    if (traveler.images.passport.includes("placeholder")) {
+      console.warn(traveler.slug, "no passport");
       continue;
     }
-    // if passport seen by vision api then continue with eagle detection
-    // else perform vision api label annotation
-    const detectedTextResultPath = path.join(
-      __dirname,
-      "..",
-      "scan",
-      "input",
-      "done",
-      `${traveler.nationality.name}-${traveler.passportNumber.toString()}.json`
-    );
+    const passportImagePath = await downloadPassportImage(traveler);
 
-    const detectedFaceResultPath = path.join(
-      __dirname,
-      "..",
-      "scan",
-      "input",
-      "done",
-      `${traveler.nationality.name}-${traveler.passportNumber.toString()}.jpg`
-    );
-
-    const passportImgPath = path.join(
-      scanInput,
-      traveler.nationality.name + "-" + traveler.passportNumber.toString()
-    );
-
-    await downloadVision(
-      passportImgPath,
+    await runGoogleVision(
+      passportImagePath,
       traveler,
-      client,
-      detectedTextResultPath,
-      detectedFaceResultPath
-    );
-    const extractedData = await eagleExtract(
-      detectedTextResultPath,
-      passportImgPath,
-      detectedFaceResultPath
+      client
     );
 
-    const message = extractedData.mrz && !extractedData.mrz.startsWith("P<XXX") ? `Success => ${extractedData.mrz.replace(/\n/,'')}` : "error";
+    // const message = extractedData.mrz && !extractedData.mrz.startsWith("P<XXX") ? `Success => ${extractedData.mrz.replace(/\n/,'')}` : "error";
     console.log(
       "processing passenger => ",
       i + 1,
       " of ",
-      data.travellers.length,
-      message
+      data.travellers.length
     );
   }
 }
 
-module.exports = { send };
+async function runGoogleVision(
+  downloadPath,
+  traveler,
+  client
+) {
+  // face detection
+  const [result] = await client.faceDetection(downloadPath);
+  const faces = result.faceAnnotations;
+  const photoPath = path.join(
+    visionResultFolder,
+    traveler.nationality.name + "-" + traveler.passportNumber + ".jpg"
+  );
+  if (faces && faces.length > 0) {
+    const face = faces[0];
+    await sharp(downloadPath)
+      .extract({
+        top: face.boundingPoly.vertices[0].y,
+        left: face.boundingPoly.vertices[0].x,
+        width:
+          face.boundingPoly.vertices[2].x - face.boundingPoly.vertices[0].x,
+        height:
+          face.boundingPoly.vertices[2].y - face.boundingPoly.vertices[0].y,
+      })
+      .toFile(photoPath);
+  } else {
+    console.warn(traveler.slug, "no face detected");
+  }
+
+  // text detection
+  const detectionResult = await client.textDetection(downloadPath);
+  const textPath = path.join(
+    visionResultFolder,
+    traveler.nationality.name + "-" + traveler.passportNumber + ".json"
+  );
+  fs.writeFileSync(textPath, JSON.stringify(detectionResult, null, 2));
+  return {
+    photoPath,
+    textPath,
+  };
+}
 
 async function eagleExtract(
   visionResultPath,
@@ -105,47 +119,16 @@ async function eagleExtract(
   return {};
 }
 
-async function downloadVision(
-  downloadPath,
-  traveler,
-  client,
-  detectedTextResultPath,
-  detectedFaceResultPath
-) {
+async function downloadPassportImage(traveler) {
   const passportUrl = traveler.images.passport;
-  if (!fs.existsSync(downloadPath)) {
+  const downloadPath = path.join(
+    scanInputFolder,
+    traveler.nationality.name + "-" + traveler.passportNumber.toString()
+  );
+  const isDownloaded = fs.existsSync(downloadPath);
+  if (!isDownloaded) {
     await util.downloadImage(passportUrl, downloadPath);
   }
-
-  // face detection
-  const [result] = await client.faceDetection(downloadPath);
-  const faces = result.faceAnnotations;
-  if (faces && faces.length > 0) {
-    const face = faces[0];
-    await sharp(downloadPath)
-      .extract({
-        top: face.boundingPoly.vertices[0].y,
-        left: face.boundingPoly.vertices[0].x,
-        width:
-          face.boundingPoly.vertices[2].x - face.boundingPoly.vertices[0].x,
-        height:
-          face.boundingPoly.vertices[2].y - face.boundingPoly.vertices[0].y,
-      })
-      .toFile(detectedFaceResultPath);
-  } else {
-    fs.copyFile(downloadPath, detectedFaceResultPath, (err) => {
-      if (err) {
-        return console.log(err);
-      }
-    });
-  }
-
-  // text detection
-  const detectionResult = await client.textDetection(downloadPath);
-  fs.writeFileSync(
-    detectedTextResultPath,
-    JSON.stringify(detectionResult, null, 2)
-  );
   return downloadPath;
 }
 
@@ -345,7 +328,7 @@ function getMRZ(json) {
   });
 
   if (sortedLabels[0].text === 44 && sortedLabels[1].text === 44) {
-    return {mrz: sortedLabels[0].text + "\n" + sortedLabels[1].text}
+    return { mrz: sortedLabels[0].text + "\n" + sortedLabels[1].text };
   }
 
   // Sort and take lines only until you get to P<
@@ -366,6 +349,7 @@ function getMRZ(json) {
   }
   const oneLine = mrzLines.join("");
   const output = oneLine.substring(0, 44) + "\n" + oneLine.substring(44);
-  return {mrz: output};
+  return { mrz: output };
 }
 
+module.exports = { send };
