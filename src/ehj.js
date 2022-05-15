@@ -54,6 +54,7 @@ const config = [
           "#hajonsoft_select",
           (el) => el.value
         );
+        console.log('%c 🍡 selectedTraveler: ', 'font-size:20px;background-color: #EA7E5C;color:#fff;', selectedTraveler);
         if (selectedTraveler) {
           fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
           const data = fs.readFileSync("./data.json", "utf-8");
@@ -65,6 +66,7 @@ const config = [
           }
           var passenger = passengersData.travellers[selectedTraveler];
           await page.keyboard.type(passenger.codeline);
+
         }
       },
     },
@@ -246,10 +248,16 @@ async function pageContentHandler(currentConfig) {
         100,
         "vaccine"
       );
+      const resizedVaccinePath2 = await util.downloadAndResizeImage(
+        passenger,
+        100,
+        100,
+        "vaccine2"
+      );
       await page.click("#vaccine_attmnt_1_input");
       await util.commitFile("#vaccine_attmnt_1_input", resizedVaccinePath);
       await page.click("#vaccine_attmnt_2_input");
-      await util.commitFile("#vaccine_attmnt_2_input", resizedVaccinePath);
+      await util.commitFile("#vaccine_attmnt_2_input", resizedVaccinePath2);
       await page.waitForTimeout(1000);
       await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);

@@ -543,6 +543,16 @@ async function downloadAndResizeImage(
   if (imageType == "vaccine") {
     folder = vaccineFolder;
     url = passenger.images.vaccine;
+    if (url.includes("placeholder")) {
+      return path.join(__dirname, 'covid-1.jpg')
+    }
+  }
+  if (imageType == "vaccine2") {
+    folder = vaccineFolder;
+    url = passenger.images.vaccine2;
+    if (url.includes("placeholder")) {
+      return path.join(__dirname, 'covid-2.jpg')
+    }
   }
 
   let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
