@@ -225,59 +225,61 @@ const fs = require("fs");
 //   console.log(mrz1, mrz2);
 //   workSet = [];
 // }
-const files = fs.readdirSync("scan/input/done");
-for (const file of files.filter((f) => f.endsWith("XXX-1652112365402.json"))) {
-  console.log('%cMyProject%cline:229%cfile', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(89, 61, 67);padding:3px;border-radius:2px', file)
-  const rawData = fs.readFileSync("./scan/input/done/" + file, "utf-8");
-  const json = JSON.parse(rawData);
-  console.log('%cMyProject%cline:232%cjson', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(95, 92, 51);padding:3px;border-radius:2px', json)
-  const result = getSplitMrz(json[0]);
-  console.log('%cMyProject%cline:232%cresult', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(153, 80, 84);padding:3px;border-radius:2px', result)
-}
+// const files = fs.readdirSync("scan/input/done");
+// for (const file of files.filter((f) => f.endsWith("XXX-1652112365402.json"))) {
+//   console.log('%cMyProject%cline:229%cfile', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(89, 61, 67);padding:3px;border-radius:2px', file)
+//   const rawData = fs.readFileSync("./scan/input/done/" + file, "utf-8");
+//   const json = JSON.parse(rawData);
+//   console.log('%cMyProject%cline:232%cjson', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(95, 92, 51);padding:3px;border-radius:2px', json)
+//   const result = getSplitMrz(json[0]);
+//   console.log('%cMyProject%cline:232%cresult', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(153, 80, 84);padding:3px;border-radius:2px', result)
+// }
 
-function getSplitMrz(json) {
-  let labelsWithPosition = [];
-  json.textAnnotations.forEach((text) => {
-    const bottomLeft = text.boundingPoly.vertices[0];
-    const topLeft = text.boundingPoly.vertices[1];
-    const topRight = text.boundingPoly.vertices[2];
-    const midPointX = (topRight.x - topLeft.x) / 2 + topLeft.x;
-    const midPointY = (bottomLeft.y - topLeft.y) / 2 + topLeft.y;
-    labelsWithPosition.push({
-      text: text.description,
-      point: {
-        x: midPointX,
-        y: midPointY,
-      },
-      length: text.description.length,
-    });
-  });
+// function getSplitMrz(json) {
+//   let labelsWithPosition = [];
+//   json.textAnnotations.forEach((text) => {
+//     const bottomLeft = text.boundingPoly.vertices[0];
+//     const topLeft = text.boundingPoly.vertices[1];
+//     const topRight = text.boundingPoly.vertices[2];
+//     const midPointX = (topRight.x - topLeft.x) / 2 + topLeft.x;
+//     const midPointY = (bottomLeft.y - topLeft.y) / 2 + topLeft.y;
+//     labelsWithPosition.push({
+//       text: text.description,
+//       point: {
+//         x: midPointX,
+//         y: midPointY,
+//       },
+//       length: text.description.length,
+//     });
+//   });
 
-  const sortedLabels = labelsWithPosition.sort((a, b) => {
-    if (a.point.y < b.point.y && a.point.x < b.point.x) {
-      return 1;
-    } else {
-      return -1;
-    }
-  });
+//   const sortedLabels = labelsWithPosition.sort((a, b) => {
+//     if (a.point.y < b.point.y && a.point.x < b.point.x) {
+//       return 1;
+//     } else {
+//       return -1;
+//     }
+//   });
 
-  // Sort and take lines only until you get to P<
-  const mrzLines = [];
-  let line = "";
-  for (const label of sortedLabels) {
-    if (/^P[A-Z<]{1}[A-Z]{3}.*<.*/.test(label.text)) {
-      line = label.text.replace(/[^A-Z0-9<]/, "") + line;
-      mrzLines.push(line.padEnd(44, "<"));
-      break;
-    }
-    if (line.length + label.text.length <= 44) {
-      line = label.text.replace(/[^A-Z0-9<]/, "") + line;
-    } else {
-      mrzLines.push(line);
-      line = label.text.replace(/[^A-Z0-9<]/, "");
-    }
-  }
-  const oneLine = mrzLines.join("");
-  const output = oneLine.substring(0, 44) + "\n" + oneLine.substring(44);
-  return output;
-}
+//   // Sort and take lines only until you get to P<
+//   const mrzLines = [];
+//   let line = "";
+//   for (const label of sortedLabels) {
+//     if (/^P[A-Z<]{1}[A-Z]{3}.*<.*/.test(label.text)) {
+//       line = label.text.replace(/[^A-Z0-9<]/, "") + line;
+//       mrzLines.push(line.padEnd(44, "<"));
+//       break;
+//     }
+//     if (line.length + label.text.length <= 44) {
+//       line = label.text.replace(/[^A-Z0-9<]/, "") + line;
+//     } else {
+//       mrzLines.push(line);
+//       line = label.text.replace(/[^A-Z0-9<]/, "");
+//     }
+//   }
+//   const oneLine = mrzLines.join("");
+//   const output = oneLine.substring(0, 44) + "\n" + oneLine.substring(44);
+//   return output;
+// }
+
+console.log("abc".replace(/[^A-Z]/g, ""))
