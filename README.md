@@ -49,6 +49,10 @@ Some machines refuse to install puppeteer and chromium and one way of overcoming
 
 For example on M1 machine you can download [here](https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html?prefix=Mac/818858/) directly (it's an Intel build, but runs fine via Rosetta 2 on M1 – get chrome-mac.zip). Also notice the revision for chromium in the url. Read this [article](https://linguinecode.com/post/how-to-fix-m1-mac-puppeteer-chromium-arm64-bug) for more info.
 
+```
+brew install chromium
+which chromium
+```
 You will need these two env variables before `npm i` eagle after the manual install above.
 ~/.zshrc
 export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
