@@ -348,7 +348,7 @@ async function chooseMrz2(suggested, passportImagePath) {
   const answersMrz2 = await inquirer.prompt([
     {
       type: "list",
-      message: `Choose best line for MRZ2 [${"2".repeat(10)}]`,
+      message: `open -a Preview.app "${passportImagePath}"\nChoose best line for MRZ2 [${"2".repeat(10)}]`,
       name: "mrz2",
       choices: suggested,
     },
@@ -483,7 +483,7 @@ async function getChoiceMrz1(suggested, passportImagePath) {
   const answers = await inquirer.prompt([
     {
       type: "list",
-      message: `Choose best line for MRZ1 [${"1".repeat(10)}] `,
+      message: `open -a Preview.app "${passportImagePath}"\nChoose best line for MRZ1 [${"1".repeat(10)}] `,
       name: "mrz1",
       choices: suggestedMrz1,
     },

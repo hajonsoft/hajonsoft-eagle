@@ -390,6 +390,7 @@ async function create3MFiles() {
     const json = JSON.parse(raw);
     const isDone = await generateFour3MFiles(file, json);
   }
+  console.log(`open "${folder3M}"`);
 }
 
 function runInteractive() {
