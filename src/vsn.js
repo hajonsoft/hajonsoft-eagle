@@ -190,9 +190,10 @@ async function createDeviceFiles(extract, passImgPath, detectedFaceResultPath) {
 function getIssueDate(labels) {
   try {
     let dates = [];
+    // Detect all possible date formats here
     labels.forEach((label) => {
       const match = label.description.match(
-        /[0-9]{2,4}[/\.-][0-9]{2}[/\.-][0-9]{2,4}/g
+        /([0-9]{2,4}[/\.-][0-9]{2}[/\.-][0-9]{2,4})|([0-3][0-9] [A-Z][a-z]{2} 2[0-9]{3})/g
       );
       if (match) {
         dates = [...dates, ...match];
@@ -216,6 +217,13 @@ function getIssueDate(labels) {
         if (date.isValid()) {
           parsedDates.push(date.format("YYYY-MM-DD"));
         }
+      } else if (dt.includes(' ') && /[A-Za-z]/.test(dt)) {
+        //24 Jul 2018
+        const date = moment(dt, "DD MMM YYYY");
+        if (date.isValid()) {
+          parsedDates.push(date.format("YYYY-MM-DD"));
+        }
+
       }
     });
     parsedDates = parsedDates.filter(
