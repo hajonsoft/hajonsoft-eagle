@@ -44,6 +44,10 @@ const config = [
     regex: "https://ehaj.haj.gov.sa/EH/pages/home/dashboard.xhtml",
   },
   {
+    name: "list-pilgrims",
+    regex: "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/List.xhtml",
+  },
+  {
     name: "add-mission-pilgrim",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml",
@@ -54,19 +58,11 @@ const config = [
           "#hajonsoft_select",
           (el) => el.value
         );
-        console.log('%c 🍡 selectedTraveler: ', 'font-size:20px;background-color: #EA7E5C;color:#fff;', selectedTraveler);
         if (selectedTraveler) {
           fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
           const data = fs.readFileSync("./data.json", "utf-8");
           var passengersData = JSON.parse(data);
-          await page.focus("#passportCaptureStatus");
-          if (selectedTraveler == "-1") {
-            const browser = await page.browser();
-            browser.disconnect();
-          }
-          var passenger = passengersData.travellers[selectedTraveler];
-          await page.keyboard.type(passenger.codeline);
-
+          await pasteCodeLine(selectedTraveler, passengersData);
         }
       },
     },
@@ -76,13 +72,6 @@ const config = [
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Add3.xhtml",
     details: [
-      {
-        selector: "#reference1",
-        value: (row) =>
-          row.slug < 40
-            ? row.slug
-            : row.slug.substring(row.slug.length - 40, row.slug.length),
-      },
       {
         selector: "#fatherNameEn",
         value: (row) => row.name.father,
@@ -105,7 +94,7 @@ const config = [
       },
       {
         selector: "#idno",
-        value: (row) => row.passportNumber,
+        value: (row) => moment().valueOf().toString(),
       },
       {
         selector: "#iqamaNo",
@@ -134,6 +123,16 @@ const config = [
     regex: "https://ehaj.haj.gov.sa/EH/sms-confirm.xhtml",
   },
 ];
+
+async function pasteCodeLine(selectedTraveler, passengersData) {
+  await page.focus("#passportCaptureStatus");
+  if (selectedTraveler == "-1") {
+    const browser = await page.browser();
+    browser.disconnect();
+  }
+  var passenger = passengersData.travellers[selectedTraveler];
+  await page.keyboard.type(passenger.codeline);
+}
 
 async function send(sendData) {
   data = sendData;
@@ -212,16 +211,66 @@ async function pageContentHandler(currentConfig) {
         "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml"
       );
       break;
+    case "list-pilgrims":
+      // TODO: Inject eagle import current view, or cancel all 
+      break;
     case "add-mission-pilgrim":
       await util.controller(page, currentConfig, data.travellers);
+      // await page.waitForXPath(`//*[@id="j_idt3419"]/div/ul/li/span`, {timeout: 1000});
+      const ehajNumberNode = await page.$x(`//*[@id="j_idt3419"]/div/ul/li/span`)
+      if (ehajNumberNode && Array.isArray(ehajNumberNode) && ehajNumberNode.length > 0) {
+        const ehajNumberLine = await ehajNumberNode[0].evaluate((node) => node.innerText);
+        const ehajNumberMatch = ehajNumberLine.match(/#[0-9]{7,8}/);
+        if (ehajNumberMatch) {
+          fs.writeFileSync(path.join(__dirname, passenger.passportNumber), JSON.stringify({ehajNumber: ehajNumberMatch[0]}))
+        }
+      }
       await page.waitForSelector("#proceedButton > div > input", {
         visible: true,
         timeout: 0,
       });
+      await page.waitForTimeout(2000);
       await page.click("#proceedButton > div > input");
       break;
     case "add-mission-pilgrim-3":
+      await page.waitForSelector('#pass');
+      const visiblePassportNumber = await page.$eval(
+        '#pass',
+        (el) => el.value
+      );
+      if (!visiblePassportNumber) {
+        await page.goto("https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml")
+        return;
+      }
+      // TODO: Fix remember manual info
+      await page.$eval("#formData > h3:nth-child(15)", (el) => {
+        el.outerHtml = `
+        <button onClick="updateEhajBudgie()">Remember تذكر</button>`
+      });
+      try {
+        await page.exposeFunction(
+          "updateEhajBudgie",
+          () => {
+            // Get vaccine type
+            // vaccine date
+            // vaccine second date if any
+            // address
+            // store into Budgie
+          }
+        );
+      } catch {
+        console.log('updateEhajBudgie')
+      }
       await util.commit(page, currentConfig.details, passenger);
+      await util.commit(page, [
+        {
+          selector: "#reference1",
+          value: (row) =>
+            row.caravan < 40
+              ? row.caravan
+              : row.caravan.substring(row.caravan.length - 40, row.caravan.length),
+        }
+      ], data.info);
       await page.select("#passportType", "1");
       await page.select("#vaccineType", "1");
       await page.waitForSelector("#hdcviSecondDoseDate");
