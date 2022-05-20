@@ -10,7 +10,7 @@ const _ = require("lodash");
 let data;
 let scanInputFolder;
 let visionResultFolder;
-const visionKeyFilePath = path.join(__dirname, "scan/auth/key.json");
+const visionKeyFilePath = path.join(__dirname, ".." , "scan/auth/key.json");
 
 function createSandbox() {
   scanInputFolder = path.join(__dirname, "..", "scan", "input");
