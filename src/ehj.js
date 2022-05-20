@@ -88,7 +88,7 @@ const config = [
       },
       {
         selector: "#address",
-        value: (row) => budgie.get("ehaj_pilgrim_address") || row.address,
+        value: (row) => budgie.get("ehaj_pilgrim_address", row.address),
       },
       {
         selector: "#passportIssueDate",
@@ -260,9 +260,31 @@ async function pageContentHandler(currentConfig) {
           action: async () => {
             const address = await page.$eval("#address", (el) => el.value);
             budgie.save("ehaj_pilgrim_address", address);
-            const vaccineType = await page.$eval("#vaccineType", (el) => el.value);
+            const vaccineType = await page.$eval(
+              "#vaccineType",
+              (el) => el.value
+            );
             budgie.save("ehaj_pilgrim_vaccine_type", vaccineType);
-            await page.select("#vaccineType", budgie.get("ehaj_pilgrim_vaccine_type", 1));
+
+            // const passportType = await page.$eval(
+            //   "#passportType",
+            //   (el) => el.value
+            // );
+            // budgie.save("ehaj_pilgrim_passport_type", passportType);
+
+            const firstDoseDate = await page.$eval(
+              "#hdcviFirstDoseDate",
+              (el) => el.value
+            );
+            budgie.save("ehaj_pilgrim_vaccine_1_date", firstDoseDate);
+            const isSecondDoseRequired = await page.$("#hdcviSecondDoseDate");
+            if (isSecondDoseRequired) {
+              const secondDoseDate = await page.$eval(
+                "#hdcviSecondDoseDate",
+                (el) => el.value
+              );
+              budgie.save("ehaj_pilgrim_vaccine_2_date", secondDoseDate);
+            }
           },
         },
       });
@@ -284,16 +306,34 @@ async function pageContentHandler(currentConfig) {
         data.info
       );
       await page.select("#passportType", "1");
-      await page.select("#vaccineType", budgie.get("ehaj_pilgrim_vaccine_type", 1));
-      await page.waitForSelector("#hdcviSecondDoseDate");
+      await page.select(
+        "#vaccineType",
+        budgie.get("ehaj_pilgrim_vaccine_type", 1)
+      );
+      await page.waitForSelector("#hdcviFirstDoseDate")
+
       await page.type(
         "#hdcviFirstDoseDate",
         moment().add(-60, "days").format("DD/MM/YYYY")
+
+        // budgie.get(
+        //   "ehaj_pilgrim_vaccine_1_date",
+        //   moment().add(-60, "days").format("DD/MM/YYYY")
+        // )
       );
-      await page.type(
-        "#hdcviSecondDoseDate",
-        moment().add(-30, "days").format("DD/MM/YYYY")
-      );
+      await page.waitForTimeout(1000);
+      const isSecondDoseRequired = await page.$("#hdcviSecondDoseDate");
+      if (isSecondDoseRequired) {
+        await page.type(
+          "#hdcviSecondDoseDate",
+          moment().add(-30, "days").format("DD/MM/YYYY")
+          // budgie.get(
+          //   "ehaj_pilgrim_vaccine_2_date",
+          //   moment().add(-30, "days").format("DD/MM/YYYY")
+          // )
+        );
+      }
+
       // TODO: // Wait for #iqamaNo if the passenger nationality is not equal to local nationality
 
       // await page.waitForSelector("#iqamaNo")
@@ -317,8 +357,10 @@ async function pageContentHandler(currentConfig) {
       );
       await page.click("#vaccine_attmnt_1_input");
       await util.commitFile("#vaccine_attmnt_1_input", resizedVaccinePath);
-      await page.click("#vaccine_attmnt_2_input");
-      await util.commitFile("#vaccine_attmnt_2_input", resizedVaccinePath2);
+      if (isSecondDoseRequired) {
+        await page.click("#vaccine_attmnt_2_input");
+        await util.commitFile("#vaccine_attmnt_2_input", resizedVaccinePath2);
+      }
       await page.waitForTimeout(1000);
       await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);

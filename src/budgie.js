@@ -17,7 +17,7 @@ function get(key, defaultValue) {
     return data;
   }
   save(key, (defaultValue ?? '').toString());
-  return defaultValue || key;
+  return (defaultValue || key).toString();
 }
 
 function save(key, value) {
