@@ -19,6 +19,7 @@ function createSandbox() {
   }
 
   visionResultFolder = path.join(__dirname, "..", "scan", "output", "vision");
+  console.log('%cMyProject%cline:21%cvisionResultFolder', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(95, 92, 51);padding:3px;border-radius:2px', visionResultFolder)
   if (!fs.existsSync(visionResultFolder)) {
     fs.mkdirSync(visionResultFolder, { recursive: true });
   }
