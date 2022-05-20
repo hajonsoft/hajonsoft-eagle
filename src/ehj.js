@@ -4,6 +4,7 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const path = require("path");
+const budgie = require("./budgie");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
@@ -45,7 +46,8 @@ const config = [
   },
   {
     name: "list-pilgrims",
-    regex: "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/List.xhtml",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/List.xhtml",
   },
   {
     name: "add-mission-pilgrim",
@@ -86,7 +88,7 @@ const config = [
       },
       {
         selector: "#address",
-        value: (row) => row.address,
+        value: (row) => budgie.get("ehaj_pilgrim_address") || row.address,
       },
       {
         selector: "#passportIssueDate",
@@ -212,17 +214,28 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "list-pilgrims":
-      // TODO: Inject eagle import current view, or cancel all 
+      // TODO: Inject eagle import current view, or cancel all
       break;
     case "add-mission-pilgrim":
       await util.controller(page, currentConfig, data.travellers);
       // await page.waitForXPath(`//*[@id="j_idt3419"]/div/ul/li/span`, {timeout: 1000});
-      const ehajNumberNode = await page.$x(`//*[@id="j_idt3419"]/div/ul/li/span`)
-      if (ehajNumberNode && Array.isArray(ehajNumberNode) && ehajNumberNode.length > 0) {
-        const ehajNumberLine = await ehajNumberNode[0].evaluate((node) => node.innerText);
+      const ehajNumberNode = await page.$x(
+        `//*[@id="j_idt3419"]/div/ul/li/span`
+      );
+      if (
+        ehajNumberNode &&
+        Array.isArray(ehajNumberNode) &&
+        ehajNumberNode.length > 0
+      ) {
+        const ehajNumberLine = await ehajNumberNode[0].evaluate(
+          (node) => node.innerText
+        );
         const ehajNumberMatch = ehajNumberLine.match(/#[0-9]{7,8}/);
         if (ehajNumberMatch) {
-          fs.writeFileSync(path.join(__dirname, passenger.passportNumber), JSON.stringify({ehajNumber: ehajNumberMatch[0]}))
+          fs.writeFileSync(
+            path.join(__dirname, passenger.passportNumber),
+            JSON.stringify({ ehajNumber: ehajNumberMatch[0] })
+          );
         }
       }
       await page.waitForSelector("#proceedButton > div > input", {
@@ -233,46 +246,45 @@ async function pageContentHandler(currentConfig) {
       await page.click("#proceedButton > div > input");
       break;
     case "add-mission-pilgrim-3":
-      await page.waitForSelector('#pass');
-      const visiblePassportNumber = await page.$eval(
-        '#pass',
-        (el) => el.value
-      );
+      await page.waitForSelector("#pass");
+      const visiblePassportNumber = await page.$eval("#pass", (el) => el.value);
       if (!visiblePassportNumber) {
-        await page.goto("https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml")
+        await page.goto(
+          "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml"
+        );
         return;
       }
-      // TODO: Fix remember manual info
-      await page.$eval("#formData > h3:nth-child(15)", (el) => {
-        el.outerHtml = `
-        <button onClick="updateEhajBudgie()">Remember تذكر</button>`
+      await util.budgieController(page, {
+        controller: {
+          selector: "#formData > h3:nth-child(15)",
+          action: async () => {
+            const address = await page.$eval("#address", (el) => el.value);
+            budgie.save("ehaj_pilgrim_address", address);
+            const vaccineType = await page.$eval("#vaccineType", (el) => el.value);
+            budgie.save("ehaj_pilgrim_vaccine_type", vaccineType);
+            await page.select("#vaccineType", budgie.get("ehaj_pilgrim_vaccine_type", 1));
+          },
+        },
       });
-      try {
-        await page.exposeFunction(
-          "updateEhajBudgie",
-          () => {
-            // Get vaccine type
-            // vaccine date
-            // vaccine second date if any
-            // address
-            // store into Budgie
-          }
-        );
-      } catch {
-        console.log('updateEhajBudgie')
-      }
       await util.commit(page, currentConfig.details, passenger);
-      await util.commit(page, [
-        {
-          selector: "#reference1",
-          value: (row) =>
-            row.caravan < 40
-              ? row.caravan
-              : row.caravan.substring(row.caravan.length - 40, row.caravan.length),
-        }
-      ], data.info);
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#reference1",
+            value: (row) =>
+              row.caravan < 40
+                ? row.caravan
+                : row.caravan.substring(
+                    row.caravan.length - 40,
+                    row.caravan.length
+                  ),
+          },
+        ],
+        data.info
+      );
       await page.select("#passportType", "1");
-      await page.select("#vaccineType", "1");
+      await page.select("#vaccineType", budgie.get("ehaj_pilgrim_vaccine_type", 1));
       await page.waitForSelector("#hdcviSecondDoseDate");
       await page.type(
         "#hdcviFirstDoseDate",

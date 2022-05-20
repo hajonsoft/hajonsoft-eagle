@@ -23,7 +23,6 @@ function createSandbox() {
     fs.mkdirSync(visionResultFolder, { recursive: true });
   }
 
-  console.log('%cMyProject%cline:26%cvisionKeyFilePath', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(222, 125, 44);padding:3px;border-radius:2px', visionKeyFilePath)
   if (!fs.existsSync(visionKeyFilePath)) {
     throw new Error("vision key file not found");
   }
