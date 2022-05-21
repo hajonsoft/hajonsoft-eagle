@@ -214,7 +214,71 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "list-pilgrims":
-      // TODO: Inject eagle import current view, or cancel all
+      const ehajNumbers = [];
+      await util.commander(page, {
+        controller: {
+          selector: "#j_idt3413 > ul > li:nth-child(3)",
+          title: "Import current view",
+          arabicTitle: "استيراد الصفحه",
+          name: "importEhajNumber",
+          action: async () => {
+            for (let i = 1; i <= 100; i++) {
+              const isRowValid = await page.$(
+                `tbody > tr:nth-child(${i}) > td:nth-child(1)`
+              );
+              if (!isRowValid) {
+                break;
+              }
+
+              const ehajNumber = await page.$eval(
+                `tbody > tr:nth-child(${i}) > td:nth-child(1)`,
+                (el) => el.innerText
+              );
+              const mofaNumber = await page.$eval(
+                `tbody > tr:nth-child(${i}) > td:nth-child(2)`,
+                (el) => el.innerText
+              );
+              const passportNumber = await page.$eval(
+                `tbody > tr:nth-child(${i}) > td:nth-child(4)`,
+                (el) => el.innerText
+              );
+              if (!ehajNumber) {
+                break;
+              }
+
+              const status = await page.$eval(
+                `tbody > tr:nth-child(${i}) > td:nth-child(11) > span`,
+                (el) => el.innerText
+              );
+              // if (
+              //   status.toLowerCase().includes("cancel") ||
+              //   status.toLowerCase().includes("not") ||
+              //   status.toLowerCase().includes("reject")
+              // ) {
+              //   continue;
+              // }
+              ehajNumbers.push(ehajNumber);
+              fs.writeFileSync(
+                passportNumber,
+                JSON.stringify({
+                  ehajNumber,
+                  mofaNumber,
+                  passportNumber,
+                })
+              );
+            }
+
+            await page.evaluate((ehajNumbers) => {
+              const eagleButton = document.querySelector(
+                "#j_idt3413 > ul > div > button"
+              );
+              eagleButton.textContent = `Done... [${ehajNumbers[0]}-${
+                ehajNumbers[ehajNumbers.length - 1]
+              }]`;
+            }, ehajNumbers);
+          },
+        },
+      });
       break;
     case "add-mission-pilgrim":
       await util.controller(page, currentConfig, data.travellers);
@@ -254,9 +318,11 @@ async function pageContentHandler(currentConfig) {
         );
         return;
       }
-      await util.budgieController(page, {
+      await util.commander(page, {
         controller: {
           selector: "#formData > h3:nth-child(15)",
+          title: "Remember",
+          arabicTitle: "تذكر",
           action: async () => {
             const address = await page.$eval("#address", (el) => el.value);
             budgie.save("ehaj_pilgrim_address", address);
@@ -310,7 +376,7 @@ async function pageContentHandler(currentConfig) {
         "#vaccineType",
         budgie.get("ehaj_pilgrim_vaccine_type", 1)
       );
-      await page.waitForSelector("#hdcviFirstDoseDate")
+      await page.waitForSelector("#hdcviFirstDoseDate");
 
       await page.type(
         "#hdcviFirstDoseDate",

@@ -110,6 +110,7 @@ instead of fileChooser below
       // 5. Accept the image into the file chooser
       await fileChooser.accept([resizedPhotoPath]);
 ```
+
 ## user message
 Since we communicate with advanced eagle users in these messages, we color console.log messages 
 
@@ -143,4 +144,11 @@ To use vision api, enable billing in [console.googlcloud.com](https://console.cl
 2- Resending is awesome
 3- Reuse the same data to print artifacts
 4- capture important data as they appear on screen like mofa number
+
+## References
+css escape characters. Sometimes an external visa system uses special character in the selector like . or : (\3A)
+
+CSS represents escaped characters in a different way. Escapes start with a backslash followed by the hexadecimal number that represents the character's hexadecimal Unicode code point value.
+
+https://www.w3.org/International/questions/qa-escapes#:~:text=CSS%20represents%20escaped%20characters%20in,that%20is%20all%20you%20need.
 
