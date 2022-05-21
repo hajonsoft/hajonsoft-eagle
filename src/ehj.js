@@ -250,13 +250,13 @@ async function pageContentHandler(currentConfig) {
                 `tbody > tr:nth-child(${i}) > td:nth-child(11) > span`,
                 (el) => el.innerText
               );
-              // if (
-              //   status.toLowerCase().includes("cancel") ||
-              //   status.toLowerCase().includes("not") ||
-              //   status.toLowerCase().includes("reject")
-              // ) {
-              //   continue;
-              // }
+              if (
+                status.toLowerCase().includes("cancel") ||
+                status.toLowerCase().includes("not") ||
+                status.toLowerCase().includes("reject")
+              ) {
+                continue;
+              }
               ehajNumbers.push(ehajNumber);
               fs.writeFileSync(
                 passportNumber,
