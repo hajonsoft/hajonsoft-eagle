@@ -328,7 +328,7 @@ async function createCodelineFile(
   label0Mrz1(data, suggested);
 
   let mrz1;
-  ({ mrz1, suggested } = await getChoiceMrz1(suggested, passportImagePath));
+  ({ mrz1, suggested } = await chooseMrz1(suggested, passportImagePath));
 
   label0Mrz2(data, suggested);
   let mrz2;
@@ -375,6 +375,7 @@ async function chooseMrz2(suggested, passportImagePath) {
   if (linesWith44.length === 1) {
     return { mrz2: linesWith44[0], suggested: [] };
   }
+  suggested.push('-Edit-');
 
   const answersMrz2 = await inquirer.prompt([
     {
@@ -387,6 +388,16 @@ async function chooseMrz2(suggested, passportImagePath) {
     },
   ]);
   let mrz2 = answersMrz2.mrz2;
+  if (mrz2 === '-Edit-') {
+    const answersMrz2Edit = await inquirer.prompt([
+      {
+        type: "input",
+        message: "Enter MRZ2",
+        name: "mrz2",
+      },
+    ]);
+    mrz2 = answersMrz2Edit.mrz2;
+  }
   suggested = suggested.filter((s) => s != mrz2);
   suggested.push("<");
 
@@ -485,7 +496,7 @@ async function validateOrAskMrz2(text, imagePath) {
   return answersMrz2.mrz2;
 }
 
-async function getChoiceMrz1(suggested, passportImagePath) {
+async function chooseMrz1(suggested, passportImagePath) {
   // Check if you can capture it without asking the user
   const suggestedMrz1 = suggested
     .filter((entry) =>
@@ -512,6 +523,7 @@ async function getChoiceMrz1(suggested, passportImagePath) {
       suggested: suggested.filter((x) => x != suggestedMrz1[0]),
     };
   }
+  suggestedMrz1.push('-Edit-')
   // Ask the user for help and provide suggestions
   const answers = await inquirer.prompt([
     {
@@ -524,6 +536,16 @@ async function getChoiceMrz1(suggested, passportImagePath) {
     },
   ]);
   let mrz1 = answers.mrz1;
+  if (mrz1 === '-Edit-') {
+    const answersMrz1Edit = await inquirer.prompt([
+      {
+        type: "input",
+        message: "Enter MRZ1",
+        name: "mrz1",
+      },
+    ]);
+    mrz1 = answersMrz1Edit.mrz1;
+  }
   suggested = suggested.filter((s) => s != mrz1);
   if (mrz1.length < 44 && mrz1.endsWith("<<<")) {
     mrz1 = await validateOrAskMrz1(mrz1, passportImagePath);
