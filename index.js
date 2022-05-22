@@ -180,145 +180,131 @@ async function runGetSMSNumber() {
     api_key = defaultSMSAPIKeyMustOverride;
   }
 
-  inquirer
-    .prompt({
-      type: "input",
-      message: `do you want to override api_Key:${api_key}? new api_key: [Enter for default]:`,
-      name: "api_key",
-    })
-    .then(async (answers) => {
-      console.log(answers.api_key);
-      if (answers.api_key) {
-        api_key = answers.api_key;
-        fs.writeFileSync("./api_key", answers.api_key);
-      } else {
-        if (!api_key) {
-          // double check in case api_key is undefiend to this stage - force HAJonSoft api_key
-          api_key = defaultSMSAPIKeyMustOverride;
-        }
+  const incomingApiKey = await inquirer.prompt({
+    type: "input",
+    message: `do you want to override api_Key:${api_key}? new api_key: [Enter for default]:`,
+    name: "api_key",
+  });
 
-        let balance = "";
-        const balanceInquiry = await axios.get(
-          `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getBalance`
-        );
-        if (balanceInquiry.status === 200) {
-          balance = balanceInquiry.data;
-          console.log(balanceInquiry.data);
-        }
-        let activation = "";
-        if (fs.existsSync("./activation")) {
-          activation = fs.readFileSync("./activation", "utf-8");
-        }
-        if (activation) {
-          const activationInquiry = axios.get(
-            `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getStatus&id=${activation}`
-          );
-          if (activationInquiry.status === 200) {
-            console.log(activationInquiry.data);
-          }
-        }
-        if (activation) {
-          if (activation === "NO_NUMBERS") {
-            fs.unlinkSync("./activation");
-            return console.log(balance, activation);
-          }
-          console.log(
-            `existing activation ${activation} must be used first, can not request new number`
-          );
-          inquirer
-            .prompt([
-              {
-                type: "list",
-                message: `Existing activation ${activation}?`,
-                name: "activationAction",
-                choices: [`1- cancel`, `2- code sent`, `3- status`],
-              },
-            ])
-            .then(async (answers) => {
-              const activationId = activation.split(":")[1];
-              if (answers.activationAction) {
-                if (answers.activationAction.startsWith("1-")) {
-                  const cancelInquiry = await axios.get(
-                    `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=setStatus&status=8&id=${activationId}`
-                  );
-                  if (cancelInquiry.status === 200) {
-                    console.log(balance, cancelInquiry.data);
-                    return fs.unlinkSync("./activation");
-                  }
-                }
-                if (answers.activationAction.startsWith("2-")) {
-                  const codeInquiry = await axios.get(
-                    `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=setStatus&status=1&id=${activationId}`
-                  );
-                  if (codeInquiry.status === 200) {
-                    console.log(balance, codeInquiry.data);
-                  }
-                }
-                if (answers.activationAction.startsWith("3-")) {
-                  const activationId = activation.split(":")[1];
-                  const statusInquiry = await axios.get(
-                    `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getStatus&id=${activationId}`
-                  );
-                  if (statusInquiry.status === 200) {
-                    console.log(statusInquiry.data);
-                    if (statusInquiry.data.startsWith("STATUS_OK")) {
-                      // Mark activation complete
-                      const completeInquiry = await axios.get(
-                        `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=setStatus&status=6&id=${activationId}`
-                      );
-                      if (completeInquiry.status === 200) {
-                        console.log(balance, completeInquiry.data);
-                        return fs.unlinkSync("./activation");
-                      }
-                    }
-                  }
-                }
-              }
-            });
-          return;
-        }
-        let country = "";
-        if (fs.existsSync("./country")) {
-          country = fs.readFileSync("./country", "utf-8");
-        }
-        const countriesInquiry = await axios.get(
-          `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getCountries`
-        );
-        if (countriesInquiry.status === 200) {
-          inquirer
-            .prompt([
-              {
-                type: "list",
-                name: "country",
-                message: `change country: ${country}`,
-                choices: [
-                  `${country}`,
-                  ...Object.values(countriesInquiry.data)
-                    .filter((country) => country.visible)
-                    .map((country) => `${country.id}:${country.eng}`),
-                ],
-              },
-            ])
-            .then(async (answers) => {
-              console.log(answers.country);
-              country = answers.country.split(":")[0] | "0"; // russia by default
-              return fs.writeFileSync(
-                "./country",
-                answers.country.split(":")[0]
-              );
-            });
-        }
+  if (incomingApiKey.api_key && incomingApiKey.api_key.length > 0) {
+    api_key = incomingApiKey.api_key;
+    fs.writeFileSync("./api_key", answers.api_key);
+  }
 
-        const numberInquiry = await axios.get(
-          `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getNumber&service=ot&country=${country}&freePrice=true&maxPrice=1`
+  let balance = "";
+  const balanceInquiry = await axios.get(
+    `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getBalance`
+  );
+  if (balanceInquiry.status === 200) {
+    balance = balanceInquiry.data;
+    console.log(balanceInquiry.data);
+  }
+  let activation = "";
+  if (fs.existsSync("./activation")) {
+    activation = fs.readFileSync("./activation", "utf-8");
+  }
+  if (activation) {
+    const activationInquiry = axios.get(
+      `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getStatus&id=${activation}`
+    );
+    if (activationInquiry.status === 200) {
+      console.log(activationInquiry.data);
+    }
+  }
+  if (activation) {
+    if (activation === "NO_NUMBERS") {
+      fs.unlinkSync("./activation");
+      return console.log(balance, activation);
+    }
+    console.log(
+      `existing activation ${activation} must be used first, can not request new number`
+    );
+    const incomingActivationChoice = await inquirer.prompt([
+      {
+        type: "list",
+        message: `Existing activation ${activation}?`,
+        name: "activationAction",
+        choices: [`1- cancel`, `2- code sent`, `3- status`],
+      },
+    ]);
+    const activationId = activation.split(":")[1];
+    if (incomingActivationChoice.activationAction) {
+      if (incomingActivationChoice.activationAction.startsWith("1-")) {
+        const cancelInquiry = await axios.get(
+          `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=setStatus&status=8&id=${activationId}`
         );
-        if (numberInquiry.status === 200) {
-          console.log(numberInquiry.data);
-          fs.writeFileSync("./activation", numberInquiry.data);
+        if (cancelInquiry.status === 200) {
+          console.log(balance, cancelInquiry.data);
+          return fs.unlinkSync("./activation");
         }
       }
-    });
+      if (incomingActivationChoice.activationAction.startsWith("2-")) {
+        const codeInquiry = await axios.get(
+          `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=setStatus&status=1&id=${activationId}`
+        );
+        if (codeInquiry.status === 200) {
+          console.log(balance, codeInquiry.data);
+        }
+      }
+      if (incomingActivationChoice.activationAction.startsWith("3-")) {
+        const activationId = activation.split(":")[1];
+        const statusInquiry = await axios.get(
+          `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getStatus&id=${activationId}`
+        );
+        if (statusInquiry.status === 200) {
+          console.log(statusInquiry.data);
+          if (statusInquiry.data.startsWith("STATUS_OK")) {
+            // Mark activation complete
+            const completeInquiry = await axios.get(
+              `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=setStatus&status=6&id=${activationId}`
+            );
+            if (completeInquiry.status === 200) {
+              console.log(balance, completeInquiry.data);
+              return fs.unlinkSync("./activation");
+            }
+          }
+        }
+      }
+    }
+    return;
+  }
+  let country = "";
+  if (fs.existsSync("./country")) {
+    country = fs.readFileSync("./country", "utf-8");
+  }
+  const countriesInquiry = await axios.get(
+    `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getCountries`
+  );
+  if (countriesInquiry.status === 200) {
+    const incomingCountry = await inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "country",
+          message: `change country: ${country}`,
+          choices: [
+            `${country}`,
+            ...Object.values(countriesInquiry.data)
+              .filter((country) => country.visible)
+              .map((country) => `${country.id}:${country.eng}`),
+          ],
+        },
+      ])
+        console.log(incomingCountry.country);
+        country = incomingCountry.country.split(":")[0] | "2"; // kazakhestan by default
+        fs.writeFileSync("./country", incomingCountry.country.split(":")[0]);
+  }
+
+  const numberInquiry = await axios.get(
+    `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getNumber&service=dp&country=${country}&freePrice=true&maxPrice=1`
+  );
+  if (numberInquiry.status === 200) {
+    console.log(numberInquiry.data);
+    fs.writeFileSync("./activation", numberInquiry.data);
+  }
 }
+
+
 const visionFolder = path.join(__dirname, "scan", "output", "vision");
 const inputFolder = path.join(__dirname, "scan", "input");
 const folder3M = path.join(__dirname, "scan", "output", "3M");
@@ -342,7 +328,12 @@ async function generateFour3MFiles(file, json) {
     return true;
   }
 
-  const isCodelineDone = await createCodelineFile(folder3M, json, uniqueNumber, path.join(inputFolder, file.replace(".json", "")));
+  const isCodelineDone = await createCodelineFile(
+    folder3M,
+    json,
+    uniqueNumber,
+    path.join(inputFolder, file.replace(".json", ""))
+  );
   if (!isCodelineDone) {
     console.warn("codeline failed");
     return false;
@@ -365,7 +356,9 @@ async function generateFour3MFiles(file, json) {
     uniqueNumber
   );
   if (!isImageVisDone) {
-    console.warn("image vis not done because passport image is not found. Ok for testing");
+    console.warn(
+      "image vis not done because passport image is not found. Ok for testing"
+    );
     return false;
   }
 

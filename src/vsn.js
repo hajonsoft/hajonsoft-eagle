@@ -354,7 +354,6 @@ function label0Mrz1(data, suggested) {
   const firstLabel = data.textAnnotations[0].description;
   firstLabel.split("\n").forEach((line) => {
     const clean = line.replace(/\s/g, '');
-    console.log('%cMyProject%cline:356%cclean', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(20, 68, 106);padding:3px;border-radius:2px', clean)
     if (/P[A-Z0-9<][A-Z]{3}<*?[A-Z]{1,15}<[A-Z]{1,15}</.test(clean)) {
       suggested.push(clean);
     }
