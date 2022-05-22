@@ -365,7 +365,7 @@ async function generateFour3MFiles(file, json) {
     uniqueNumber
   );
   if (!isImageVisDone) {
-    console.warn("image vis failed");
+    console.warn("image vis not done because passport image is not found. Ok for testing");
     return false;
   }
 

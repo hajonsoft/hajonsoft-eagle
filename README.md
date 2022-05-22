@@ -140,10 +140,13 @@ To use vision api, enable billing in [console.googlcloud.com](https://console.cl
 
 ## Benefits of Eagle
 
-1- Quick atomic send (no looking for photos, vaccine file or residence permit) especially if you have to resent
-2- Resending is awesome
+1- Quick atomic send (no looking for photos, vaccine file or residence permit)
+2- What if you have to re-enter the same passport? one click with eagle vs all clicks and manual entry all over
 3- Reuse the same data to print artifacts
 4- capture important data as they appear on screen like mofa number
+5- Platform for support. We can't support outside HAJonSoft. We can send thousands of passports quickly.
+6- Reduce risk of Ehaj timeout
+7- With google vision, You don't need expensive 3M scanner. We read issue date too.
 
 ## References
 css escape characters. Sometimes an external visa system uses special character in the selector like . or : (\3A)

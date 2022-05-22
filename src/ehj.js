@@ -331,13 +331,6 @@ async function pageContentHandler(currentConfig) {
               (el) => el.value
             );
             budgie.save("ehaj_pilgrim_vaccine_type", vaccineType);
-
-            // const passportType = await page.$eval(
-            //   "#passportType",
-            //   (el) => el.value
-            // );
-            // budgie.save("ehaj_pilgrim_passport_type", passportType);
-
             const firstDoseDate = await page.$eval(
               "#hdcviFirstDoseDate",
               (el) => el.value

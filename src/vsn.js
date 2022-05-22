@@ -10,7 +10,7 @@ const _ = require("lodash");
 let data;
 let scanInputFolder;
 let visionResultFolder;
-const visionKeyFilePath = path.join(__dirname, ".." , "scan/auth/key.json");
+const visionKeyFilePath = path.join(__dirname, "..", "scan/auth/key.json");
 
 function createSandbox() {
   scanInputFolder = path.join(__dirname, "..", "scan", "input");
@@ -217,13 +217,12 @@ function getIssueDate(labels) {
         if (date.isValid()) {
           parsedDates.push(date.format("YYYY-MM-DD"));
         }
-      } else if (dt.includes(' ') && /[A-Za-z]/.test(dt)) {
+      } else if (dt.includes(" ") && /[A-Za-z]/.test(dt)) {
         //24 Jul 2018
         const date = moment(dt, "DD MMM YYYY");
         if (date.isValid()) {
           parsedDates.push(date.format("YYYY-MM-DD"));
         }
-
       }
     });
     parsedDates = parsedDates.filter(
@@ -325,9 +324,13 @@ async function createCodelineFile(
     .map((l) => l.text.replace(/[^A-Z0-9<]/g, ""))
     .filter((a) => a && a.length > 5)
     .slice(0, 9);
+  // get MRZ1 from the first label
+  label0Mrz1(data, suggested);
+
   let mrz1;
   ({ mrz1, suggested } = await getChoiceMrz1(suggested, passportImagePath));
 
+  label0Mrz2(data, suggested);
   let mrz2;
   ({ mrz2, suggested } = await chooseMrz2(suggested, passportImagePath));
   writeCodeLineSync(mrz1, mrz2, folder3M, uniqueNumber);
@@ -347,6 +350,27 @@ async function createCodelineFile(
   return true;
 }
 
+function label0Mrz1(data, suggested) {
+  const firstLabel = data.textAnnotations[0].description;
+  firstLabel.split("\n").forEach((line) => {
+    const clean = line.replace(/\s/g, '');
+    console.log('%cMyProject%cline:356%cclean', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(20, 68, 106);padding:3px;border-radius:2px', clean)
+    if (/P[A-Z0-9<][A-Z]{3}<*?[A-Z]{1,15}<[A-Z]{1,15}</.test(clean)) {
+      suggested.push(clean);
+    }
+  });
+}
+
+function label0Mrz2(data, suggested) {
+  const firstLabel = data.textAnnotations[0].description;
+  firstLabel.split("\n").forEach((line) => {
+    const clean = line.replace(/[^A-Z0-9<]/, '');
+    if (/^[A-Z0-9<]{9}[0-9][A-Z]{3}/.test(clean)) {
+      suggested.push(clean);
+    }
+  });
+}
+
 async function chooseMrz2(suggested, passportImagePath) {
   const linesWith44 = suggested.filter((x) => x.length === 44);
   if (linesWith44.length === 1) {
@@ -356,7 +380,9 @@ async function chooseMrz2(suggested, passportImagePath) {
   const answersMrz2 = await inquirer.prompt([
     {
       type: "list",
-      message: `open -a Preview.app "${passportImagePath}"\nChoose best line for MRZ2 [${"2".repeat(10)}]`,
+      message: `open -a Preview.app "${passportImagePath}"\nChoose best line for MRZ2 [${"2".repeat(
+        10
+      )}]`,
       name: "mrz2",
       choices: suggested,
     },
@@ -491,7 +517,9 @@ async function getChoiceMrz1(suggested, passportImagePath) {
   const answers = await inquirer.prompt([
     {
       type: "list",
-      message: `open -a Preview.app "${passportImagePath}"\nChoose best line for MRZ1 [${"1".repeat(10)}] `,
+      message: `open -a Preview.app "${passportImagePath}"\nChoose best line for MRZ1 [${"1".repeat(
+        10
+      )}] `,
       name: "mrz1",
       choices: suggestedMrz1,
     },
