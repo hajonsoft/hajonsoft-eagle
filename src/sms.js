@@ -27,7 +27,6 @@ async function runGetSMSNumber(country) {
   // }
   // TODO: check status proceed only if status is 0
   const result = await getSMSNumber(api_key, country, numberService);
-  console.log('%c 🥨 result: ', 'font-size:20px;background-color: #42b983;color:#fff;', result);
   // if (result.error) {
   //   return {
   //     error: result.error,
@@ -39,7 +38,7 @@ async function runGetSMSNumber(country) {
 async function getSMSNumber(api_key, country = "0", service) {
   const numberInquiry = await axios.get(
     `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getNumber&service=${service}&country=${country}`
-    );
+  );
 
   if (numberInquiry.status === 200) {
     return numberInquiry.data?.split(":")?.[1];
@@ -114,4 +113,9 @@ async function completeActivationSMSCode(api_key, id, code) {
   }
 }
 
-module.exports = { runGetSMSNumber };
+async function abandoned() {}
+async function getNewNumber() {}
+async function abandoned() {}
+async function abandoned() {}
+
+module.exports = { runGetSMSNumber, abandoned };

@@ -425,6 +425,21 @@ async function pageContentHandler(currentConfig) {
       await util.commitFile("#attachment_input", resizedPhotoPath);
       break;
     case "reserve":
+      // steps
+      // 1. Get new SMS number and store the activationId locally, do not grant new activation unless current activation is abandoned
+      // 2. Get new SMS code
+      // 3. Release the sms number
+      // 4. Grant new activation
+      const isAbandoned = await SMS.abandoned();
+      if (isAbandoned) {
+        return;
+      }
+      const smsNumber = await SMS.getNewNumber();
+      const activationId = await SMS.getActivationId(smsNumber);
+      // user manually click submit in ehaj and the code is sent to the number
+      const smsCode = await SMS.getCode(smsNumber);
+      await SMS.release(smsNumber);
+
 
     default:
       break;
