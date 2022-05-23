@@ -11,6 +11,7 @@ const sharp = require("sharp");
 const homedir = require("os").homedir();
 const SMS = require("./sms");
 const totp = require("totp-generator");
+const { default: axios } = require("axios");
 
 let page;
 let data;
@@ -217,7 +218,8 @@ async function pageContentHandler(currentConfig) {
       const ehajNumbers = [];
       await util.commander(page, {
         controller: {
-          selector: "#j_idt3413 > ul > li:nth-child(3)",
+          // TODO: Replace with a more robust selector
+          selector: "#j_idt3409 > ul > li:nth-child(3)",
           title: "Import current view",
           arabicTitle: "استيراد الصفحه",
           name: "importEhajNumber",
@@ -253,11 +255,35 @@ async function pageContentHandler(currentConfig) {
               if (
                 status.toLowerCase().includes("cancel") ||
                 status.toLowerCase().includes("not") ||
+                status.toLowerCase().includes("لغ") ||
+                status.toLowerCase().includes("رفض") ||
+                status.toLowerCase().includes("لم") ||
                 status.toLowerCase().includes("reject")
               ) {
                 continue;
               }
               ehajNumbers.push(ehajNumber);
+              const config = {
+                headers: { Authorization: `Bearer ${data.info.accessToken}` },
+              };
+              const passengerPath = data.travellers.find(
+                (p) => p.passportNumber === passportNumber
+              )?.path;
+              if (passengerPath) {
+                const url = `${data.info.databaseURL}/${passengerPath}/.json`;
+                try {
+                  await axios.patch(
+                    url,
+                    {
+                      ehajNumber,
+                      mofaNumber,
+                    },
+                    config
+                  );
+                } catch (err) {
+                  console.log(err);
+                }
+              }
               fs.writeFileSync(
                 passportNumber,
                 JSON.stringify({
@@ -439,7 +465,6 @@ async function pageContentHandler(currentConfig) {
       // user manually click submit in ehaj and the code is sent to the number
       const smsCode = await SMS.getCode(smsNumber);
       await SMS.release(smsNumber);
-
 
     default:
       break;
