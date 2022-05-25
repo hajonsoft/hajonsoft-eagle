@@ -437,7 +437,7 @@ function readDataFile() {
   if (fs.existsSync("./data.json")) {
     return JSON.parse(fs.readFileSync("./data.json", "utf-8"));
   }
-  console.err("NO data.json found");
+  console.error("NO data.json found");
 }
 
 function runInteractive() {
