@@ -16,6 +16,7 @@ const {
 } = require("./src/vsn");
 
 const path = require("path");
+const mrz = require("mrz");
 const Cryptr = require("cryptr");
 const fs = require("fs");
 const axios = require("axios");
@@ -27,6 +28,7 @@ const budgie = require("./src/budgie");
 const inquirer = require("inquirer");
 const defaultSMSAPIKeyMustOverride = "88fd2e1A3f4d327740A9408c12872A39";
 
+let data = readDataFile();
 async function main() {
   if (process.argv.includes("-v")) {
     console.log("version: " + version);
@@ -276,23 +278,22 @@ async function runGetSMSNumber() {
     `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getCountries`
   );
   if (countriesInquiry.status === 200) {
-    const incomingCountry = await inquirer
-      .prompt([
-        {
-          type: "list",
-          name: "country",
-          message: `change country: ${country}`,
-          choices: [
-            `${country}`,
-            ...Object.values(countriesInquiry.data)
-              .filter((country) => country.visible)
-              .map((country) => `${country.id}:${country.eng}`),
-          ],
-        },
-      ])
-        console.log(incomingCountry.country);
-        country = incomingCountry.country.split(":")[0] | "2"; // kazakhestan by default
-        fs.writeFileSync("./country", incomingCountry.country.split(":")[0]);
+    const incomingCountry = await inquirer.prompt([
+      {
+        type: "list",
+        name: "country",
+        message: `change country: ${country}`,
+        choices: [
+          `${country}`,
+          ...Object.values(countriesInquiry.data)
+            .filter((country) => country.visible)
+            .map((country) => `${country.id}:${country.eng}`),
+        ],
+      },
+    ]);
+    console.log(incomingCountry.country);
+    country = incomingCountry.country.split(":")[0] | "2"; // kazakhestan by default
+    fs.writeFileSync("./country", incomingCountry.country.split(":")[0]);
   }
 
   const numberInquiry = await axios.get(
@@ -303,7 +304,6 @@ async function runGetSMSNumber() {
     fs.writeFileSync("./activation", numberInquiry.data);
   }
 }
-
 
 const visionFolder = path.join(__dirname, "scan", "output", "vision");
 const inputFolder = path.join(__dirname, "scan", "input");
@@ -369,10 +369,69 @@ async function generateFour3MFiles(file, json) {
   }
 
   fs.writeFileSync(path.join(logFolder, file.replace(".jpg", "")), "hajonsoft");
+  // TODO: Write to firebase
+  const config = {
+    headers: { Authorization: `Bearer ${data.info.accessToken}` },
+  };
+  const url = `${data.info.databaseURL}/customer/${data.info.caravan}-data/.json`;
+  const mrzData = mrz.parse(`P<DZABEN<KHADA<<FATIHA<<<<<<<<<<<<<<<<<<<<<<
+  1663192019DZA7502064F2602084X158<<<<<<<<52`);
+  const body = {
+    name: mrzData.firstName + " " + mrzData.lastName,
+    passportNumber: mrzData.documentNumber,
+    passportDate: mrzData.dateOfBirth,
+    passportExpire: mrzData.dateOfExpiry,
+
+    // documentCode: 'P',
+    // issuingState: 'DZA',
+    // lastName: 'BEN KHADA',
+    // firstName: 'FATIHA',
+    // documentNumber: '  1663192',
+    // documentNumberCheckDigit: '0',
+    // nationality: null,
+    // birthDate: null,
+    // birthDateCheckDigit: null,
+    // sex: null,
+    // expirationDate: null,
+    // expirationDateCheckDigit: null,
+    // personalNumber: '84X158',
+    // personalNumberCheckDigit: null,
+    // compositeCheckDigit: null
+
+  }
+  // try {
+  //   await axios.post(
+  //     url,
+  //     body,
+  //     config
+  //   );
+  // } catch (err) {
+  //   console.log(err);
+  // }
+
   return true;
 }
 
 async function create3MFiles() {
+  const incomingContinue = await inquirer.prompt([
+    {
+      type: "list",
+      name: "mode",
+      choices: ["1- Continue previous run?", "2- Start from beginning?"],
+      message: "continue previous 3M files?",
+    },
+  ]);
+
+  if (incomingContinue.mode.startsWith("2-")) {
+    // cleanup log folder and 3M folder
+    fs.readdirSync(logFolder).forEach((file) => {
+      fs.unlinkSync(path.join(logFolder, file));
+    });
+    fs.readdirSync(folder3M).forEach((file) => {
+      fs.unlinkSync(path.join(folder3M, file));
+    });
+  }
+
   const files = fs.readdirSync(visionFolder);
   createSandBox();
   for (const file of files) {
@@ -386,18 +445,16 @@ async function create3MFiles() {
   console.log(`open "${folder3M}"`);
 }
 
-function runInteractive() {
-  let currentSlug = "";
+function readDataFile() {
   if (fs.existsSync("./data.json")) {
-    const data = JSON.parse(fs.readFileSync("./data.json", "utf-8"));
-    if (data) {
-      currentSlug = data?.travellers?.[0]?.slug;
-    } else {
-      currentSlug = "unknwon Slug";
-    }
-  } else {
-    currentSlug: "NO data.json found - No Slug";
+    return JSON.parse(fs.readFileSync("./data.json", "utf-8"));
   }
+  console.err("NO data.json found");
+}
+
+function runInteractive() {
+  readDataFile();
+  let currentSlug = data?.travellers?.[0]?.slug || "unknwon Slug";
 
   inquirer
     .prompt([
@@ -425,7 +482,7 @@ function runInteractive() {
         return printBudgie();
       }
       if (answers.action.startsWith("3-")) {
-        return console.log("not implmeneted, try node . budgie=KEY:VALUE");
+        return console.log("not implemented, try node . budgie=KEY:VALUE");
       }
       if (answers.action.startsWith("5-")) {
         return runGetSMSNumber();

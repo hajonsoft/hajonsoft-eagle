@@ -20,6 +20,7 @@
     "inquirer": "^8.2.0",
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
+    "mrz": "^3.1.4",
     "puppeteer": "14.0.0",
     "puppeteer-extra": "3.2.3",
     "puppeteer-extra-plugin-stealth": "2.9.0",
