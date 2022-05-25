@@ -378,36 +378,24 @@ async function generateFour3MFiles(file, json) {
   1663192019DZA7502064F2602084X158<<<<<<<<52`);
   const body = {
     name: mrzData.firstName + " " + mrzData.lastName,
+    passPlaceOfIssue: mrzData.issuingState,
     passportNumber: mrzData.documentNumber,
-    passportDate: mrzData.dateOfBirth,
-    passportExpire: mrzData.dateOfExpiry,
-
-    // documentCode: 'P',
-    // issuingState: 'DZA',
-    // lastName: 'BEN KHADA',
-    // firstName: 'FATIHA',
-    // documentNumber: '  1663192',
-    // documentNumberCheckDigit: '0',
-    // nationality: null,
-    // birthDate: null,
-    // birthDateCheckDigit: null,
-    // sex: null,
-    // expirationDate: null,
-    // expirationDateCheckDigit: null,
-    // personalNumber: '84X158',
-    // personalNumberCheckDigit: null,
-    // compositeCheckDigit: null
+    nationality: mrzData.nationality, //TODO: Translate to humming bird
+    birthDate: mrzData.dateOfBirth, //TODO: //format YYYY-MM-DD
+    gender: mrzData.sex, //Translate
+    passExpireDt: mrzData.dateOfExpiry, //translate
+    passIssueDt: '2020-01-01', //Read from json
 
   }
-  // try {
-  //   await axios.post(
-  //     url,
-  //     body,
-  //     config
-  //   );
-  // } catch (err) {
-  //   console.log(err);
-  // }
+  try {
+    await axios.post(
+      url,
+      body,
+      config
+    );
+  } catch (err) {
+    console.log(err.message);
+  }
 
   return true;
 }
