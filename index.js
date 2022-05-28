@@ -44,6 +44,11 @@ async function main() {
     return runInteractive();
   }
 
+  if (process.argv.includes("-download")) {
+     await getDataFileName();
+    await downloadImages();
+  }
+
   if (process.argv.includes("budgie")) {
     printBudgie();
   }
@@ -146,6 +151,7 @@ async function getDataFileName() {
       console.log(`File not found ${fileName}`);
       process.exit(1);
     }
+
     await unzipFile(fileName);
     console.log(
       "\x1b[7m",
@@ -384,15 +390,10 @@ async function generateFour3MFiles(file, json) {
     birthDate: mrzData.dateOfBirth, //TODO: //format YYYY-MM-DD
     gender: mrzData.sex, //Translate
     passExpireDt: mrzData.dateOfExpiry, //translate
-    passIssueDt: '2020-01-01', //Read from json
-
-  }
+    passIssueDt: "2020-01-01", //Read from json
+  };
   try {
-    await axios.post(
-      url,
-      body,
-      config
-    );
+    await axios.post(url, body, config);
   } catch (err) {
     console.log(err.message);
   }
@@ -433,6 +434,28 @@ async function create3MFiles() {
   console.log(`open "${folder3M}"`);
 }
 
+async function downloadImages() {
+  const data = readDataFile();
+  for (const passenger of data.travellers) {
+    for (const [imageType, url] of Object.entries(passenger?.images)) {
+      if (url.includes('.placeholder.com') || imageType.includes('vaccine') || imageType.includes('id')) continue;
+        const image = await axios.get(url, {
+          responseType: "arraybuffer",
+        });
+        const fileName = path.join(
+          inputFolder,
+          imageType,
+          `${passenger.name.full}.jpg`
+        );
+        if (!fs.existsSync(path.join(inputFolder, imageType))) {
+          fs.mkdirSync(path.join(inputFolder, imageType), { recursive: true });
+        }
+        fs.writeFileSync(fileName, Buffer.from(image.data, "binary"));
+        console.log(fileName);
+    }
+  }
+}
+
 function readDataFile() {
   if (fs.existsSync("./data.json")) {
     return JSON.parse(fs.readFileSync("./data.json", "utf-8"));
@@ -442,7 +465,7 @@ function readDataFile() {
 
 function runInteractive() {
   readDataFile();
-  let currentSlug = data?.travellers?.[0]?.slug || "unknwon Slug";
+  let currentSlug = data?.travellers?.[0]?.slug || "unknown Slug";
 
   inquirer
     .prompt([
