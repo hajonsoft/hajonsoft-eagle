@@ -15,6 +15,7 @@ const beautify = require("beautify");
 const homedir = require("os").homedir();
 console.log("HOME: " + homedir);
 const photosFolder = path.join(homedir, "hajonsoft", "photos");
+const idFolder = path.join(homedir, "hajonsoft", "id");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
 const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
 const VISION_DEFICIENCY = "none";
@@ -53,6 +54,9 @@ async function initPage(config, onContentLoaded) {
 
   if (!fs.existsSync(photosFolder)) {
     fs.mkdirSync(photosFolder);
+  }
+  if (!fs.existsSync(idFolder)) {
+    fs.mkdirSync(idFolder);
   }
   if (!fs.existsSync(passportsFolder)) {
     fs.mkdirSync(passportsFolder);
@@ -599,6 +603,13 @@ async function downloadAndResizeImage(
     url = passenger.images.vaccine2;
     if (url.includes("placeholder")) {
       return path.join(__dirname, 'covid-2.jpg')
+    }
+  }
+  if (imageType == "id") {
+    folder = idFolder;
+    url = passenger.images.id;
+    if (url.includes("placeholder")) {
+      return path.join(__dirname, 'id.jpg')
     }
   }
 

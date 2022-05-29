@@ -99,18 +99,6 @@ const config = [
         selector: "#idno",
         value: (row) => moment().valueOf().toString(),
       },
-      {
-        selector: "#iqamaNo",
-        value: (row) => row.idNumber,
-      },
-      {
-        selector: "#iqamaIssueDate",
-        value: (row) => row.passIssueDt.dmy,
-      },
-      {
-        selector: "#iqamaExpiryDate",
-        value: (row) => row.passExpireDt.dmy,
-      },
     ],
   },
   {
@@ -344,9 +332,10 @@ async function pageContentHandler(currentConfig) {
         );
         return;
       }
+      await page.emulateVisionDeficiency("blurredVision"); 
       await util.commander(page, {
         controller: {
-          selector: "#formData > h3:nth-child(15)",
+          selector: "#formData > h3:nth-child(10)",
           title: "Remember",
           arabicTitle: "تذكر",
           action: async () => {
@@ -406,8 +395,9 @@ async function pageContentHandler(currentConfig) {
         //   moment().add(-60, "days").format("DD/MM/YYYY")
         // )
       );
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(500);
       const isSecondDoseRequired = await page.$("#hdcviSecondDoseDate");
+      console.log('%cMyProject%cline:399%cisSecondDoseRequired', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(130, 57, 53);padding:3px;border-radius:2px', isSecondDoseRequired)
       if (isSecondDoseRequired) {
         await page.type(
           "#hdcviSecondDoseDate",
@@ -418,10 +408,39 @@ async function pageContentHandler(currentConfig) {
           // )
         );
       }
+      
+      const isIqamaVisible = await page.$("#iqamaNo");
 
-      // TODO: // Wait for #iqamaNo if the passenger nationality is not equal to local nationality
+      if (isIqamaVisible) {
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#iqamaNo",
+              value: (row) => row.idNumber,
+            },
+            {
+              selector: "#iqamaIssueDate",
+              value: (row) => row.passIssueDt.dmy,
+            },
+            {
+              selector: "#iqamaExpiryDate",
+              value: (row) => row.passExpireDt.dmy,
+            },
+          ],
+          passenger
+        );
+        const resizedId= await util.downloadAndResizeImage(
+          passenger,
+          350,
+          500,
+          "id"
+        );
 
-      // await page.waitForSelector("#iqamaNo")
+        await util.commitFile('#permit_attmnt_input', resizedId)
+
+      }
+
       let resizedPhotoPath = await util.downloadAndResizeImage(
         passenger,
         200,
@@ -446,9 +465,10 @@ async function pageContentHandler(currentConfig) {
         await page.click("#vaccine_attmnt_2_input");
         await util.commitFile("#vaccine_attmnt_2_input", resizedVaccinePath2);
       }
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(500);
       await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
+      await page.emulateVisionDeficiency("none"); 
       break;
     case "reserve":
       // steps
