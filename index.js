@@ -196,7 +196,7 @@ async function runGetSMSNumber() {
 
   if (incomingApiKey.api_key && incomingApiKey.api_key.length > 0) {
     api_key = incomingApiKey.api_key;
-    fs.writeFileSync("./api_key", answers.api_key);
+    fs.writeFileSync("./api_key", incomingApiKey.api_key);
   }
 
   let balance = "";

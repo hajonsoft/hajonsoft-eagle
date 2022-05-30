@@ -132,7 +132,7 @@ _Set PlaceOfResidence to new value_
 We use third party provider for SMS, you must have an api_key to purchase sms tokens. HAJonSoft gladly shares api_key, but feel free to override with your own api_key with, contact us for details. 
 https://sms-activate.org/en/getNumber
 
-alialiayman@gmail.com/(Paris123)
+alialiayman@gmail.com/ Paris untill 4
 
 ## Vision Api
 

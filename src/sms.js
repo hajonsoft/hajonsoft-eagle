@@ -114,8 +114,11 @@ async function completeActivationSMSCode(api_key, id, code) {
 }
 
 async function abandoned() {}
-async function getNewNumber() {}
-async function abandoned() {}
-async function abandoned() {}
-
-module.exports = { runGetSMSNumber, abandoned };
+async function getNewNumber() {
+  const api_key = defaultSMSAPIKeyMustOverride;
+  const cheapCountries = [2];
+  const cheapServices = ['dp'];
+  const result = await getSMSNumber(api_key, cheapCountries[0], cheapServices[0]);
+  return result;
+}
+module.exports = { runGetSMSNumber, abandoned, getNewNumber };

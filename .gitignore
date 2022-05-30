@@ -5,3 +5,7 @@ data*.json
 budgie*.json
 selectedTraveller.txt
 /scan
+api_key
+activation
+country
+

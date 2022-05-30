@@ -473,18 +473,19 @@ async function pageContentHandler(currentConfig) {
     case "reserve":
       // steps
       // 1. Get new SMS number and store the activationId locally, do not grant new activation unless current activation is abandoned
+      const smsNumber = await SMS.getNewNumber();
+      console.log('%cMyProject%cline:476%csmsNumber', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(153, 80, 84);padding:3px;border-radius:2px', smsNumber)
+      // const activationId = await SMS.getActivationId(smsNumber);
       // 2. Get new SMS code
       // 3. Release the sms number
       // 4. Grant new activation
-      const isAbandoned = await SMS.abandoned();
-      if (isAbandoned) {
-        return;
-      }
-      const smsNumber = await SMS.getNewNumber();
-      const activationId = await SMS.getActivationId(smsNumber);
+      // const isAbandoned = await SMS.abandoned();
+      // if (isAbandoned) {
+      //   return;
+      // }
       // user manually click submit in ehaj and the code is sent to the number
-      const smsCode = await SMS.getCode(smsNumber);
-      await SMS.release(smsNumber);
+      // const smsCode = await SMS.getCode(smsNumber);
+      // await SMS.release(smsNumber);
 
     default:
       break;
