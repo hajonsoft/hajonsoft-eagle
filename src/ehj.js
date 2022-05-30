@@ -10,6 +10,7 @@ const moment = require("moment");
 const sharp = require("sharp");
 const homedir = require("os").homedir();
 const SMS = require("./sms");
+const email = require("./email");
 const totp = require("totp-generator");
 const { default: axios } = require("axios");
 
@@ -332,7 +333,7 @@ async function pageContentHandler(currentConfig) {
         );
         return;
       }
-      await page.emulateVisionDeficiency("blurredVision"); 
+      await page.emulateVisionDeficiency("blurredVision");
       await util.commander(page, {
         controller: {
           selector: "#formData > h3:nth-child(10)",
@@ -397,7 +398,13 @@ async function pageContentHandler(currentConfig) {
       );
       await page.waitForTimeout(500);
       const isSecondDoseRequired = await page.$("#hdcviSecondDoseDate");
-      console.log('%cMyProject%cline:399%cisSecondDoseRequired', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(130, 57, 53);padding:3px;border-radius:2px', isSecondDoseRequired)
+      console.log(
+        "%cMyProject%cline:399%cisSecondDoseRequired",
+        "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
+        "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
+        "color:#fff;background:rgb(130, 57, 53);padding:3px;border-radius:2px",
+        isSecondDoseRequired
+      );
       if (isSecondDoseRequired) {
         await page.type(
           "#hdcviSecondDoseDate",
@@ -408,7 +415,7 @@ async function pageContentHandler(currentConfig) {
           // )
         );
       }
-      
+
       const isIqamaVisible = await page.$("#iqamaNo");
 
       if (isIqamaVisible) {
@@ -430,15 +437,14 @@ async function pageContentHandler(currentConfig) {
           ],
           passenger
         );
-        const resizedId= await util.downloadAndResizeImage(
+        const resizedId = await util.downloadAndResizeImage(
           passenger,
           350,
           500,
           "id"
         );
 
-        await util.commitFile('#permit_attmnt_input', resizedId)
-
+        await util.commitFile("#permit_attmnt_input", resizedId);
       }
 
       let resizedPhotoPath = await util.downloadAndResizeImage(
@@ -468,24 +474,24 @@ async function pageContentHandler(currentConfig) {
       await page.waitForTimeout(500);
       await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
-      await page.emulateVisionDeficiency("none"); 
+      await page.emulateVisionDeficiency("none");
       break;
     case "reserve":
-      // steps
-      // 1. Get new SMS number and store the activationId locally, do not grant new activation unless current activation is abandoned
-      const smsNumber = await SMS.getNewNumber();
-      console.log('%cMyProject%cline:476%csmsNumber', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(153, 80, 84);padding:3px;border-radius:2px', smsNumber)
-      // const activationId = await SMS.getActivationId(smsNumber);
-      // 2. Get new SMS code
-      // 3. Release the sms number
-      // 4. Grant new activation
-      // const isAbandoned = await SMS.abandoned();
-      // if (isAbandoned) {
-      //   return;
-      // }
-      // user manually click submit in ehaj and the code is sent to the number
-      // const smsCode = await SMS.getCode(smsNumber);
-      // await SMS.release(smsNumber);
+      const emailResult = await email.getNewEmail();
+    // steps
+    // 1. Get new SMS number and store the activationId locally, do not grant new activation unless current activation is abandoned
+    // const smsNumber = await SMS.getNewNumber();
+    // const activationId = await SMS.getActivationId(smsNumber);
+    // 2. Get new SMS code
+    // 3. Release the sms number
+    // 4. Grant new activation
+    // const isAbandoned = await SMS.abandoned();
+    // if (isAbandoned) {
+    //   return;
+    // }
+    // user manually click submit in ehaj and the code is sent to the number
+    // const smsCode = await SMS.getCode(smsNumber);
+    // await SMS.release(smsNumber);
 
     default:
       break;
