@@ -25,6 +25,10 @@ const config = [
     regex: "https://ehaj.haj.gov.sa/$",
   },
   {
+    name: "index",
+    regex: "https://ehaj.haj.gov.sa/EH/index.xhtml;jsessionid=",
+  },
+  {
     name: "login",
     regex: "https://ehaj.haj.gov.sa/EH/login.xhtml",
     details: [
@@ -149,10 +153,11 @@ async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "home":
+    case "index":
       try {
-        await page.$$eval("#pulsate-regular > a", (el) =>
-          el.removeAttribute("target")
-        );
+        const anchors = await page.$$eval("a", els => {
+          return els.map(el => el.removeAttribute("target"));
+        });
       } catch {}
       break;
     case "login":
@@ -477,21 +482,27 @@ async function pageContentHandler(currentConfig) {
       await page.emulateVisionDeficiency("none");
       break;
     case "reserve":
-      const emailResult = await email.getNewEmail();
-    // steps
-    // 1. Get new SMS number and store the activationId locally, do not grant new activation unless current activation is abandoned
-    // const smsNumber = await SMS.getNewNumber();
-    // const activationId = await SMS.getActivationId(smsNumber);
-    // 2. Get new SMS code
-    // 3. Release the sms number
-    // 4. Grant new activation
-    // const isAbandoned = await SMS.abandoned();
-    // if (isAbandoned) {
-    //   return;
-    // }
-    // user manually click submit in ehaj and the code is sent to the number
-    // const smsCode = await SMS.getCode(smsNumber);
-    // await SMS.release(smsNumber);
+      // const numberResult = await SMS.getNewNumber();
+      // if (numberResult.error) {
+      //   console.log("can not get telephone number");
+      // } else {
+      //   console.log(numberResult);
+      // }
+
+      // for (let i = 0; i < 1000; i++) {
+      //   await page.waitForTimeout(3000);
+      //   const code = await SMS.getSMSCode(numberResult.activationId);
+      //   console.log(
+      //     "%cMyProject%cline:492%ccode",
+      //     "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
+      //     "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
+      //     "color:#fff;background:rgb(227, 160, 93);padding:3px;border-radius:2px",
+      //     code
+      //   );
+      // }
+
+      // await SMS.cancelActivation(numberResult.activationId);
+
 
     default:
       break;

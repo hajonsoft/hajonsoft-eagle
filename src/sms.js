@@ -41,7 +41,10 @@ async function getSMSNumber(api_key, country = "0", service) {
   );
 
   if (numberInquiry.status === 200) {
-    return numberInquiry.data?.split(":")?.[1];
+    const parts = numberInquiry.data?.split(":");
+    if (parts?.length === 3) {
+      return { activationId: parts[1], number: parts[2] };
+    }
   }
   return { error: numberInquiry.data };
 }
@@ -85,7 +88,8 @@ async function getPrices(api_key) {
   }
 }
 
-async function cancelActivation(api_key, id) {
+async function cancelActivation(id) {
+  const api_key = getApiKey();
   const cancelInquiry = await axios.get(
     `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=setStatus&status=8&id=${id}`
   );
@@ -94,7 +98,8 @@ async function cancelActivation(api_key, id) {
   }
 }
 
-async function getActivationSMSCode(api_key, id) {
+async function getSMSCode(id) {
+  const api_key = getApiKey();
   const codeInquiry = await axios.get(
     `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=setStatus&status=1&id=${id}`
   );
@@ -113,12 +118,23 @@ async function completeActivationSMSCode(api_key, id, code) {
   }
 }
 
+function getApiKey() {
+  if (fs.existsSync("./api_key")) {
+    return fs.readFileSync("./api_key").toString();
+  }
+  return defaultSMSAPIKeyMustOverride;
+}
+
 async function abandoned() {}
 async function getNewNumber() {
-  const api_key = defaultSMSAPIKeyMustOverride;
-  const cheapCountries = [2];
-  const cheapServices = ['dp'];
-  const result = await getSMSNumber(api_key, cheapCountries[0], cheapServices[0]);
+  const api_key = getApiKey();
+  const cheapCountries = ["2"];
+  const cheapServices = ["dp"];
+  const result = await getSMSNumber(
+    api_key,
+    cheapCountries[0],
+    cheapServices[0]
+  );
   return result;
 }
-module.exports = { runGetSMSNumber, abandoned, getNewNumber };
+module.exports = { runGetSMSNumber, abandoned, getNewNumber, getSMSCode, cancelActivation };
