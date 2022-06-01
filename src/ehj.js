@@ -51,9 +51,14 @@ const config = [
     regex: "https://ehaj.haj.gov.sa/EH/pages/home/dashboard.xhtml",
   },
   {
-    name: "list-pilgrims",
+    name: "list-pilgrims-mission",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/List.xhtml",
+  },
+  {
+    name: "list-pilgrims",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/List.xhtml",
   },
   {
     name: "add-mission-pilgrim",
@@ -100,6 +105,37 @@ const config = [
     name: "add-mission-pilgrim-3",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Add3.xhtml",
+    details: [
+      {
+        selector: "#fatherNameEn",
+        value: (row) => row.name.father,
+      },
+      {
+        selector: "#grandFatherNameEn",
+        value: (row) => row.name.grand,
+      },
+      {
+        selector: "#placeofBirth",
+        value: (row) => row.birthPlace,
+      },
+      {
+        selector: "#address",
+        value: (row) => budgie.get("ehaj_pilgrim_address", row.address),
+      },
+      {
+        selector: "#passportIssueDate",
+        value: (row) => row.passIssueDt.dmy,
+      },
+      {
+        selector: "#idno",
+        value: (row) => moment().valueOf().toString(),
+      },
+    ],
+  },
+  {
+    name: "add-pilgrim-3",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/Add3.xhtml",
     details: [
       {
         selector: "#fatherNameEn",
@@ -230,6 +266,7 @@ async function pageContentHandler(currentConfig) {
       // );
       break;
     case "list-pilgrims":
+    case "list-pilgrims-mission":
       const ehajNumbers = [];
       await util.commander(page, {
         controller: {
@@ -352,6 +389,7 @@ async function pageContentHandler(currentConfig) {
       await page.click("#proceedButton > div > input");
       break;
     case "add-mission-pilgrim-3":
+    case "add-pilgrim-3":
       await page.waitForSelector("#pass");
       const visiblePassportNumber = await page.$eval("#pass", (el) => el.value);
       if (!visiblePassportNumber) {
