@@ -251,7 +251,7 @@ async function commit(page, details, row) {
 
         if (value) {
           if (detail.selector) {
-            await page.type(detail.selector, value || '');
+            await page.type(detail.selector, (value || '').toString());
           }
           if (detail.xPath) {
             const xElements = await page.$x(detail.xPath);

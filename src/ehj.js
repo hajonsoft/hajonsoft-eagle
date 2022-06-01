@@ -417,6 +417,19 @@ async function pageContentHandler(currentConfig) {
               (el) => el.value
             );
             budgie.save("ehaj_pilgrim_vaccine_1_date", firstDoseDate);
+
+            const embassy = await page.$eval("#embassy", (el) => el.value);
+            if (embassy) {
+              budgie.save("ehaj_pilgrim_embassy", embassy);
+            }
+            const packageName = await page.$eval("#packge2", (el) => el.value);
+            if (packageName) {
+              budgie.save("ehaj_pilgrim_package", packageName);
+            }
+            const roomType = await page.$eval("#roomType", (el) => el.value);
+            if (roomType) {
+              budgie.save("ehaj_pilgrim_roomType", roomType);
+            }
             const isSecondDoseRequired = await page.$("#hdcviSecondDoseDate");
             if (isSecondDoseRequired) {
               const secondDoseDate = await page.$eval(
@@ -450,6 +463,21 @@ async function pageContentHandler(currentConfig) {
         "#vaccineType",
         budgie.get("ehaj_pilgrim_vaccine_type", 1)
       );
+      const embassyVisible = await page.$("#embassy");
+      if (embassyVisible) {
+        await page.select("#embassy", budgie.get("ehaj_pilgrim_embassy", 214));
+      }
+
+      const packageVisible = await page.$("#packge2");
+      if (packageVisible) {
+        await page.select("#packge2", budgie.get("ehaj_pilgrim_package", ''));
+      }
+
+      const roomTypeVisible = await page.$("#roomType");
+      if (roomTypeVisible) {
+        await page.select("#roomType", budgie.get("ehaj_pilgrim_roomType", ''));
+      }
+
       await page.waitForSelector("#hdcviFirstDoseDate");
 
       await page.type(
@@ -482,7 +510,7 @@ async function pageContentHandler(currentConfig) {
           [
             {
               selector: "#iqamaNo",
-              value: (row) => row.idNumber,
+              value: (row) => row.idNumber || moment().valueOf(),
             },
             {
               selector: "#iqamaIssueDate",
