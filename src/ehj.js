@@ -76,6 +76,27 @@ const config = [
     },
   },
   {
+    name: "add-company-pilgrim",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/AddMrz.xhtml",
+
+    controller: {
+      selector: "#passportImage > p",
+      action: async () => {
+        const selectedTraveler = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
+        if (selectedTraveler) {
+          fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
+          const data = fs.readFileSync("./data.json", "utf-8");
+          var passengersData = JSON.parse(data);
+          await pasteCodeLine(selectedTraveler, passengersData);
+        }
+      },
+    },
+  },
+  {
     name: "add-mission-pilgrim-3",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Add3.xhtml",
@@ -155,8 +176,8 @@ async function pageContentHandler(currentConfig) {
     case "home":
     case "index":
       try {
-        const anchors = await page.$$eval("a", els => {
-          return els.map(el => el.removeAttribute("target"));
+        const anchors = await page.$$eval("a", (els) => {
+          return els.map((el) => el.removeAttribute("target"));
         });
       } catch {}
       break;
@@ -204,9 +225,9 @@ async function pageContentHandler(currentConfig) {
 
       break;
     case "dashboard":
-      await page.goto(
-        "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml"
-      );
+      // await page.goto(
+      //   "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml"
+      // );
       break;
     case "list-pilgrims":
       const ehajNumbers = [];
@@ -301,6 +322,7 @@ async function pageContentHandler(currentConfig) {
       });
       break;
     case "add-mission-pilgrim":
+    case "add-company-pilgrim":
       await util.controller(page, currentConfig, data.travellers);
       // await page.waitForXPath(`//*[@id="j_idt3419"]/div/ul/li/span`, {timeout: 1000});
       const ehajNumberNode = await page.$x(
@@ -333,9 +355,9 @@ async function pageContentHandler(currentConfig) {
       await page.waitForSelector("#pass");
       const visiblePassportNumber = await page.$eval("#pass", (el) => el.value);
       if (!visiblePassportNumber) {
-        await page.goto(
-          "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml"
-        );
+        // await page.goto(
+        //   "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml"
+        // );
         return;
       }
       await page.emulateVisionDeficiency("blurredVision");
@@ -482,27 +504,26 @@ async function pageContentHandler(currentConfig) {
       await page.emulateVisionDeficiency("none");
       break;
     case "reserve":
-      // const numberResult = await SMS.getNewNumber();
-      // if (numberResult.error) {
-      //   console.log("can not get telephone number");
-      // } else {
-      //   console.log(numberResult);
-      // }
+    // const numberResult = await SMS.getNewNumber();
+    // if (numberResult.error) {
+    //   console.log("can not get telephone number");
+    // } else {
+    //   console.log(numberResult);
+    // }
 
-      // for (let i = 0; i < 1000; i++) {
-      //   await page.waitForTimeout(3000);
-      //   const code = await SMS.getSMSCode(numberResult.activationId);
-      //   console.log(
-      //     "%cMyProject%cline:492%ccode",
-      //     "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
-      //     "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
-      //     "color:#fff;background:rgb(227, 160, 93);padding:3px;border-radius:2px",
-      //     code
-      //   );
-      // }
+    // for (let i = 0; i < 1000; i++) {
+    //   await page.waitForTimeout(3000);
+    //   const code = await SMS.getSMSCode(numberResult.activationId);
+    //   console.log(
+    //     "%cMyProject%cline:492%ccode",
+    //     "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
+    //     "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
+    //     "color:#fff;background:rgb(227, 160, 93);padding:3px;border-radius:2px",
+    //     code
+    //   );
+    // }
 
-      // await SMS.cancelActivation(numberResult.activationId);
-
+    // await SMS.cancelActivation(numberResult.activationId);
 
     default:
       break;
