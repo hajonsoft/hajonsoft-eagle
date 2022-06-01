@@ -463,13 +463,6 @@ async function pageContentHandler(currentConfig) {
       );
       await page.waitForTimeout(500);
       const isSecondDoseRequired = await page.$("#hdcviSecondDoseDate");
-      console.log(
-        "%cMyProject%cline:399%cisSecondDoseRequired",
-        "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
-        "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
-        "color:#fff;background:rgb(130, 57, 53);padding:3px;border-radius:2px",
-        isSecondDoseRequired
-      );
       if (isSecondDoseRequired) {
         await page.type(
           "#hdcviSecondDoseDate",
