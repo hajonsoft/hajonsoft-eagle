@@ -175,6 +175,29 @@ const config = [
     name: "sms-confirm",
     regex: "https://ehaj.haj.gov.sa/EH/sms-confirm.xhtml",
   },
+  {
+    name: "package-details",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/requests/packages/new/packageDetails.xhtml",
+    details: [
+      {
+        selector: "#nameAr",
+        value: () => "قافله رقم " + moment().valueOf().toString(),
+      },
+      {
+        selector: "#nameEn",
+        value: () => "Caravan #" + moment().valueOf().toString(),
+      },
+      {
+        selector: "#pkgDescAr",
+        value: () => "قافله رقم " + moment().valueOf().toString(),
+      },
+      {
+        selector: "#pkgDescEn",
+        value: () => "Caravan #" + moment().valueOf().toString(),
+      },
+    ],
+  },
 ];
 
 async function pasteCodeLine(selectedTraveler, passengersData) {
@@ -470,12 +493,12 @@ async function pageContentHandler(currentConfig) {
 
       const packageVisible = await page.$("#packge2");
       if (packageVisible) {
-        await page.select("#packge2", budgie.get("ehaj_pilgrim_package", ''));
+        await page.select("#packge2", budgie.get("ehaj_pilgrim_package", ""));
       }
 
       const roomTypeVisible = await page.$("#roomType");
       if (roomTypeVisible) {
-        await page.select("#roomType", budgie.get("ehaj_pilgrim_roomType", ''));
+        await page.select("#roomType", budgie.get("ehaj_pilgrim_roomType", ""));
       }
 
       await page.waitForSelector("#hdcviFirstDoseDate");
@@ -563,26 +586,30 @@ async function pageContentHandler(currentConfig) {
       await page.emulateVisionDeficiency("none");
       break;
     case "reserve":
-    // const numberResult = await SMS.getNewNumber();
-    // if (numberResult.error) {
-    //   console.log("can not get telephone number");
-    // } else {
-    //   console.log(numberResult);
-    // }
+      // const numberResult = await SMS.getNewNumber();
+      // if (numberResult.error) {
+      //   console.log("can not get telephone number");
+      // } else {
+      //   console.log(numberResult);
+      // }
 
-    // for (let i = 0; i < 1000; i++) {
-    //   await page.waitForTimeout(3000);
-    //   const code = await SMS.getSMSCode(numberResult.activationId);
-    //   console.log(
-    //     "%cMyProject%cline:492%ccode",
-    //     "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
-    //     "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
-    //     "color:#fff;background:rgb(227, 160, 93);padding:3px;border-radius:2px",
-    //     code
-    //   );
-    // }
+      // for (let i = 0; i < 1000; i++) {
+      //   await page.waitForTimeout(3000);
+      //   const code = await SMS.getSMSCode(numberResult.activationId);
+      //   console.log(
+      //     "%cMyProject%cline:492%ccode",
+      //     "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
+      //     "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
+      //     "color:#fff;background:rgb(227, 160, 93);padding:3px;border-radius:2px",
+      //     code
+      //   );
+      // }
 
-    // await SMS.cancelActivation(numberResult.activationId);
+      // await SMS.cancelActivation(numberResult.activationId);
+      break;
+    case "package-details":
+      await util.commit(page, currentConfig.details, passenger);
+      break;
 
     default:
       break;
