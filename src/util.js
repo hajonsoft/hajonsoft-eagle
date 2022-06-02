@@ -587,6 +587,8 @@ async function downloadAndResizeImage(
 ) {
   let folder = photosFolder;
   let url = passenger.images.photo;
+
+  
   if (imageType == "passport") {
     folder = passportsFolder;
     url = passenger.images.passport;
