@@ -417,10 +417,10 @@ async function pageContentHandler(currentConfig) {
                 })
               );
             }
-
+// TODO: Get a permenat selector for this button
             await page.evaluate((ehajNumbers) => {
               const eagleButton = document.querySelector(
-                "#j_idt3413 > ul > div > button"
+                "#j_idt3409 > ul > div > button"
               );
               eagleButton.textContent = `Done... [${ehajNumbers[0]}-${
                 ehajNumbers[ehajNumbers.length - 1]
