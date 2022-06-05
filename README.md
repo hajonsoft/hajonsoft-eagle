@@ -134,6 +134,10 @@ https://sms-activate.org/en/getNumber
 
 alialiayman@gmail.com/ Paris until 4
 
+https://www.receivesms.co/
+https://receive-smss.com/
+https://smsreceivefree.com/
+
 ## Vision Api
 
 To use vision api, enable billing in [console.googlcloud.com](https://console.cloud.google.com/), search for Vision api, enable it, create service account in credentials, then download a json in to ./scan/auth/key.json and you are good to image to text with google latest ML 
