@@ -11,16 +11,24 @@ let data;
 let scanInputFolder;
 let visionResultFolder;
 const visionKeyFilePath = path.join(__dirname, "..", "scan/auth/key.json");
+const logFolder = path.join(__dirname, "scan", "output", "log");
 
 function createSandbox() {
   scanInputFolder = path.join(__dirname, "..", "scan", "input");
   if (!fs.existsSync(scanInputFolder)) {
     fs.mkdirSync(scanInputFolder, { recursive: true });
+  } else {
+    fs.readdirSync(scanInputFolder).forEach((file) => {
+      fs.unlinkSync(path.join(scanInputFolder, file));
+    });
   }
 
   visionResultFolder = path.join(__dirname, "..", "scan", "output", "vision");
   if (!fs.existsSync(visionResultFolder)) {
     fs.mkdirSync(visionResultFolder, { recursive: true });
+  }
+  if (!fs.existsSync(logFolder)) {
+    fs.mkdirSync(logFolder, { recursive: true });
   }
 
   if (!fs.existsSync(visionKeyFilePath)) {
@@ -328,7 +336,7 @@ async function createCodelineFile(
   label0Mrz1(data, suggested);
 
   let mrz1;
-  ({ mrz1, suggested } = await chooseMrz1(suggested, passportImagePath));
+  ({ mrz1, suggested } = await chooseMrz1(suggested, passportImagePath, labelsWithPosition.map(x=> x.text)));
 
   label0Mrz2(data, suggested);
   let mrz2;
@@ -449,7 +457,7 @@ async function validateOrAskMrz1(text, imagePath) {
   const answersMrz1 = await inquirer.prompt([
     {
       type: "input",
-      message: `open -a Preview.app "${imagePath}"\nMRZ1 ${text} is not valid, Enter MRZ1."`,
+      message: `open -a Preview.app "${imagePath}"\nMRZ1 ${text} (${text.length}) is not valid, Enter MRZ1."`,
       name: "mrz1",
       validate: (input) => {
         if (/^([A-Z])([A-Z0-9<])([A-Z]{3})([A-Z<]{39})$/.test(input)) {
@@ -496,9 +504,9 @@ async function validateOrAskMrz2(text, imagePath) {
   return answersMrz2.mrz2;
 }
 
-async function chooseMrz1(suggested, passportImagePath) {
+async function chooseMrz1(suggested, passportImagePath, allLabels) {
   // Check if you can capture it without asking the user
-  const suggestedMrz1 = suggested
+  let suggestedMrz1 = suggested
     .filter((entry) =>
       /^([A-Z])([A-Z0-9<])([A-Z]{3})([A-Z<]{1,39})$/.test(entry)
     )
@@ -524,6 +532,7 @@ async function chooseMrz1(suggested, passportImagePath) {
     };
   }
   suggestedMrz1.push('-Edit-')
+  suggestedMrz1 = [...suggestedMrz1, ...allLabels]
   // Ask the user for help and provide suggestions
   const answers = await inquirer.prompt([
     {

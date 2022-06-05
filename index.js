@@ -45,7 +45,7 @@ async function main() {
   }
 
   if (process.argv.includes("-download")) {
-     await getDataFileName();
+    await getDataFileName();
     await downloadImages();
   }
 
@@ -413,12 +413,17 @@ async function create3MFiles() {
 
   if (incomingContinue.mode.startsWith("2-")) {
     // cleanup log folder and 3M folder
-    fs.readdirSync(logFolder).forEach((file) => {
-      fs.unlinkSync(path.join(logFolder, file));
-    });
-    fs.readdirSync(folder3M).forEach((file) => {
-      fs.unlinkSync(path.join(folder3M, file));
-    });
+    if (fs.existsSync(logFolder)) {
+      fs.readdirSync(logFolder).forEach((file) => {
+        fs.unlinkSync(path.join(logFolder, file));
+      });
+    }
+
+    if (fs.existsSync(folder3M)) {
+      fs.readdirSync(folder3M).forEach((file) => {
+        fs.unlinkSync(path.join(folder3M, file));
+      });
+    }
   }
 
   const files = fs.readdirSync(visionFolder);
@@ -438,20 +443,25 @@ async function downloadImages() {
   const data = readDataFile();
   for (const passenger of data.travellers) {
     for (const [imageType, url] of Object.entries(passenger?.images)) {
-      if (url.includes('.placeholder.com') || imageType.includes('vaccine') || imageType.includes('id')) continue;
-        const image = await axios.get(url, {
-          responseType: "arraybuffer",
-        });
-        const fileName = path.join(
-          inputFolder,
-          imageType,
-          `${passenger.name.full}.jpg`
-        );
-        if (!fs.existsSync(path.join(inputFolder, imageType))) {
-          fs.mkdirSync(path.join(inputFolder, imageType), { recursive: true });
-        }
-        fs.writeFileSync(fileName, Buffer.from(image.data, "binary"));
-        console.log(fileName);
+      if (
+        url.includes(".placeholder.com") ||
+        imageType.includes("vaccine") ||
+        imageType.includes("id")
+      )
+        continue;
+      const image = await axios.get(url, {
+        responseType: "arraybuffer",
+      });
+      const fileName = path.join(
+        inputFolder,
+        imageType,
+        `${passenger.name.full}.jpg`
+      );
+      if (!fs.existsSync(path.join(inputFolder, imageType))) {
+        fs.mkdirSync(path.join(inputFolder, imageType), { recursive: true });
+      }
+      fs.writeFileSync(fileName, Buffer.from(image.data, "binary"));
+      console.log(fileName);
     }
   }
 }

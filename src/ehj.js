@@ -371,7 +371,7 @@ async function pageContentHandler(currentConfig) {
 
             await page.evaluate((ehajNumbers) => {
               const eagleButton = document.querySelector(
-                "#j_idt3413 > ul > div > button"
+                "#importEhajNumber"
               );
               eagleButton.textContent = `Done... [${ehajNumbers[0]}-${
                 ehajNumbers[ehajNumbers.length - 1]
