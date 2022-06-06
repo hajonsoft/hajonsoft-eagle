@@ -151,6 +151,7 @@ To use vision api, enable billing in [console.googlcloud.com](https://console.cl
 5- Platform for support. We can't support outside HAJonSoft. We can send thousands of passports quickly.
 6- Reduce risk of Ehaj timeout
 7- With google vision, You don't need expensive 3M scanner. We read issue date too.
+8- Early validation/alert about expired passports or duplicate
 
 ## References
 css escape characters. Sometimes an external visa system uses special character in the selector like . or : (\3A)

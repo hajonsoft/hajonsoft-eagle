@@ -7,6 +7,7 @@ const { send: sendEnj } = require("./src/enj");
 const { send: sendTwf } = require("./src/twf");
 const { send: sendHsf } = require("./src/hsf");
 const { send: sendSbr } = require("./src/sbr");
+const { send: sendMtf } = require("./src/mtf");
 const {
   send: sendVsn,
   createCodelineFile,
@@ -109,6 +110,8 @@ async function submitToProvider() {
       return sendHsf(data);
     case "sbr":
       return sendSbr(data);
+    case "mtf":
+      return sendMtf(data);
     case "vsn":
       return sendVsn(data);
     default:

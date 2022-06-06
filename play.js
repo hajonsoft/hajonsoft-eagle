@@ -1,9 +1,17 @@
 const axios = require("axios");
 const fs = require("fs");
-// const { createCanvas, loadImage } = require('canvas')
+
+// const Canvas, { createCanvas, loadImage } = require('canvas')
 // // https://github.com/Automattic/node-canvas
 // function createPassport() {
-
+//     var Image = Canvas.Image;
+//     var imageObj = new Image();
+//     imageObj.onload = function(){
+//         context.drawImage(imageObj, 10, 10);
+//         context.font = "40pt Calibri";
+//         context.fillText("My TEXT!", 20, 20);
+//     };
+// img.src = 'covid.jpg'; // Set source path
 //     const canvas = createCanvas(400, 300)
 //     const ctx = canvas.getContext('2d')
 //     ctx.fillStyle = "white";
