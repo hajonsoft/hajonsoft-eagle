@@ -83,9 +83,7 @@ const config = [
         );
         if (selectedTraveler) {
           fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
-          const data = fs.readFileSync("./data.json", "utf-8");
-          var passengersData = JSON.parse(data);
-          await pasteCodeLine(selectedTraveler, passengersData);
+          await sendPassenger(selectedTraveler);
         }
       },
     },
@@ -209,6 +207,12 @@ const config = [
     ],
   },
 ];
+
+async function sendPassenger(selectedTraveler) {
+  const data = fs.readFileSync("./data.json", "utf-8");
+  var passengersData = JSON.parse(data);
+  await pasteCodeLine(selectedTraveler, passengersData);
+}
 
 async function pasteCodeLine(selectedTraveler, passengersData) {
   await page.focus("#passportCaptureStatus");
@@ -343,7 +347,7 @@ async function pageContentHandler(currentConfig) {
       await util.commander(page, {
         controller: {
           // TODO: Replace with a more robust selector
-          selector: "#j_idt3409 > ul > li:nth-child(3)",
+          selector: "form > ul > li:nth-child(3)",
           title: "Import current view",
           arabicTitle: "استيراد الصفحه",
           name: "importEhajNumber",
@@ -418,9 +422,7 @@ async function pageContentHandler(currentConfig) {
               );
             }
             await page.evaluate((ehajNumbers) => {
-              const eagleButton = document.querySelector(
-                "#importEhajNumber"
-              );
+              const eagleButton = document.querySelector("#importEhajNumber");
               eagleButton.textContent = `Done... [${ehajNumbers[0]}-${
                 ehajNumbers[ehajNumbers.length - 1]
               }]`;
@@ -432,26 +434,42 @@ async function pageContentHandler(currentConfig) {
     case "add-mission-pilgrim":
     case "add-company-pilgrim":
       await util.controller(page, currentConfig, data.travellers);
-      // await page.waitForXPath(`//*[@id="j_idt3419"]/div/ul/li/span`, {timeout: 1000});
-      const ehajNumberNode = await page.$x(
-        `//*[@id="j_idt3419"]/div/ul/li/span`
-      );
       if (
-        ehajNumberNode &&
-        Array.isArray(ehajNumberNode) &&
-        ehajNumberNode.length > 0
+        fs.existsSync("./loop.txt") &&
+        fs.existsSync("./selectedTraveller.txt")
       ) {
-        const ehajNumberLine = await ehajNumberNode[0].evaluate(
-          (node) => node.innerText
+        const selectedPassenger = fs.readFileSync(
+          "./selectedTraveller.txt",
+          "utf8"
         );
-        const ehajNumberMatch = ehajNumberLine.match(/#[0-9]{7,8}/);
-        if (ehajNumberMatch) {
-          fs.writeFileSync(
-            path.join(__dirname, passenger.passportNumber),
-            JSON.stringify({ ehajNumber: ehajNumberMatch[0] })
-          );
+        const data = fs.readFileSync("./data.json", "utf-8");
+        var passengersData = JSON.parse(data);
+        if (passengersData.travellers.length > parseInt(selectedPassenger) + 1) {
+          fs.writeFileSync('selectedTraveller.txt',( parseInt(selectedPassenger) + 1).toString());
+          await sendPassenger(parseInt(selectedPassenger) + 1);
         }
       }
+
+      // await page.waitForXPath(`//*[@id="j_idt3419"]/div/ul/li/span`, {timeout: 1000});
+      // const ehajNumberNode = await page.$x(
+      //   `//*[@id="j_idt3419"]/div/ul/li/span`
+      // );
+      // if (
+      //   ehajNumberNode &&
+      //   Array.isArray(ehajNumberNode) &&
+      //   ehajNumberNode.length > 0
+      // ) {
+      //   const ehajNumberLine = await ehajNumberNode[0].evaluate(
+      //     (node) => node.innerText
+      //   );
+      //   const ehajNumberMatch = ehajNumberLine.match(/#[0-9]{7,8}/);
+      //   if (ehajNumberMatch) {
+      //     fs.writeFileSync(
+      //       path.join(__dirname, passenger.passportNumber),
+      //       JSON.stringify({ ehajNumber: ehajNumberMatch[0] })
+      //     );
+      //   }
+      // }
       await page.waitForSelector("#proceedButton > div > input", {
         visible: true,
         timeout: 0,

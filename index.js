@@ -41,6 +41,11 @@ async function main() {
     fs.unlinkSync(selectedTravellerFile);
   }
 
+  const loopFile = "./loop.txt";
+  if (fs.existsSync(loopFile)) {
+    fs.unlinkSync(loopFile);
+  }
+
   if (process.argv.includes("-i")) {
     return runInteractive();
   }
