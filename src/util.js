@@ -365,7 +365,7 @@ async function controller(page, structure, travellers) {
           <select id="hajonsoft_select" style='flex-grow: 1; margin-right: 0.5rem'> 
           ${optionsParam}
           </select>
-          <button style='background-color: #2196f3; color: #ffffff; width: 6rem, padding: 0.5rem; margin: 0 5px; border-radius: 8px;' type="button" onclick="registerLoop();${handleMethodName}();return false">Send All إرسل الكل</button> 
+          <button style='background-color: #F27F21; color: #ffffff; width: 6rem, padding: 0.5rem; margin: 0 5px; border-radius: 8px;' type="button" onclick="registerLoop();${handleMethodName}();return false">Send All إرسل الكل</button> 
           </div>
           ${
             controller.mokhaa
@@ -610,6 +610,7 @@ async function downloadAndResizeImage(
     folder = passportsFolder;
     url = passenger.images.passport;
   }
+
   if (imageType == "vaccine") {
     folder = vaccineFolder;
     url = passenger.images.vaccine;
@@ -617,6 +618,7 @@ async function downloadAndResizeImage(
       return path.join(__dirname, "covid-1.jpg");
     }
   }
+
   if (imageType == "vaccine2") {
     folder = vaccineFolder;
     url = passenger.images.vaccine2;
@@ -624,6 +626,7 @@ async function downloadAndResizeImage(
       return path.join(__dirname, "covid-2.jpg");
     }
   }
+
   if (imageType == "id") {
     folder = idFolder;
     url = passenger.images.id;
@@ -640,6 +643,10 @@ async function downloadAndResizeImage(
   if (fs.existsSync(imagePath) && fs.existsSync(resizedPath)) {
     return resizedPath;
   }
+  if (url.includes('placeholder')) {
+    return path.join(__dirname, "dummy-image.jpg");
+  }
+
   const writer = fs.createWriteStream(imagePath);
   const response = await axios({
     url,
@@ -647,6 +654,7 @@ async function downloadAndResizeImage(
     responseType: "stream",
   });
 
+  
   response.data.pipe(writer);
   const result = new Promise((resolve, reject) => {
     writer.on("finish", resolve);

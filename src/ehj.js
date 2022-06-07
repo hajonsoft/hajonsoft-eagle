@@ -136,7 +136,7 @@ const config = [
       },
       {
         selector: "#idno",
-        value: (row) => moment().valueOf().toString(),
+        value: (row) => "0",
       },
     ],
   },
@@ -167,7 +167,7 @@ const config = [
       },
       {
         selector: "#idno",
-        value: (row) => moment().valueOf().toString(),
+        value: (row) => "0",
       },
     ],
   },
@@ -308,13 +308,12 @@ async function pageContentHandler(currentConfig) {
       break;
     case "profile":
       // TODO: Check if this code is working fine
+      const tokenValue = await page.$eval("#tokenValue", el => el.value);
+      if (tokenValue) {
+        return
+      }
       await page.waitForSelector("#secretKey");
       const secretCode = await page.$eval("#secretKey", (el) => el.value);
-      console.log(
-        "%c 🥃 secretCode: ",
-        "font-size:20px;background-color: #2EAFB0;color:#fff;",
-        secretCode
-      );
       const token = totp(secretCode);
       await page.type("#tokenValue", token);
       await page.click("#verifyGAuthToken > div > div.col-lg-4 > a");
@@ -490,7 +489,7 @@ async function pageContentHandler(currentConfig) {
       await page.emulateVisionDeficiency("blurredVision");
       await util.commander(page, {
         controller: {
-          selector: "#formData > h3:nth-child(10)",
+          selector: "#formData > h3:nth-child(12)",
           title: "Remember",
           arabicTitle: "تذكر",
           action: async () => {
@@ -650,6 +649,14 @@ async function pageContentHandler(currentConfig) {
       await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
       await page.emulateVisionDeficiency("none");
+      await page.waitForNavigation();
+      const submitButtonSelector = "#actionPanel > div > div > input.btn.btn-primary"
+      await page.evaluate((cap) => {
+        const captchaElement = document.querySelector(cap);
+        captchaElement.scrollIntoView({ block: "end" });
+      }, submitButtonSelector);
+      await page.focus(submitButtonSelector);
+      await page.hover(submitButtonSelector);
       break;
     case "reserve":
       // const numberResult = await SMS.getNewNumber();
