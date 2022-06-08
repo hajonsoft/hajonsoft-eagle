@@ -17,6 +17,7 @@ const { default: axios } = require("axios");
 let page;
 let data;
 let counter = 0;
+const passports = [];
 
 const config = [
   {
@@ -308,9 +309,9 @@ async function pageContentHandler(currentConfig) {
       break;
     case "profile":
       // TODO: Check if this code is working fine
-      const tokenValue = await page.$eval("#tokenValue", el => el.value);
+      const tokenValue = await page.$eval("#tokenValue", (el) => el.value);
       if (tokenValue) {
-        return
+        return;
       }
       await page.waitForSelector("#secretKey");
       const secretCode = await page.$eval("#secretKey", (el) => el.value);
@@ -432,6 +433,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "add-mission-pilgrim":
     case "add-company-pilgrim":
+      await page.emulateVisionDeficiency("none");
       await util.controller(page, currentConfig, data.travellers);
       if (
         fs.existsSync("./loop.txt") &&
@@ -443,32 +445,17 @@ async function pageContentHandler(currentConfig) {
         );
         const data = fs.readFileSync("./data.json", "utf-8");
         var passengersData = JSON.parse(data);
-        if (passengersData.travellers.length > parseInt(selectedPassenger) + 1) {
-          fs.writeFileSync('selectedTraveller.txt',( parseInt(selectedPassenger) + 1).toString());
+        if (
+          passengersData.travellers.length >
+          parseInt(selectedPassenger) + 1
+        ) {
+          fs.writeFileSync(
+            "selectedTraveller.txt",
+            (parseInt(selectedPassenger) + 1).toString()
+          );
           await sendPassenger(parseInt(selectedPassenger) + 1);
         }
       }
-
-      // await page.waitForXPath(`//*[@id="j_idt3419"]/div/ul/li/span`, {timeout: 1000});
-      // const ehajNumberNode = await page.$x(
-      //   `//*[@id="j_idt3419"]/div/ul/li/span`
-      // );
-      // if (
-      //   ehajNumberNode &&
-      //   Array.isArray(ehajNumberNode) &&
-      //   ehajNumberNode.length > 0
-      // ) {
-      //   const ehajNumberLine = await ehajNumberNode[0].evaluate(
-      //     (node) => node.innerText
-      //   );
-      //   const ehajNumberMatch = ehajNumberLine.match(/#[0-9]{7,8}/);
-      //   if (ehajNumberMatch) {
-      //     fs.writeFileSync(
-      //       path.join(__dirname, passenger.passportNumber),
-      //       JSON.stringify({ ehajNumber: ehajNumberMatch[0] })
-      //     );
-      //   }
-      // }
       await page.waitForSelector("#proceedButton > div > input", {
         visible: true,
         timeout: 0,
@@ -479,17 +466,16 @@ async function pageContentHandler(currentConfig) {
     case "add-mission-pilgrim-3":
     case "add-pilgrim-3":
       await page.waitForSelector("#pass");
+      await page.select("#vaccineType", "1");
       const visiblePassportNumber = await page.$eval("#pass", (el) => el.value);
       if (!visiblePassportNumber) {
-        // await page.goto(
-        //   "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml"
-        // );
         return;
       }
       await page.emulateVisionDeficiency("blurredVision");
+      passports.push(passenger.passportNumber);
       await util.commander(page, {
         controller: {
-          selector: "#formData > h3:nth-child(12)",
+          selector: "#formData > h3:nth-child(3)",
           title: "Remember",
           arabicTitle: "تذكر",
           action: async () => {
@@ -547,10 +533,6 @@ async function pageContentHandler(currentConfig) {
         data.info
       );
       await page.select("#passportType", "1");
-      await page.select(
-        "#vaccineType",
-        budgie.get("ehaj_pilgrim_vaccine_type", 1)
-      );
       const embassyVisible = await page.$("#embassy");
       if (embassyVisible) {
         await page.select("#embassy", budgie.get("ehaj_pilgrim_embassy", 214));
@@ -565,33 +547,7 @@ async function pageContentHandler(currentConfig) {
       if (roomTypeVisible) {
         await page.select("#roomType", budgie.get("ehaj_pilgrim_roomType", ""));
       }
-
-      await page.waitForSelector("#hdcviFirstDoseDate");
-
-      await page.type(
-        "#hdcviFirstDoseDate",
-        moment().add(-60, "days").format("DD/MM/YYYY")
-
-        // budgie.get(
-        //   "ehaj_pilgrim_vaccine_1_date",
-        //   moment().add(-60, "days").format("DD/MM/YYYY")
-        // )
-      );
-      await page.waitForTimeout(500);
-      const isSecondDoseRequired = await page.$("#hdcviSecondDoseDate");
-      if (isSecondDoseRequired) {
-        await page.type(
-          "#hdcviSecondDoseDate",
-          moment().add(-30, "days").format("DD/MM/YYYY")
-          // budgie.get(
-          //   "ehaj_pilgrim_vaccine_2_date",
-          //   moment().add(-30, "days").format("DD/MM/YYYY")
-          // )
-        );
-      }
-
       const isIqamaVisible = await page.$("#iqamaNo");
-
       if (isIqamaVisible) {
         await util.commit(
           page,
@@ -639,46 +595,59 @@ async function pageContentHandler(currentConfig) {
         100,
         "vaccine2"
       );
-      await page.click("#vaccine_attmnt_1_input");
-      await util.commitFile("#vaccine_attmnt_1_input", resizedVaccinePath);
+     
+      await page.select(
+        "#vaccineType",
+        budgie.get("ehaj_pilgrim_vaccine_type", 1)
+      );
+      await page.waitForTimeout(100);
+      const isFirstDoseRequired = await page.$("#hdcviFirstDoseDate");
+      if (isFirstDoseRequired) {
+        // await page.type(
+        //   "#hdcviFirstDoseDate",
+        //   moment().add(-60, "days").format("DD/MM/YYYY")
+        //   );
+
+          await page.$eval("#hdcviFirstDoseDate" , el=> {
+            el.value = "01/01/2022"
+          })
+        const vaccine1Input = "#vaccine_attmnt_1_input";
+        await page.waitForSelector(vaccine1Input);
+        await page.click(vaccine1Input);
+        await util.commitFile(vaccine1Input, resizedVaccinePath);
+        await page.waitForTimeout(500);
+
+      }
+
+      
+      const isSecondDoseRequired = await page.$("#hdcviSecondDoseDate");
       if (isSecondDoseRequired) {
+        await page.type(
+          "#hdcviSecondDoseDate",
+          moment().add(-30, "days").format("DD/MM/YYYY")
+        );
         await page.click("#vaccine_attmnt_2_input");
         await util.commitFile("#vaccine_attmnt_2_input", resizedVaccinePath2);
       }
+
       await page.waitForTimeout(500);
       await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
       await page.emulateVisionDeficiency("none");
-      await page.waitForNavigation();
-      const submitButtonSelector = "#actionPanel > div > div > input.btn.btn-primary"
-      await page.evaluate((cap) => {
-        const captchaElement = document.querySelector(cap);
-        captchaElement.scrollIntoView({ block: "end" });
-      }, submitButtonSelector);
-      await page.focus(submitButtonSelector);
-      await page.hover(submitButtonSelector);
+      await page.waitForTimeout(500);
+
+      if (passports.filter((x) => x == passenger.passportNumber).length > 3) {
+        // Stop
+      } else {
+        if (fs.existsSync("./loop.txt")) {
+          const submitButtonSelector =
+            "#actionPanel > div > div > input.btn.btn-primary";
+          await page.click(submitButtonSelector);
+        }
+      }
+
       break;
     case "reserve":
-      // const numberResult = await SMS.getNewNumber();
-      // if (numberResult.error) {
-      //   console.log("can not get telephone number");
-      // } else {
-      //   console.log(numberResult);
-      // }
-
-      // for (let i = 0; i < 1000; i++) {
-      //   await page.waitForTimeout(3000);
-      //   const code = await SMS.getSMSCode(numberResult.activationId);
-      //   console.log(
-      //     "%cMyProject%cline:492%ccode",
-      //     "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
-      //     "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
-      //     "color:#fff;background:rgb(227, 160, 93);padding:3px;border-radius:2px",
-      //     code
-      //   );
-      // }
-
-      // await SMS.cancelActivation(numberResult.activationId);
       break;
     case "package-details":
       await util.commit(page, currentConfig.details, passenger);
