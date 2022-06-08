@@ -5,6 +5,17 @@ const puppeteer = require("puppeteer-extra");
 // Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
+const RecaptchaPlugin = require('puppeteer-extra-plugin-recaptcha')
+// puppeteer.use(
+//   RecaptchaPlugin({
+//     provider: {
+//       id: '2captcha',
+//       token: 'xxxx' // REPLACE THIS WITH YOUR OWN 2CAPTCHA API KEY ⚡
+//     },
+//     visualFeedback: true // colorize reCAPTCHAs (violet = detected, green = solved)
+//   })
+// )
+
 const sharp = require("sharp");
 const budgie = require("./budgie");
 const axios = require("axios");

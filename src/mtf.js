@@ -49,17 +49,20 @@ async function sendPassenger(selectedTraveler) {
   const passenger = passengersData.travellers[selectedTraveler];
   await page.type("#FirstName", passenger.name.first);
   await page.type("#LastName", passenger.name.last);
-  await page.type(
-    "#Email",
-    passenger.name.first + passenger.name.last + "@gmail.com"
-  );
-  await page.type("#PhoneNumber", moment().format("9MMDDHHmmss"));
+  const uniqueNumber = moment().format("9MMDDHHmmss");
+  await page.type("#Email", "forhajjhajj+" + uniqueNumber + "@gmail.com");
+  await page.type("#PhoneNumber", uniqueNumber);
   await util.commit(page, [
     {
       selector: "#cor",
       value: () => budgie.get("motawif_country_of_residence", "US"),
     },
   ]);
+//   await page.solveRecaptchas()
+//   await Promise.all([
+//     page.waitForNavigation(),
+//     page.click(`#recaptcha-demo-submit`)
+//   ])
 }
 
 async function send(sendData) {
@@ -91,7 +94,10 @@ async function pageContentHandler(currentConfig) {
       if (acceptCookiesButton) {
         await acceptCookiesButton.click();
       }
-      if (fs.existsSync("./loop.txt") && fs.existsSync("./selectedTraveller.txt")) {
+      if (
+        fs.existsSync("./loop.txt") &&
+        fs.existsSync("./selectedTraveller.txt")
+      ) {
         sendPassenger(fs.readFileSync("./selectedTraveller.txt", "utf-8"));
       }
       await util.controller(page, currentConfig, data.travellers);
@@ -118,7 +124,10 @@ async function pageContentHandler(currentConfig) {
       if (selectedTravelerRaw) {
         if (/\d+/.test(selectedTravelerRaw)) {
           const selectedTraveler = parseInt(selectedTravelerRaw);
-          fs.writeFileSync("./selectedTraveller.txt", (selectedTraveler + 1).toString());
+          fs.writeFileSync(
+            "./selectedTraveller.txt",
+            (selectedTraveler + 1).toString()
+          );
         }
       }
       await page.goto("https://www.motawif.com.sa");
