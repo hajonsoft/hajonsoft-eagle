@@ -465,6 +465,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "add-mission-pilgrim-3":
     case "add-pilgrim-3":
+      const pageUrl = await page.url();
       await page.waitForSelector("#pass");
       await page.select("#vaccineType", "1");
       const visiblePassportNumber = await page.$eval("#pass", (el) => el.value);
@@ -475,7 +476,7 @@ async function pageContentHandler(currentConfig) {
       passports.push(passenger.passportNumber);
       await util.commander(page, {
         controller: {
-          selector: "#formData > h3:nth-child(3)",
+          selector: pageUrl.includes("hajMission") ? "#formData > h3:nth-child(3)" : "#formData > h3:nth-child(5)",
           title: "Remember",
           arabicTitle: "تذكر",
           action: async () => {
