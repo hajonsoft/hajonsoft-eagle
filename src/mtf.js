@@ -279,13 +279,13 @@ const config = [
   //   },
   // },
   {
-    name: "thankyou",
-    url: "https://www.motawif.com.sa/home/en-sa/thankyou",
+    name: "home",
+    url: "https://www.motawif.com.sa/",
   },
   {
     name: "list",
     regex:
-      "https://(www.)?motawif.com.sa/package/[a-z]{2}-[a-z]{2}/listing.url=https",
+      "https://(www.)?motawif.com.sa/package/[a-z]{2}-[a-z]{2}/listing.*occupancy=.*countryofresidence",
   },
   {
     name: "reserve-contact",
@@ -328,28 +328,28 @@ const config = [
   },
 ];
 
-async function sendPassenger(selectedTraveler) {
-  const data = fs.readFileSync("./data.json", "utf-8");
-  var passengersData = JSON.parse(data);
-  const passenger = passengersData.travellers[selectedTraveler];
-  await page.type("#FirstName", passenger.name.first);
-  await page.type("#LastName", passenger.name.last);
-  const uniqueNumber = moment().format("9MMDDHHmmss");
-  const newEmail = await email.getNewEmail();
-  await page.type("#Email", newEmail);
-  await page.type("#PhoneNumber", uniqueNumber);
-  await util.commit(page, [
-    {
-      selector: "#cor",
-      value: () => budgie.get("motawif_country_of_residence", "US"),
-    },
-  ]);
-  //   await page.solveRecaptchas()
-  //   await Promise.all([
-  //     page.waitForNavigation(),
-  //     page.click(`#recaptcha-demo-submit`)
-  //   ])
-}
+// async function sendPassenger(selectedTraveler) {
+//   const data = fs.readFileSync("./data.json", "utf-8");
+//   var passengersData = JSON.parse(data);
+//   const passenger = passengersData.travellers[selectedTraveler];
+//   await page.type("#FirstName", passenger.name.first);
+//   await page.type("#LastName", passenger.name.last);
+//   const uniqueNumber = moment().format("9MMDDHHmmss");
+//   let newEmail = await email.getNewEmail();
+//   await page.type("#Email", "forhajjhajj+" + uniqueNumber + "@gmail.com");
+//   await page.type("#PhoneNumber", uniqueNumber);
+//   await util.commit(page, [
+//     {
+//       selector: "#cor",
+//       value: () => budgie.get("motawif_country_of_residence", "US"),
+//     },
+//   ]);
+//   //   await page.solveRecaptchas()
+//   //   await Promise.all([
+//   //     page.waitForNavigation(),
+//   //     page.click(`#recaptcha-demo-submit`)
+//   //   ])
+// }
 
 async function sendContactInfo(selectedTraveler) {
   const data = fs.readFileSync("./data.json", "utf-8");
@@ -364,7 +364,7 @@ async function sendContactInfo(selectedTraveler) {
   await page.type("#txtPhone", uniqueNumber);
   fs.appendFileSync("./emails.txt", uniqueNumber.toString() + "\n");
   await page.waitForSelector("#txtEmail");
-  const newEmail = await email.getNewEmail();
+  let newEmail = "forhajjhajj+" + uniqueNumber + "@gmail.com"; // await email.getNewEmail();
   fs.appendFileSync("./emails.txt", newEmail + "\n");
   await page.type("#txtEmail", newEmail);
   await page.click("#send_otp_btn");
@@ -377,13 +377,16 @@ async function sendPilgrimInformation(selectedTraveler) {
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
 
-  const wizardSteps = await page.$("#kt_wizard_v2 > div.wizard-nav.border-right.py-8.px-8 > div");
-  const steps = await wizardSteps.$$eval('div' , divs => divs.map(d => {
-    if (d.getAttribute("data-wizard-state") === "current") {
-      return d.getAttribute("data-wizard-index")
-    }}));
-
-
+  const wizardSteps = await page.$(
+    "#kt_wizard_v2 > div.wizard-nav.border-right.py-8.px-8 > div"
+  );
+  const steps = await wizardSteps.$$eval("div", (divs) =>
+    divs.map((d) => {
+      if (d.getAttribute("data-wizard-state") === "current") {
+        return d.getAttribute("data-wizard-index");
+      }
+    })
+  );
 
   const pilgrimIndex = steps.filter((f) => f != null)?.[0];
   await util.commit(
@@ -457,30 +460,53 @@ async function sendPilgrimInformation(selectedTraveler) {
 
   const url = await page.url();
 
-  const isArabic =  url.includes('ar-sa');
+  const isArabic = url.includes("ar-sa");
   if (isArabic) {
-    moment.locale('ar_SA');
+    moment.locale("ar_SA");
   }
   await util.commit(
     page,
     [
       {
         selector: "#passportIssueDate_" + pilgrimIndex,
-        value: (row) => isArabic ? moment(row.passIssueDt.dmy, "DD/MM/YYYY").clone().local("ar-sa").format("MMM DD, YYYY") :
-          `${row.passIssueDt.mmm} ${row.passIssueDt.dd}, ${row.passIssueDt.yyyy}`,
+        value: (row) =>
+          isArabic
+            ? moment(row.passIssueDt.dmy, "DD/MM/YYYY")
+                .clone()
+                .local("ar-sa")
+                .format("MMM DD, YYYY")
+            : `${row.passIssueDt.mmm} ${row.passIssueDt.dd}, ${row.passIssueDt.yyyy}`,
       },
       {
         selector: "#birthDate_" + pilgrimIndex,
-        value: (row) => isArabic ? moment(row.dob.dmy, "DD/MM/YYYY").clone().local("ar-sa").format("MMM DD, YYYY") : `${row.dob.mmm} ${row.dob.dd}, ${row.dob.yyyy}`,
+        value: (row) =>
+          isArabic
+            ? moment(row.dob.dmy, "DD/MM/YYYY")
+                .clone()
+                .local("ar-sa")
+                .format("MMM DD, YYYY")
+            : `${row.dob.mmm} ${row.dob.dd}, ${row.dob.yyyy}`,
       },
       {
         selector: "#passportExpiry_" + pilgrimIndex,
-        value: (row) => isArabic ? moment(row.passExpireDt.dmy, "DD/MM/YYYY").clone().local("ar-sa").format("MMM DD, YYYY") :
-          `${row.passExpireDt.mmm} ${row.passExpireDt.dd}, ${row.passExpireDt.yyyy}`,
+        value: (row) =>
+          isArabic
+            ? moment(row.passExpireDt.dmy, "DD/MM/YYYY")
+                .clone()
+                .local("ar-sa")
+                .format("MMM DD, YYYY")
+            : `${row.passExpireDt.mmm} ${row.passExpireDt.dd}, ${row.passExpireDt.yyyy}`,
       },
       {
         selector: "#vaccine1Date_" + pilgrimIndex,
-        value: (row) => isArabic ? moment().add(-30, "days").clone().local("ar-sa").format("MMM DD, YYYY") : `${moment().add(-30, "days").format("MMM DD, YYYY")}`,
+        value: (row) =>
+          isArabic
+            ? moment()
+                .add(-30, "days")
+                .clone()
+                .local("ar-sa")
+                .format("MMM DD, YYYY")
+            : `${moment().add(-30, "days").format("MMM DD, YYYY")}`,
       },
     ],
     passenger
@@ -531,12 +557,13 @@ async function sendPilgrimInformation(selectedTraveler) {
       el.value = "";
     });
     let issueDt = moment(passenger.idIssueDt.dmy, "DD/MM/YYYY");
-    if (true) { // issueDt.isAfter(moment())) {
-      issueDt = moment().add(-1,"month")
+    if (true) {
+      // issueDt.isAfter(moment())) {
+      issueDt = moment().add(-1, "month");
     }
     await page.type(
       "#residencyIdIssueDate_" + pilgrimIndex,
-      `${issueDt.format("MMM DD, YYYY")}` 
+      `${issueDt.format("MMM DD, YYYY")}`
     );
 
     await page.$eval("#residencyIdExpiryDate_" + pilgrimIndex, (el) => {
@@ -544,13 +571,14 @@ async function sendPilgrimInformation(selectedTraveler) {
       el.value = "";
     });
     let expireDt = moment(passenger.idExpireDt.dmy, "DD/MM/YYYY");
-    if (expireDt.isBefore(moment().add(6,"month"))) {
-      expireDt = moment().add(10,"month")
+    if (expireDt.isBefore(moment().add(6, "month"))) {
+      expireDt = moment().add(10, "month");
     }
     await page.type(
       "#residencyIdExpiryDate_" + pilgrimIndex,
-      isArabic ? `${expireDt.format("MMM DD, YYYY")}` : 
-      `${passenger.idExpireDt.mmm} ${passenger.idExpireDt.dd}, ${passenger.idExpireDt.yyyy}`
+      isArabic
+        ? `${expireDt.format("MMM DD, YYYY")}`
+        : `${passenger.idExpireDt.mmm} ${passenger.idExpireDt.dd}, ${passenger.idExpireDt.yyyy}`
     );
 
     let resizedIdPath = await util.downloadAndResizeImage(
@@ -562,8 +590,9 @@ async function sendPilgrimInformation(selectedTraveler) {
     await util.commitFile("#residencyProofFile_" + pilgrimIndex, resizedIdPath);
   }
 
-  await page.click("#kt_wizard_v2 > div.wizard-body.py-8.px-8 > div > div > div.d-flex.justify-content-between.align-items-stretch.border-top.mt-5.pt-10 > div:nth-child(3) > button:nth-child(2)")
-
+  await page.click(
+    "#kt_wizard_v2 > div.wizard-body.py-8.px-8 > div > div > div.d-flex.justify-content-between.align-items-stretch.border-top.mt-5.pt-10 > div:nth-child(3) > button:nth-child(2)"
+  );
 }
 
 async function setMotawifDate(dateSelector, year, month, day) {
@@ -622,67 +651,65 @@ async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "home":
-      const acceptCookiesButton = await page.$(
-        "body > div.cky-consent-container.cky-classic-bottom > div.cky-consent-bar > div.cky-notice > div > div.cky-notice-btn-wrapper > button.cky-btn.cky-btn-accept"
-      );
-      if (acceptCookiesButton) {
-        await acceptCookiesButton.click();
-      }
-      if (
-        fs.existsSync("./loop.txt") &&
-        fs.existsSync("./selectedTraveller.txt")
-      ) {
-        sendPassenger(fs.readFileSync("./selectedTraveller.txt", "utf-8"));
-      }
-      await util.controller(page, currentConfig, data.travellers);
-      await util.commander(page, {
-        controller: {
-          selector:
-            "body > div.hero__section > div > div > div.hero__info > p:nth-child(3)",
-          title: "Remember",
-          arabicTitle: "تذكر",
-          action: async () => {
-            const cor = await page.$eval("#cor", (el) => el.value);
-            if (cor) {
-              budgie.save("motawif_country_of_residence", cor);
-            }
-          },
-        },
-      });
-      break;
+    // const acceptCookiesButton = await page.$(
+    //   "body > div.cky-consent-container.cky-classic-bottom > div.cky-consent-bar > div.cky-notice > div > div.cky-notice-btn-wrapper > button.cky-btn.cky-btn-accept"
+    // );
+    // if (acceptCookiesButton) {
+    //   await acceptCookiesButton.click();
+    // }
+    // if (
+    //   fs.existsSync("./loop.txt") &&
+    //   fs.existsSync("./selectedTraveller.txt")
+    // ) {
+    //   sendPassenger(fs.readFileSync("./selectedTraveller.txt", "utf-8"));
+    // }
+    // await util.controller(page, currentConfig, data.travellers);
+    // await util.commander(page, {
+    //   controller: {
+    //     selector:
+    //       "body > div.hero__section > div > div > div.hero__info > p:nth-child(3)",
+    //     title: "Remember",
+    //     arabicTitle: "تذكر",
+    //     action: async () => {
+    //       const cor = await page.$eval("#cor", (el) => el.value);
+    //       if (cor) {
+    //         budgie.save("motawif_country_of_residence", cor);
+    //       }
+    //     },
+    //   },
+    // });
+    // break;
     case "thankyou":
-      const selectedTravelerRaw = fs.readFileSync(
-        "./selectedTraveller.txt",
-        "utf-8"
-      );
-      if (selectedTravelerRaw) {
-        if (/\d+/.test(selectedTravelerRaw)) {
-          const selectedTraveler = parseInt(selectedTravelerRaw);
-          fs.writeFileSync(
-            "./selectedTraveller.txt",
-            (selectedTraveler + 1).toString()
-          );
-        }
-      }
-      await page.goto("https://www.motawif.com.sa");
+      // const selectedTravelerRaw = fs.readFileSync(
+      //   "./selectedTraveller.txt",
+      //   "utf-8"
+      // );
+      // if (selectedTravelerRaw) {
+      //   if (/\d+/.test(selectedTravelerRaw)) {
+      //     const selectedTraveler = parseInt(selectedTravelerRaw);
+      //     fs.writeFileSync(
+      //       "./selectedTraveller.txt",
+      //       (selectedTraveler + 1).toString()
+      //     );
+      //   }
+      // }
+      // await page.goto("https://www.motawif.com.sa");
       break;
     case "reserve-contact":
       await util.controller(page, currentConfig, data.travellers);
       break;
     case "list":
-      // const anchors = await page.$$eval("a", (els) => {
-      //   // return els.map((el) => el.removeAttribute("target"));
-      //   return els.map((el) => el);
-      // });
-      // try {
-      //   for (const anc of anchors) {
-      //     await anc.eval("remoeAttribute('target)")
-      //   }
-      // } catch {}
-      await page.$(
-        "#kt_content > div > div > div.listing-container > div > div:nth-child(2) > div > div > div.d-flex.align-items-end.flex-column.float-right > a",
-        (el) => el.removeAttribute("target")
-      );
+      // const isOk = await page.$("#exampleModal > div > div > div.modal-footer > button");
+      // console.log('%cMyProject%cline:702%cisOk', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(89, 61, 67);padding:3px;border-radius:2px', isOk)
+      // if (isOk) {
+      //   await page.click("#exampleModal > div > div > div.modal-footer > button");
+      // }
+      const anchors = await page.$$("a");
+      for (const anchor of anchors) {
+        const outer = await anchor.evaluate((e) => {
+          e.innerText = "Ayman";
+        })
+      }
       break;
     case "pilgrim-profile-information":
       const isIUnderstand = await page.$(
@@ -693,6 +720,16 @@ async function pageContentHandler(currentConfig) {
           "#disclaimerModal > div > div > div.modal-footer > button"
         );
       }
+
+      const isOkDone = await page.$(
+        "#kt_body > div.swal2-container.swal2-center.swal2-backdrop-show > div > div.swal2-actions > button.swal2-confirm.swal2-styled"
+      );
+      if (isOkDone) {
+        await page.click(
+          "#kt_body > div.swal2-container.swal2-center.swal2-backdrop-show > div > div.swal2-actions > button.swal2-confirm.swal2-styled"
+        );
+      }
+
       await util.controller(page, currentConfig, data.travellers);
       await page.waitForSelector("#ticket-idguestpage");
       ticketNumber = await page.$eval("#ticket-idguestpage", (el) => el.value);
@@ -701,7 +738,7 @@ async function pageContentHandler(currentConfig) {
       await page.screenshot({
         path: path.join(__dirname, ticketNumber) + ".png",
         type: "png",
-        fullPage: true
+        fullPage: true,
       });
       break;
     default:
