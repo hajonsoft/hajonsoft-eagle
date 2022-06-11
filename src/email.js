@@ -1,4 +1,5 @@
 const puppeteer = require("puppeteer");
+let page;
 
 async function getNewEmail() {
   const browser = await puppeteer.launch({
@@ -20,5 +21,14 @@ async function getNewEmail() {
   return email;
 }
 
+async function readCode() {
+  if (page) {
+    await page.goto("https://www.minuteinbox.com/window/id/2", {
+      waitUntill: "networkidle0",
+    });
+  }
 
-module.exports = { getNewEmail };
+}
+
+
+module.exports = { getNewEmail, readCode };

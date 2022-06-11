@@ -290,4 +290,5 @@ const fs = require("fs");
 //   return output;
 // }
 
-console.log("abc".replace(/[^A-Z]/g, ""))
+// console.log("abc".replace(/[^A-Z]/g, ""))
+
