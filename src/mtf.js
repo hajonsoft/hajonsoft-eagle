@@ -19,7 +19,6 @@ let data;
 let counter = 0;
 let ticketNumber;
 
-
 const mtfNationalities = [
   { mtfCode: "AF-93", code: "AFG" },
   { mtfCode: "AL-355", code: "ALB" },
@@ -357,6 +356,8 @@ async function sendContactInfo(selectedTraveler) {
   const data = fs.readFileSync("./data.json", "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
+  await page.waitForSelector("#NamePrefix");
+  await page.select("#NamePrefix", passenger.gender === "Male" ? "1" : "2");
   await page.type("#GivenName", passenger.name.first);
   await page.type("#SurName", passenger.name.last);
   const uniqueNumber = moment().format("9MMDDHHmmss");
@@ -367,28 +368,34 @@ async function sendContactInfo(selectedTraveler) {
   fs.appendFileSync("./emails.txt", newEmail + "\n");
   await page.type("#txtEmail", newEmail);
   await page.click("#send_otp_btn");
+  await page.waitForTimeout(2000);
+  const code = await email.readCode();
+  console.log(code);
 }
 async function sendPilgrimInformation(selectedTraveler) {
   const data = fs.readFileSync("./data.json", "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
-  const label = await page.$eval("#frmTravelerBooking_2 > h4", el=> el.innerText)
-  // #kt_wizard_v2 > div.wizard-nav.border-right.py-8.px-8 > div
-  const wizardSteps = await page.$("#kt_wizard_v2 > div.wizard-nav.border-right.py-8.px-8 > div");
-  const steps = await wizardSteps.$$eval('div' , divs => divs.map(d => {
-    if (d.getAttribute("data-wizard-state") === "current") {
-      return d.getAttribute("data-wizard-index")
-    }}));
+  const wizardSteps = await page.$(
+    "#kt_wizard_v2 > div.wizard-nav.border-right.py-8.px-8 > div"
+  );
+  const steps = await wizardSteps.$$eval("div", (divs) =>
+    divs.map((d) => {
+      if (d.getAttribute("data-wizard-state") === "current") {
+        return d.getAttribute("data-wizard-index");
+      }
+    })
+  );
 
-
-
-  const pilgrimIndex = steps.filter(f => f != null)?.[0];
+  const pilgrimIndex = steps.filter((f) => f != null)?.[0];
   await util.commit(
     page,
     [
       {
         selector: "#ddlNationality_" + pilgrimIndex,
-        value: (row) => mtfNationalities.find(d => d.code === passenger.nationality.code)?.mtfCode || "US-1",
+        value: (row) =>
+          mtfNationalities.find((d) => d.code === passenger.nationality.code)
+            ?.mtfCode || "US-1",
       },
       {
         selector: "#ddlPassportType_" + pilgrimIndex,
@@ -434,32 +441,46 @@ async function sendPilgrimInformation(selectedTraveler) {
     passenger
   );
 
-  await page.$eval("#passportIssueDate_" + pilgrimIndex, el => {
-    el.removeAttribute("readonly")
-  })
-  await page.type("#passportIssueDate_" + pilgrimIndex, `${passenger.passIssueDt.mmm} ${passenger.passIssueDt.dd}, ${passenger.passIssueDt.yyyy}`)
-  
-  await page.$eval("#birthDate_" + pilgrimIndex, el => {
+  await page.$eval("#passportIssueDate_" + pilgrimIndex, (el) => {
+    el.removeAttribute("readonly");
+  });
+  await page.$eval("#passportExpiry_" + pilgrimIndex, (el) => {
     el.removeAttribute("readonly");
     el.value = "";
-
-  })
-  await page.type("#birthDate_" + pilgrimIndex, `${passenger.dob.mmm} ${passenger.dob.dd}, ${passenger.dob.yyyy}`)
-  
-  await page.$eval("#passportExpiry_" + pilgrimIndex, el => {
+  });
+  await page.$eval("#birthDate_" + pilgrimIndex, (el) => {
     el.removeAttribute("readonly");
     el.value = "";
-  })
-  await page.type("#passportExpiry_" + pilgrimIndex, `${passenger.passExpireDt.mmm} ${passenger.passExpireDt.dd}, ${passenger.passExpireDt.yyyy}`)
-
-  await page.$eval("#vaccine1Date_" + pilgrimIndex, el => {
+  });
+  await page.$eval("#vaccine1Date_" + pilgrimIndex, (el) => {
     el.removeAttribute("readonly");
     el.value = "";
+  });
 
-  })
-  await page.type("#vaccine1Date_" + pilgrimIndex, `${moment().add(-30, 'days').format("MMM DD, YYYY")}`)
-  
-
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#passportIssueDate_" + pilgrimIndex,
+        value: (row) =>
+          `${row.passIssueDt.mmm} ${row.passIssueDt.dd}, ${row.passIssueDt.yyyy}`,
+      },
+      {
+        selector: "#birthDate_" + pilgrimIndex,
+        value: (row) => `${row.dob.mmm} ${row.dob.dd}, ${row.dob.yyyy}`,
+      },
+      {
+        selector: "#passportExpiry_" + pilgrimIndex,
+        value: (row) =>
+          `${row.passExpireDt.mmm} ${row.passExpireDt.dd}, ${row.passExpireDt.yyyy}`,
+      },
+      {
+        selector: "#vaccine1Date_" + pilgrimIndex,
+        value: (row) => `${moment().add(-30, "days").format("MMM DD, YYYY")}`,
+      },
+    ],
+    passenger
+  );
 
   let resizedPhotoPath = await util.downloadAndResizeImage(
     passenger,
@@ -486,29 +507,39 @@ async function sendPilgrimInformation(selectedTraveler) {
   await util.commitFile("#vaccine1File_" + pilgrimIndex, resizedVaccinePath);
   // await page.select("#ddlEmbassy", "62a1c7a85e08d7e37dbe33ef")
   await page.click("#isHajjPerfomed_" + pilgrimIndex);
-  const isResident = await page.$("#residencyIdentificationNumber_" + pilgrimIndex);
+  const isResident = await page.$(
+    "#residencyIdentificationNumber_" + pilgrimIndex
+  );
   if (isResident) {
-    await util.commit(page, [
-      {
-        selector: "#residencyIdentificationNumber_" + pilgrimIndex,
-        value: (row) => passenger.idNumber || moment().valueOf()
-      }
-    ], passenger)
+    await util.commit(
+      page,
+      [
+        {
+          selector: "#residencyIdentificationNumber_" + pilgrimIndex,
+          value: (row) => passenger.idNumber || moment().valueOf(),
+        },
+      ],
+      passenger
+    );
 
-    await page.$eval("#residencyIdIssueDate_" + pilgrimIndex, el => {
+    await page.$eval("#residencyIdIssueDate_" + pilgrimIndex, (el) => {
       el.removeAttribute("readonly");
       el.value = "";
-  
-    })
-    await page.type("#residencyIdIssueDate_" + pilgrimIndex, `${passenger.idIssueDt.mmm} ${passenger.idIssueDt.dd}, ${passenger.idIssueDt.yyyy}`)
-    
-    await page.$eval("#residencyIdExpiryDate_" + pilgrimIndex, el => {
+    });
+    await page.type(
+      "#residencyIdIssueDate_" + pilgrimIndex,
+      `${passenger.idIssueDt.mmm} ${passenger.idIssueDt.dd}, ${passenger.idIssueDt.yyyy}`
+    );
+
+    await page.$eval("#residencyIdExpiryDate_" + pilgrimIndex, (el) => {
       el.removeAttribute("readonly");
       el.value = "";
-  
-    })
-    await page.type("#residencyIdExpiryDate_" + pilgrimIndex, `${passenger.idExpireDt.mmm} ${passenger.idExpireDt.dd}, ${passenger.idExpireDt.yyyy}`)
-    
+    });
+    await page.type(
+      "#residencyIdExpiryDate_" + pilgrimIndex,
+      `${passenger.idExpireDt.mmm} ${passenger.idExpireDt.dd}, ${passenger.idExpireDt.yyyy}`
+    );
+
     let resizedIdPath = await util.downloadAndResizeImage(
       passenger,
       400,
@@ -517,7 +548,6 @@ async function sendPilgrimInformation(selectedTraveler) {
     );
     await util.commitFile("#residencyProofFile_" + pilgrimIndex, resizedIdPath);
   }
-
 }
 
 async function setMotawifDate(dateSelector, year, month, day) {
@@ -633,18 +663,27 @@ async function pageContentHandler(currentConfig) {
       //     await anc.eval("remoeAttribute('target)")
       //   }
       // } catch {}
+      await page.$(
+        "#kt_content > div > div > div.listing-container > div > div:nth-child(2) > div > div > div.d-flex.align-items-end.flex-column.float-right > a",
+        (el) => el.removeAttribute("target")
+      );
       break;
     case "pilgrim-profile-information":
+      const isIUnderstand = await page.$(
+        "#disclaimerModal > div > div > div.modal-footer > button"
+      );
+      if (isIUnderstand) {
+        await page.click(
+          "#disclaimerModal > div > div > div.modal-footer > button"
+        );
+      }
       await util.controller(page, currentConfig, data.travellers);
       await page.waitForSelector("#ticket-idguestpage");
       ticketNumber = await page.$eval("#ticket-idguestpage", (el) => el.value);
       fs.appendFileSync("./emails.txt", "ticket: " + ticketNumber + "\n");
-      await page.waitForTimeout(2000)
+      await page.waitForTimeout(2000);
       await page.screenshot({
-        path:
-          path.join(
-            __dirname, ticketNumber
-          ) + ".png",
+        path: path.join(__dirname, ticketNumber) + ".png",
         type: "png",
       });
       break;

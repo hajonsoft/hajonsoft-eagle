@@ -22,13 +22,21 @@ async function getNewEmail() {
 }
 
 async function readCode() {
-  if (page) {
-    await page.goto("https://www.minuteinbox.com/window/id/2", {
-      waitUntill: "networkidle0",
-    });
-  }
+  for (let i = 0; i < 10; i++) {
+    const content = await page.content();
+    if (content.includes("Motawif | Email Verification Code")) {
+      await page.goto("https://www.minuteinbox.com/window/id/2", {
+        waitUntill: "domcontentloaded",
+      });
+      const selector =
+        "body > div > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr > td > span";
 
+      await page.waitForSelector(selector);
+      const code = await page.$eval(selector, (el) => el.innerText);
+      return code;
+    }
+    await page.waitForTimeout(2000);
+  }
 }
 
-
-module.exports = { getNewEmail, readCode };
+module.exports = { getNewEmail, readCode, page };
