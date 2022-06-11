@@ -362,6 +362,7 @@ async function sendContactInfo(selectedTraveler) {
   const uniqueNumber = moment().format("9MMDDHHmmss");
   await page.waitForSelector("#txtPhone");
   await page.type("#txtPhone", uniqueNumber);
+  fs.appendFileSync("./emails.txt", uniqueNumber.toString() + "\n");
   await page.waitForSelector("#txtEmail");
   const newEmail = await email.getNewEmail();
   fs.appendFileSync("./emails.txt", newEmail + "\n");
@@ -454,26 +455,32 @@ async function sendPilgrimInformation(selectedTraveler) {
     el.value = "";
   });
 
+  const url = await page.url();
+
+  const isArabic =  url.includes('ar-sa');
+  if (isArabic) {
+    moment.locale('ar_SA');
+  }
   await util.commit(
     page,
     [
       {
         selector: "#passportIssueDate_" + pilgrimIndex,
-        value: (row) =>
+        value: (row) => isArabic ? moment(row.passIssueDt.dmy, "DD/MM/YYYY").clone().local("ar-sa").format("MMM DD, YYYY") :
           `${row.passIssueDt.mmm} ${row.passIssueDt.dd}, ${row.passIssueDt.yyyy}`,
       },
       {
         selector: "#birthDate_" + pilgrimIndex,
-        value: (row) => `${row.dob.mmm} ${row.dob.dd}, ${row.dob.yyyy}`,
+        value: (row) => isArabic ? moment(row.dob.dmy, "DD/MM/YYYY").clone().local("ar-sa").format("MMM DD, YYYY") : `${row.dob.mmm} ${row.dob.dd}, ${row.dob.yyyy}`,
       },
       {
         selector: "#passportExpiry_" + pilgrimIndex,
-        value: (row) =>
+        value: (row) => isArabic ? moment(row.passExpireDt.dmy, "DD/MM/YYYY").clone().local("ar-sa").format("MMM DD, YYYY") :
           `${row.passExpireDt.mmm} ${row.passExpireDt.dd}, ${row.passExpireDt.yyyy}`,
       },
       {
         selector: "#vaccine1Date_" + pilgrimIndex,
-        value: (row) => `${moment().add(-30, "days").format("MMM DD, YYYY")}`,
+        value: (row) => isArabic ? moment().add(-30, "days").clone().local("ar-sa").format("MMM DD, YYYY") : `${moment().add(-30, "days").format("MMM DD, YYYY")}`,
       },
     ],
     passenger
@@ -523,17 +530,26 @@ async function sendPilgrimInformation(selectedTraveler) {
       el.removeAttribute("readonly");
       el.value = "";
     });
+    let issueDt = moment(passenger.idIssueDt.dmy, "DD/MM/YYYY");
+    if (true) { // issueDt.isAfter(moment())) {
+      issueDt = moment().add(-1,"month")
+    }
     await page.type(
       "#residencyIdIssueDate_" + pilgrimIndex,
-      `${passenger.idIssueDt.mmm} ${passenger.idIssueDt.dd}, ${passenger.idIssueDt.yyyy}`
+      `${issueDt.format("MMM DD, YYYY")}` 
     );
 
     await page.$eval("#residencyIdExpiryDate_" + pilgrimIndex, (el) => {
       el.removeAttribute("readonly");
       el.value = "";
     });
+    let expireDt = moment(passenger.idExpireDt.dmy, "DD/MM/YYYY");
+    if (expireDt.isBefore(moment().add(6,"month"))) {
+      expireDt = moment().add(10,"month")
+    }
     await page.type(
       "#residencyIdExpiryDate_" + pilgrimIndex,
+      isArabic ? `${expireDt.format("MMM DD, YYYY")}` : 
       `${passenger.idExpireDt.mmm} ${passenger.idExpireDt.dd}, ${passenger.idExpireDt.yyyy}`
     );
 
