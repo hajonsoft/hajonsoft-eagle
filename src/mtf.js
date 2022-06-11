@@ -364,7 +364,7 @@ async function sendContactInfo(selectedTraveler) {
   await page.type("#txtPhone", uniqueNumber);
   fs.appendFileSync("./emails.txt", uniqueNumber.toString() + "\n");
   await page.waitForSelector("#txtEmail");
-  let newEmail = "forhajjhajj+" + uniqueNumber + "@gmail.com"; // await email.getNewEmail();
+  let newEmail = budgie.get("motawif_gmail","forhajjhajj") +  "+" + uniqueNumber + "@gmail.com"; // await email.getNewEmail();
   fs.appendFileSync("./emails.txt", newEmail + "\n");
   await page.type("#txtEmail", newEmail);
   await page.click("#send_otp_btn");
@@ -697,6 +697,22 @@ async function pageContentHandler(currentConfig) {
       break;
     case "reserve-contact":
       await util.controller(page, currentConfig, data.travellers);
+await util.commander(page, {
+      controller: {
+        selector:
+          "#validateContactNo > h6",
+        title: "Remember",
+        arabicTitle: "تذكر",
+        action: async () => {
+          let motawifGmail = await page.$eval("#txtEmail", (el) => el.value);
+          motawifGmail =  motawifGmail.split("@")[0].split("+")[0];
+          if (motawifGmail) {
+            budgie.save("motawif_gmail", motawifGmail);
+          }
+        },
+      },
+    });
+
       break;
     case "list":
       // const isOk = await page.$("#exampleModal > div > div > div.modal-footer > button");
