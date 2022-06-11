@@ -372,8 +372,7 @@ async function sendPilgrimInformation(selectedTraveler) {
   const data = fs.readFileSync("./data.json", "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
-  const label = await page.$eval("#frmTravelerBooking_2 > h4", el=> el.innerText)
-  // #kt_wizard_v2 > div.wizard-nav.border-right.py-8.px-8 > div
+
   const wizardSteps = await page.$("#kt_wizard_v2 > div.wizard-nav.border-right.py-8.px-8 > div");
   const steps = await wizardSteps.$$eval('div' , divs => divs.map(d => {
     if (d.getAttribute("data-wizard-state") === "current") {
@@ -518,6 +517,8 @@ async function sendPilgrimInformation(selectedTraveler) {
     await util.commitFile("#residencyProofFile_" + pilgrimIndex, resizedIdPath);
   }
 
+  await page.click("#kt_wizard_v2 > div.wizard-body.py-8.px-8 > div > div > div.d-flex.justify-content-between.align-items-stretch.border-top.mt-5.pt-10 > div:nth-child(3) > button:nth-child(2)")
+
 }
 
 async function setMotawifDate(dateSelector, year, month, day) {
@@ -646,6 +647,7 @@ async function pageContentHandler(currentConfig) {
             __dirname, ticketNumber
           ) + ".png",
         type: "png",
+        fullPage: true
       });
       break;
     default:
