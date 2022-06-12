@@ -476,7 +476,7 @@ async function pageContentHandler(currentConfig) {
       passports.push(passenger.passportNumber);
       await util.commander(page, {
         controller: {
-          selector: pageUrl.includes("hajMission") ? "#formData > h3:nth-child(3)" : "#formData > h3:nth-child(5)",
+          selector: pageUrl.includes("hajMission") ? "#formData > h3:nth-child(3)" : "#formData > h3:nth-child(3)",
           title: "Remember",
           arabicTitle: "تذكر",
           action: async () => {
