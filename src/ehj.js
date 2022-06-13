@@ -322,7 +322,9 @@ async function pageContentHandler(currentConfig) {
       const config = {
         headers: { Authorization: `Bearer ${data.info.accessToken}` },
       };
-      let url = `${data.info.databaseURL}/${data.system.path || "protected/profile/"}.json`;
+      let url = `${data.info.databaseURL}/${
+        data.system.path || "protected/profile/"
+      }.json`;
       try {
         await axios.patch(
           url,
@@ -476,7 +478,9 @@ async function pageContentHandler(currentConfig) {
       passports.push(passenger.passportNumber);
       await util.commander(page, {
         controller: {
-          selector: pageUrl.includes("hajMission") ? "#formData > h3:nth-child(3)" : "#formData > h3:nth-child(3)",
+          selector: pageUrl.includes("hajMission")
+            ? "body > div.wrapper > div > div.page-content > div.row > ul > li:nth-child(3)"
+            : "body > div.wrapper > div > div.page-content > div.row > ul > li:nth-child(3)",
           title: "Remember",
           arabicTitle: "تذكر",
           action: async () => {
@@ -596,7 +600,7 @@ async function pageContentHandler(currentConfig) {
         100,
         "vaccine2"
       );
-     
+
       await page.select(
         "#vaccineType",
         budgie.get("ehaj_pilgrim_vaccine_type", 1)
@@ -609,18 +613,16 @@ async function pageContentHandler(currentConfig) {
         //   moment().add(-60, "days").format("DD/MM/YYYY")
         //   );
 
-          await page.$eval("#hdcviFirstDoseDate" , el=> {
-            el.value = "01/01/2022"
-          })
+        await page.$eval("#hdcviFirstDoseDate", (el) => {
+          el.value = "01/01/2022";
+        });
         const vaccine1Input = "#vaccine_attmnt_1_input";
         await page.waitForSelector(vaccine1Input);
         await page.click(vaccine1Input);
         await util.commitFile(vaccine1Input, resizedVaccinePath);
         await page.waitForTimeout(500);
-
       }
 
-      
       const isSecondDoseRequired = await page.$("#hdcviSecondDoseDate");
       if (isSecondDoseRequired) {
         await page.type(
