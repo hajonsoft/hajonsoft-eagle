@@ -322,7 +322,7 @@ async function pageContentHandler(currentConfig) {
       const config = {
         headers: { Authorization: `Bearer ${data.info.accessToken}` },
       };
-      const url = `${data.info.databaseURL}/protected/profile//.json`;
+      let url = `${data.info.databaseURL}/${data.system.path || "protected/profile/"}.json`;
       try {
         await axios.patch(
           url,
