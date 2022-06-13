@@ -4,6 +4,7 @@ data.json
 data*.json
 budgie*.json
 selectedTraveller.txt
+loop.txt
 /scan
 api_key
 activation
