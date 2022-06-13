@@ -364,7 +364,11 @@ async function sendContactInfo(selectedTraveler) {
   await page.type("#txtPhone", uniqueNumber);
   fs.appendFileSync("./emails.txt", uniqueNumber.toString() + "\n");
   await page.waitForSelector("#txtEmail");
-  let newEmail = budgie.get("motawif_gmail","forhajjhajj") +  "+" + uniqueNumber + "@gmail.com"; // await email.getNewEmail();
+  let newEmail =
+    budgie.get("motawif_gmail", "forhajjhajj") +
+    "+" +
+    uniqueNumber +
+    "@gmail.com"; // await email.getNewEmail();
   fs.appendFileSync("./emails.txt", newEmail + "\n");
   await page.type("#txtEmail", newEmail);
   await page.click("#send_otp_btn");
@@ -576,9 +580,7 @@ async function sendPilgrimInformation(selectedTraveler) {
     }
     await page.type(
       "#residencyIdExpiryDate_" + pilgrimIndex,
-      isArabic
-        ? `${expireDt.format("MMM DD, YYYY")}`
-        : `${passenger.idExpireDt.mmm} ${passenger.idExpireDt.dd}, ${passenger.idExpireDt.yyyy}`
+      `${expireDt.format("MMM DD, YYYY")}`
     );
 
     let resizedIdPath = await util.downloadAndResizeImage(
@@ -697,21 +699,20 @@ async function pageContentHandler(currentConfig) {
       break;
     case "reserve-contact":
       await util.controller(page, currentConfig, data.travellers);
-await util.commander(page, {
-      controller: {
-        selector:
-          "#validateContactNo > h6",
-        title: "Remember",
-        arabicTitle: "تذكر",
-        action: async () => {
-          let motawifGmail = await page.$eval("#txtEmail", (el) => el.value);
-          motawifGmail =  motawifGmail.split("@")[0].split("+")[0];
-          if (motawifGmail) {
-            budgie.save("motawif_gmail", motawifGmail);
-          }
+      await util.commander(page, {
+        controller: {
+          selector: "#validateContactNo > h6",
+          title: "Remember",
+          arabicTitle: "تذكر",
+          action: async () => {
+            let motawifGmail = await page.$eval("#txtEmail", (el) => el.value);
+            motawifGmail = motawifGmail.split("@")[0].split("+")[0];
+            if (motawifGmail) {
+              budgie.save("motawif_gmail", motawifGmail);
+            }
+          },
         },
-      },
-    });
+      });
 
       break;
     case "list":
@@ -724,7 +725,7 @@ await util.commander(page, {
       for (const anchor of anchors) {
         const outer = await anchor.evaluate((e) => {
           e.innerText = "Ayman";
-        })
+        });
       }
       break;
     case "pilgrim-profile-information":
@@ -756,6 +757,29 @@ await util.commander(page, {
         type: "png",
         fullPage: true,
       });
+
+      if (
+        fs.existsSync("./loop.txt") &&
+        fs.existsSync("./selectedTraveller.txt")
+      ) {
+        const selectedPassenger = fs.readFileSync(
+          "./selectedTraveller.txt",
+          "utf8"
+        );
+        const data = fs.readFileSync("./data.json", "utf-8");
+        var passengersData = JSON.parse(data);
+        if (
+          passengersData.travellers.length >
+          parseInt(selectedPassenger) + 1
+        ) {
+          fs.writeFileSync(
+            "selectedTraveller.txt",
+            (parseInt(selectedPassenger) + 1).toString()
+          );
+          await sendPassenger(parseInt(selectedPassenger) + 1);
+          await sendPilgrimInformation(parseInt(selectedPassenger) + 1);
+        }
+      }
       break;
     default:
       break;
