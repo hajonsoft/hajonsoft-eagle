@@ -129,7 +129,7 @@ const config = [
       },
       {
         selector: "#address",
-        value: (row) => budgie.get("ehaj_pilgrim_address", row.address),
+        value: (row) => "", // budgie.get("ehaj_pilgrim_address", row.address)
       },
       {
         selector: "#passportIssueDate",
@@ -160,7 +160,7 @@ const config = [
       },
       {
         selector: "#address",
-        value: (row) => budgie.get("ehaj_pilgrim_address", row.address),
+        value: (row) => "" , // budgie.get("ehaj_pilgrim_address", row.address),
       },
       {
         selector: "#passportIssueDate",
