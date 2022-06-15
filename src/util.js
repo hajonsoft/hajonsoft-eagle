@@ -359,7 +359,7 @@ async function controller(page, structure, travellers) {
         const controller = structureParam.controller;
         const container = document.querySelector(controller.selector);
         const handleMethodName = params[2];
-        const isLoop = params[3];
+        const visaPath = params[3];
         container.outerHTML = `
           <div style='background-color: #CCCCCC; border: 2px solid black; border-radius: 16px; padding: 0.5rem; display: flex; align-items: center; justify-content: space-between'>  
           <button style='background-color: #2196f3; color: #ffffff; width: 6rem, padding: 0.5rem; margin: 0 5px; border-radius: 8px;' type="button" onclick="${handleMethodName}();return false">Send One إرسل واحد </button> 
@@ -393,13 +393,14 @@ async function controller(page, structure, travellers) {
             </div>
             </button>
             <div>Import mofa number</div>
+            <div>Visa folder: ${visaPath}</div>
             </div>
             `
               : ""
           }
           `;
       },
-      [structure, options, controllerHandleMethod]
+      [structure, options, controllerHandleMethod, path.join(homedir, "hajonsoft", "visa")]
     );
     const isExposed = await page.evaluate(
       (p) => window[p],

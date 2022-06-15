@@ -256,6 +256,10 @@ async function pageContentHandler(currentConfig) {
       } catch {}
       break;
     case "login":
+      const isError = await page.$("#stepItemsMSGs > div > div")
+      if (isError) {
+        return ;
+      }
       await util.commit(page, currentConfig.details, data.system);
       if (data.system.username && data.system.password) {
         const loginButton = await page.$x(
@@ -435,6 +439,10 @@ async function pageContentHandler(currentConfig) {
       break;
     case "add-mission-pilgrim":
     case "add-company-pilgrim":
+      const isErrorAdd = await page.$("#stepItemsMSGs > div > div > div > ul > li > span")
+      if (isErrorAdd) {
+        return ;
+      }
       await page.emulateVisionDeficiency("none");
       await util.controller(page, currentConfig, data.travellers);
       if (
@@ -563,11 +571,11 @@ async function pageContentHandler(currentConfig) {
             },
             {
               selector: "#iqamaIssueDate",
-              value: (row) => row.passIssueDt.dmy,
+              value: (row) => row.idIssueDt.dmy,
             },
             {
               selector: "#iqamaExpiryDate",
-              value: (row) => row.passExpireDt.dmy,
+              value: (row) => row.idExpireDt.dmy,
             },
           ],
           passenger
