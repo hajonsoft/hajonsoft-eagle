@@ -206,8 +206,16 @@ async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "login":
-      await util.commit(page, currentConfig.details, passenger);
-      util.endCase(currentConfig.name);
+      if (fs.existsSync("./loop.txt")) {
+        if (!fs.existsSync("./selectedTraveller.txt")) {
+          fs.writeFileSync("./selectedTraveller.txt", "-1");
+        }
+        const passengerIndex = fs.readFileSync(
+          "./selectedTraveller.txt",
+          "utf-8"
+        );
+        await sendPassenger((parseInt(passengerIndex) + 1).toString());
+      }
       await util.controller(
         page,
         {
@@ -219,38 +227,7 @@ async function pageContentHandler(currentConfig) {
                 "#hajonsoft_select",
                 (el) => el.value
               );
-              if (selectedTraveller) {
-                try {
-                  fs.writeFileSync(
-                    "./selectedTraveller.txt",
-                    selectedTraveller
-                  );
-                  const data = fs.readFileSync("./data.json", "utf-8");
-                  var passengersData = JSON.parse(data);
-                  var passenger = passengersData.travellers[selectedTraveller];
-                  if (!passenger.mofaNumber) {
-                    const found = mofas.find(
-                      (mofa) => mofa.passportNumber === passenger.passportNumber
-                    );
-                    if (found) {
-                      passenger.mofaNumber = found.mofaNumber;
-                    } else if (fs.existsSync("./" + passenger.passportNumber)) {
-                      const data = fs.readFileSync(
-                        "./" + passenger.passportNumber,
-                        "utf-8"
-                      );
-                      passenger.mofaNumber = JSON.parse(data)?.mofaNumber;
-                    }
-                  }
-                  await util.commit(
-                    page,
-                    config.find((con) => con.name === "login").details,
-                    passenger
-                  );
-                } catch (err) {
-                  console.log(err.message);
-                }
-              }
+              await sendPassenger(selectedTraveller);
             },
             wtuAction: async () => {
               wtuPage = await util.newPage(onWTUPageLoad, () => {});
@@ -287,14 +264,13 @@ async function pageContentHandler(currentConfig) {
         },
         data.travellers
       );
-      await page.click("#Captcha");
       break;
     case "agreement":
       await page.waitForSelector(
-        "#content > div > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid.right > div > div > a.btn.green"
+        "body > div.alert.text-center.cookiealert.show > button"
       );
       await page.click(
-        "#content > div > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid.right > div > div > a.btn.green"
+        "body > div.alert.text-center.cookiealert.show > button"
       );
       break;
     case "step1":
@@ -470,7 +446,7 @@ async function pageContentHandler(currentConfig) {
                   const data = fs.readFileSync("./data.json", "utf-8");
                   var passengersData = JSON.parse(data);
                   var passenger = passengersData.travellers[selectedTraveller];
-                
+
                   await util.commit(
                     page,
                     config.find((con) => con.name === "add").details,
@@ -488,8 +464,7 @@ async function pageContentHandler(currentConfig) {
                     e.getAttribute("src")
                   );
                   await util.commitFile("#PersonalImage", resizedPhotoPath);
-                  
-                  
+
                   await setHSFDate(
                     "#PASSPORT_ISSUE_DATE",
                     passenger.passIssueDt.yyyy,
@@ -503,14 +478,13 @@ async function pageContentHandler(currentConfig) {
                     passenger.passExpireDt.mm,
                     passenger.passExpireDt.dd
                   );
-            
+
                   await setHSFDate(
                     "#BIRTH_DATE",
                     passenger.dob.yyyy,
                     passenger.dob.mm,
                     passenger.dob.dd
                   );
-
                 } catch (err) {
                   console.log(err.message);
                 }
@@ -523,6 +497,50 @@ async function pageContentHandler(currentConfig) {
       break;
     default:
       break;
+  }
+}
+
+async function sendPassenger(selectedTraveller) {
+  if (selectedTraveller) {
+    try {
+      fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
+      const data = fs.readFileSync("./data.json", "utf-8");
+      var passengersData = JSON.parse(data);
+      var passenger = passengersData.travellers[selectedTraveller];
+      if (!passenger.mofaNumber) {
+        const found = mofas.find(
+          (mofa) => mofa.passportNumber === passenger.passportNumber
+        );
+        if (found) {
+          passenger.mofaNumber = found.mofaNumber;
+        } else if (fs.existsSync("./" + passenger.passportNumber)) {
+          const data = fs.readFileSync(
+            "./" + passenger.passportNumber,
+            "utf-8"
+          );
+          passenger.mofaNumber = JSON.parse(data)?.mofaNumber;
+        }
+      }
+      await util.commit(
+        page,
+        config.find((con) => con.name === "login").details,
+        passenger
+      );
+      const actionSelector = "#btnSubmit";
+      const captchaSelector = "#Captcha";
+      await page.waitForSelector(captchaSelector);
+      await page.focus(captchaSelector);
+      await page.waitForFunction(
+        (args) => {
+          document.querySelector(args[0]).value.length === args[1];
+        },
+        { timeout: 0 },
+        [captchaSelector, 6]
+      );
+      await page.click(actionSelector);
+    } catch (err) {
+      console.log(err.message);
+    }
   }
 }
 
@@ -606,8 +624,6 @@ async function onGMAPageLoad(res) {
     await injectGMAEagleButton();
   }
 }
-
-
 
 async function handleGMATargetCreated() {
   const gmaBrowser = await gmaPage.browser();

@@ -199,7 +199,7 @@ async function onMofaContentClosed(res) {
   await page.bringToFront();
   const mofaData = util.getMofaData();
   await pasteMofaData(mofaData);
-  await page.emulateVisionDeficiency("none"); // Just in case 
+  await page.emulateVisionDeficiency("none"); // Just in case
   await util.waitForCaptcha("#Captcha", 6);
   await util.sniff(page, [
     {
@@ -235,7 +235,7 @@ async function onMofaContentClosed(res) {
 }
 
 async function pasteMofaData(mofaData) {
-  console.log('mofaData',mofaData)
+  console.log("mofaData", mofaData);
   const numberOfEntries = mofaData?.numberOfEntries?.split("-")?.[0]?.trim();
   const validityDuration = mofaData?.numberOfEntries
     ?.split("-")?.[1]
@@ -271,7 +271,8 @@ async function pasteMofaData(mofaData) {
     },
     {
       selector: "#SPONSER_NUMBER",
-      value: (row) => !mofaData.applicationType == "invitation" && `${mofaData.id2}`,
+      value: (row) =>
+        !mofaData.applicationType == "invitation" && `${mofaData.id2}`,
     },
     {
       selector: "#SPONSER_PHONE",
@@ -336,8 +337,8 @@ async function pasteMofaData(mofaData) {
   //Process ny additional data for type = invitation here
   if (mofaData.applicationType == "invitation") {
     await util.commit(page, [
-      {selector: '#Personal_Phone', value: (row) => `${mofaData.tel}`}
-    ])
+      { selector: "#Personal_Phone", value: (row) => `${mofaData.tel}` },
+    ]);
     return;
   }
 }
@@ -351,15 +352,10 @@ async function pageContentHandler(currentConfig) {
         document.querySelector(selector).scrollIntoView();
       }, captchaSelector);
       await page.focus(captchaSelector);
-      if (!process.argv.includes("slow")) {
-        await page.waitForFunction(
-          "document.querySelector('#Captcha').value.length === 6",
-          { timeout: 0 }
-        );
-        util.endCase(currentConfig.name);
-        await util.sniff(page, currentConfig.details);
-        await page.click("#btnSubmit");
-      }
+      // await page.waitForFunction(
+      //   "document.querySelector('#Captcha').value.length === 6"
+      // );
+      // await page.click("#btnSubmit");
       break;
     case "main":
       const addNewApplicationSelector =
@@ -442,7 +438,7 @@ async function pageContentHandler(currentConfig) {
         travelDateDefault.format("MM"),
         travelDateDefault.format("DD")
       );
-      await page.emulateVisionDeficiency('none');
+      await page.emulateVisionDeficiency("none");
       await page.click("#HaveTraveledToOtherCountriesNo");
       mofaPage = await util.newPage(onMofaContentLoaded, onMofaContentClosed);
       await mofaPage.goto("https://visa.mofa.gov.sa", {

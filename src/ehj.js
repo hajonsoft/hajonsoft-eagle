@@ -439,10 +439,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "add-mission-pilgrim":
     case "add-company-pilgrim":
-      const isErrorAdd = await page.$("#stepItemsMSGs > div > div > div > ul > li > span")
-      if (isErrorAdd) {
-        return ;
-      }
+      console.log(passenger.codeline)
       await page.emulateVisionDeficiency("none");
       await util.controller(page, currentConfig, data.travellers);
       if (
@@ -475,6 +472,11 @@ async function pageContentHandler(currentConfig) {
       break;
     case "add-mission-pilgrim-3":
     case "add-pilgrim-3":
+      // const isErrorAdd = await page.$("#stepItemsMSGs > div > div > div > ul > li > span")
+      // if (isErrorAdd) {
+      //   return ;
+      // }
+      console.log(passenger.slug)
       const pageUrl = await page.url();
       await page.waitForSelector("#pass");
       await page.select("#vaccineType", "1");
@@ -594,7 +596,9 @@ async function pageContentHandler(currentConfig) {
         passenger,
         200,
         200,
-        "photo"
+        "photo",
+        5,
+        20
       );
       const resizedVaccinePath = await util.downloadAndResizeImage(
         passenger,

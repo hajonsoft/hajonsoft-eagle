@@ -400,7 +400,12 @@ async function controller(page, structure, travellers) {
           }
           `;
       },
-      [structure, options, controllerHandleMethod, path.join(homedir, "hajonsoft", "visa")]
+      [
+        structure,
+        options,
+        controllerHandleMethod,
+        path.join(homedir, "hajonsoft", "visa"),
+      ]
     );
     const isExposed = await page.evaluate(
       (p) => window[p],
@@ -605,7 +610,9 @@ async function downloadAndResizeImage(
   passenger,
   width,
   height,
-  imageType = "photo"
+  imageType = "photo",
+  minKb,
+  maxKb
 ) {
   let folder = photosFolder;
   let url = passenger.images.photo;
@@ -644,9 +651,8 @@ async function downloadAndResizeImage(
     folder,
     `${passenger.passportNumber}_${width}x${height}.jpg`
   );
-  if (fs.existsSync(imagePath) && fs.existsSync(resizedPath)) {
-    return resizedPath;
-  }
+
+  
   if (url.includes("placeholder")) {
     return path.join(__dirname, "dummy-image.jpg");
   }
@@ -664,12 +670,33 @@ async function downloadAndResizeImage(
     writer.on("error", reject);
   });
   await result;
+
   await sharp(imagePath)
     .resize(width, height, {
       fit: sharp.fit.inside,
       withoutEnlargement: true,
     })
     .toFile(resizedPath);
+  let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
+  if (sizeAfter < minKb) {
+    for (let i = 1; i < 20; i++) {
+      const newWidth = width + (100 * i)
+      const newHeight = width + (100 * i)
+      await sharp(imagePath)
+        .resize(newWidth, newHeight, {
+          fit: sharp.fit.inside,
+        })
+        .toFile(resizedPath);
+        sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
+        if (sizeAfter > minKb) {
+          return resizedPath;
+        }
+    }
+
+  }
+
+  if (sizeAfter > maxKb) {
+  }
   return resizedPath;
 }
 
