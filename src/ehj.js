@@ -160,7 +160,7 @@ const config = [
       },
       {
         selector: "#address",
-        value: (row) => "" , // budgie.get("ehaj_pilgrim_address", row.address),
+        value: (row) => "", // budgie.get("ehaj_pilgrim_address", row.address),
       },
       {
         selector: "#passportIssueDate",
@@ -256,9 +256,9 @@ async function pageContentHandler(currentConfig) {
       } catch {}
       break;
     case "login":
-      const isError = await page.$("#stepItemsMSGs > div > div")
+      const isError = await page.$("#stepItemsMSGs > div > div");
       if (isError) {
-        return ;
+        return;
       }
       await util.commit(page, currentConfig.details, data.system);
       if (data.system.username && data.system.password) {
@@ -439,7 +439,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "add-mission-pilgrim":
     case "add-company-pilgrim":
-      console.log(passenger.codeline)
+      console.log(passenger.codeline);
       await page.emulateVisionDeficiency("none");
       await util.controller(page, currentConfig, data.travellers);
       if (
@@ -476,7 +476,7 @@ async function pageContentHandler(currentConfig) {
       // if (isErrorAdd) {
       //   return ;
       // }
-      console.log(passenger.slug)
+      console.log(passenger.slug);
       const pageUrl = await page.url();
       await page.waitForSelector("#pass");
       await page.select("#vaccineType", "1");
@@ -573,11 +573,11 @@ async function pageContentHandler(currentConfig) {
             },
             {
               selector: "#iqamaIssueDate",
-              value: (row) => row.idIssueDt.dmy,
+              value: (row) => getPermitIssueDt(row.idIssueDt.dmy),
             },
             {
               selector: "#iqamaExpiryDate",
-              value: (row) => row.idExpireDt.dmy,
+              value: (row) => getPermitExpireDt(row.idExpireDt.dmy),
             },
           ],
           passenger
@@ -671,6 +671,22 @@ async function pageContentHandler(currentConfig) {
     default:
       break;
   }
+}
+
+function getPermitIssueDt(issDt) {
+  const issueDateDraft = moment(issDt, "DD/MM/YYYY");
+  if (issueDateDraft.isValid() && issueDateDraft.isBefore(moment().add(-1, "day"))) {
+    return issDt;
+  }
+  return moment().add(-1, "year").format("DD/MM/YYYY");
+}
+
+function getPermitExpireDt(expDt) {
+  const expDtDraft = moment(expDt, "DD/MM/YYYY");
+  if (expDtDraft.isValid() && expDtDraft.isAfter(moment().add(6, "months"))) {
+    return expDt;
+  }
+  return moment().add(1, "year").format("DD/MM/YYYY");
 }
 
 module.exports = { send };
