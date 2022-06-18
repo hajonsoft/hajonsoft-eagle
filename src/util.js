@@ -1,20 +1,14 @@
 const fs = require("fs");
 const path = require("path");
+const https = require("https");
 const { spawn } = require("child_process");
 const puppeteer = require("puppeteer-extra");
-// Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
+const RuCaptcha2Captcha = require("rucaptcha-2captcha");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const RecaptchaPlugin = require("puppeteer-extra-plugin-recaptcha");
-// puppeteer.use(
-//   RecaptchaPlugin({
-//     provider: {
-//       id: '2captcha',
-//       token: 'xxxx' // REPLACE THIS WITH YOUR OWN 2CAPTCHA API KEY ⚡
-//     },
-//     visualFeedback: true // colorize reCAPTCHAs (violet = detected, green = solved)
-//   })
-// )
+// TODO: Copilot suggestion to use recaptcha
+puppeteer.use(RecaptchaPlugin());
 
 const sharp = require("sharp");
 const budgie = require("./budgie");
@@ -36,6 +30,7 @@ let browser;
 
 async function initPage(config, onContentLoaded) {
   browser = await puppeteer.launch({
+    // executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     headless: false,
     ignoreHTTPSErrors: true,
     defaultViewport: null,
@@ -652,7 +647,6 @@ async function downloadAndResizeImage(
     `${passenger.passportNumber}_${width}x${height}.jpg`
   );
 
-  
   if (url.includes("placeholder")) {
     return path.join(__dirname, "dummy-image.jpg");
   }
@@ -680,19 +674,18 @@ async function downloadAndResizeImage(
   let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   if (sizeAfter < minKb) {
     for (let i = 1; i < 20; i++) {
-      const newWidth = width + (100 * i)
-      const newHeight = width + (100 * i)
+      const newWidth = width + 100 * i;
+      const newHeight = width + 100 * i;
       await sharp(imagePath)
         .resize(newWidth, newHeight, {
           fit: sharp.fit.inside,
         })
         .toFile(resizedPath);
-        sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
-        if (sizeAfter > minKb) {
-          return resizedPath;
-        }
+      sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
+      if (sizeAfter > minKb) {
+        return resizedPath;
+      }
     }
-
   }
 
   if (sizeAfter > maxKb) {
@@ -971,6 +964,11 @@ async function waitForPageCaptcha(
   );
 }
 
+async function captcha(url) {
+ 
+
+}
+
 const hijriYear = 43;
 module.exports = {
   hijriYear,
@@ -1000,4 +998,5 @@ module.exports = {
   waitForPageCaptcha,
   VISION_DEFICIENCY,
   downloadAndResizeImage,
+  captcha,
 };

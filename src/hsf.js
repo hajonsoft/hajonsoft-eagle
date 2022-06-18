@@ -2,6 +2,7 @@ const puppeteer = require("puppeteer-extra");
 // Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
+const RuCaptcha2Captcha = require("rucaptcha-2captcha");
 const fs = require("fs");
 const path = require("path");
 const util = require("./util");
@@ -503,6 +504,7 @@ async function pageContentHandler(currentConfig) {
 async function sendPassenger(selectedTraveller) {
   if (selectedTraveller) {
     try {
+      // await page.emulateVisionDeficiency("blurredVision");
       fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
       const data = fs.readFileSync("./data.json", "utf-8");
       var passengersData = JSON.parse(data);
@@ -527,17 +529,37 @@ async function sendPassenger(selectedTraveller) {
         passenger
       );
       const actionSelector = "#btnSubmit";
-      const captchaSelector = "#Captcha";
+      const captchaSelector = "#imgCaptcha";
       await page.waitForSelector(captchaSelector);
       await page.focus(captchaSelector);
-      await page.waitForFunction(
-        (args) => {
-          document.querySelector(args[0]).value.length === args[1];
-        },
-        { timeout: 0 },
-        [captchaSelector, 6]
+      const base64 = await page.evaluate(() => {
+        const image = document.getElementById("imgCaptcha");
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        const dataURL = canvas.toDataURL();
+        return dataURL.replace("data:", "").replace(/^.+,/, "");
+      });
+
+      const captchaSolver = new RuCaptcha2Captcha(
+        "637a1787431d77ad2c1618440a3d7149",
+        2
       );
-      await page.click(actionSelector);
+
+      const id = await captchaSolver.send({
+        method: "base64",
+        body: base64,
+        max_len: 6,
+        min_len: 6,
+      });
+      // TODO: Wait for 20 seconds max then ask the user
+      const token = await captchaSolver.get(id);
+      if (token) {
+        await page.type("#Captcha", token);
+        await page.click(actionSelector);
+      }
+      // await page.emulateVisionDeficiency("none");
     } catch (err) {
       console.log(err.message);
     }
