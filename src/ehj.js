@@ -18,6 +18,7 @@ let page;
 let data;
 let counter = 0;
 const passports = [];
+const housings = [];
 
 const config = [
   {
@@ -191,21 +192,23 @@ const config = [
     details: [
       {
         selector: "#nameAr",
-        value: () => "قافله رقم " + moment().valueOf().toString(),
+        value: () => " خدمات رقم " + moment().format("HHmm"),
       },
       {
         selector: "#nameEn",
-        value: () => "Caravan #" + moment().valueOf().toString(),
-      },
-      {
-        selector: "#pkgDescAr",
-        value: () => "قافله رقم " + moment().valueOf().toString(),
-      },
-      {
-        selector: "#pkgDescEn",
-        value: () => "Caravan #" + moment().valueOf().toString(),
+        value: () => "Service " + moment().format("HHmm"),
       },
     ],
+  },
+  {
+    name: "housing-contract",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/requests/housingContr/epayment/List.xhtml",
+  },
+  {
+    name: "package-details-2",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/requests/packages/new/contractInfo.xhtml",
   },
 ];
 
@@ -397,27 +400,27 @@ async function pageContentHandler(currentConfig) {
                 continue;
               }
               ehajNumbers.push(ehajNumber);
-              const config = {
-                headers: { Authorization: `Bearer ${data.info.accessToken}` },
-              };
-              const passengerPath = data.travellers.find(
-                (p) => p.passportNumber === passportNumber
-              )?.path;
-              if (passengerPath) {
-                const url = `${data.info.databaseURL}/${passengerPath}/.json`;
-                try {
-                  await axios.patch(
-                    url,
-                    {
-                      ehajNumber,
-                      mofaNumber,
-                    },
-                    config
-                  );
-                } catch (err) {
-                  console.log(err);
-                }
-              }
+              // const config = {
+              //   headers: { Authorization: `Bearer ${data.info.accessToken}` },
+              // };
+              // const passengerPath = data.travellers.find(
+              //   (p) => p.passportNumber === passportNumber
+              // )?.path;
+              // if (passengerPath) {
+              //   const url = `${data.info.databaseURL}/${passengerPath}/.json`;
+              //   try {
+              //     await axios.patch(
+              //       url,
+              //       {
+              //         ehajNumber,
+              //         mofaNumber,
+              //       },
+              //       config
+              //     );
+              //   } catch (err) {
+              //     console.log(err);
+              //   }
+              // }
               fs.writeFileSync(
                 passportNumber,
                 JSON.stringify({
@@ -666,6 +669,105 @@ async function pageContentHandler(currentConfig) {
       break;
     case "package-details":
       await util.commit(page, currentConfig.details, passenger);
+      await page.type("#pkgDescAr", "تحصيل حجز الحجرة");
+      await page.type("#pkgDescEn", "Package Reservation");
+      await page.type("#packageOwnerPrice", "10000");
+      await page.select("#packageType", "2");
+      await page.select("#hpArrivalAirline", "11435");
+      await page.select("#arrivalPort", "50");
+      await page.select("#hpDepartureAirline", "11435");
+      await page.select("#deptPort", "50");
+      break;
+    case "housing-contract":
+      //
+      await util.commander(page, {
+        controller: {
+          selector:
+            "body > div.wrapper > div > div.page-content > div.row > div.form-wizard",
+          title: "Analyze",
+          arabicTitle: "تحليل",
+          name: "analyzeContracts",
+          action: async () => {
+            for (let i = 1; i <= 100; i++) {
+              const isRowValid = await page.$(
+                `#primetable_data > tr:nth-child(${i}) > td:nth-child(2)`
+              );
+              if (!isRowValid) {
+                break;
+              }
+
+              const Request_Id = await page.$eval(
+                `#primetable_data > tr:nth-child(${i}) > td:nth-child(1)`,
+                (el) => el.innerText
+              );
+
+              const Contract_Name = await page.$eval(
+                `#primetable_data > tr:nth-child(${i}) > td:nth-child(2)`,
+                (el) => el.innerText
+              );
+              const City = await page.$eval(
+                `#primetable_data > tr:nth-child(${i}) > td:nth-child(4) > span`,
+                (el) => el.innerText
+              );
+              const Date_From = await page.$eval(
+                `#primetable_data > tr:nth-child(${i}) > td:nth-child(6)`,
+                (el) => el.innerText
+              );
+
+              const Date_To = await page.$eval(
+                `#primetable_data > tr:nth-child(${i}) > td:nth-child(7)`,
+                (el) => el.innerText
+              );
+
+              const Capacity = await page.$eval(
+                `#primetable_data > tr:nth-child(${i}) > td:nth-child(8)`,
+                (el) => el.innerText
+              );
+
+              const Status = await page.$eval(
+                `#primetable_data > tr:nth-child(${i}) > td:nth-child(13) > span`,
+                (el) => el.innerText
+              );
+
+              if (
+                !Status.toLowerCase().includes("approved") &&
+                !Status.toLowerCase().includes("موافق")
+              ) {
+                continue;
+              }
+              const house = {
+                requestId: Request_Id,
+                contractName: Contract_Name,
+                city: City,
+                dateFrom: Date_From,
+                dateTo: Date_To,
+                capacity: Capacity,
+                status: Status,
+              };
+              if (!housings.find((h) => h.requestId == house.requestId)) {
+                housings.push(house);
+              }
+            }
+            console.table(housings);
+
+            const suggestions = [];
+
+
+
+            console.table(suggestions);
+
+          },
+        },
+      });
+      break;
+    case "package-details-2":
+      await page.type("#minaDescLa", "Package Reservation ");
+      await page.type("#minaDescAr", "تحصيل حجز الحجرة");
+      await page.type("#arafaDescLa", "Package Reservation");
+      await page.type("#arafaDescAr", "تحصيل حجز الحجرة");
+      await page.type("#muzdalifaDescLa", "Package Reservation");
+      await page.type("#muzdalifaDescAr", "تحصيل حجز الحجرة");
+
       break;
 
     default:
@@ -675,7 +777,10 @@ async function pageContentHandler(currentConfig) {
 
 function getPermitIssueDt(issDt) {
   const issueDateDraft = moment(issDt, "DD/MM/YYYY");
-  if (issueDateDraft.isValid() && issueDateDraft.isBefore(moment().add(-1, "day"))) {
+  if (
+    issueDateDraft.isValid() &&
+    issueDateDraft.isBefore(moment().add(-1, "day"))
+  ) {
     return issDt;
   }
   return moment().add(-1, "year").format("DD/MM/YYYY");
