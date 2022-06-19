@@ -268,10 +268,11 @@ async function pageContentHandler(currentConfig) {
       break;
     case "agreement":
       await page.waitForSelector(
-        "body > div.alert.text-center.cookiealert.show > button"
+        "#content > div > div.page-content-inner > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid.right > div > div > a.btn.green"
+        
       );
       await page.click(
-        "body > div.alert.text-center.cookiealert.show > button"
+        "#content > div > div.page-content-inner > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid.right > div > div > a.btn.green"
       );
       break;
     case "step1":
