@@ -207,16 +207,23 @@ async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "login":
-      if (fs.existsSync("./loop.txt")) {
-        if (!fs.existsSync("./selectedTraveller.txt")) {
-          fs.writeFileSync("./selectedTraveller.txt", "-1");
-        }
-        const passengerIndex = fs.readFileSync(
-          "./selectedTraveller.txt",
-          "utf-8"
+      await page.waitForTimeout(1000);
+      try {
+        const isDialog = await page.$(
+          "#dlgMessage > div.modal-dialog > div > div.modal-footer > button",
+          {
+            visible: true,
+          }
         );
-        await sendPassenger((parseInt(passengerIndex) + 1).toString());
+        if (isDialog) {
+          await page.click(
+            "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
+          );
+        }
+      } catch {
+        // Do nothing
       }
+
       await util.controller(
         page,
         {
@@ -265,11 +272,21 @@ async function pageContentHandler(currentConfig) {
         },
         data.travellers
       );
+
+      if (fs.existsSync("./loop.txt")) {
+        if (!fs.existsSync("./selectedTraveller.txt")) {
+          fs.writeFileSync("./selectedTraveller.txt", "-1");
+        }
+        const passengerIndex = fs.readFileSync(
+          "./selectedTraveller.txt",
+          "utf-8"
+        );
+        await sendPassenger((parseInt(passengerIndex) + 1).toString());
+      }
       break;
     case "agreement":
       await page.waitForSelector(
         "#content > div > div.page-content-inner > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid.right > div > div > a.btn.green"
-        
       );
       await page.click(
         "#content > div > div.page-content-inner > div.row > div > div > div.portlet-body.form > div > div.form-actions.fluid.right > div > div > a.btn.green"
@@ -312,6 +329,9 @@ async function pageContentHandler(currentConfig) {
         await page.type("#FlightDataModel\\.ExpectedStayDuration", "");
         await page.type("#FlightDataModel\\.ExpectedStayDuration", "15");
       }
+      await page.click(
+        "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
+      );
       break;
     case "step3":
       await util.commit(page, currentConfig.details, passenger);
@@ -371,33 +391,50 @@ async function pageContentHandler(currentConfig) {
         200,
         "vaccine"
       );
-      await util.commitFile("#PassportImageFile", resizedPassportPath);
-      await util.commitFile("#VaccinationImageFile", resizedVaccinePath);
-      await util.commitFile("#MahramRelationFile", resizedPassportPath);
+      const isPassportUploadRequired = await page.$("PassportImageFile");
+      if (isPassportUploadRequired) {
+        await util.commitFile("#PassportImageFile", resizedPassportPath);
+      }
+      const isVaccineUploadRequired = await page.$("VaccinationImageFile");
+      if (isVaccineUploadRequired) {
+        await util.commitFile("#VaccinationImageFile", resizedVaccinePath);
+      }
+      const isMuhramRelationshipRequired = await page.$("#MahramRelationFile");
+      if (isMuhramRelationshipRequired) {
+        await util.commitFile("#MahramRelationFile", resizedPassportPath);
+      }
 
-      await page.evaluate((passenger) => {
-        const passportContainer = document.querySelector(
-          "#myform > div.form-body.form-horizontal > div.table-scrollable.table-scrollable-borderless.table-fileupload > table > tbody > tr:nth-child(1) > td:nth-child(3)"
-        );
-        passportContainer.innerHTML = `
+      if (
+        isPassportUploadRequired ||
+        isVaccineUploadRequired ||
+        isMuhramRelationshipRequired
+      ) {
+        await page.evaluate((passenger) => {
+          const passportContainer = document.querySelector(
+            "#myform > div.form-body.form-horizontal > div.table-scrollable.table-scrollable-borderless.table-fileupload > table > tbody > tr:nth-child(1) > td:nth-child(3)"
+          );
+          passportContainer.innerHTML = `
               <img src='${passenger.images.passport}' width="50" height="25"/>
               `;
 
-        const vaccineContainer = document.querySelector(
-          "#myform > div.form-body.form-horizontal > div.table-scrollable.table-scrollable-borderless.table-fileupload > table > tbody > tr.warning > td:nth-child(3)"
-        );
-        vaccineContainer.innerHTML = `
+          const vaccineContainer = document.querySelector(
+            "#myform > div.form-body.form-horizontal > div.table-scrollable.table-scrollable-borderless.table-fileupload > table > tbody > tr.warning > td:nth-child(3)"
+          );
+          vaccineContainer.innerHTML = `
                 <img src='${passenger.images.vaccine}' width="50" height="25"/>
                 `;
 
-        const muhramContainer = document.querySelector(
-          "#myform > div.form-body.form-horizontal > div.table-scrollable.table-scrollable-borderless.table-fileupload > table > tbody > tr:nth-child(3) > td:nth-child(3)"
-        );
-        muhramContainer.innerHTML = `
+          const muhramContainer = document.querySelector(
+            "#myform > div.form-body.form-horizontal > div.table-scrollable.table-scrollable-borderless.table-fileupload > table > tbody > tr:nth-child(3) > td:nth-child(3)"
+          );
+          muhramContainer.innerHTML = `
                   <img src='${passenger.images.passport}' width="50" height="25"/>
                   `;
-      }, passenger);
-
+        }, passenger);
+      }
+      await page.click(
+        "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
+      );
       break;
     case "step4":
       const printButtonSelector =
@@ -533,6 +570,8 @@ async function sendPassenger(selectedTraveller) {
       const captchaSelector = "#imgCaptcha";
       await page.waitForSelector(captchaSelector);
       await page.focus(captchaSelector);
+      // Wait for image to load.
+      await page.waitForTimeout(3000);
       const base64 = await page.evaluate(() => {
         const image = document.getElementById("imgCaptcha");
         const canvas = document.createElement("canvas");
@@ -554,11 +593,24 @@ async function sendPassenger(selectedTraveller) {
         max_len: 6,
         min_len: 6,
       });
-      // TODO: Wait for 20 seconds max then ask the user
+      await page.emulateVisionDeficiency("blurredVision");
       const token = await captchaSolver.get(id);
+      await page.emulateVisionDeficiency("none");
+
       if (token) {
         await page.type("#Captcha", token);
-        await page.click(actionSelector);
+        // Check that mofa field is filled in and passport field is at least 8 characters before clicking submit
+        const isMofaFilled = await page.$eval(
+          "#Id",
+          (el) => el.value.length > 6
+        );
+        const isPassportFilled = await page.$eval(
+          "#PassportNumber",
+          (el) => el.value.length > 7
+        );
+        if (isMofaFilled && isPassportFilled) {
+          await page.click(actionSelector);
+        }
       }
       // await page.emulateVisionDeficiency("none");
     } catch (err) {
@@ -601,7 +653,6 @@ async function handleImportGMAMofa() {
       (el) => el.innerText
     );
 
-    mofas.push({ passportNumber, mofaNumber, nationality });
     if (passportNumber) {
       fs.writeFileSync(
         passportNumber,

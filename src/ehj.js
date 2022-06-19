@@ -45,6 +45,11 @@ const config = [
     ],
   },
   {
+    name: "authentication-settings",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/home/ChangeRepMobile/newMobile.xhtml",
+  },
+  {
     name: "otp",
     regex: "https://ehaj.haj.gov.sa/EH/mobileVerify.xhtml",
   },
@@ -277,6 +282,36 @@ async function pageContentHandler(currentConfig) {
         }
       }
       break;
+    case "authentication-settings":
+      const isAuthCode = await page.$("#secretKey");
+      if (isAuthCode) {
+        const code = await page.$eval("#secretKey", (el) => el.value);
+        console.log("Google Authenticator Code: " + code);
+        if (data?.system?.ehajCode.length > 1) {
+          return;
+        }
+
+        // Save to firebase
+        const config = {
+          headers: { Authorization: `Bearer ${data.info.accessToken}` },
+        };
+        let url = `${data.info.databaseURL}/${
+          data.system.path || "protected/profile/"
+        }.json`;
+        try {
+          await axios.patch(
+            url,
+            {
+              ehajCode: secretCode,
+            },
+            config
+          );
+        } catch (err) {
+          console.log(err);
+        }
+      }
+
+      break;
     case "otp":
       // if ((await page.$(".insecure-form")) !== null) {
       //   await page.click("#proceed-button");
@@ -399,7 +434,9 @@ async function pageContentHandler(currentConfig) {
               ) {
                 continue;
               }
-              ehajNumbers.push(ehajNumber);
+              if (!ehajNumbers.find(p => p === ehajNumber)) {
+                ehajNumbers.push(ehajNumber);
+              }
               // const config = {
               //   headers: { Authorization: `Bearer ${data.info.accessToken}` },
               // };
@@ -434,7 +471,7 @@ async function pageContentHandler(currentConfig) {
               const eagleButton = document.querySelector("#importEhajNumber");
               eagleButton.textContent = `Done... [${ehajNumbers[0]}-${
                 ehajNumbers[ehajNumbers.length - 1]
-              }]`;
+              }] => ${ehajNumbers.length}`;
             }, ehajNumbers);
           },
         },
@@ -752,10 +789,7 @@ async function pageContentHandler(currentConfig) {
 
             const suggestions = [];
 
-
-
             console.table(suggestions);
-
           },
         },
       });
