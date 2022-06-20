@@ -13,6 +13,7 @@ const SMS = require("./sms");
 const email = require("./email");
 const totp = require("totp-generator");
 const { default: axios } = require("axios");
+const { cloneDeep } = require("lodash");
 
 let page;
 let data;
@@ -215,6 +216,11 @@ const config = [
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajCompany/requests/packages/new/contractInfo.xhtml",
   },
+  {
+    name: "house-details",
+    regex:
+    "https://ehaj.haj.gov.sa/EH/pages/hajCompany/requests/housingContr/epayment/View.xhtml",
+  }
 ];
 
 async function sendPassenger(selectedTraveler) {
@@ -434,7 +440,7 @@ async function pageContentHandler(currentConfig) {
               ) {
                 continue;
               }
-              if (!ehajNumbers.find(p => p === ehajNumber)) {
+              if (!ehajNumbers.find((p) => p === ehajNumber)) {
                 ehajNumbers.push(ehajNumber);
               }
               // const config = {
@@ -772,24 +778,25 @@ async function pageContentHandler(currentConfig) {
               ) {
                 continue;
               }
+              const Duration = moment(Date_To, "DD/MM/YYYY").diff(
+                moment(Date_From, "DD/MM/YYYY"),
+                "days"
+              );
               const house = {
-                requestId: Request_Id,
-                contractName: Contract_Name,
-                city: City,
-                dateFrom: Date_From,
-                dateTo: Date_To,
-                capacity: Capacity,
-                status: Status,
+                Request_Id,
+                Contract_Name,
+                City,
+                Date_From,
+                Date_To,
+                Capacity,
+                Duration,
+                Status,
               };
-              if (!housings.find((h) => h.requestId == house.requestId)) {
+              if (!housings.find((h) => h.Request_Id == house.Request_Id)) {
                 housings.push(house);
               }
             }
-            console.table(housings);
-
-            const suggestions = [];
-
-            console.table(suggestions);
+            runHousingAnalysis();
           },
         },
       });
@@ -803,10 +810,100 @@ async function pageContentHandler(currentConfig) {
       await page.type("#muzdalifaDescAr", "تحصيل حجز الحجرة");
 
       break;
+      case "house-details":
+        await util.commander(page, {
+          controller: {
+            // TODO: Replace with a more robust selector
+            selector: "body > div.wrapper > div > div.page-content > div.row > div:nth-child(21) > div.ui-panel-titlebar.ui-widget-header.ui-helper-clearfix.ui-corner-all > span",
+            title: "Room Details",
+            arabicTitle: "تفاصيل الغرفة",
+            name: "analyzeRoomDetails",
+            action: async () => {
+              for (let i = 1; i <= 100; i++) {
+                const isRowValid = await page.$(
+                  `#roomsDetails_data > tr:nth-child(${i}) > td:nth-child(1)`
+                  );
+                  if (!isRowValid) {
+                    break;
+                }
+  
+                const roomType = await page.$eval(
+                  `#roomsDetails_data > tr:nth-child(${i}) > td:nth-child(1)`,
+                  (el) => el.innerText
+                );
+                const numberOfRooms = await page.$eval(
+                  `#roomsDetails_data > tr:nth-child(${i}) > td:nth-child(2)`,
+                  (el) => el.innerText
+                );
+                const requestId = await page.$eval("body > div.wrapper > div > div.page-content > div.row > div:nth-child(3) > div.ui-panel-content.ui-widget-content > table > tbody > tr:nth-child(1) > td:nth-child(2)", (el) => el.innerText)
+                const housing = housings.find((h) => h.Request_Id == requestId);
+                if (housing) {
+                  if (!housing.Comments){
+                    housing.Comments = ""
+                  }
+                  housing.Comments += `${roomType}x${numberOfRooms} `;
+                }
+              }
+              runHousingAnalysis();
+            },
+          },
+        });
+      break;
 
     default:
       break;
   }
+}
+
+function runHousingAnalysis() {
+  console.table(housings);
+  const suggestions = getMED_MAK_Capacity_Suggestions(cloneDeep(housings));
+  console.table(suggestions);
+}
+
+function getMED_MAK_Capacity_Suggestions(incomingHousing) {
+  const _housings = incomingHousing;
+  const suggestions = [];
+  const madinahHousings = _housings
+  .filter((h) => h.City.toLowerCase().includes("madina"))
+  .sort((a, b) => a.Capacity - b.Capacity);
+  const makkahHousings = _housings
+  .filter((h) => h.City.toLowerCase().includes("makkah"))
+  .sort((a, b) => a.Capacity - b.Capacity);
+  suggestions.push({
+    capacity: "Madinah",
+    K_Request_Id: "Makkah",
+    K_Contract_Name: "Makkah",
+    K_Date_From: "Makkah",
+    K_Date_To: "Makkah",
+    M_Request_Id: "Madinah",
+    M_Contract_Name: "Madinah",
+    M_Date_From: "Madinah",
+    M_Date_To: "Madinah",
+    K_Remaining_Capacity: "",
+  });
+  for (const madinahHousing of madinahHousings) {
+    const validMakkahHousing = makkahHousings.find(
+      (h) => parseInt(h.Capacity) >= parseInt(madinahHousing.Capacity)
+    );
+    if (validMakkahHousing) {
+      validMakkahHousing.Capacity =
+        parseInt(validMakkahHousing.Capacity) - parseInt(madinahHousing.Capacity);
+      suggestions.push({
+        capacity: madinahHousing.Capacity,
+        K_Request_Id: validMakkahHousing.Request_Id,
+        K_Contract_Name: validMakkahHousing.Contract_Name,
+        K_Date_From: validMakkahHousing.Date_From,
+        K_Date_To: validMakkahHousing.Date_To,
+        M_Request_Id: madinahHousing.Request_Id,
+        M_Contract_Name: madinahHousing.Contract_Name,
+        M_Date_From: madinahHousing.Date_From,
+        M_Date_To: madinahHousing.Date_To,
+        K_Remaining_Capacity: validMakkahHousing.Capacity,
+      });
+    }
+  }
+  return suggestions;
 }
 
 function getPermitIssueDt(issDt) {
