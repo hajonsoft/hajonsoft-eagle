@@ -836,13 +836,17 @@ async function pageContentHandler(currentConfig) {
                   (el) => el.innerText
                 );
                 const requestId = await page.$eval("body > div.wrapper > div > div.page-content > div.row > div:nth-child(3) > div.ui-panel-content.ui-widget-content > table > tbody > tr:nth-child(1) > td:nth-child(2)", (el) => el.innerText)
+                const foodRequested = await page.$eval("body > div.wrapper > div > div.page-content > div.row > div:nth-child(17) > div.ui-panel-content.ui-widget-content > table > tbody > tr > td:nth-child(4) > span", (el) => el.innerText)
                 const housing = housings.find((h) => h.Request_Id == requestId);
                 if (housing) {
                   if (!housing.Comments){
                     housing.Comments = ""
                   }
                   housing.Comments += `${roomType}x${numberOfRooms} `;
+                  housing.Food = foodRequested;
                 }
+
+
               }
               runHousingAnalysis();
             },
