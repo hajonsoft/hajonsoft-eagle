@@ -8,6 +8,8 @@ const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
+const { default: axios } = require("axios");
+
 const {
   injectTWFEagleButton,
   onTWFPageLoad,
@@ -443,6 +445,49 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "step4":
+      if (fs.existsSync("./add.json")) {
+        const mofaNumber = await page.$eval(
+          "#myform > div.form-body.form-horizontal > div > div:nth-child(1) > div:nth-child(2)",
+          (el) => el.innerText
+        );
+        const eNumber = await page.$eval(
+          "#myform > div.form-body.form-horizontal > div > div:nth-child(2) > div",
+          (el) => el.innerText
+        );
+        fs.writeFileSync(
+          `./${passenger.passportNumber}`,
+          JSON.stringify({
+            mofaNumber,
+            eNumber,
+            passportNumber: passenger.passportNumber,
+          })
+        );
+
+        const config = {
+          headers: { Authorization: `Bearer ${data.info.accessToken}` },
+        };
+        const passengerPath = data.travellers.find(
+          (p) => p.passportNumber === passenger.passportNumber
+        )?.path;
+        if (passengerPath) {
+          const url = `${data.info.databaseURL}/${passengerPath}/.json`;
+          try {
+            await axios.patch(
+              url,
+              {
+                eNumber,
+                mofaNumber,
+              },
+              config
+            );
+          } catch (err) {
+            console.log(err);
+          }
+        }
+
+        return;
+      }
+
       const printButtonSelector =
         "#myform > div.form-actions.fluid.right > div > div > a.btn.btn-default.green";
       await page.waitForSelector(printButtonSelector);
@@ -471,8 +516,6 @@ async function pageContentHandler(currentConfig) {
       await page.goto(config[0].url);
       break;
     case "add":
-      await page.waitForSelector("#OrganizationId")
-      await page.select("#OrganizationId", "302");
       await util.controller(
         page,
         {
@@ -485,97 +528,112 @@ async function pageContentHandler(currentConfig) {
                 "#hajonsoft_select",
                 (el) => el.value
               );
-              if (selectedTraveller) {
-                try {
-                  fs.writeFileSync(
-                    "./selectedTraveller.txt",
-                    selectedTraveller
-                  );
-                  const data = fs.readFileSync("./data.json", "utf-8");
-                  var passengersData = JSON.parse(data);
-                  var passenger = passengersData.travellers[selectedTraveller];
-
-                  await util.commit(
-                    page,
-                    config.find((con) => con.name === "add").details,
-                    passenger
-                  );
-
-                  let resizedPhotoPath = await util.downloadAndResizeImage(
-                    passenger,
-                    200,
-                    200,
-                    "photo"
-                  );
-                  await page.waitForSelector("#PersonalImage");
-                  const portraitSrc = await page.$eval("#image", (e) =>
-                    e.getAttribute("src")
-                  );
-                  await util.commitFile("#PersonalImage", resizedPhotoPath);
-
-                  await setHSFDate(
-                    "#PASSPORT_ISSUE_DATE",
-                    passenger.passIssueDt.yyyy,
-                    passenger.passIssueDt.mm,
-                    passenger.passIssueDt.dd
-                  );
-
-                  await setHSFDate(
-                    "#PASSPORT_EXPIRY_DATe",
-                    passenger.passExpireDt.yyyy,
-                    passenger.passExpireDt.mm,
-                    passenger.passExpireDt.dd
-                  );
-
-                  await setHSFDate(
-                    "#BIRTH_DATE",
-                    passenger.dob.yyyy,
-                    passenger.dob.mm,
-                    passenger.dob.dd
-                  );
-                } catch (err) {
-                  console.log(err.message);
-                }
-              }
-
-              const captchaSelector = "#imgCaptcha";
-              await page.waitForSelector(captchaSelector);
-              await page.focus(captchaSelector);
-              // Wait for image to load.
-              await page.waitForTimeout(3000);
-              const base64 = await page.evaluate(() => {
-                const image = document.getElementById("imgCaptcha");
-                const canvas = document.createElement("canvas");
-                canvas.width = image.naturalWidth;
-                canvas.height = image.naturalHeight;
-                canvas.getContext("2d").drawImage(image, 0, 0);
-                const dataURL = canvas.toDataURL();
-                return dataURL.replace("data:", "").replace(/^.+,/, "");
-              });
-
-              const captchaSolver = new RuCaptcha2Captcha(
-                "637a1787431d77ad2c1618440a3d7149",
-                2
-              );
-
-              const id = await captchaSolver.send({
-                method: "base64",
-                body: base64,
-                max_len: 6,
-                min_len: 6,
-              });
-              const token = await captchaSolver.get(id);
-              if (token) {
-                await page.type("#Captcha", token);
-              }
+              await sendNewApplication(selectedTraveller);
             },
           },
         },
         data.travellers
       );
+      await page.waitForSelector("#OrganizationId");
+      await page.select("#OrganizationId", "302");
+
+      if (fs.existsSync("./add.json")) {
+        if (
+          fs.existsSync("./loop.json") &&
+          fs.existsSync("./selectedTraveller.txt")
+        ) {
+          const last = fs.readFileSync("./selectedTraveller.json", "utf-8");
+          sendNewApplication((parseInt(last) + 1).toString());
+        }
+      } else {
+        fs.writeFileSync("./add.json", JSON.stringify(passenger));
+      }
       break;
     default:
       break;
+  }
+}
+
+async function sendNewApplication(selectedTraveller) {
+  if (selectedTraveller) {
+    try {
+      fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
+      const data = fs.readFileSync("./data.json", "utf-8");
+      var passengersData = JSON.parse(data);
+      var passenger = passengersData.travellers[selectedTraveller];
+
+      await util.commit(
+        page,
+        config.find((con) => con.name === "add").details,
+        passenger
+      );
+
+      let resizedPhotoPath = await util.downloadAndResizeImage(
+        passenger,
+        200,
+        200,
+        "photo"
+      );
+      await page.waitForSelector("#PersonalImage");
+      const portraitSrc = await page.$eval("#image", (e) =>
+        e.getAttribute("src")
+      );
+      await util.commitFile("#PersonalImage", resizedPhotoPath);
+
+      await setHSFDate(
+        "#PASSPORT_ISSUE_DATE",
+        passenger.passIssueDt.yyyy,
+        passenger.passIssueDt.mm,
+        passenger.passIssueDt.dd
+      );
+
+      await setHSFDate(
+        "#PASSPORT_EXPIRY_DATe",
+        passenger.passExpireDt.yyyy,
+        passenger.passExpireDt.mm,
+        passenger.passExpireDt.dd
+      );
+
+      await setHSFDate(
+        "#BIRTH_DATE",
+        passenger.dob.yyyy,
+        passenger.dob.mm,
+        passenger.dob.dd
+      );
+    } catch (err) {
+      console.log(err.message);
+    }
+
+    const captchaSelector = "#imgCaptcha";
+    await page.waitForSelector(captchaSelector);
+    await page.focus(captchaSelector);
+    // Wait for image to load.
+    await page.waitForTimeout(3000);
+    const base64 = await page.evaluate(() => {
+      const image = document.getElementById("imgCaptcha");
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      canvas.getContext("2d").drawImage(image, 0, 0);
+      const dataURL = canvas.toDataURL();
+      return dataURL.replace("data:", "").replace(/^.+,/, "");
+    });
+
+    const captchaSolver = new RuCaptcha2Captcha(
+      "637a1787431d77ad2c1618440a3d7149",
+      2
+    );
+
+    const id = await captchaSolver.send({
+      method: "base64",
+      body: base64,
+      max_len: 6,
+      min_len: 6,
+    });
+    const token = await captchaSolver.get(id);
+    if (token) {
+      await page.type("#Captcha", token);
+    }
   }
 }
 
