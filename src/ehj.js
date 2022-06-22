@@ -808,6 +808,35 @@ async function pageContentHandler(currentConfig) {
       await page.type("#arafaDescAr", "تحصيل حجز الحجرة");
       await page.type("#muzdalifaDescLa", "Package Reservation");
       await page.type("#muzdalifaDescAr", "تحصيل حجز الحجرة");
+      await page.type("#makHouseContractStart", budgie.get("ehaj-package-dt-from-1"));
+      await page.type("#makHouseContractEnd",budgie.get("ehaj-package-dt-to-1"));
+      await page.type("#madHouseContractStart",budgie.get("ehaj-package-dt-from-2"));
+      await page.type("#madHouseContractEnd",budgie.get("ehaj-package-dt-to-2"));
+
+      await util.commander(page, {
+        controller: {
+          selector: "#formPack > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-titlebar.ui-widget-header.ui-helper-clearfix.ui-corner-all > span",
+          title: "Remeber",
+          arabicTitle: "تذكر",
+          name: "rememberPackageDates",
+          action: async () => {
+
+            const fromDt1 = await page.$eval("#makHouseContractStart",el => el.value);
+            budgie.save("ehaj-package-dt-from-1", fromDt1);
+
+            const tot1 = await page.$eval("#makHouseContractEnd",el => el.value);
+            budgie.save("ehaj-package-dt-to-1", tot1);
+
+            const fromDt2 = await page.$eval("#madHouseContractStart",el => el.value);
+            budgie.save("ehaj-package-dt-from-2", fromDt2);
+
+            const toDt2 = await page.$eval("#madHouseContractEnd",el => el.value);
+            budgie.save("ehaj-package-dt-to-2", toDt2);
+
+          },
+        },
+      });
+
 
       break;
       case "house-details":
