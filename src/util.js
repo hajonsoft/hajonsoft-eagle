@@ -31,7 +31,8 @@ let browser;
 async function initPage(config, onContentLoaded) {
   browser = await puppeteer.launch({
     // executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    // executablePath: "c:\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    // executablePath: "c:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    // executablePath: "c:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
     headless: false,
     ignoreHTTPSErrors: true,
     defaultViewport: null,

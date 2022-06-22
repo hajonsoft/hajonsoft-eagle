@@ -219,8 +219,8 @@ const config = [
   {
     name: "house-details",
     regex:
-    "https://ehaj.haj.gov.sa/EH/pages/hajCompany/requests/housingContr/epayment/View.xhtml",
-  }
+      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/requests/housingContr/epayment/View.xhtml",
+  },
 ];
 
 async function sendPassenger(selectedTraveler) {
@@ -398,10 +398,17 @@ async function pageContentHandler(currentConfig) {
         controller: {
           // TODO: Replace with a more robust selector
           selector: "form > ul > li:nth-child(3)",
-          title: "Import current view",
-          arabicTitle: "استيراد الصفحه",
+          title: "Import current page or find missing",
+          arabicTitle: "إستيراد الصفحه الحاليه أو إستعلام مفقودين",
           name: "importEhajNumber",
           action: async () => {
+            let missing = data.travellers.map((t, index) => {
+              return {
+                missing_index: index,
+                slug: t.slug,
+                passportNumber: t.passportNumber,
+              };
+            });
             for (let i = 1; i <= 100; i++) {
               const isRowValid = await page.$(
                 `tbody > tr:nth-child(${i}) > td:nth-child(1)`
@@ -440,30 +447,33 @@ async function pageContentHandler(currentConfig) {
               ) {
                 continue;
               }
+              missing = missing.filter(
+                (t) => t.passportNumber !== passportNumber
+              );
               if (!ehajNumbers.find((p) => p === ehajNumber)) {
                 ehajNumbers.push(ehajNumber);
               }
-              // const config = {
-              //   headers: { Authorization: `Bearer ${data.info.accessToken}` },
-              // };
-              // const passengerPath = data.travellers.find(
-              //   (p) => p.passportNumber === passportNumber
-              // )?.path;
-              // if (passengerPath) {
-              //   const url = `${data.info.databaseURL}/${passengerPath}/.json`;
-              //   try {
-              //     await axios.patch(
-              //       url,
-              //       {
-              //         ehajNumber,
-              //         mofaNumber,
-              //       },
-              //       config
-              //     );
-              //   } catch (err) {
-              //     console.log(err);
-              //   }
-              // }
+              const config = {
+                headers: { Authorization: `Bearer ${data.info.accessToken}` },
+              };
+              const passengerPath = data.travellers.find(
+                (p) => p.passportNumber === passportNumber
+              )?.path;
+              if (passengerPath) {
+                const url = `${data.info.databaseURL}/${passengerPath}/.json`;
+                try {
+                  await axios.patch(
+                    url,
+                    {
+                      ehajNumber,
+                      mofaNumber,
+                    },
+                    config
+                  );
+                } catch (err) {
+                  console.log(err);
+                }
+              }
               fs.writeFileSync(
                 passportNumber,
                 JSON.stringify({
@@ -473,6 +483,8 @@ async function pageContentHandler(currentConfig) {
                 })
               );
             }
+
+            console.table(missing);
             await page.evaluate((ehajNumbers) => {
               const eagleButton = document.querySelector("#importEhajNumber");
               eagleButton.textContent = `Done... [${ehajNumbers[0]}-${
@@ -518,10 +530,16 @@ async function pageContentHandler(currentConfig) {
       break;
     case "add-mission-pilgrim-3":
     case "add-pilgrim-3":
-      // const isErrorAdd = await page.$("#stepItemsMSGs > div > div > div > ul > li > span")
-      // if (isErrorAdd) {
-      //   return ;
-      // }
+      const isErrorAdd = await page.$("#stepItemsMSGs > div > div > div > ul > li > span")
+      if (isErrorAdd) {
+        const errorMessage = await page.$eval("#stepItemsMSGs > div > div > div > ul > li > span", el => el.innerText)
+        console.log(errorMessage)
+      }
+      await page.waitForSelector("#reference1")
+      const tagValue = await page.$eval("#reference1", el => el.value)
+      if (tagValue && passports.filter((x) => x == passenger.passportNumber).length > 3) {
+        return;
+      }
       console.log(passenger.slug);
       const pageUrl = await page.url();
       await page.waitForSelector("#pass");
@@ -808,79 +826,106 @@ async function pageContentHandler(currentConfig) {
       await page.type("#arafaDescAr", "تحصيل حجز الحجرة");
       await page.type("#muzdalifaDescLa", "Package Reservation");
       await page.type("#muzdalifaDescAr", "تحصيل حجز الحجرة");
-      await page.type("#makHouseContractStart", budgie.get("ehaj-package-dt-from-1"));
-      await page.type("#makHouseContractEnd",budgie.get("ehaj-package-dt-to-1"));
-      await page.type("#madHouseContractStart",budgie.get("ehaj-package-dt-from-2"));
-      await page.type("#madHouseContractEnd",budgie.get("ehaj-package-dt-to-2"));
+      await page.type(
+        "#makHouseContractStart",
+        budgie.get("ehaj-package-dt-from-1")
+      );
+      await page.type(
+        "#makHouseContractEnd",
+        budgie.get("ehaj-package-dt-to-1")
+      );
+      await page.type(
+        "#madHouseContractStart",
+        budgie.get("ehaj-package-dt-from-2")
+      );
+      await page.type(
+        "#madHouseContractEnd",
+        budgie.get("ehaj-package-dt-to-2")
+      );
 
       await util.commander(page, {
         controller: {
-          selector: "#formPack > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-titlebar.ui-widget-header.ui-helper-clearfix.ui-corner-all > span",
+          selector:
+            "#formPack > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-titlebar.ui-widget-header.ui-helper-clearfix.ui-corner-all > span",
           title: "Remeber",
           arabicTitle: "تذكر",
           name: "rememberPackageDates",
           action: async () => {
-
-            const fromDt1 = await page.$eval("#makHouseContractStart",el => el.value);
+            const fromDt1 = await page.$eval(
+              "#makHouseContractStart",
+              (el) => el.value
+            );
             budgie.save("ehaj-package-dt-from-1", fromDt1);
 
-            const tot1 = await page.$eval("#makHouseContractEnd",el => el.value);
+            const tot1 = await page.$eval(
+              "#makHouseContractEnd",
+              (el) => el.value
+            );
             budgie.save("ehaj-package-dt-to-1", tot1);
 
-            const fromDt2 = await page.$eval("#madHouseContractStart",el => el.value);
+            const fromDt2 = await page.$eval(
+              "#madHouseContractStart",
+              (el) => el.value
+            );
             budgie.save("ehaj-package-dt-from-2", fromDt2);
 
-            const toDt2 = await page.$eval("#madHouseContractEnd",el => el.value);
+            const toDt2 = await page.$eval(
+              "#madHouseContractEnd",
+              (el) => el.value
+            );
             budgie.save("ehaj-package-dt-to-2", toDt2);
-
           },
         },
       });
 
-
       break;
-      case "house-details":
-        await util.commander(page, {
-          controller: {
-            // TODO: Replace with a more robust selector
-            selector: "body > div.wrapper > div > div.page-content > div.row > div:nth-child(21) > div.ui-panel-titlebar.ui-widget-header.ui-helper-clearfix.ui-corner-all > span",
-            title: "Room Details",
-            arabicTitle: "تفاصيل الغرفة",
-            name: "analyzeRoomDetails",
-            action: async () => {
-              for (let i = 1; i <= 100; i++) {
-                const isRowValid = await page.$(
-                  `#roomsDetails_data > tr:nth-child(${i}) > td:nth-child(1)`
-                  );
-                  if (!isRowValid) {
-                    break;
-                }
-  
-                const roomType = await page.$eval(
-                  `#roomsDetails_data > tr:nth-child(${i}) > td:nth-child(1)`,
-                  (el) => el.innerText
-                );
-                const numberOfRooms = await page.$eval(
-                  `#roomsDetails_data > tr:nth-child(${i}) > td:nth-child(2)`,
-                  (el) => el.innerText
-                );
-                const requestId = await page.$eval("body > div.wrapper > div > div.page-content > div.row > div:nth-child(3) > div.ui-panel-content.ui-widget-content > table > tbody > tr:nth-child(1) > td:nth-child(2)", (el) => el.innerText)
-                const foodRequested = await page.$eval("body > div.wrapper > div > div.page-content > div.row > div:nth-child(17) > div.ui-panel-content.ui-widget-content > table > tbody > tr > td:nth-child(4) > span", (el) => el.innerText)
-                const housing = housings.find((h) => h.Request_Id == requestId);
-                if (housing) {
-                  if (!housing.Comments){
-                    housing.Comments = ""
-                  }
-                  housing.Comments += `${roomType}x${numberOfRooms} `;
-                  housing.Food = foodRequested;
-                }
-
-
+    case "house-details":
+      await util.commander(page, {
+        controller: {
+          // TODO: Replace with a more robust selector
+          selector:
+            "body > div.wrapper > div > div.page-content > div.row > div:nth-child(21) > div.ui-panel-titlebar.ui-widget-header.ui-helper-clearfix.ui-corner-all > span",
+          title: "Room Details",
+          arabicTitle: "تفاصيل الغرفة",
+          name: "analyzeRoomDetails",
+          action: async () => {
+            for (let i = 1; i <= 100; i++) {
+              const isRowValid = await page.$(
+                `#roomsDetails_data > tr:nth-child(${i}) > td:nth-child(1)`
+              );
+              if (!isRowValid) {
+                break;
               }
-              runHousingAnalysis();
-            },
+
+              const roomType = await page.$eval(
+                `#roomsDetails_data > tr:nth-child(${i}) > td:nth-child(1)`,
+                (el) => el.innerText
+              );
+              const numberOfRooms = await page.$eval(
+                `#roomsDetails_data > tr:nth-child(${i}) > td:nth-child(2)`,
+                (el) => el.innerText
+              );
+              const requestId = await page.$eval(
+                "body > div.wrapper > div > div.page-content > div.row > div:nth-child(3) > div.ui-panel-content.ui-widget-content > table > tbody > tr:nth-child(1) > td:nth-child(2)",
+                (el) => el.innerText
+              );
+              const foodRequested = await page.$eval(
+                "body > div.wrapper > div > div.page-content > div.row > div:nth-child(17) > div.ui-panel-content.ui-widget-content > table > tbody > tr > td:nth-child(4) > span",
+                (el) => el.innerText
+              );
+              const housing = housings.find((h) => h.Request_Id == requestId);
+              if (housing) {
+                if (!housing.Comments) {
+                  housing.Comments = "";
+                }
+                housing.Comments += `${roomType}x${numberOfRooms} `;
+                housing.Food = foodRequested;
+              }
+            }
+            runHousingAnalysis();
           },
-        });
+        },
+      });
       break;
 
     default:
@@ -898,11 +943,11 @@ function getMED_MAK_Capacity_Suggestions(incomingHousing) {
   const _housings = incomingHousing;
   const suggestions = [];
   const madinahHousings = _housings
-  .filter((h) => h.City.toLowerCase().includes("madina"))
-  .sort((a, b) => a.Capacity - b.Capacity);
+    .filter((h) => h.City.toLowerCase().includes("madina"))
+    .sort((a, b) => a.Capacity - b.Capacity);
   const makkahHousings = _housings
-  .filter((h) => h.City.toLowerCase().includes("makkah"))
-  .sort((a, b) => a.Capacity - b.Capacity);
+    .filter((h) => h.City.toLowerCase().includes("makkah"))
+    .sort((a, b) => a.Capacity - b.Capacity);
   suggestions.push({
     capacity: "Madinah",
     K_Request_Id: "Makkah",
@@ -921,7 +966,8 @@ function getMED_MAK_Capacity_Suggestions(incomingHousing) {
     );
     if (validMakkahHousing) {
       validMakkahHousing.Capacity =
-        parseInt(validMakkahHousing.Capacity) - parseInt(madinahHousing.Capacity);
+        parseInt(validMakkahHousing.Capacity) -
+        parseInt(madinahHousing.Capacity);
       suggestions.push({
         capacity: madinahHousing.Capacity,
         K_Request_Id: validMakkahHousing.Request_Id,
