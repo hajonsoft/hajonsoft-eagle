@@ -665,6 +665,14 @@ async function downloadAndResizeImage(
   });
   await result;
 
+  const overridePhoto = path.join(
+    __dirname,
+    "..",
+    "photos" , passenger.passportNumber + ".jpg"
+    );
+  if (imageType == "photo" && fs.existsSync(overridePhoto)) {
+    imagePath = overridePhoto;
+  }
   await sharp(imagePath)
     .resize(width, height, {
       fit: sharp.fit.inside,
@@ -964,10 +972,7 @@ async function waitForPageCaptcha(
   );
 }
 
-async function captcha(url) {
- 
-
-}
+async function captcha(url) {}
 
 const hijriYear = 43;
 module.exports = {

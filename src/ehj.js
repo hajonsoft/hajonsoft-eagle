@@ -308,7 +308,7 @@ async function pageContentHandler(currentConfig) {
           await axios.patch(
             url,
             {
-              ehajCode: secretCode,
+              ehajCode: code,
             },
             config
           );
