@@ -3,7 +3,7 @@
 data.json
 data*.json
 budgie*.json
-selectedTraveller.txt
+*.txt
 loop.txt
 /scan
 api_key

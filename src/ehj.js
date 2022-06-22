@@ -475,7 +475,7 @@ async function pageContentHandler(currentConfig) {
                 }
               }
               fs.writeFileSync(
-                passportNumber,
+                passportNumber + ".txt",
                 JSON.stringify({
                   ehajNumber,
                   mofaNumber,

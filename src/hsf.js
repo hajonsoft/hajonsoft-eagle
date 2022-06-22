@@ -363,16 +363,16 @@ async function pageContentHandler(currentConfig) {
         "#myform > div.form-body.form-horizontal > div:nth-child(2) > div",
         (el) => el.innerText
       );
-      if (eNumber && fs.existsSync("./" + passenger.passportNumber)) {
+      if (eNumber && fs.existsSync("./" + passenger.passportNumber + ".txt")) {
         const existingPassengerDataString = fs.readFileSync(
-          "./" + passenger.passportNumber,
+          "./" + passenger.passportNumber + ".txt",
           "utf-8"
         );
         const existingPassengerData = JSON.parse(existingPassengerDataString);
         existingPassengerData["eNumber"] = eNumber;
 
         fs.writeFileSync(
-          passenger.passportNumber,
+          passenger.passportNumber + ".txt",
           JSON.stringify(existingPassengerData)
         );
       }
@@ -455,7 +455,7 @@ async function pageContentHandler(currentConfig) {
           (el) => el.innerText
         );
         fs.writeFileSync(
-          `./${passenger.passportNumber}`,
+          `./${passenger.passportNumber}.txt`,
           JSON.stringify({
             mofaNumber,
             eNumber,
@@ -542,7 +542,7 @@ async function pageContentHandler(currentConfig) {
           fs.existsSync("./loop.json") &&
           fs.existsSync("./selectedTraveller.txt")
         ) {
-          const last = fs.readFileSync("./selectedTraveller.json", "utf-8");
+          const last = fs.readFileSync("./selectedTraveller.txt", "utf-8");
           sendNewApplication((parseInt(last) + 1).toString());
         }
       } else {
@@ -651,9 +651,9 @@ async function sendPassenger(selectedTraveller) {
         );
         if (found) {
           passenger.mofaNumber = found.mofaNumber;
-        } else if (fs.existsSync("./" + passenger.passportNumber)) {
+        } else if (fs.existsSync("./" + passenger.passportNumber + ".txt")) {
           const data = fs.readFileSync(
-            "./" + passenger.passportNumber,
+            "./" + passenger.passportNumber + ".txt",
             "utf-8"
           );
           passenger.mofaNumber = JSON.parse(data)?.mofaNumber;
@@ -753,8 +753,8 @@ async function handleImportGMAMofa() {
 
     if (passportNumber) {
       fs.writeFileSync(
-        passportNumber,
-        JSON.stringify({ mofaNumber, nationality })
+        passportNumber + ".txt",
+        JSON.stringify({ mofaNumber, nationality, passportNumber })
       );
       // Add this passport to data.json if it is not present. This way you will be able to import from GMA and proceed with HSF even if the traveler is not present in HAJonSoft
     }
