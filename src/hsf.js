@@ -446,6 +446,17 @@ async function pageContentHandler(currentConfig) {
       break;
     case "step4":
       if (fs.existsSync("./add.json")) {
+        await util.commander(page, {
+          controller: {
+            selector: "#tab_wizard",
+            title: "Add New",
+            arabicTitle: "إضافه جديد",
+            action: async () => {
+              page.goto("https://visa.mofa.gov.sa/HajSmartForm/Add")
+            },
+          },
+        });
+
         const mofaNumber = await page.$eval(
           "#myform > div.form-body.form-horizontal > div > div:nth-child(1) > div:nth-child(2)",
           (el) => el.innerText

@@ -5,6 +5,7 @@ data*.json
 budgie*.json
 *.txt
 loop.txt
+add.json
 /scan
 api_key
 activation

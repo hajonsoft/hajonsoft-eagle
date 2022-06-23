@@ -41,6 +41,11 @@ async function main() {
     fs.unlinkSync(selectedTravellerFile);
   }
 
+  const addModeFile = "./add.json";
+  if (fs.existsSync(addModeFile)) {
+    fs.unlinkSync(addModeFile);
+  }
+
   const loopFile = "./loop.txt";
   if (fs.existsSync(loopFile)) {
     fs.unlinkSync(loopFile);
