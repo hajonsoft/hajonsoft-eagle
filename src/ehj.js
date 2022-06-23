@@ -530,14 +530,22 @@ async function pageContentHandler(currentConfig) {
       break;
     case "add-mission-pilgrim-3":
     case "add-pilgrim-3":
-      const isErrorAdd = await page.$("#stepItemsMSGs > div > div > div > ul > li > span")
+      const isErrorAdd = await page.$(
+        "#stepItemsMSGs > div > div > div > ul > li > span"
+      );
       if (isErrorAdd) {
-        const errorMessage = await page.$eval("#stepItemsMSGs > div > div > div > ul > li > span", el => el.innerText)
-        console.log(errorMessage)
+        const errorMessage = await page.$eval(
+          "#stepItemsMSGs > div > div > div > ul > li > span",
+          (el) => el.innerText
+        );
+        console.log(errorMessage);
       }
-      await page.waitForSelector("#reference1")
-      const tagValue = await page.$eval("#reference1", el => el.value)
-      if (tagValue && passports.filter((x) => x == passenger.passportNumber).length > 3) {
+      await page.waitForSelector("#reference1");
+      const tagValue = await page.$eval("#reference1", (el) => el.value);
+      if (
+        tagValue &&
+        passports.filter((x) => x == passenger.passportNumber).length > 3
+      ) {
         return;
       }
       console.log(passenger.slug);
@@ -664,6 +672,19 @@ async function pageContentHandler(currentConfig) {
         5,
         20
       );
+
+      if (resizedPhotoPath.includes("dummy")) {
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#reference1",
+              value: () => "Error-Photo",
+            },
+          ],
+          passenger
+        );
+      }
       const resizedVaccinePath = await util.downloadAndResizeImage(
         passenger,
         100,
