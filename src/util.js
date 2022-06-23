@@ -240,6 +240,7 @@ async function commit(page, details, row) {
     }
     switch (elementType) {
       case "input":
+      case "textarea":
         if (detail.selector) {
           await page.waitForSelector(detail.selector);
           await page.focus(detail.selector);
@@ -670,8 +671,9 @@ async function downloadAndResizeImage(
   const overridePhoto = path.join(
     __dirname,
     "..",
-    "photos" , passenger.passportNumber + ".jpg"
-    );
+    "photos",
+    passenger.passportNumber + ".jpg"
+  );
   if (imageType == "photo" && fs.existsSync(overridePhoto)) {
     imagePath = overridePhoto;
   }

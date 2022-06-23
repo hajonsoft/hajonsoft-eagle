@@ -204,6 +204,16 @@ const config = [
         selector: "#nameEn",
         value: () => "Service " + moment().format("HHmm"),
       },
+      {
+        selector: "#pkgDescAr",
+        value: (row) => "رحلة الحج من العمر. قم بزيارة مكه وأداء واجب الحج.",
+      },
+      {
+        selector: "#pkgDescEn",
+        value: (row) =>
+          "Hajj journey of a lifetime. Visit Makkah and perform the duty of Hajj.",
+      },
+      { selector: "#packageOwnerPrice", value: () => "25000" },
     ],
   },
   {
@@ -751,9 +761,6 @@ async function pageContentHandler(currentConfig) {
       break;
     case "package-details":
       await util.commit(page, currentConfig.details, passenger);
-      await page.type("#pkgDescAr", "تحصيل حجز الحجرة");
-      await page.type("#pkgDescEn", "Package Reservation");
-      await page.type("#packageOwnerPrice", "10000");
       await page.select("#packageType", "2");
       await page.select("#hpArrivalAirline", "11435");
       await page.select("#arrivalPort", "50");
@@ -841,27 +848,71 @@ async function pageContentHandler(currentConfig) {
       });
       break;
     case "package-details-2":
-      await page.type("#minaDescLa", "Package Reservation ");
-      await page.type("#minaDescAr", "تحصيل حجز الحجرة");
-      await page.type("#arafaDescLa", "Package Reservation");
-      await page.type("#arafaDescAr", "تحصيل حجز الحجرة");
-      await page.type("#muzdalifaDescLa", "Package Reservation");
-      await page.type("#muzdalifaDescAr", "تحصيل حجز الحجرة");
-      await page.type(
-        "#makHouseContractStart",
-        budgie.get("ehaj-package-dt-from-1")
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#minaDescLa",
+            value: () => "Camp with 24 hours service in conditioned tents",
+          },
+          {
+            selector: "#minaDescAr",
+            value: () => "مخيم مع خدمة 24 ساعة في خيام مكيفة",
+          },
+          {
+            selector: "#arafaDescLa",
+            value: () => "Camp with 24 hours service in conditioned tents",
+          },
+          {
+            selector: "#arafaDescAr",
+            value: () => "مخيم مع خدمة 24 ساعة في خيام مكيفة",
+          },
+          {
+            selector: "#muzdalifaDescLa",
+            value: () => "Camp with 24 hours service",
+          },
+          {
+            selector: "#muzdalifaDescAr",
+            value: () => "مخيم مع خدمة 24 ساعة   ",
+          },
+          {
+            selector: "#makHouseContractStart",
+            value: () => budgie.get("ehaj-package-dt-from-1"),
+          },
+          {
+            selector: "#makHouseContractEnd",
+            value: () => budgie.get("ehaj-package-dt-to-1"),
+          },
+          {
+            selector: "#madHouseContractStart",
+            value: () => budgie.get("ehaj-package-dt-from-2"),
+          },
+          {
+            selector: "#madHouseContractEnd",
+            value: () => budgie.get("ehaj-package-dt-to-2"),
+          },
+        ],
+        passenger
       );
-      await page.type(
-        "#makHouseContractEnd",
-        budgie.get("ehaj-package-dt-to-1")
+      await page.select(
+        "#makHouseContract",
+        budgie.get("ehaj-package-hotel-1")
       );
-      await page.type(
-        "#madHouseContractStart",
-        budgie.get("ehaj-package-dt-from-2")
+      await page.waitForTimeout(1000);
+      await page.select(
+        "#madHouseContract",
+        budgie.get("ehaj-package-hotel-2")
       );
-      await page.type(
-        "#madHouseContractEnd",
-        budgie.get("ehaj-package-dt-to-2")
+      await page.waitForTimeout(2000);
+
+      await page.select(
+        "#houseContractMakRoomType",
+        budgie.get("ehaj-package-hotel-1-room-type")
+      );
+
+      await page.select(
+        "#houseContractMadRoomType",
+        budgie.get("ehaj-package-hotel-2-room-type")
       );
 
       await util.commander(page, {
@@ -872,6 +923,30 @@ async function pageContentHandler(currentConfig) {
           arabicTitle: "تذكر",
           name: "rememberPackageDates",
           action: async () => {
+            const hotel1 = await page.evaluate(() => {
+              const makkahHotel = document.getElementById("makHouseContract");
+              return makkahHotel.value;
+            });
+            budgie.save("ehaj-package-hotel-1", hotel1);
+
+            const hotel2 = await page.$eval(
+              "#madHouseContract",
+              (el) => el.value
+            );
+            budgie.save("ehaj-package-hotel-2", hotel2);
+
+            const hotel1RoomType = await page.$eval(
+              "#houseContractMakRoomType",
+              (el) => el.value
+            );
+            budgie.save("ehaj-package-hotel-1-room-type", hotel1RoomType);
+
+            const hote21RoomType = await page.$eval(
+              "#houseContractMadRoomType",
+              (el) => el.value
+            );
+            budgie.save("ehaj-package-hotel-2-room-type", hote21RoomType);
+
             const fromDt1 = await page.$eval(
               "#makHouseContractStart",
               (el) => el.value
