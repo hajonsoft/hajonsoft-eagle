@@ -490,6 +490,7 @@ async function pageContentHandler(currentConfig) {
                   ehajNumber,
                   mofaNumber,
                   passportNumber,
+                  status,
                 })
               );
             }

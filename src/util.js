@@ -341,7 +341,7 @@ async function controller(page, structure, travellers) {
               : traveller.name.full
           } - ${traveller.passportNumber} - ${traveller?.nationality?.name} - ${
             traveller?.gender || "gender"
-          } - ${traveller?.dob?.age || "age"} years old</option>`
+          } - ${traveller?.dob?.age || "age"} years old${fs.existsSync("./" + traveller.passportNumber + ".txt") ? " - MOFA Imported - " + JSON.parse(fs.readFileSync("./" + traveller.passportNumber + ".txt", 'utf-8'))?.status : ''}</option>`
       )
       .join(" ");
 
