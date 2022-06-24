@@ -180,10 +180,6 @@ const config = [
     ],
   },
   {
-    name: "reserve",
-    regex: "https://ehaj.haj.gov.sa/EPATH",
-  },
-  {
     name: "sms",
     regex: "https://ehaj.haj.gov.sa/EH/sms.xhtml",
   },
@@ -230,6 +226,26 @@ const config = [
     name: "house-details",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajCompany/requests/housingContr/epayment/View.xhtml",
+  },
+  {
+    name: "reservation-data-1",
+    regex: "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/hajData.xhtml",
+    controller: {
+      selector: "body > div.main > div > div.portlet.light.portlet-fit.bordered > div.portlet-title > div > span",
+      name: 'makeReservation',
+      action: async () => {
+        const selectedTraveler = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
+        if (selectedTraveler) {
+          fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
+          const data = fs.readFileSync("./data.json", "utf-8");
+          var passengersData = JSON.parse(data);
+          await makeReservations(selectedTraveler, passengersData);
+        }
+      },
+    },
   },
 ];
 
@@ -567,6 +583,32 @@ async function pageContentHandler(currentConfig) {
       if (!visiblePassportNumber) {
         return;
       }
+      const isArabic = await page.$("#firstNameAr");
+      if (isArabic) {
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#firstNameAr",
+              value: (row) => row.nameArabic.first,
+            },
+            {
+              selector: "#fatherNameAr",
+              value: (row) => row.nameArabic.father,
+            },
+            {
+              selector: "#grandFatherNameAr",
+              value: (row) => row.nameArabic.grand,
+            },
+            {
+              selector: "#familyNameAr",
+              value: (row) => row.nameArabic.last,
+            },
+          ],
+          passenger
+        );
+      }
+
       await page.emulateVisionDeficiency("blurredVision");
       passports.push(passenger.passportNumber);
       await util.commander(page, {
@@ -757,8 +799,6 @@ async function pageContentHandler(currentConfig) {
         }
       }
 
-      break;
-    case "reserve":
       break;
     case "package-details":
       await util.commit(page, currentConfig.details, passenger);
@@ -1024,7 +1064,10 @@ async function pageContentHandler(currentConfig) {
         },
       });
       break;
+    case "reservation-data-1":
+      await util.controller(page, currentConfig, data.travellers);
 
+      break;
     default:
       break;
   }
@@ -1093,7 +1136,26 @@ function getPermitIssueDt(issDt) {
   return moment().add(-1, "year").format("DD/MM/YYYY");
 }
 
-function getPermitExpireDt(expDt) {
+async function makeReservations(index, passengersData) {
+  const passengers = passengersData.travellers;
+  for (let i = index; i< passengers.length; i++){
+    const passenger = passengers[index];
+    if (i == index) {
+      await page.type("#email", (passenger.name.first + passenger.name.last).replace(/ /g, '') + "a@gmail.com")
+    }
+    const isFieldVisible =  page.$(`#hd\\\:${i}\\\:first_name_la`)
+    if (!isFieldVisible) {
+      break;
+    }
+    await page.type(`#hd\\\:${i}\\\:first_name_la`, passenger.name.first)
+    await page.type(`#hd\\\:${i}\\\:last_name_la`, passenger.name.last)
+    await page.type(`#hd\\\:${i}\\\:hdrPassportNoId`, passenger.passportNumber)
+    await page.type(`#hd\\\:${i}\\\:PilgrimDateOfBirth`, passenger.dob.dmy)
+    await page.select(`#hd\\\:${i}\\\:nationalityId`, (passenger.nationality.telCode).toString())
+  }
+}
+
+ function getPermitExpireDt(expDt) {
   const expDtDraft = moment(expDt, "DD/MM/YYYY");
   if (expDtDraft.isValid() && expDtDraft.isAfter(moment().add(6, "months"))) {
     return expDt;
