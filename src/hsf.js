@@ -499,6 +499,12 @@ async function pageContentHandler(currentConfig) {
         return;
       }
 
+      const isSendToEmbassy = await page.$("#myform > div.form-actions.fluid.right > div > div > button")
+      if (isSendToEmbassy) {
+        await page.click("#myform > div.form-actions.fluid.right > div > div > button")
+        return ;
+      }
+
       const printButtonSelector =
         "#myform > div.form-actions.fluid.right > div > div > a.btn.btn-default.green";
       await page.waitForSelector(printButtonSelector);
