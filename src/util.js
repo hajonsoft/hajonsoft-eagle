@@ -317,6 +317,19 @@ async function selectByValue(selector, txt) {
   }
 }
 
+function getMofaImportString(passportNumber) {
+  try {
+
+  
+  const file = "./" + passportNumber + ".txt";
+  if (fs.existsSync(file)) {
+    const importContent = fs.readFileSync(file, 'utf-8');
+    const importJSON = JSON.parse(importContent);
+    return " - MOFA: " + importJSON?.status
+  }
+} catch {}
+}
+
 async function controller(page, structure, travellers) {
   if (
     !structure.controller ||
@@ -343,29 +356,10 @@ async function controller(page, structure, travellers) {
               : traveller.name.full
           } - ${traveller.passportNumber} - ${traveller?.nationality?.name} - ${
             traveller?.gender || "gender"
-          } - ${traveller?.dob?.age || "age"} years old</option>`
+          } - ${traveller?.dob?.age || "age"} years old${getMofaImportString(traveller.passportNumber)}</option>`
       )
       .join(" ");
 
-      if (controller.mokhaa) {
-        options =
-    "<option value='-1'>Select passenger click send حدد الراكب انقر إرسل</option>" +
-    travellers
-      .map(
-        (traveller, cursor) =>
-        fs.existsSync("./" + traveller.passportNumber + ".txt", 'utf-8') && JSON.parse(fs.readFileSync("./" + traveller.passportNumber + ".txt", 'utf-8'))?.status === "SENT" ? 
-          `<option value="${cursor}" ${
-            cursor == lastTraveler ? "selected" : ""
-          }>${cursor} - ${
-            traveller.nationality?.isArabic
-              ? traveller?.nameArabic?.given + " " + traveller.nameArabic.last
-              : traveller.name.full
-          } - ${traveller.passportNumber} - ${traveller?.nationality?.name} - ${
-            traveller?.gender || "gender"
-          } - ${traveller?.dob?.age || "age"} years old${fs.existsSync("./" + traveller.passportNumber + ".txt") ? " - MOFA Imported - " + JSON.parse(fs.readFileSync("./" + traveller.passportNumber + ".txt", 'utf-8'))?.status : ''}</option>` : ""
-      )
-      .join(" ");
-      }
 
   try {
     await page.waitForSelector(structure.controller.selector);
