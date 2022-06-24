@@ -328,12 +328,32 @@ async function controller(page, structure, travellers) {
 
   let lastTraveler = useCounter();
 
+  // TODO: If mofa import is active, then use the SENT status otherwise load all passengers
+
   let options =
     "<option value='-1'>Select passenger click send حدد الراكب انقر إرسل</option>" +
     travellers
       .map(
         (traveller, cursor) =>
-        JSON.parse(fs.readFileSync("./" + traveller.passportNumber + ".txt", 'utf-8'))?.status === "SENT" ? 
+          `<option value="${cursor}" ${
+            cursor == lastTraveler ? "selected" : ""
+          }>${cursor} - ${
+            traveller.nationality?.isArabic
+              ? traveller?.nameArabic?.given + " " + traveller.nameArabic.last
+              : traveller.name.full
+          } - ${traveller.passportNumber} - ${traveller?.nationality?.name} - ${
+            traveller?.gender || "gender"
+          } - ${traveller?.dob?.age || "age"} years old</option>`
+      )
+      .join(" ");
+
+      if (controller.mokhaa) {
+        options =
+    "<option value='-1'>Select passenger click send حدد الراكب انقر إرسل</option>" +
+    travellers
+      .map(
+        (traveller, cursor) =>
+        fs.existsSync("./" + traveller.passportNumber + ".txt", 'utf-8') && JSON.parse(fs.readFileSync("./" + traveller.passportNumber + ".txt", 'utf-8'))?.status === "SENT" ? 
           `<option value="${cursor}" ${
             cursor == lastTraveler ? "selected" : ""
           }>${cursor} - ${
@@ -345,6 +365,7 @@ async function controller(page, structure, travellers) {
           } - ${traveller?.dob?.age || "age"} years old${fs.existsSync("./" + traveller.passportNumber + ".txt") ? " - MOFA Imported - " + JSON.parse(fs.readFileSync("./" + traveller.passportNumber + ".txt", 'utf-8'))?.status : ''}</option>` : ""
       )
       .join(" ");
+      }
 
   try {
     await page.waitForSelector(structure.controller.selector);

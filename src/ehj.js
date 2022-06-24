@@ -247,6 +247,14 @@ const config = [
       },
     },
   },
+  {
+    name: "review-reservation-1",
+    regex: "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/review.xhtml"
+  },
+  {
+    name: "reservation-complete",
+    regex: "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/home.xhtml"
+  }
 ];
 
 async function sendPassenger(selectedTraveler) {
@@ -1068,6 +1076,17 @@ async function pageContentHandler(currentConfig) {
       await util.controller(page, currentConfig, data.travellers);
 
       break;
+    case "review-reservation-1":
+      await page.click("#confirmationPanel > div.portlet-body > form > div.reservation-button > div > div > div > input")
+
+    break;
+    case "reservation-complete":
+      await page.waitForSelector("#stepItemsMSGs > div > div > div > ul > li > span")
+      const reservation = await page.$("#stepItemsMSGs > div > div > div > ul > li > span", el => el.innerText);
+      const resrvationNumber = reservation.match(/\d+/)
+      console.log('%cMyProject%cline:1086%cresrvationNumber', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(227, 160, 93);padding:3px;border-radius:2px', resrvationNumber)
+      fs.writeFileSync("reservation" + "" + ".txt", resrvationNumber);
+      break;
     default:
       break;
   }
@@ -1138,20 +1157,27 @@ function getPermitIssueDt(issDt) {
 
 async function makeReservations(index, passengersData) {
   const passengers = passengersData.travellers;
+  let j = 0;
   for (let i = index; i< passengers.length; i++){
-    const passenger = passengers[index];
+    const passenger = passengers[i];
     if (i == index) {
-      await page.type("#email", (passenger.name.first + passenger.name.last).replace(/ /g, '') + "a@gmail.com")
+      await page.type("#email", (passenger.name.first + passenger.name.last).replace(/ /g, '') + "@gmail.com")
     }
-    const isFieldVisible =  page.$(`#hd\\\:${i}\\\:first_name_la`)
+    const isFieldVisible =  page.$(`#hd\\\:${j}\\\:first_name_la`)
     if (!isFieldVisible) {
       break;
     }
-    await page.type(`#hd\\\:${i}\\\:first_name_la`, passenger.name.first)
-    await page.type(`#hd\\\:${i}\\\:last_name_la`, passenger.name.last)
-    await page.type(`#hd\\\:${i}\\\:hdrPassportNoId`, passenger.passportNumber)
-    await page.type(`#hd\\\:${i}\\\:PilgrimDateOfBirth`, passenger.dob.dmy)
-    await page.select(`#hd\\\:${i}\\\:nationalityId`, (passenger.nationality.telCode).toString())
+    await page.type(`#hd\\\:${j}\\\:first_name_la`, passenger.name.first)
+    await page.type(`#hd\\\:${j}\\\:last_name_la`, passenger.name.last)
+    await page.type(`#hd\\\:${j}\\\:hdrPassportNoId`, passenger.passportNumber)
+    await page.type(`#hd\\\:${j}\\\:PilgrimDateOfBirth`, passenger.dob.dmy)
+    if (passenger.nationality.telCode) {
+      await page.select(`#hd\\\:${j}\\\:nationalityId`, (passenger.nationality.telCode).toString())
+    }
+    if (j > 0) {
+      await page.select(`#hd\\\:${j}\\\:relationship`,"702")
+    }
+    j ++;
   }
 }
 

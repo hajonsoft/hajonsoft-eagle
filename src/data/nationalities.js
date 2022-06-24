@@ -1,6 +1,5 @@
-
 const nationalities = JSON.parse(
-    `[
+  `[
         {
             "name": "",
             "arabicName": "",
@@ -1370,7 +1369,8 @@ const nationalities = JSON.parse(
       {
           "name": "Zimbabwe ZWE",
           "arabicName": "زمبابوي",
-          "code": "ZWE"
+          "code": "ZWE",
+          "telCode": "263"
       },
       {
           "name": "United Kingdom GBO",
@@ -1432,6 +1432,7 @@ const nationalities = JSON.parse(
           "code": "COD",
           "telCode": "242"
       }
-  ]`)
+  ]`
+);
 
-  module.exports = {nationalities}
+module.exports = { nationalities };
