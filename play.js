@@ -1,5 +1,6 @@
 const axios = require("axios");
 const fs = require("fs");
+const path = require("path");
 
 // const Canvas, { createCanvas, loadImage } = require('canvas')
 // // https://github.com/Automattic/node-canvas
@@ -292,3 +293,12 @@ const fs = require("fs");
 
 // console.log("abc".replace(/[^A-Z]/g, ""))
 
+const folder = "bis_3m"
+const files = fs.readdirSync(path.join(__dirname, "../../..", 'Downloads/senegal/' + folder)).filter(f => f.endsWith("CODELINE.txt"));
+for (const file of files) {
+    const passportNumber = fs.readFileSync(path.join(__dirname, "../../..", 'Downloads/senegal/' + folder, file), 'utf-8').split('\n')[1].substring(0,9)
+    const goodPhoto = path.join(__dirname, "../../..", 'Downloads/senegal/photos', passportNumber + ".jpg");
+    if (fs.existsSync(goodPhoto)) {
+        fs.copyFileSync(goodPhoto, path.join(__dirname, "../../..", 'Downloads/senegal/' + folder, file.replace(/CODELINE.txt/, 'IMAGEPHOTO.jpg')))
+    }
+}

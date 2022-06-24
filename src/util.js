@@ -333,6 +333,7 @@ async function controller(page, structure, travellers) {
     travellers
       .map(
         (traveller, cursor) =>
+        JSON.parse(fs.readFileSync("./" + traveller.passportNumber + ".txt", 'utf-8'))?.status === "SENT" ? 
           `<option value="${cursor}" ${
             cursor == lastTraveler ? "selected" : ""
           }>${cursor} - ${
@@ -341,7 +342,7 @@ async function controller(page, structure, travellers) {
               : traveller.name.full
           } - ${traveller.passportNumber} - ${traveller?.nationality?.name} - ${
             traveller?.gender || "gender"
-          } - ${traveller?.dob?.age || "age"} years old${fs.existsSync("./" + traveller.passportNumber + ".txt") ? " - MOFA Imported - " + JSON.parse(fs.readFileSync("./" + traveller.passportNumber + ".txt", 'utf-8'))?.status : ''}</option>`
+          } - ${traveller?.dob?.age || "age"} years old${fs.existsSync("./" + traveller.passportNumber + ".txt") ? " - MOFA Imported - " + JSON.parse(fs.readFileSync("./" + traveller.passportNumber + ".txt", 'utf-8'))?.status : ''}</option>` : ""
       )
       .join(" ");
 
