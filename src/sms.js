@@ -128,8 +128,8 @@ function getApiKey() {
 async function abandoned() {}
 async function getNewNumber() {
   const api_key = getApiKey();
-  const cheapCountries = ["2"];
-  const cheapServices = ["dp"];
+  const cheapCountries = ["0"];
+  const cheapServices = ["am"];
   const result = await getSMSNumber(
     api_key,
     cheapCountries[0],

@@ -231,8 +231,9 @@ const config = [
     name: "reservation-data-1",
     regex: "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/hajData.xhtml",
     controller: {
-      selector: "body > div.main > div > div.portlet.light.portlet-fit.bordered > div.portlet-title > div > span",
-      name: 'makeReservation',
+      selector:
+        "body > div.main > div > div.portlet.light.portlet-fit.bordered > div.portlet-title > div > span",
+      name: "makeReservation",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -249,12 +250,12 @@ const config = [
   },
   {
     name: "review-reservation-1",
-    regex: "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/review.xhtml"
+    regex: "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/review.xhtml",
   },
   {
     name: "reservation-complete",
-    regex: "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/home.xhtml"
-  }
+    regex: "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/home.xhtml",
+  },
 ];
 
 async function sendPassenger(selectedTraveler) {
@@ -1075,17 +1076,49 @@ async function pageContentHandler(currentConfig) {
     case "reservation-data-1":
       await util.controller(page, currentConfig, data.travellers);
 
+      // await page.waitForSelector("#code");
+      // for (let x = 0; x < 20; x++) {
+      //   console.log(
+      //     "%cMyProject%cline:1195%c0",
+      //     "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
+      //     "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
+      //     "color:#fff;background:rgb(56, 13, 49);padding:3px;border-radius:2px",
+      //     0
+      //   );
+      //   const code = await SMS.getSMSCode(newSMSNumber.activationId);
+      //   console.log(
+      //     "%cMyProject%cline:1196%ccode",
+      //     "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
+      //     "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
+      //     "color:#fff;background:rgb(178, 190, 126);padding:3px;border-radius:2px",
+      //     code
+      //   );
+      //   await page.waitForTimeout(1000);
+      // }
+
       break;
     case "review-reservation-1":
-      await page.click("#confirmationPanel > div.portlet-body > form > div.reservation-button > div > div > div > input")
+      await page.click(
+        "#confirmationPanel > div.portlet-body > form > div.reservation-button > div > div > div > input"
+      );
 
-    break;
+      break;
     case "reservation-complete":
-      await page.waitForSelector("#stepItemsMSGs > div > div > div > ul > li > span")
-      const reservation = await page.$("#stepItemsMSGs > div > div > div > ul > li > span", el => el.innerText);
-      const resrvationNumber = reservation.match(/\d+/)
-      console.log('%cMyProject%cline:1086%cresrvationNumber', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(227, 160, 93);padding:3px;border-radius:2px', resrvationNumber)
-      fs.writeFileSync("reservation" + "" + ".txt", resrvationNumber);
+      const isReservationIdAvailable = await page.$(
+        "#stepItemsMSGs > div > div > div > ul > li > span"
+      );
+      if (isReservationIdAvailable) {
+        const reservation = await page.$eval(
+          "#stepItemsMSGs > div > div > div > ul > li > span",
+          (el) => el.innerText
+        );
+        const reservationId = reservation.match(/\d+/g)[0];
+        fs.writeFileSync(
+          "./reservation" + reservationId + ".txt",
+          JSON.stringify(passenger) + "\n" + reservation
+        );
+      }
+
       break;
     default:
       break;
@@ -1157,31 +1190,45 @@ function getPermitIssueDt(issDt) {
 
 async function makeReservations(index, passengersData) {
   const passengers = passengersData.travellers;
+  await page.select("#countryKey", "7");
+  await page.waitForTimeout(1000);
+  // const newSMSNumber = await SMS.getNewNumber();
+  // await page.type("#mobileRep", newSMSNumber?.number?.toString()?.substring(1));
   let j = 0;
-  for (let i = index; i< passengers.length; i++){
+  for (let i = index; i < passengers.length; i++) {
     const passenger = passengers[i];
     if (i == index) {
-      await page.type("#email", (passenger.name.first + passenger.name.last).replace(/ /g, '') + "@gmail.com")
+      const isEmailPresnet = await page.$eval("#email", (el) => el.value);
+      if (!isEmailPresnet) {
+        await page.type(
+          "#email",
+          (passenger.name.first + passenger.name.last).replace(/ /g, "") +
+            "@gmail.com"
+        );
+      }
     }
-    const isFieldVisible =  page.$(`#hd\\\:${j}\\\:first_name_la`)
+    const isFieldVisible = page.$(`#hd\\\:${j}\\\:first_name_la`);
     if (!isFieldVisible) {
       break;
     }
-    await page.type(`#hd\\\:${j}\\\:first_name_la`, passenger.name.first)
-    await page.type(`#hd\\\:${j}\\\:last_name_la`, passenger.name.last)
-    await page.type(`#hd\\\:${j}\\\:hdrPassportNoId`, passenger.passportNumber)
-    await page.type(`#hd\\\:${j}\\\:PilgrimDateOfBirth`, passenger.dob.dmy)
+    await page.type(`#hd\\\:${j}\\\:first_name_la`, passenger.name.first);
+    await page.type(`#hd\\\:${j}\\\:last_name_la`, passenger.name.last);
+    await page.type(`#hd\\\:${j}\\\:hdrPassportNoId`, passenger.passportNumber);
+    await page.type(`#hd\\\:${j}\\\:PilgrimDateOfBirth`, passenger.dob.dmy);
     if (passenger.nationality.telCode) {
-      await page.select(`#hd\\\:${j}\\\:nationalityId`, (passenger.nationality.telCode).toString())
+      await page.select(
+        `#hd\\\:${j}\\\:nationalityId`,
+        passenger.nationality.telCode.toString()
+      );
     }
     if (j > 0) {
-      await page.select(`#hd\\\:${j}\\\:relationship`,"702")
+      await page.select(`#hd\\\:${j}\\\:relationship`, "702");
     }
-    j ++;
+    j++;
   }
 }
 
- function getPermitExpireDt(expDt) {
+function getPermitExpireDt(expDt) {
   const expDtDraft = moment(expDt, "DD/MM/YYYY");
   if (expDtDraft.isValid() && expDtDraft.isAfter(moment().add(6, "months"))) {
     return expDt;
