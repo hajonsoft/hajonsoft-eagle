@@ -118,6 +118,10 @@ const config = [
     },
   },
   {
+    name: "dashboard",
+    regex: "https://ehaj.haj.gov.sa/EH/pages/home/dashboard.xhtml",
+  },
+  {
     name: "add-mission-pilgrim-3",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Add3.xhtml",
@@ -243,6 +247,19 @@ const config = [
           fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
           const data = fs.readFileSync("./data.json", "utf-8");
           var passengersData = JSON.parse(data);
+          // If there is phone number selected then save it to budgie
+          const countryCode = await page.$eval("#countryKey", el=> el.value)
+          if (countryCode) {
+            budgie.save("ehaj-reserve-country-code", countryCode.toString())
+          } else {
+            const budgieCountryCode = budgie.get("ehaj-reserve-country-code", "7")
+            await page.select("#countryKey", budgieCountryCode.toString());
+            await page.waitForTimeout(1000);
+          }
+
+          // const newSMSNumber = await SMS.getNewNumber();
+          // await page.type("#mobileRep", newSMSNumber?.number?.toString()?.substring(1));
+
           await makeReservations(selectedTraveler, passengersData);
         }
       },
@@ -428,6 +445,24 @@ async function pageContentHandler(currentConfig) {
       break;
     case "list-pilgrims":
     case "list-pilgrims-mission":
+      await util.commander(page, {
+        controller: {
+          leftAlign: true,
+          selector:
+            "body > div.wrapper > form > header > nav > div > div.clearfix.navbar-fixed-top > div.logo > img",
+          title: "Go to reservation",
+          arabicTitle: "الي الحجز",
+          name: "toReseervation",
+          action: async () => {
+            const thisUrl = await page.url();
+            fs.writeFileSync("./ehaj.txt", thisUrl);
+            page.goto(
+              "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/home.xhtml"
+            );
+          },
+        },
+      });
+
       const ehajNumbers = [];
       await util.commander(page, {
         controller: {
@@ -615,6 +650,24 @@ async function pageContentHandler(currentConfig) {
             },
           ],
           passenger
+        );
+      }
+
+      const isYearOfBirth = await page.$("#yearOfBirth");
+      if (isYearOfBirth) {
+        const recentYear = await page.$eval(
+          "#yearOfBirth > option:nth-child(2)",
+          (el) => {
+            return el.value;
+          }
+        );
+        await page.select("#yearOfBirth", recentYear);
+        console.log(
+          "%cMyProject%cline:626%crecentYear",
+          "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
+          "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
+          "color:#fff;background:rgb(252, 157, 154);padding:3px;border-radius:2px",
+          recentYear
         );
       }
 
@@ -1103,7 +1156,27 @@ async function pageContentHandler(currentConfig) {
       );
 
       break;
+    case "dashboard":
+      
+      break;
     case "reservation-complete":
+      await util.commander(page, {
+        controller: {
+          selector: "body > div.slider-block > div",
+          title: "Back to Ehaj",
+          arabicTitle: "العوده للمسار الإليكتروني",
+          name: "backToEhaj",
+          action: async () => {
+            if (fs.existsSync("./ehaj.txt")) {
+              const ehajUrl = fs.readFileSync("./ehaj.txt", "utf-8");
+              page.goto(ehajUrl);
+            } else {
+              page.goto("https://ehaj.haj.gov.sa/EH/login.xhtml");
+            }
+          },
+        },
+      });
+
       const isReservationIdAvailable = await page.$(
         "#stepItemsMSGs > div > div > div > ul > li > span"
       );
@@ -1190,10 +1263,6 @@ function getPermitIssueDt(issDt) {
 
 async function makeReservations(index, passengersData) {
   const passengers = passengersData.travellers;
-  await page.select("#countryKey", "7");
-  await page.waitForTimeout(1000);
-  // const newSMSNumber = await SMS.getNewNumber();
-  // await page.type("#mobileRep", newSMSNumber?.number?.toString()?.substring(1));
   let j = 0;
   for (let i = index; i < passengers.length; i++) {
     const passenger = passengers[i];
