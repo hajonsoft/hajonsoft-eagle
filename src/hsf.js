@@ -215,23 +215,6 @@ async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "login":
-      await page.waitForTimeout(1000);
-      try {
-        const isDialog = await page.$(
-          "#dlgMessage > div.modal-dialog > div > div.modal-footer > button",
-          {
-            visible: true,
-          }
-        );
-        if (isDialog) {
-          await page.click(
-            "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
-          );
-        }
-      } catch {
-        // Do nothing
-      }
-
       await util.controller(
         page,
         {
@@ -280,6 +263,22 @@ async function pageContentHandler(currentConfig) {
         },
         data.travellers
       );
+      await page.waitForTimeout(1000);
+      try {
+        const isDialog = await page.$(
+          "#dlgMessage > div.modal-dialog > div > div.modal-footer > button",
+          {
+            visible: true,
+          }
+        );
+        if (isDialog) {
+          await page.click(
+            "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
+          );
+        }
+      } catch {
+        // Do nothing
+      }
 
       if (fs.existsSync("./loop.txt")) {
         if (!fs.existsSync("./selectedTraveller.txt")) {
@@ -290,31 +289,38 @@ async function pageContentHandler(currentConfig) {
           "utf-8"
         );
 
-        let nextPassengerIndex = parseInt(passengerIndex) + 1;
+        let nextIndex = parseInt(passengerIndex) + 1;
 
-        for (let i = nextPassengerIndex; i < data.travellers.length; i++) {
+        for (
+          let i = parseInt(passengerIndex) + 1;
+          i < data.travellers.length;
+          i++
+        ) {
           const passenger = data.travellers[i];
           const passportNumber = passenger.passportNumber;
-          if (!fs.existsSync(`./${passportNumber}.txt`)) {
-            nextPassengerIndex = i;
-            continue;
+          if (fs.existsSync("./" + passportNumber + ".txt")) {
+            const importFileContent = fs.readFileSync(
+              `./${passportNumber}.txt`,
+              "utf-8"
+            );
+
+            fs.readFileSync("./loop.txt", "utf-8")
+              .split("\n")
+              .forEach((keyword) => {
+                if (
+                  keyword &&
+                  keyword != "" &&
+                  importFileContent.includes(keyword)
+                ) {
+                  fs.writeFileSync("./selectedTraveller.txt", i.toString());
+                  nextIndex = i;
+                  return;
+                }
+              });
           }
-
-          const importFileContent = fs.readFileSync(`./${passportNumber}.txt`, "utf-8");
-
-          fs.readFileSync("./loop.txt", "utf-8")
-            .split("\n")
-            .forEach((keyword) => {
-              if (keyword && keyword != "" && importFileContent.includes(keyword)) {
-                fs.writeFileSync("./selectedTraveller.txt", i.toString());
-                nextPassengerIndex = i;
-                return;
-              }
-            });
         }
-
-        if (nextPassengerIndex < data.travellers.length) {
-          await sendPassenger(nextPassengerIndex.toString());
+        if (nextIndex < data.travellers.length) {
+          await sendPassenger(nextIndex.toString());
         }
       }
       break;
@@ -552,7 +558,7 @@ async function pageContentHandler(currentConfig) {
       const visaElement = await page.$("body > form > page > div");
       const caravanName = data.info.caravan?.replace(/[^A-Z0-9]/g, "");
       let saveFolder = visaFolder;
-      if (caravanName){
+      if (caravanName) {
         saveFolder = path.join(visaFolder, caravanName);
       }
       if (!fs.existsSync(saveFolder)) {
