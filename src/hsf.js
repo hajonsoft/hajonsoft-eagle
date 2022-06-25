@@ -285,11 +285,38 @@ async function pageContentHandler(currentConfig) {
         if (!fs.existsSync("./selectedTraveller.txt")) {
           fs.writeFileSync("./selectedTraveller.txt", "-1");
         }
-        const passengerIndex = fs.readFileSync(
+        let passengerIndex = fs.readFileSync(
           "./selectedTraveller.txt",
           "utf-8"
         );
-        await sendPassenger((parseInt(passengerIndex) + 1).toString());
+
+        let nextPassengerIndex = parseInt(passengerIndex) + 1;
+
+        for (let i = nextPassengerIndex; i < data.travellers.length; i++) {
+          const passenger = data.travellers[i];
+          const passportNumber = passenger.passportNumber;
+          if (!fs.existsSync(`./${passportNumber}.txt`)) {
+            continue;
+          }
+
+          const importFileContent = fs.readFileSync(`./${passportNumber}.txt`, "utf-8");
+
+          fs.readFileSync("./loop.txt", "utf-8")
+            .split("\n")
+            .forEach((keyword) => {
+              console.log('%cMyProject%cline:306%ckeyword', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(217, 104, 49);padding:3px;border-radius:2px', keyword)
+              if (keyword && keyword != "" && importFileContent.includes(keyword)) {
+                fs.writeFileSync("./selectedTraveller.txt", i);
+                console.log('%cMyProject%cline:310%cnextPassengerIndex', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(1, 77, 103);padding:3px;border-radius:2px', nextPassengerIndex)
+                nextPassengerIndex = i;
+                return;
+              }
+            });
+        }
+
+        if (nextPassengerIndex < data.travellers.length) {
+          await sendPassenger(nextPassengerIndex.toString());
+        }
       }
       break;
     case "agreement":
@@ -452,7 +479,7 @@ async function pageContentHandler(currentConfig) {
             title: "Add New",
             arabicTitle: "إضافه جديد",
             action: async () => {
-              page.goto("https://visa.mofa.gov.sa/HajSmartForm/Add")
+              page.goto("https://visa.mofa.gov.sa/HajSmartForm/Add");
             },
           },
         });
@@ -499,10 +526,14 @@ async function pageContentHandler(currentConfig) {
         return;
       }
 
-      const isSendToEmbassy = await page.$("#myform > div.form-actions.fluid.right > div > div > button")
+      const isSendToEmbassy = await page.$(
+        "#myform > div.form-actions.fluid.right > div > div > button"
+      );
       if (isSendToEmbassy) {
-        await page.click("#myform > div.form-actions.fluid.right > div > div > button")
-        return ;
+        await page.click(
+          "#myform > div.form-actions.fluid.right > div > div > button"
+        );
+        return;
       }
 
       const printButtonSelector =
@@ -520,10 +551,16 @@ async function pageContentHandler(currentConfig) {
         "body > form > page > div > div > div > div.evisa-header > div > div.evisa-col-12"
       );
       const visaElement = await page.$("body > form > page > div");
+      const caravanName = data.info.caravanName?.replace(/[^A-Z0-9]/g, "");
+      const saveFolder = path.join(visaFolder, caravanName);
+      if (!fs.existsSync(saveFolder)) {
+        fs.mkdirSync(saveFolder);
+      }
+      await page.waitForTimeout(2000);
       await visaElement.screenshot({
         path:
           path.join(
-            visaFolder,
+            saveFolder,
             passenger.passportNumber +
               "_" +
               passenger.name.full.replace(/ /, "_")
