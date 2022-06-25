@@ -296,6 +296,7 @@ async function pageContentHandler(currentConfig) {
           const passenger = data.travellers[i];
           const passportNumber = passenger.passportNumber;
           if (!fs.existsSync(`./${passportNumber}.txt`)) {
+            nextPassengerIndex = i;
             continue;
           }
 
@@ -304,10 +305,8 @@ async function pageContentHandler(currentConfig) {
           fs.readFileSync("./loop.txt", "utf-8")
             .split("\n")
             .forEach((keyword) => {
-              console.log('%cMyProject%cline:306%ckeyword', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(217, 104, 49);padding:3px;border-radius:2px', keyword)
               if (keyword && keyword != "" && importFileContent.includes(keyword)) {
-                fs.writeFileSync("./selectedTraveller.txt", i);
-                console.log('%cMyProject%cline:310%cnextPassengerIndex', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(1, 77, 103);padding:3px;border-radius:2px', nextPassengerIndex)
+                fs.writeFileSync("./selectedTraveller.txt", i.toString());
                 nextPassengerIndex = i;
                 return;
               }
@@ -551,8 +550,11 @@ async function pageContentHandler(currentConfig) {
         "body > form > page > div > div > div > div.evisa-header > div > div.evisa-col-12"
       );
       const visaElement = await page.$("body > form > page > div");
-      const caravanName = data.info.caravanName?.replace(/[^A-Z0-9]/g, "");
-      const saveFolder = path.join(visaFolder, caravanName);
+      const caravanName = data.info.caravan?.replace(/[^A-Z0-9]/g, "");
+      let saveFolder = visaFolder;
+      if (caravanName){
+        saveFolder = path.join(visaFolder, caravanName);
+      }
       if (!fs.existsSync(saveFolder)) {
         fs.mkdirSync(saveFolder);
       }
