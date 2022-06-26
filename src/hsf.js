@@ -79,7 +79,7 @@ const config = [
       },
       {
         selector: "#JobModel_Profession",
-        value: (row) => row.profession,
+        value: (row) => row.profession || "unknown",
       },
       {
         selector: "#JobModel_CurrentJob",
