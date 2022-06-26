@@ -472,6 +472,7 @@ async function pageContentHandler(currentConfig) {
                   `;
         }, passenger);
       }
+      await page.waitForTimeout(1000);
       await page.click(
         "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
       );
