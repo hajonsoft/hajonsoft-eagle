@@ -357,7 +357,7 @@ async function pageContentHandler(currentConfig) {
         await page.type("#AddressContactInfoModel\\.Email", "");
         await page.type(
           "#AddressContactInfoModel\\.Email",
-          passenger.name.first.replace(/ /g, "").toLowerCase() + "@hotmail.com"
+          (passenger.name?.first?.replace(/ /g, "")?.toLowerCase() || moment().format("YYYYMMDDHHmmss"))+ "@hotmail.com"
         );
       }
 

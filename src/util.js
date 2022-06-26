@@ -629,6 +629,9 @@ async function downloadAndResizeImage(
 ) {
   let folder = photosFolder;
   let url = passenger.images.photo;
+  if (!url) {
+    return path.join(__dirname, "./dummy-image.jpg");
+  }
 
   if (imageType == "passport") {
     folder = passportsFolder;
