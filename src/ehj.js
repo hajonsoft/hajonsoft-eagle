@@ -51,6 +51,12 @@ const config = [
       "https://ehaj.haj.gov.sa/EH/pages/home/ChangeRepMobile/newMobile.xhtml",
   },
   {
+    name: "hajj-group-details",
+    regex:
+    "https://ehaj.haj.gov.sa/EH/pages/hajData/lookup/hajGroup/Add.xhtml"
+
+  },
+  {
     name: "otp",
     regex: "https://ehaj.haj.gov.sa/EH/mobileVerify.xhtml",
   },
@@ -541,7 +547,7 @@ async function pageContentHandler(currentConfig) {
                     config
                   );
                 } catch (err) {
-                  console.log(err);
+                  // console.log(err);
                 }
               }
               fs.writeFileSync(
@@ -1193,7 +1199,31 @@ async function pageContentHandler(currentConfig) {
       }
 
       break;
-    default:
+    case "hajj-group-details":
+      await page.type("#grpName", data.info.caravan + "-" + moment().format("YYYYMMDDHHmm"));
+      await page.type("#arrivalDate", budgie.get("hajj-group-arrival-date", ""));
+      await page.type("#contractsEndDate", budgie.get("hajj-group-departure-date", ""));
+
+      await util.commander(page, {
+        controller: {
+          selector:
+            "#initiateHajGroupForm > h3:nth-child(2)",
+          title: "Remember",
+          arabicTitle: "تذكر",
+          name: "rememberHajjGroupDetails",
+          action: async () => {
+            const arrivalDate = await page.$eval("#arrivalDate", el => el.value);
+            budgie.save("hajj-group-arrival-date", arrivalDate);
+
+            const departureDate = await page.$eval("#contractsEndDate", el => el.value);
+            budgie.save("hajj-group-departure-date", departureDate);
+
+          },
+        },
+      });
+
+      break;
+      default:
       break;
   }
 }
@@ -1284,6 +1314,7 @@ async function makeReservations(index, passengersData) {
     await page.type(`#hd\\\:${j}\\\:last_name_la`, passenger.name.last);
     await page.type(`#hd\\\:${j}\\\:hdrPassportNoId`, passenger.passportNumber);
     await page.type(`#hd\\\:${j}\\\:PilgrimDateOfBirth`, passenger.dob.dmy);
+    console.log(passenger.slug);
     if (passenger.nationality.telCode) {
       await page.select(
         `#hd\\\:${j}\\\:nationalityId`,

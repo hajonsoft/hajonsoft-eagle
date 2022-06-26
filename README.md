@@ -152,9 +152,12 @@ To use vision api, enable billing in [console.googlcloud.com](https://console.cl
 6- Reduce risk of Ehaj timeout
 7- With google vision, You don't need expensive 3M scanner. We read issue date too.
 8- Early validation/alert about expired passports or duplicate
-9- MRZ Manipulation
+9- MRZ Manipulation to fix Ehaj limitations ex. German passport
 10- Photo capture and resize is actually a challenging time consuming task.
 11- Import mofa number, automate hajj smart form
+12- Can fix issuing authority mistake on passports issued with wrong MRZ or unrecognized nationality ex. Zimbabway or cambodian messed up MRZ. even solve 
+Ehaj parsing issues too
+
 
 ## References
 css escape characters. Sometimes an external visa system uses special character in the selector like . or : (\3A)
