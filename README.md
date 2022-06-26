@@ -157,6 +157,8 @@ To use vision api, enable billing in [console.googlcloud.com](https://console.cl
 11- Import mofa number, automate hajj smart form
 12- Can fix issuing authority mistake on passports issued with wrong MRZ or unrecognized nationality ex. Zimbabway or cambodian messed up MRZ. even solve 
 Ehaj parsing issues too
+13- passwordless login with two factor authentication
+14- Captcha elimination
 
 
 ## References
