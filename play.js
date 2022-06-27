@@ -293,7 +293,7 @@ const path = require("path");
 
 // console.log("abc".replace(/[^A-Z]/g, ""))
 
-const folder = "sante_3m"
+const folder = "V42_3m"
 const files = fs.readdirSync(path.join(__dirname, "../../..", 'Downloads/senegal/' + folder)).filter(f => f.endsWith("CODELINE.txt"));
 for (const file of files) {
     const passportNumber = fs.readFileSync(path.join(__dirname, "../../..", 'Downloads/senegal/' + folder, file), 'utf-8').split('\n')[1].substring(0,9)

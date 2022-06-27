@@ -21,6 +21,18 @@ let counter = 0;
 const passports = [];
 const housings = [];
 
+function getLogFile() {
+  const logFolder = path.join("./log", data.info.munazim);
+  if (!fs.existsSync(logFolder)) {
+    fs.mkdirSync(logFolder, { recursive: true });
+  }
+const logFile = path.join(logFolder , data.info.caravan+ ".txt");
+return logFile;
+  
+}
+
+let startTime ;
+
 const config = [
   {
     name: "home",
@@ -588,6 +600,18 @@ async function pageContentHandler(currentConfig) {
     case "add-mission-pilgrim":
     case "add-company-pilgrim":
       console.log(passenger.codeline);
+      if (startTime) {
+        fs.appendFileSync(getLogFile(), `${moment().diff(startTime, 'seconds')} seconds`);
+      }
+      startTime = moment().format("YYYY-MM-DD HH:mm:ss");
+      fs.appendFileSync(getLogFile(), `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger.codeline}\n`);
+      const isConfirmationSpan = await page.$("#stepItemsMSGs > div > div > div > ul > li > span")
+      if (isConfirmationSpan) {
+        const confirmationMessage = await page.$eval("#stepItemsMSGs > div > div > div > ul > li > span", (el) => el.innerText)
+        fs.appendFileSync(getLogFile(), confirmationMessage + "\n");
+      }
+
+
       await page.emulateVisionDeficiency("none");
       await util.controller(page, currentConfig, data.travellers);
       if (
@@ -628,6 +652,7 @@ async function pageContentHandler(currentConfig) {
           "#stepItemsMSGs > div > div > div > ul > li > span",
           (el) => el.innerText
         );
+        fs.appendFileSync(getLogFile(), `${errorMessage}\n`);
         console.log(errorMessage);
       }
       await page.waitForSelector("#reference1");
