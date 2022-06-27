@@ -499,34 +499,37 @@ async function pageContentHandler(currentConfig) {
           "#myform > div.form-body.form-horizontal > div > div:nth-child(2) > div",
           (el) => el.innerText
         );
-        fs.writeFileSync(
-          `./${passenger.passportNumber}.txt`,
-          JSON.stringify({
-            mofaNumber,
-            eNumber,
-            passportNumber: passenger.passportNumber,
-          })
-        );
+        if (mofaNumber) {
+          fs.writeFileSync(
+            `./${passenger.passportNumber}.txt`,
+            JSON.stringify({
+              mofaNumber,
+              eNumber,
+              passportNumber: passenger.passportNumber,
+            })
+          );
 
-        const config = {
-          headers: { Authorization: `Bearer ${data.info.accessToken}` },
-        };
-        const passengerPath = data.travellers.find(
-          (p) => p.passportNumber === passenger.passportNumber
-        )?.path;
-        if (passengerPath) {
-          const url = `${data.info.databaseURL}/${passengerPath}/.json`;
-          try {
-            await axios.patch(
-              url,
-              {
-                eNumber,
-                mofaNumber,
-              },
-              config
-            );
-          } catch (err) {
-            console.log(err);
+          const config = {
+            headers: { Authorization: `Bearer ${data.info.accessToken}` },
+          };
+          const passengerPath = data.travellers.find(
+            (p) => p.passportNumber === passenger.passportNumber
+          )?.path;
+
+          if (passengerPath) {
+            const url = `${data.info.databaseURL}/${passengerPath}/.json`;
+            try {
+              await axios.patch(
+                url,
+                {
+                  eNumber,
+                  mofaNumber,
+                },
+                config
+              );
+            } catch (err) {
+              console.log(err);
+            }
           }
         }
 
@@ -609,6 +612,12 @@ async function pageContentHandler(currentConfig) {
           const last = fs.readFileSync("./selectedTraveller.txt", "utf-8");
           sendNewApplication((parseInt(last) + 1).toString());
         }
+        await page.hover(
+          "#myform > div.form-actions.fluid.right > div > div > button"
+        );
+        await page.focus(
+          "#myform > div.form-actions.fluid.right > div > div > button"
+        );
       } else {
         fs.writeFileSync("./add.json", JSON.stringify(passenger));
       }
@@ -636,7 +645,7 @@ async function sendNewApplication(selectedTraveller) {
       if (passenger.gender === "Female") {
         await page.select("#MahramType", "661");
       }
-      
+
       let resizedPhotoPath = await util.downloadAndResizeImage(
         passenger,
         200,
