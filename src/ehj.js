@@ -354,6 +354,9 @@ async function pageContentHandler(currentConfig) {
         if (data?.system?.ehajCode.length > 1) {
           return;
         }
+        //save to data.json immediately
+        data.system.ehajCode = code;
+        fs.writeFileSync("./data.json", JSON.stringify(data, null, 2));
 
         // Save to firebase
         const config = {
@@ -568,6 +571,16 @@ async function pageContentHandler(currentConfig) {
                 ehajNumbers[ehajNumbers.length - 1]
               }] => ${ehajNumbers.length}`;
             }, ehajNumbers);
+          },
+        },
+        secondaryController: {
+          title: "Mofa website",
+          arabicTitle: "موفع الخارجيه",
+          name: "mofaWebsite",
+          action: async () => {
+            page.goto(
+              "https://visa.mofa.gov.sa/Account/HajSmartForm"
+            );
           },
         },
       });

@@ -357,7 +357,8 @@ async function pageContentHandler(currentConfig) {
         await page.type("#AddressContactInfoModel\\.Email", "");
         await page.type(
           "#AddressContactInfoModel\\.Email",
-          (passenger.name?.first?.replace(/ /g, "")?.toLowerCase() || moment().format("YYYYMMDDHHmmss"))+ "@hotmail.com"
+          (passenger.name?.first?.replace(/ /g, "")?.toLowerCase() ||
+            moment().format("YYYYMMDDHHmmss")) + "@hotmail.com"
         );
       }
 
@@ -602,7 +603,7 @@ async function pageContentHandler(currentConfig) {
 
       if (fs.existsSync("./add.json")) {
         if (
-          fs.existsSync("./loop.json") &&
+          fs.existsSync("./loop.txt") &&
           fs.existsSync("./selectedTraveller.txt")
         ) {
           const last = fs.readFileSync("./selectedTraveller.txt", "utf-8");
@@ -624,7 +625,9 @@ async function sendNewApplication(selectedTraveller) {
       const data = fs.readFileSync("./data.json", "utf-8");
       var passengersData = JSON.parse(data);
       var passenger = passengersData.travellers[selectedTraveller];
-
+      if (passenger.gender === "Female") {
+        await page.select("MahramType", "661");
+      }
       await util.commit(
         page,
         config.find((con) => con.name === "add").details,
