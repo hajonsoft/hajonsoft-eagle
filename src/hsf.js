@@ -509,28 +509,28 @@ async function pageContentHandler(currentConfig) {
             })
           );
 
-          const config = {
-            headers: { Authorization: `Bearer ${data.info.accessToken}` },
-          };
-          const passengerPath = data.travellers.find(
-            (p) => p.passportNumber === passenger.passportNumber
-          )?.path;
+          // const config = {
+          //   headers: { Authorization: `Bearer ${data.info.accessToken}` },
+          // };
+          // const passengerPath = data.travellers.find(
+          //   (p) => p.passportNumber === passenger.passportNumber
+          // )?.path;
 
-          if (passengerPath) {
-            const url = `${data.info.databaseURL}/${passengerPath}/.json`;
-            try {
-              await axios.patch(
-                url,
-                {
-                  eNumber,
-                  mofaNumber,
-                },
-                config
-              );
-            } catch (err) {
-              console.log(err);
-            }
-          }
+          // if (passengerPath) {
+          //   const url = `${data.info.databaseURL}/${passengerPath}/.json`;
+          //   try {
+          //     await axios.patch(
+          //       url,
+          //       {
+          //         eNumber,
+          //         mofaNumber,
+          //       },
+          //       config
+          //     );
+          //   } catch (err) {
+          //     console.log(err);
+          //   }
+          // }
         }
 
         return;
