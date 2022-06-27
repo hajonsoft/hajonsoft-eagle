@@ -625,8 +625,9 @@ async function sendNewApplication(selectedTraveller) {
       const data = fs.readFileSync("./data.json", "utf-8");
       var passengersData = JSON.parse(data);
       var passenger = passengersData.travellers[selectedTraveller];
+      await page.waitForSelector("#MahramType");
       if (passenger.gender === "Female") {
-        await page.select("MahramType", "661");
+        await page.select("#MahramType", "661");
       }
       await util.commit(
         page,
