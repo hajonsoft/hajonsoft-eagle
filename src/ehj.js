@@ -59,6 +59,11 @@ const config = [
     ],
   },
   {
+    name: "package-quota-list",
+    regex: "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/packagesQuota/List.xhtml",
+
+  },
+  {
     name: "authentication-settings",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/home/ChangeRepMobile/newMobile.xhtml",
@@ -471,24 +476,6 @@ async function pageContentHandler(currentConfig) {
       break;
     case "list-pilgrims":
     case "list-pilgrims-mission":
-      await util.commander(page, {
-        controller: {
-          leftAlign: true,
-          selector:
-            "body > div.wrapper > form > header > nav > div > div.clearfix.navbar-fixed-top > div.logo > img",
-          title: "Go to reservation",
-          arabicTitle: "الي الحجز",
-          name: "toReseervation",
-          action: async () => {
-            const thisUrl = await page.url();
-            fs.writeFileSync("./ehaj.txt", thisUrl);
-            page.goto(
-              "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/home.xhtml"
-            );
-          },
-        },
-      });
-
       const ehajNumbers = [];
       await util.commander(page, {
         controller: {
@@ -1246,12 +1233,28 @@ async function pageContentHandler(currentConfig) {
           (el) => el.innerText
         );
         const reservationId = reservation.match(/\d+/g)[0];
-        fs.writeFileSync(
-          "./reservation" + reservationId + ".txt",
-          JSON.stringify(passenger) + "\n" + reservation
-        );
+        fs.appendFileSync(getLogFile(), reservationId)
       }
 
+      break;
+    case "package-quota-list":
+      await util.commander(page, {
+        controller: {
+          leftAlign: true,
+          selector:
+            "body > div.wrapper > form > header > nav > div > div.clearfix.navbar-fixed-top > div.logo > img",
+          title: "Go to reservation",
+          arabicTitle: "الي الحجز",
+          name: "toReseervation",
+          action: async () => {
+            const thisUrl = await page.url();
+            fs.writeFileSync("./ehaj.txt", thisUrl);
+            page.goto(
+              "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/home.xhtml"
+            );
+          },
+        },
+      });
       break;
     case "hajj-group-details":
       await page.type(
@@ -1382,6 +1385,7 @@ async function makeReservations(index, passengersData) {
     await page.type(`#hd\\\:${j}\\\:hdrPassportNoId`, passenger.passportNumber);
     await page.type(`#hd\\\:${j}\\\:PilgrimDateOfBirth`, passenger.dob.dmy);
     console.log(passenger.slug);
+    fs.appendFileSync(getLogFile(), `${passenger.slug}\n`);
     if (passenger.nationality.telCode) {
       await page.select(
         `#hd\\\:${j}\\\:nationalityId`,
