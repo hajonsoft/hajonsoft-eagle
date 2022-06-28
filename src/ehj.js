@@ -406,7 +406,10 @@ async function pageContentHandler(currentConfig) {
         data.system.ehajCode
       ) {
         const token = totp(data.system.ehajCode);
-        await page.type("#code", token);
+        await util.commit(page, [{
+          selector: "#code",
+          value: () => token,
+        }], passenger)
         const submitButton = await page.$x(
           "/html/body/div[1]/div[2]/div[1]/form/div[2]/div/div/input[1]"
         );

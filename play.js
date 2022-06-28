@@ -293,12 +293,22 @@ const path = require("path");
 
 // console.log("abc".replace(/[^A-Z]/g, ""))
 
-const folder = "V42_3m"
-const files = fs.readdirSync(path.join(__dirname, "../../..", 'Downloads/senegal/' + folder)).filter(f => f.endsWith("CODELINE.txt"));
+const folder = "GRP4"
+const files = fs.readdirSync(path.join(__dirname, "../../..", 'Downloads/liberia/' + folder)).filter(f => f.endsWith("CODELINE.txt"));
 for (const file of files) {
-    const passportNumber = fs.readFileSync(path.join(__dirname, "../../..", 'Downloads/senegal/' + folder, file), 'utf-8').split('\n')[1].substring(0,9)
-    const goodPhoto = path.join(__dirname, "../../..", 'Downloads/senegal/photos', passportNumber + ".jpg");
+    const passportNumber = fs.readFileSync(path.join(__dirname, "../../..", 'Downloads/liberia/' + folder, file), 'utf-8').split('\n')[1].substring(0,9)
+    const goodPhoto = path.join(__dirname, "../../..", 'Downloads/liberia/photos', passportNumber + ".jpg");
     if (fs.existsSync(goodPhoto)) {
-        fs.copyFileSync(goodPhoto, path.join(__dirname, "../../..", 'Downloads/senegal/' + folder, file.replace(/CODELINE.txt/, 'IMAGEPHOTO.jpg')))
+        fs.copyFileSync(goodPhoto, path.join(__dirname, "../../..", 'Downloads/liberia/' + folder, file.replace(/CODELINE.txt/, 'IMAGEPHOTO.jpg')))
     }
 }
+
+
+
+// const folder = path.join(__dirname, "../../..", 'Downloads/liberia', "photos")
+// const files = fs.readdirSync(folder);
+// for (const file of files) {
+// const passportNumber = file.split('.')[0].split(' ')[0]
+// console.log(passportNumber)
+// fs.renameSync(path.join(folder,file), path.join(folder, `./${passportNumber}.jpg`))
+// }
