@@ -14,24 +14,25 @@ const email = require("./email");
 const totp = require("totp-generator");
 const { default: axios } = require("axios");
 const { cloneDeep } = require("lodash");
+const { send: sendHsf } = require("./hsf");
 
 let page;
 let data;
 let counter = 0;
 const passports = [];
 const housings = [];
+let importClicks = 0;
 
 function getLogFile() {
   const logFolder = path.join("./log", data.info.munazim);
   if (!fs.existsSync(logFolder)) {
     fs.mkdirSync(logFolder, { recursive: true });
   }
-const logFile = path.join(logFolder , data.info.caravan+ ".txt");
-return logFile;
-  
+  const logFile = path.join(logFolder, data.info.caravan + ".txt");
+  return logFile;
 }
 
-let startTime ;
+let startTime;
 
 const config = [
   {
@@ -64,9 +65,7 @@ const config = [
   },
   {
     name: "hajj-group-details",
-    regex:
-    "https://ehaj.haj.gov.sa/EH/pages/hajData/lookup/hajGroup/Add.xhtml"
-
+    regex: "https://ehaj.haj.gov.sa/EH/pages/hajData/lookup/hajGroup/Add.xhtml",
   },
   {
     name: "otp",
@@ -266,11 +265,14 @@ const config = [
           const data = fs.readFileSync("./data.json", "utf-8");
           var passengersData = JSON.parse(data);
           // If there is phone number selected then save it to budgie
-          const countryCode = await page.$eval("#countryKey", el=> el.value)
+          const countryCode = await page.$eval("#countryKey", (el) => el.value);
           if (countryCode) {
-            budgie.save("ehaj-reserve-country-code", countryCode.toString())
+            budgie.save("ehaj-reserve-country-code", countryCode.toString());
           } else {
-            const budgieCountryCode = budgie.get("ehaj-reserve-country-code", "7")
+            const budgieCountryCode = budgie.get(
+              "ehaj-reserve-country-code",
+              "7"
+            );
             await page.select("#countryKey", budgieCountryCode.toString());
             await page.waitForTimeout(1000);
           }
@@ -496,6 +498,10 @@ async function pageContentHandler(currentConfig) {
           arabicTitle: "إستيراد الصفحه الحاليه أو إستعلام مفقودين",
           name: "importEhajNumber",
           action: async () => {
+            if (importClicks > 5) {
+              sendHsf(data);
+            }
+            importClicks += 1;
             let missing = data.travellers.map((t, index) => {
               return {
                 missing_index: index,
@@ -593,9 +599,7 @@ async function pageContentHandler(currentConfig) {
           arabicTitle: "موفع الخارجيه",
           name: "mofaWebsite",
           action: async () => {
-            page.goto(
-              "https://visa.mofa.gov.sa/Account/HajSmartForm"
-            );
+            page.goto("https://visa.mofa.gov.sa/Account/HajSmartForm");
           },
         },
       });
@@ -604,16 +608,26 @@ async function pageContentHandler(currentConfig) {
     case "add-company-pilgrim":
       console.log(passenger.codeline);
       if (startTime) {
-        fs.appendFileSync(getLogFile(), `${moment().diff(startTime, 'seconds')} seconds`);
+        fs.appendFileSync(
+          getLogFile(),
+          `${moment().diff(startTime, "seconds")} seconds`
+        );
       }
       startTime = moment().format("YYYY-MM-DD HH:mm:ss");
-      fs.appendFileSync(getLogFile(), `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger.codeline}\n`);
-      const isConfirmationSpan = await page.$("#stepItemsMSGs > div > div > div > ul > li > span")
+      fs.appendFileSync(
+        getLogFile(),
+        `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger.codeline}\n`
+      );
+      const isConfirmationSpan = await page.$(
+        "#stepItemsMSGs > div > div > div > ul > li > span"
+      );
       if (isConfirmationSpan) {
-        const confirmationMessage = await page.$eval("#stepItemsMSGs > div > div > div > ul > li > span", (el) => el.innerText)
+        const confirmationMessage = await page.$eval(
+          "#stepItemsMSGs > div > div > div > ul > li > span",
+          (el) => el.innerText
+        );
         fs.appendFileSync(getLogFile(), confirmationMessage + "\n");
       }
-
 
       await page.emulateVisionDeficiency("none");
       await util.controller(page, currentConfig, data.travellers);
@@ -1204,7 +1218,6 @@ async function pageContentHandler(currentConfig) {
 
       break;
     case "dashboard":
-      
       break;
     case "reservation-complete":
       await util.commander(page, {
@@ -1241,30 +1254,43 @@ async function pageContentHandler(currentConfig) {
 
       break;
     case "hajj-group-details":
-      await page.type("#grpName", data.info.caravan + "-" + moment().format("YYYYMMDDHHmm"));
-      await page.type("#arrivalDate", budgie.get("hajj-group-arrival-date", ""));
-      await page.type("#contractsEndDate", budgie.get("hajj-group-departure-date", ""));
+      await page.type(
+        "#grpName",
+        data.info.caravan + "-" + moment().format("YYYYMMDDHHmm")
+      );
+      await page.type(
+        "#arrivalDate",
+        budgie.get("hajj-group-arrival-date", "")
+      );
+      await page.type(
+        "#contractsEndDate",
+        budgie.get("hajj-group-departure-date", "")
+      );
 
       await util.commander(page, {
         controller: {
-          selector:
-            "#initiateHajGroupForm > h3:nth-child(2)",
+          selector: "#initiateHajGroupForm > h3:nth-child(2)",
           title: "Remember",
           arabicTitle: "تذكر",
           name: "rememberHajjGroupDetails",
           action: async () => {
-            const arrivalDate = await page.$eval("#arrivalDate", el => el.value);
+            const arrivalDate = await page.$eval(
+              "#arrivalDate",
+              (el) => el.value
+            );
             budgie.save("hajj-group-arrival-date", arrivalDate);
 
-            const departureDate = await page.$eval("#contractsEndDate", el => el.value);
+            const departureDate = await page.$eval(
+              "#contractsEndDate",
+              (el) => el.value
+            );
             budgie.save("hajj-group-departure-date", departureDate);
-
           },
         },
       });
 
       break;
-      default:
+    default:
       break;
   }
 }
