@@ -60,8 +60,8 @@ const config = [
   },
   {
     name: "package-quota-list",
-    regex: "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/packagesQuota/List.xhtml",
-
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/packagesQuota/List.xhtml",
   },
   {
     name: "authentication-settings",
@@ -142,6 +142,11 @@ const config = [
   {
     name: "dashboard",
     regex: "https://ehaj.haj.gov.sa/EH/pages/home/dashboard.xhtml",
+  },
+  {
+    name: "edit-pilgrim",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/Edit.xhtml",
   },
   {
     name: "add-mission-pilgrim-3",
@@ -413,10 +418,16 @@ async function pageContentHandler(currentConfig) {
         data.system.ehajCode
       ) {
         const token = totp(data.system.ehajCode);
-        await util.commit(page, [{
-          selector: "#code",
-          value: () => token,
-        }], passenger)
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#code",
+              value: () => token,
+            },
+          ],
+          passenger
+        );
         const submitButton = await page.$x(
           "/html/body/div[1]/div[2]/div[1]/form/div[2]/div/div/input[1]"
         );
@@ -435,10 +446,16 @@ async function pageContentHandler(currentConfig) {
       // #j_idt3421 > div.modal-body > div > h5
       if (data.system.ehajCode) {
         const token = totp(data.system.ehajCode);
-        await util.commit(page, [{
-          selector: "#code",
-          value: () => token,
-        }], passenger)
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#code",
+              value: () => token,
+            },
+          ],
+          passenger
+        );
       }
       break;
     case "profile":
@@ -476,6 +493,18 @@ async function pageContentHandler(currentConfig) {
       // await page.goto(
       //   "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml"
       // );
+      break;
+    case "edit-pilgrim":
+      const editPassportNumber = await page.$eval(
+        "#pass",
+        (el) => el.value
+      );
+      const editPassenger = data.travellers.find(p => p.passportNumber == editPassportNumber);
+      if (editPassenger) {
+        await page.$eval("#formData > h3:nth-child(10)", (el, url) => {
+          el.outerHTML = "<img src='" + url + "' width='100%' height='400px' />";
+        }, editPassenger?.images?.passport);
+      }
       break;
     case "list-pilgrims":
     case "list-pilgrims-mission":
@@ -1236,7 +1265,7 @@ async function pageContentHandler(currentConfig) {
           (el) => el.innerText
         );
         const reservationId = reservation.match(/\d+/g)[0];
-        fs.appendFileSync(getLogFile(), reservationId)
+        fs.appendFileSync(getLogFile(), reservationId);
       }
 
       break;
