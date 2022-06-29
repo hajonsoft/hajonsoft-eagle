@@ -1,8 +1,8 @@
 const fs = require("fs");
 const path = require("path");
-const https = require("https");
 const { spawn } = require("child_process");
 const puppeteer = require("puppeteer-extra");
+const os = require("os");
 const RuCaptcha2Captcha = require("rucaptcha-2captcha");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
@@ -28,11 +28,28 @@ const VISION_DEFICIENCY = "none";
 let page;
 let browser;
 
+function getChromePath() {
+  console.log(os.platform());
+  switch (os.platform()) {
+    case "darwin":
+      if (
+        fs.existsSync(
+          "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+        )
+      ) {
+        return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+      }
+      break;
+    default:
+  }
+}
+
+
 async function initPage(config, onContentLoaded) {
   browser = await puppeteer.launch({
-    // executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     // executablePath: "c:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
     // executablePath: "c:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    executablePath: getChromePath(),
     headless: false,
     ignoreHTTPSErrors: true,
     defaultViewport: null,
@@ -556,7 +573,7 @@ async function handleLoadImportedOnlyClick() {
   }
 
   const data = {
-    system: 'hsf',
+    system: "hsf",
     info: existingData.info,
     travellers: travellersData,
   };

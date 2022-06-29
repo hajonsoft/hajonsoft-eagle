@@ -28,7 +28,7 @@ function getLogFile() {
   if (!fs.existsSync(logFolder)) {
     fs.mkdirSync(logFolder, { recursive: true });
   }
-  const logFile = path.join(logFolder, data.info.caravan + ".txt");
+  const logFile = path.join(logFolder, data.info.caravan + "_ehj.txt");
   return logFile;
 }
 
@@ -435,7 +435,10 @@ async function pageContentHandler(currentConfig) {
       // #j_idt3421 > div.modal-body > div > h5
       if (data.system.ehajCode) {
         const token = totp(data.system.ehajCode);
-        await page.type("#code", token);
+        await util.commit(page, [{
+          selector: "#code",
+          value: () => token,
+        }], passenger)
       }
       break;
     case "profile":
