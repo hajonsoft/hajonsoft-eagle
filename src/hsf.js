@@ -25,6 +25,16 @@ let page;
 let data;
 let counter = 0;
 let mofas = [];
+let startTime;
+
+function getLogFile() {
+  const logFolder = path.join("./log", data.info.munazim);
+  if (!fs.existsSync(logFolder)) {
+    fs.mkdirSync(logFolder, { recursive: true });
+  }
+  const logFile = path.join(logFolder, data.info.caravan + "_hsf.txt");
+  return logFile;
+}
 
 const config = [
   {
@@ -215,6 +225,18 @@ async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "login":
+      if (startTime) {
+        fs.appendFileSync(
+          getLogFile(),
+          `${moment().diff(startTime, "seconds")} seconds`
+        );
+      }
+      startTime = moment().format("YYYY-MM-DD HH:mm:ss");
+      fs.appendFileSync(
+        getLogFile(),
+        `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger.codeline}\n`
+      );
+
       await util.controller(
         page,
         {
@@ -546,41 +568,57 @@ async function pageContentHandler(currentConfig) {
         return;
       }
 
+      const visaStatus = await page.$(
+        "#myform > div.form-body.form-horizontal > div.alert.alert-warning.text-center > h3"
+      );
+      if (visaStatus) {
+        const visaStatusMessage = await page.$eval(
+          "#myform > div.form-body.form-horizontal > div.alert.alert-warning.text-center > h3",
+          (el) => el.innerText
+        );
+        if (visaStatusMessage) {
+          fs.appendFileSync(getLogFile(), visaStatusMessage + "\n");
+        }
+      }
       const printButtonSelector =
         "#myform > div.form-actions.fluid.right > div > div > a.btn.btn-default.green";
-      await page.waitForSelector(printButtonSelector);
-      const href = await page.$eval(printButtonSelector, (el) => el.href);
-      // The visa screen shot is not done properly because "Error: Execution context was destroyed, most likely because of a navigation."
-      // https://stackoverflow.com/questions/55877263/puppeteer-execution-context-was-destroyed-most-likely-because-of-a-navigation
-      await page.goto(href, { waitUntil: "domcontentloaded" });
-      const visaFolder = path.join(homedir, "hajonsoft", "visa");
-      if (!fs.existsSync(visaFolder)) {
-        fs.mkdirSync(visaFolder);
-      }
-      await page.waitForSelector(
-        "body > form > page > div > div > div > div.evisa-header > div > div.evisa-col-12"
-      );
-      const visaElement = await page.$("body > form > page > div");
-      const caravanName = data.info.caravan?.replace(/[^A-Z0-9]/g, "");
-      let saveFolder = visaFolder;
-      if (caravanName) {
-        saveFolder = path.join(visaFolder, caravanName);
-      }
-      if (!fs.existsSync(saveFolder)) {
-        fs.mkdirSync(saveFolder);
-      }
       await page.waitForTimeout(2000);
-      await visaElement.screenshot({
-        path:
-          path.join(
-            saveFolder,
-            passenger.passportNumber +
-              "_" +
-              passenger.name.full.replace(/ /, "_")
-          ) + ".png",
-        type: "png",
-      });
-      await page.goto(config[0].url);
+
+      const isPrintButton = await page.$(printButtonSelector);
+      if (isPrintButton) {
+        const href = await page.$eval(printButtonSelector, (el) => el.href);
+        await page.goto(href, { waitUntil: "domcontentloaded" });
+        const visaFolder = path.join(homedir, "hajonsoft", "visa");
+        if (!fs.existsSync(visaFolder)) {
+          fs.mkdirSync(visaFolder);
+        }
+        await page.waitForSelector(
+          "body > form > page > div > div > div > div.evisa-header > div > div.evisa-col-12"
+        );
+        const visaElement = await page.$("body > form > page > div");
+        const caravanName = data.info.caravan?.replace(/[^A-Z0-9]/g, "");
+        let saveFolder = visaFolder;
+        if (caravanName) {
+          saveFolder = path.join(visaFolder, caravanName);
+        }
+        if (!fs.existsSync(saveFolder)) {
+          fs.mkdirSync(saveFolder);
+        }
+        await page.waitForTimeout(2000);
+        await visaElement.screenshot({
+          path:
+            path.join(
+              saveFolder,
+              passenger.passportNumber +
+                "_" +
+                passenger.name.full.replace(/ /, "_")
+            ) + ".png",
+          type: "png",
+        });
+        await page.goto(config[0].url);
+        return ;
+      }
+      page.goto(config[0].url);
       break;
     case "add":
       await util.controller(
