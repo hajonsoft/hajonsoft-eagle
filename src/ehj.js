@@ -1235,6 +1235,14 @@ async function pageContentHandler(currentConfig) {
         "#confirmationPanel > div.portlet-body > form > div.reservation-button > div > div > div > input"
       );
 
+      await page.waitForTimeout(1000);
+      await page.waitForSelector(
+        "#submitResvBtn"
+      );
+      await page.click(
+        "#submitResvBtn"
+      );
+
       break;
     case "dashboard":
       break;
@@ -1412,8 +1420,8 @@ async function makeReservations(index, passengersData) {
     if (!isFieldVisible) {
       break;
     }
-    await page.type(`#hd\\\:${j}\\\:first_name_la`, passenger.name.first);
-    await page.type(`#hd\\\:${j}\\\:last_name_la`, passenger.name.last);
+    await page.type(`#hd\\\:${j}\\\:first_name_la`, passenger.name.first.replace(/ /g, ""));
+    await page.type(`#hd\\\:${j}\\\:last_name_la`, passenger.name.last.replace(/ /g, ""));
     await page.type(`#hd\\\:${j}\\\:hdrPassportNoId`, passenger.passportNumber);
     await page.type(`#hd\\\:${j}\\\:PilgrimDateOfBirth`, passenger.dob.dmy);
     console.log(passenger.slug);
