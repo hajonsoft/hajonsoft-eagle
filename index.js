@@ -36,10 +36,10 @@ async function main() {
     process.exit(0);
   }
 
-  const selectedTravellerFile = "./selectedTraveller.txt";
-  if (fs.existsSync(selectedTravellerFile)) {
-    fs.unlinkSync(selectedTravellerFile);
-  }
+  // const selectedTravellerFile = "./selectedTraveller.txt";
+  // if (fs.existsSync(selectedTravellerFile)) {
+  //   fs.unlinkSync(selectedTravellerFile);
+  // }
 
   const addModeFile = "./add.json";
   if (fs.existsSync(addModeFile)) {

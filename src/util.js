@@ -356,6 +356,10 @@ async function controller(page, structure, travellers) {
   }
 
   let lastTraveler = useCounter();
+  // check the last traveler is less than travellers otherwise set last traveler to 0
+  if (lastTraveler >= travellers.length) {
+    lastTraveler = 0;
+  }
 
   // TODO: If mofa import is active, then use the SENT status otherwise load all passengers
 

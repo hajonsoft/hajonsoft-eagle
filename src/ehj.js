@@ -22,6 +22,7 @@ let counter = 0;
 const passports = [];
 const housings = [];
 let importClicks = 0;
+let editPassportNumber;
 
 function getLogFile() {
   const logFolder = path.join("./log", data.info.munazim);
@@ -147,6 +148,11 @@ const config = [
     name: "edit-pilgrim",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/Edit.xhtml",
+  },
+  {
+    name: "edit-pilgrim-mission",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Edit.xhtml",
   },
   {
     name: "add-mission-pilgrim-3",
@@ -495,19 +501,28 @@ async function pageContentHandler(currentConfig) {
       // );
       break;
     case "edit-pilgrim":
-      const editPassportNumber = await page.$eval(
-        "#pass",
-        (el) => el.value
+    case "edit-pilgrim-mission":
+      await page.waitForSelector("#pass");
+      editPassportNumber = await page.$eval("#pass", (el) => el.value);
+      const editPassenger = data.travellers.find(
+        (p) => p.passportNumber == editPassportNumber
       );
-      const editPassenger = data.travellers.find(p => p.passportNumber == editPassportNumber);
       if (editPassenger) {
-        await page.$eval("#formData > h3:nth-child(10)", (el, url) => {
-          el.outerHTML = "<img src='" + url + "' width='100%' height='400px' />";
-        }, editPassenger?.images?.passport);
+        await page.$eval(
+          "#formData > h3:nth-child(10)",
+          (el, url) => {
+            el.outerHTML =
+              "<div style='width: 100%; height: 400px; overflow: scroll'> <img src='" +
+              url +
+              "'  /> </div>";
+          },
+          editPassenger?.images?.passport
+        );
       }
       break;
     case "list-pilgrims":
     case "list-pilgrims-mission":
+      await page.emulateVisionDeficiency("none");
       const ehajNumbers = [];
       await util.commander(page, {
         controller: {
@@ -622,6 +637,36 @@ async function pageContentHandler(currentConfig) {
           },
         },
       });
+
+      if (fs.existsSync("./loop.txt")) {
+        for (let i = 1; i <= 100; i++) {
+          const isRowValid = await page.$(
+            `tbody > tr:nth-child(${i}) > td:nth-child(1)`
+          );
+          if (!isRowValid) {
+            break;
+          }
+          const passportNumber = await page.$eval(
+            `tbody > tr:nth-child(${i}) > td:nth-child(4)`,
+            (el) => el.innerText
+          );
+          if (!passportNumber) {
+            break;
+          }
+          if (passportNumber === editPassportNumber) {
+            const nextEdit = `#PackageReqForm > div > div > div:nth-child(1) > div > div > div.ui-datatable-tablewrapper > table > tbody > tr:nth-child(${
+              i + 1
+            }) > td:nth-child(13) > div > ul > li:nth-child(2) > a`;
+            await page.evaluate((selector) => {
+              const nextEditButton = document.querySelector(selector);
+              if (nextEditButton) {
+              nextEditButton.click();
+              }
+            }, nextEdit);
+            return;
+          }
+        }
+      }
       break;
     case "add-mission-pilgrim":
     case "add-company-pilgrim":
@@ -1236,12 +1281,8 @@ async function pageContentHandler(currentConfig) {
       );
 
       await page.waitForTimeout(1000);
-      await page.waitForSelector(
-        "#submitResvBtn"
-      );
-      await page.click(
-        "#submitResvBtn"
-      );
+      await page.waitForSelector("#submitResvBtn");
+      await page.click("#submitResvBtn");
 
       break;
     case "dashboard":
@@ -1420,8 +1461,14 @@ async function makeReservations(index, passengersData) {
     if (!isFieldVisible) {
       break;
     }
-    await page.type(`#hd\\\:${j}\\\:first_name_la`, passenger.name.first.replace(/ /g, ""));
-    await page.type(`#hd\\\:${j}\\\:last_name_la`, passenger.name.last.replace(/ /g, ""));
+    await page.type(
+      `#hd\\\:${j}\\\:first_name_la`,
+      passenger.name.first.replace(/ /g, "")
+    );
+    await page.type(
+      `#hd\\\:${j}\\\:last_name_la`,
+      passenger.name.last.replace(/ /g, "")
+    );
     await page.type(`#hd\\\:${j}\\\:hdrPassportNoId`, passenger.passportNumber);
     await page.type(`#hd\\\:${j}\\\:PilgrimDateOfBirth`, passenger.dob.dmy);
     console.log(passenger.slug);
