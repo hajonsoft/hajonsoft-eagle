@@ -23,6 +23,17 @@ const passports = [];
 const housings = [];
 let importClicks = 0;
 let editPassportNumber;
+let  liberiaPassports = [];
+
+if (fs.existsSync('./passports.txt')) {
+  const rawPassports = fs.readFileSync("./passports.txt", 'utf-8').split('\n')
+  for (let pass of rawPassports) {
+   liberiaPassports.push({
+     passportNumber: pass,
+     status: 'unknown'
+   })
+  }
+}
 
 function getLogFile() {
   const logFolder = path.join("./log", data.info.munazim);
@@ -574,6 +585,10 @@ async function pageContentHandler(currentConfig) {
                 `tbody > tr:nth-child(${i}) > td:nth-child(11) > span`,
                 (el) => el.innerText
               );
+              const liberiaPass = liberiaPassports.find(p => p.passportNumber === passportNumber);
+              if (liberiaPass) {
+                liberiaPass.status = status
+              }
               if (
                 status.toLowerCase().includes("cancel") ||
                 status.toLowerCase().includes("not") ||
@@ -623,6 +638,9 @@ async function pageContentHandler(currentConfig) {
             }
 
             console.table(missing);
+            console.log('local passports.txt comparison')
+            console.table(liberiaPassports.filter(p => p.status === "NEW"));
+            console.table(liberiaPassports.filter(p => p.status !== "NEW"));
             await page.evaluate((ehajNumbers) => {
               const eagleButton = document.querySelector("#importEhajNumber");
               eagleButton.textContent = `Done... [${ehajNumbers[0]}-${
