@@ -162,7 +162,7 @@ Ehaj parsing issues too
 
 
 ## References
-css escape characters. Sometimes an external visa system uses special character in the selector like . or : (\3A)
+css escape characters. Sometimes an external visa system uses special character in the selector like . or : (\3A) or \
 
 CSS represents escaped characters in a different way. Escapes start with a backslash followed by the hexadecimal number that represents the character's hexadecimal Unicode code point value.
 
