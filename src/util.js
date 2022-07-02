@@ -577,7 +577,9 @@ async function handleLoadImportedOnlyClick() {
   }
 
   const data = {
-    system: "hsf",
+    system: {
+      name: "hsf"
+    },
     info: existingData.info,
     travellers: travellersData,
   };
