@@ -336,7 +336,10 @@ async function send(sendData) {
 async function onContentLoaded(res) {
   counter = util.useCounter(counter);
   if (counter >= data?.travellers?.length) {
-    return;
+    util.setCounter(0)
+    if (fs.existsSync("./loop.txt")) {
+      fs.unlinkSync(".loop.txt")
+    }
   }
   const currentConfig = util.findConfig(await page.url(), config);
   try {

@@ -601,11 +601,11 @@ function useCounter(currentCounter) {
   return output;
 }
 
-function setCounter(currentCounter) {
+function setCounter(currentCounter = 0) {
   const fileName = "./selectedTraveller.txt";
   const selectedTraveller = fs.writeFileSync(
     "./selectedTraveller.txt",
-    selectedTraveller
+    currentCounter.toString()
   );
 }
 
