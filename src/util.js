@@ -44,7 +44,6 @@ function getChromePath() {
   }
 }
 
-
 async function initPage(config, onContentLoaded) {
   browser = await puppeteer.launch({
     // executablePath: "c:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
@@ -578,7 +577,7 @@ async function handleLoadImportedOnlyClick() {
 
   const data = {
     system: {
-      name: "hsf"
+      name: "hsf",
     },
     info: existingData.info,
     travellers: travellersData,
@@ -1029,9 +1028,47 @@ async function waitForPageCaptcha(
   );
 }
 
-async function captcha(url) {}
+async function solveCaptchaByBase64(
+  page,
+  imgId,
+  textFieldSelector,
+  captchaLength = 6
+) {
+  await page.waitForTimeout(3000);
 
-const hijriYear = 43;
+    const base64 = await page.evaluate((selector) => {
+      const image = document.getElementById(selector);
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      canvas.getContext("2d").drawImage(image, 0, 0);
+      const dataURL = canvas.toDataURL();
+      return dataURL.replace("data:", "").replace(/^.+,/, "");
+    }, imgId);
+
+    if (!base64) {
+      throw new Error("image base64 not found");
+    }
+
+  const captchaSolver = new RuCaptcha2Captcha(
+    "637a1787431d77ad2c1618440a3d7149",
+    2
+  );
+  const id = await captchaSolver.send({
+    method: "base64",
+    body: base64,
+    max_len: captchaLength,
+    min_len: captchaLength,
+  });
+
+  const token = await captchaSolver.get(id);
+
+  await page.type(textFieldSelector, token);
+  return token;
+}
+
+const hijriYear = 44;
+
 module.exports = {
   hijriYear,
   findConfig,
@@ -1060,5 +1097,5 @@ module.exports = {
   waitForPageCaptcha,
   VISION_DEFICIENCY,
   downloadAndResizeImage,
-  captcha,
+  solveCaptchaByBase64,
 };
