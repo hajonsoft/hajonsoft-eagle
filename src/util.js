@@ -58,6 +58,13 @@ function getChromePath() {
   }
 }
 
+function getIssuingCountry(passenger) {
+  const issuingCountry = nationalities.nationalities.find(
+    (nationality) => nationality.code === passenger.codeline.substring(2, 5)
+  );
+  return issuingCountry;
+}
+
 async function initPage(config, onContentLoaded) {
   browser = await puppeteer.launch({
     // executablePath: "c:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
@@ -1050,35 +1057,39 @@ async function commitCaptchaToken(
 ) {
   await page.waitForTimeout(3000);
 
-  const base64 = await page.evaluate((selector) => {
-    const image = document.getElementById(selector);
-    const canvas = document.createElement("canvas");
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-    canvas.getContext("2d").drawImage(image, 0, 0);
-    const dataURL = canvas.toDataURL();
-    return dataURL.replace("data:", "").replace(/^.+,/, "");
-  }, imgId);
+  try {
+    const base64 = await page.evaluate((selector) => {
+      const image = document.getElementById(selector);
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      canvas.getContext("2d").drawImage(image, 0, 0);
+      const dataURL = canvas.toDataURL();
+      return dataURL.replace("data:", "").replace(/^.+,/, "");
+    }, imgId);
 
-  if (!base64) {
-    throw new Error("image base64 not found");
+    if (!base64) {
+      throw new Error("image base64 not found");
+    }
+
+    const captchaSolver = new RuCaptcha2Captcha(
+      "637a1787431d77ad2c1618440a3d7149",
+      2
+    );
+    const id = await captchaSolver.send({
+      method: "base64",
+      body: base64,
+      max_len: captchaLength,
+      min_len: captchaLength,
+    });
+
+    const token = await captchaSolver.get(id);
+
+    await page.type(textFieldSelector, token);
+    return token;
+  } catch (err) {
+    console.log(err);
   }
-
-  const captchaSolver = new RuCaptcha2Captcha(
-    "637a1787431d77ad2c1618440a3d7149",
-    2
-  );
-  const id = await captchaSolver.send({
-    method: "base64",
-    body: base64,
-    max_len: captchaLength,
-    min_len: captchaLength,
-  });
-
-  const token = await captchaSolver.get(id);
-
-  await page.type(textFieldSelector, token);
-  return token;
 }
 
 const hijriYear = 44;
@@ -1112,4 +1123,5 @@ module.exports = {
   VISION_DEFICIENCY,
   downloadAndResizeImage,
   commitCaptchaToken,
+  getIssuingCountry,
 };

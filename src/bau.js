@@ -32,7 +32,8 @@ const config = [
       {
         selector: "#ctl00_ContentHolder_TxtGroupName",
         value: (row) =>
-          row.info.caravan.replace(/ /g, "-") + "-" + 
+          row.info.caravan.replace(/ /g, "-") +
+          "-" +
           moment().format("MMDDHHmmss"),
       },
       {
@@ -47,8 +48,7 @@ const config = [
   },
   {
     name: "create-mutamer",
-    regex:
-      `http://app${SERVER_NUMBER}.babalumra.com/Groups/EditMutamerNew.aspx\\?GroupId=\\d+`,
+    regex: `http://app${SERVER_NUMBER}.babalumra.com/Groups/EditMutamerNew.aspx\\?GroupId=\\d+`,
     controller: {
       selector:
         "#aspnetForm > div.container-fluid.body-content > div.page-header",
@@ -60,7 +60,7 @@ const config = [
         if (selectedTraveller) {
           fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
           const passenger = data.travellers[selectedTraveller];
-          await sendPassenger(passenger)
+          await sendPassenger(passenger);
         }
       },
     },
@@ -128,8 +128,11 @@ async function runPageConfiguration(currentConfig) {
       break;
     case "create-mutamer":
       await util.controller(page, currentConfig, data.travellers);
-      if (fs.existsSync('./loop.txt')) {
-        const passenger = data.travellers[fs.readFileSync('./selectedTraveller.txt', 'utf-8').toString()];
+      if (fs.existsSync("./loop.txt")) {
+        const passenger =
+          data.travellers[
+            parseInt(fs.readFileSync("./selectedTraveller.txt", "utf-8"))
+          ];
         sendPassenger(passenger);
       }
       break;
@@ -180,7 +183,7 @@ async function sendPassenger(passenger) {
       },
       {
         selector: "#ctl00_ContentHolder_TxtAddressCity",
-        value: (row) => decodeURI(row.birthPlace),
+        value: (row) => decodeURI(util.getIssuingCountry(row)?.name),
       },
       {
         selector: "#ctl00_ContentHolder_TxtAltFirstName",
@@ -208,8 +211,19 @@ async function sendPassenger(passenger) {
       },
       {
         selector: "#ctl00_ContentHolder_LstType",
-        value: (row) => row.codeline.substring(2, 5) != row.codeline.substring(45, 58) ? '3': '1',
-      }
+        value: (row) =>
+          row.codeline.substring(2, 5) != row.codeline.substring(54, 57)
+            ? "3"
+            : "1",
+      },
+      {
+        selector: "#ctl00_ContentHolder_LstBirthCountry",
+        value: (row) => row.nationality.telCode,
+      },
+      {
+        selector: "#ctl00_ContentHolder_LstAddressCountry",
+        value: (row) => util.getIssuingCountry(row)?.telCode,
+      },
     ],
     passenger
   );
@@ -262,22 +276,25 @@ async function sendPassenger(passenger) {
       .toFile(resizedPassportFile);
     await fileChooser.accept([resizedPassportFile]);
   }
-  await util.commitCaptchaToken(page,"ctl00_ContentHolder_rdCap_CaptchaImageUP", "#ctl00_ContentHolder_rdCap_CaptchaTextBox", 5)
 
   // move index to next passenger if exists
-  const passengerIndex = fs.readFileSync(
-    "./selectedTraveller.txt",
-    "utf8"
-  );
+  const passengerIndex = fs.readFileSync("./selectedTraveller.txt", "utf8");
   if (passengerIndex < data.travellers.length - 1) {
     const nextIndex = parseInt(passengerIndex) + 1;
-    return fs.writeFileSync("./selectedTraveller.txt", (nextIndex + 1).toString());
-  } 
-  // if no more passengers, delete loop.txt
-  if (fs.existsSync('./loop.txt')) {
-    fs.unlinkSync('./loop.txt');
+    fs.writeFileSync("./selectedTraveller.txt", nextIndex.toString());
+  } else {
+    // if no more passengers, delete loop.txt
+    if (fs.existsSync("./loop.txt")) {
+      fs.unlinkSync("./loop.txt");
+    }
   }
 
+  await util.commitCaptchaToken(
+    page,
+    "ctl00_ContentHolder_rdCap_CaptchaImageUP",
+    "#ctl00_ContentHolder_rdCap_CaptchaTextBox",
+    5
+  );
 }
 
 module.exports = { send };
