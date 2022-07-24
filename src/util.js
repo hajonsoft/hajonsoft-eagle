@@ -44,7 +44,7 @@ function getChromePath() {
       const windows46ChromePath =
         "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
       if (fs.existsSync(windows46ChromePath)) {
-        console.log(os.platform(), chromePath);
+        console.log(os.platform(), windows46ChromePath);
         return windows46ChromePath;
       }
 
