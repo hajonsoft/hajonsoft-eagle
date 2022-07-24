@@ -123,7 +123,7 @@ async function runPageConfiguration(currentConfig) {
           consulateOptions[1].selected = true;
         }
       });
-      await page.click("#ctl00_ContentHolder_btnCreate");
+      // await page.click("#ctl00_ContentHolder_btnCreate");
       // #ctl00_ContentHolder_LblDepLtPackEnd
       break;
     case "create-mutamer":
