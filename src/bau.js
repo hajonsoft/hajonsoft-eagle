@@ -32,8 +32,8 @@ const config = [
       {
         selector: "#ctl00_ContentHolder_TxtGroupName",
         value: (row) =>
-          row.info.caravan.replace(/ /g, "") +
-          moment().format("YYYYMMDDHHmmss"),
+          row.info.caravan.replace(/ /g, "-") + "-" + 
+          moment().format("MMDDHHmmss"),
       },
       {
         selector: "#ctl00_ContentHolder_TxtNotes",
@@ -88,7 +88,7 @@ async function runPageConfiguration(currentConfig) {
       await util.commit(page, currentConfig.details, data.system);
       await page.waitForSelector("#rdCap_CaptchaTextBox");
       await page.focus("#rdCap_CaptchaTextBox");
-      await util.solveCaptchaByBase64(
+      await util.commitCaptchaToken(
         page,
         "rdCap_CaptchaImage",
         "#rdCap_CaptchaTextBox",
@@ -167,7 +167,7 @@ async function sendPassenger(passenger) {
   await util.commit(
     page,
     [
-      { selector: "#ctl00_ContentHolder_LstTitle", value: (row) => "99", comment: "OtherTitle" },
+      { selector: "#ctl00_ContentHolder_LstTitle", value: (row) => "99" },
       {
         selector: "#ctl00_ContentHolder_txtMutamerOcc",
         value: (row) => decodeURI(row.profession),
@@ -206,6 +206,10 @@ async function sendPassenger(passenger) {
         selector: "#ctl00_ContentHolder_TxtCityIssuedAt",
         value: (row) => decodeURI(row.placeOfIssue),
       },
+      {
+        selector: "#ctl00_ContentHolder_LstType",
+        value: (row) => row.codeline.substring(2, 5) != row.codeline.substring(45, 58) ? '3': '1',
+      }
     ],
     passenger
   );
