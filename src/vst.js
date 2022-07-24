@@ -376,10 +376,6 @@ async function send(sendData) {
 }
 
 async function onContentLoaded(res) {
-  counter = util.useCounter(counter);
-  if (counter >= data?.travellers?.length) {
-    return;
-  }
   const currentConfig = util.findConfig(await page.url(), config);
   try {
     await runPageConfiguration(currentConfig);
@@ -414,6 +410,7 @@ async function runPageConfiguration(currentConfig) {
       await util.commit(page, currentConfig.details, data.system);
       await page.waitForSelector("#CaptchaCode");
       await page.focus("#CaptchaCode");
+      await util.commitCaptchaToken(page, "imgCaptcha", "#CaptchaCode", 5);
       await page.waitForFunction(
         "document.querySelector('#CaptchaCode').value.length === 5"
       );
@@ -467,7 +464,7 @@ async function runPageConfiguration(currentConfig) {
       if (sharpImageMetadata.width === 200 && sharpImageMetadata.height === 200) {
         await sharpImage.clone().jpeg({ quality: 100 }).toFile(resizedPhotoPath);
       } else {
-        await sharpImage.resize(200, 200, {
+        await sharpImage.resize(250, 300, {
           fit: sharp.fit.inside,
           withoutEnlargement: true,
         }).toFile(resizedPhotoPath);
