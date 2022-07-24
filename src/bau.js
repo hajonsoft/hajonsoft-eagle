@@ -150,21 +150,24 @@ async function sendPassenger(passenger) {
   await page.waitForTimeout(3000);
   await page.waitForSelector("#btnclick");
   await page.evaluate(() => {
-    const divBtn = document.querySelector("#btnclick");
-    if (divBtn) {
-      divBtn.click();
+    const scanButton = document.querySelector("#btnclick");
+    if (scanButton) {
+      scanButton.click();
     }
   });
 
-  await page.waitForSelector("#ctl00_ContentHolder_btngetValues");
+  const scanInputSelector = "#ctl00_ContentHolder_btngetValues";
+
+  await page.waitForSelector(scanInputSelector);
   await page.type("#ctl00_ContentHolder_btngetValues", passenger.codeline, {
     delay: 0,
   });
+  // Wait for the input field to receieve the value
   await page.waitForTimeout(4000);
   await util.commit(
     page,
     [
-      { selector: "#ctl00_ContentHolder_LstTitle", value: (row) => "99" },
+      { selector: "#ctl00_ContentHolder_LstTitle", value: (row) => "99", comment: "OtherTitle" },
       {
         selector: "#ctl00_ContentHolder_txtMutamerOcc",
         value: (row) => decodeURI(row.profession),
@@ -204,9 +207,9 @@ async function sendPassenger(passenger) {
         value: (row) => decodeURI(row.placeOfIssue),
       },
     ],
-
     passenger
   );
+  // paste 2 images
   let photoPath = path.join(
     util.photosFolder,
     `${passenger.passportNumber}.jpg`
@@ -255,21 +258,22 @@ async function sendPassenger(passenger) {
       .toFile(resizedPassportFile);
     await fileChooser.accept([resizedPassportFile]);
   }
-  // await page.waitForSelector("#ctl00_ContentHolder_rdCap_CaptchaTextBox");
-  // await page.focus("#ctl00_ContentHolder_rdCap_CaptchaTextBox");
-  // await page.waitForFunction(
-  //   "document.querySelector('#ctl00_ContentHolder_rdCap_CaptchaTextBox').value.length === 5"
-  // );
-  // await page.click("#ctl00_ContentHolder_BtnEdit");
-  await util.solveCaptchaByBase64(page,"ctl00_ContentHolder_rdCap_CaptchaImageUP", "#ctl00_ContentHolder_rdCap_CaptchaTextBox", 5)
-  const currentTravellerIndex = fs.readFileSync(
+  await util.commitCaptchaToken(page,"ctl00_ContentHolder_rdCap_CaptchaImageUP", "#ctl00_ContentHolder_rdCap_CaptchaTextBox", 5)
+
+  // move index to next passenger if exists
+  const passengerIndex = fs.readFileSync(
     "./selectedTraveller.txt",
     "utf8"
   );
-  fs.writeFileSync(
-    "./selectedTraveller.txt",
-    (parseInt(currentTravellerIndex) + 1).toString()
-  );
+  if (passengerIndex < data.travellers.length - 1) {
+    const nextIndex = parseInt(passengerIndex) + 1;
+    return fs.writeFileSync("./selectedTraveller.txt", (nextIndex + 1).toString());
+  } 
+  // if no more passengers, delete loop.txt
+  if (fs.existsSync('./loop.txt')) {
+    fs.unlinkSync('./loop.txt');
+  }
+
 }
 
 module.exports = { send };
