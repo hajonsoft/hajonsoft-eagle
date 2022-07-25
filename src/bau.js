@@ -86,6 +86,7 @@ async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
+      await util.premiumSupportAlert(page, '#form1 > div:nth-child(14) > div', data);
       await page.waitForSelector("#rdCap_CaptchaTextBox");
       await page.focus("#rdCap_CaptchaTextBox");
       await util.commitCaptchaToken(
@@ -94,6 +95,7 @@ async function runPageConfiguration(currentConfig) {
         "#rdCap_CaptchaTextBox",
         5
       );
+      await page.waitForTimeout(5000);
       await page.waitForFunction(
         "document.querySelector('#rdCap_CaptchaTextBox').value.length === 5"
       );

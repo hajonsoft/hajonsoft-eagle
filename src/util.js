@@ -1092,6 +1092,29 @@ async function commitCaptchaToken(
   }
 }
 
+const premiumSupportAlert = async (page, selector, data) => {
+  await page.$eval(
+    selector,
+    (el, json) => {
+      return (el.outerHTML = `<div class="alert alert-success">
+    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">dismiss;</button>
+    <strong>HAJonSoft Eagle Support!</strong>
+    <p>
+      Your are using pay as-you-go premium support account.
+      </p>
+      <p>
+      Support gurantee success for as-low-as ${json.travellers.length * 1.5} USD
+      <a href="https://hajonsoft.on.spiceworks.com/portal/registrations" target="_blank">
+        Click here to Hire employee.
+        </a>
+        </div>
+        
+        `);
+    },
+    data
+  );
+};
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1124,4 +1147,5 @@ module.exports = {
   downloadAndResizeImage,
   commitCaptchaToken,
   getIssuingCountry,
+  premiumSupportAlert,
 };
