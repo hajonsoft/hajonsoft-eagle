@@ -1069,7 +1069,7 @@ async function commitCaptchaToken(
     }, imgId);
 
     if (!base64) {
-      throw new Error("image base64 not found");
+      return ;
     }
 
     const captchaSolver = new RuCaptcha2Captcha(
