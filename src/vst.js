@@ -406,15 +406,17 @@ async function runPageConfiguration(currentConfig) {
       await page.click("#btnAdd");
       break;
     case "login":
+      await util.premiumSupportAlert(page, '#app > div > nav', data)
       await page.waitForTimeout(3000);
       await util.commit(page, currentConfig.details, data.system);
       await page.waitForSelector("#CaptchaCode");
       await page.focus("#CaptchaCode");
       await util.commitCaptchaToken(page, "imgCaptcha", "#CaptchaCode", 5);
+      await page.waitForTimeout(5000)
       await page.waitForFunction(
         "document.querySelector('#CaptchaCode').value.length === 5"
       );
-      await page.click("#btnSignIn");
+      // await page.click("#btnSignIn");
       break;
     case "otp":
       if (await page.$("#resendOtp")) {
