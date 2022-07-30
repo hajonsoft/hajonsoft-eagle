@@ -15,7 +15,7 @@ let counter = 0;
 const config = [
   {
     name: "login",
-    url: `http://app${SERVER_NUMBER}.babalumra.com/Security/login.aspx`,
+    url: `https://app${SERVER_NUMBER}.babalumra.com/Security/login.aspx`,
     details: [
       { selector: "#txtUserName", value: (system) => system.username },
       { selector: "#txtPassword", value: (system) => system.password },
@@ -299,4 +299,4 @@ async function sendPassenger(passenger) {
   );
 }
 
-module.exports = { send };
+module.exports = { send, config, SERVER_NUMBER };

@@ -20,6 +20,12 @@ const {
   onWTUPageLoad,
   initialize: initializeWTUImport,
 } = require("./mofa_import/wtu");
+const {
+  injectBAUEagleButton,
+  onBAUPageLoad,
+  initialize: initializeBAUImport,
+} = require("./mofa_import/bau");
+const { SERVER_NUMBER } = require("./bau");
 const homedir = require("os").homedir();
 let page;
 let data;
@@ -220,11 +226,13 @@ async function onContentLoaded(res) {
 }
 let wtuPage;
 let gmaPage;
+let bauPage;
 let twfPage;
 async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "login":
+    await util.premiumSupportAlert(page, 'body > div.page-header > div.page-header-top > div > div.page-logo.pull-left', data);
       if (startTime) {
         fs.appendFileSync(
           getLogFile(),
@@ -269,6 +277,18 @@ async function pageContentHandler(currentConfig) {
               await gmaPage.goto("https://eumra.com/login.aspx", {
                 waitUntil: "domcontentloaded",
               });
+            },
+            bauAction: async () => {
+              bauPage = await util.newPage(onBAUPageLoad, () => {});
+              initializeBAUImport(bauPage, data);
+              // bauPage.on("response", injectBAUEagleButton);
+              await bauPage.goto(
+                `http://app${SERVER_NUMBER}.babalumra.com/Security/login.aspx`,
+                {
+                  waitUntil: "domcontentloaded",
+                }
+              );
+
             },
             twfAction: async () => {
               twfPage = await util.newPage(onTWFPageLoad, () => {});
