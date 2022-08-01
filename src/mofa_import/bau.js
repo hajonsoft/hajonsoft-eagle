@@ -7,7 +7,7 @@ const cheerio = require("cheerio");
 let page;
 let data;
 let mofas = [];
-const passports = [""];
+const passports = [];
 
 async function initialize(pg, dta) {
   page = pg;
@@ -128,55 +128,36 @@ async function handleImportBAUMofa() {
   const scripts = await main.$$("script");
   for (const script of scripts) {
     const text = await script.evaluate((el) => el.innerText);
+    // find the script that contains the data
     if (!text.toLowerCase().includes("bobj.crv.writeWidget({".toLowerCase())) {
       continue;
     }
 
+    // clean up the contents and sanitize it
     const contentIndex = text.search(/['"]content['"]:/);
-    const content = text.substring(contentIndex + 10);
+    const htmlStart = text.substring(contentIndex + 10);
+    const endIndex = htmlStart.search(/'}}/);
+    const newzealandHtml = htmlStart.substring(0, endIndex).replace(/\\/g, '').replace(/rn/g,'');
 
-    const doc = cheerio.load(content, {xmlMode: false});
-    
-
-    fs.writeFileSync("./ayman.html", doc.html());
+    // find mofa data in newzealandian html
+    const $ = cheerio.load(newzealandHtml);
+    $("#Field12-0-0-0").each(function (i, elem) {
+      const passportNumber = $(elem).text().trim();
+      const mofaNumber = $(elem)
+      .siblings("#MDMOFAAPPROVALNO1-0-0-0")
+      .eq(i)
+      .text()
+      .trim();
+      if (passportNumber) {
+        fs.writeFileSync(
+          `./${passportNumber}.txt`,
+          JSON.stringify({ passportNumber, mofaNumber })
+        );
+        passports.push(passportNumber);
+      }
+    });
   }
 
-  // const tableSelector = "#dgrdMofaRpt";
-  // const table = await page.$(tableSelector);
-  // if (!table) {
-  //   return;
-  // }
-
-  // const tableRows = await page.$$("#dgrdMofaRpt > tbody tr");
-  // const passports = [];
-  // for (let i = 1; i <= tableRows.length; i++) {
-  //   const rowPassportNumberSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(6)`;
-  //   const passportNumber = await page.$eval(
-  //     rowPassportNumberSelector,
-  //     (el) => el.innerText
-  //   );
-  //   // import name
-  //   const rowNameSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(1)`;
-  //   const name = await page.$eval(rowNameSelector, (el) => el.innerText);
-  //   passports.push(passportNumber);
-
-  //   const rowMofaSelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(7)`;
-  //   const mofaNumber = await page.$eval(rowMofaSelector, (el) => el.innerText);
-
-  //   const rowNationalitySelector = `#dgrdMofaRpt > tbody > tr:nth-child(${i}) > td:nth-child(12)`;
-  //   const nationality = await page.$eval(
-  //     rowNationalitySelector,
-  //     (el) => el.innerText
-  //   );
-
-  //   mofas.push({ passportNumber, mofaNumber, nationality, name });
-  //   if (passportNumber) {
-  //     fs.writeFileSync(
-  //       passportNumber,
-  //       JSON.stringify({ mofaNumber, nationality, name, passportNumber })
-  //     );
-  //   }
-  // }
   await page.evaluate((passportsArrayFromNode) => {
     const eagleButton = document.querySelector(
       "#form1 > div:nth-child(1) > button"
