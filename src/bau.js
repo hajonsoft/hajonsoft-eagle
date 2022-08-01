@@ -7,7 +7,7 @@ const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
-const SERVER_NUMBER = 2;
+const SERVER_NUMBER = 1;
 let page;
 let data;
 let counter = 0;

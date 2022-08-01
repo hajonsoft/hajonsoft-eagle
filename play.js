@@ -1,6 +1,8 @@
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
+const cheerio = require('cheerio');
+
 
 // const Canvas, { createCanvas, loadImage } = require('canvas')
 // // https://github.com/Automattic/node-canvas
@@ -293,15 +295,15 @@ const path = require("path");
 
 // console.log("abc".replace(/[^A-Z]/g, ""))
 
-const folder = "6_3m"
-const files = fs.readdirSync(path.join(__dirname, "../../..", 'Downloads/liberia/' + folder)).filter(f => f.endsWith("CODELINE.txt"));
-for (const file of files) {
-    const passportNumber = fs.readFileSync(path.join(__dirname, "../../..", 'Downloads/liberia/' + folder, file), 'utf-8').split('\n')[1].substring(0,9)
-    const goodPhoto = path.join(__dirname, "../../..", 'Downloads/liberia/photos', passportNumber + ".jpg");
-    if (fs.existsSync(goodPhoto)) {
-        fs.copyFileSync(goodPhoto, path.join(__dirname, "../../..", 'Downloads/liberia/' + folder, file.replace(/CODELINE.txt/, 'IMAGEPHOTO.jpg')))
-    }
-}
+// const folder = "6_3m"
+// const files = fs.readdirSync(path.join(__dirname, "../../..", 'Downloads/liberia/' + folder)).filter(f => f.endsWith("CODELINE.txt"));
+// for (const file of files) {
+//     const passportNumber = fs.readFileSync(path.join(__dirname, "../../..", 'Downloads/liberia/' + folder, file), 'utf-8').split('\n')[1].substring(0,9)
+//     const goodPhoto = path.join(__dirname, "../../..", 'Downloads/liberia/photos', passportNumber + ".jpg");
+//     if (fs.existsSync(goodPhoto)) {
+//         fs.copyFileSync(goodPhoto, path.join(__dirname, "../../..", 'Downloads/liberia/' + folder, file.replace(/CODELINE.txt/, 'IMAGEPHOTO.jpg')))
+//     }
+// }
 
 
 
@@ -312,3 +314,61 @@ for (const file of files) {
 // console.log(passportNumber)
 // fs.renameSync(path.join(folder,file), path.join(folder, `./${passportNumber}.jpg`))
 // }
+
+function locateMofa(bauView) {
+    const $ = cheerio.load(bauView, {
+        xml: {
+            normalizeWhitespace: true,
+        },
+    });
+
+    let i = 0;
+    for (const sc of $('script')) {
+        try {
+
+            console.log(sc)
+        } catch {}
+        // i++;
+        // if (sc.children) {
+        // fs.writeFileSync('ayman' + i + '.html', JSON.stringify(sc.children))
+        // }
+        
+        // if (sc.content.includes("bobj.crv.writeWidget")) {
+        // }
+    }
+    
+    // 
+    return bauView;
+
+}
+function importMofa(bauView) {
+    const mofaData = [];
+
+    const mofaArea = locateMofa(bauView);
+
+    const $ = cheerio.load(mofaArea, {
+        xml: {
+            normalizeWhitespace: true,
+          },
+    });
+
+    const mofaRow = {};
+    mofaRow.name = $('#mofaRow_name').text();
+    mofaRow.address = $('#mofaRow_address').text();
+    mofaRow.phone = $('#mofaRow_phone').text();
+    mofaRow.email = $('#mofaRow_email').text();
+    mofaRow.website = $('#mofaRow_website').text();
+    mofaData.push(mofaRow)
+
+    return mofaData;
+
+}
+
+const root = fs.readFileSync('./ayman.html', 'utf-8');
+const data = importMofa(root)
+console.log('%cMyProject%cline:342%cmofas', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(237, 222, 139);padding:3px;border-radius:2px', data)
+
+
+
+
+
