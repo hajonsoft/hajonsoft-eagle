@@ -22,7 +22,12 @@ function dumpFrameTree(frame, indent) {
 async function injectBAUEagleButton() {
   try {
     const tdSelector = "#form1 > div:nth-child(1)";
-    await page.waitForSelector(tdSelector, { timeout: 0 });
+    await page.waitForTimeout(5000);
+    const nodeExists = await page.$(tdSelector);
+    if (!nodeExists) {
+      return;
+    }
+    // await page.waitForSelector(tdSelector);
     const isExposed = await page.evaluate("!!window.handleImportBAUMofa");
     if (!isExposed) {
       await page.exposeFunction("handleImportBAUMofa", handleImportBAUMofa);
@@ -119,8 +124,6 @@ async function onBAUPageLoad(res) {
     await injectBAUEagleButton();
   }
 
-  // const text = await frame.$eval('#Section1', element => element.textContent);
-  // console.log(text);
 }
 
 async function handleImportBAUMofa() {
