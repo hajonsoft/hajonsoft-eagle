@@ -1131,7 +1131,7 @@ const premiumSupportAlert = async (page, selector, data) => {
     <div style="font-size: 1.5rem;">Eagle Support</div>
     </div>
     <span style="font-size: 1.4rem; margin-bottom: 8px;">
-      Pay as-you-go.
+      Pay as-you-go. You can send your support requests anytime.
       </span>
 
       <button onclick="location.href='https://hajonsoft.on.spiceworks.com/portal/registrations'" type="button" style="background-color: #5B9A63; color: #C7E5C8; border: none; padding: 8px 16px; border-radius: 4px; font-size: 1.4rem; cursor: pointer;">
