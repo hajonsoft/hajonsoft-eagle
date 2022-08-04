@@ -23,11 +23,11 @@ const config = [
   },
   {
     name: "main",
-    url: `http://app${SERVER_NUMBER}.babalumra.com/Security/MainPage.aspx`,
+    regex: `https?://app${SERVER_NUMBER}.babalumra.com/Security/MainPage.aspx`,
   },
   {
     name: "create-group",
-    url: `http://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx?gMode=1`,
+    regex: `https?://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx.gMode=1`,
     details: [
       {
         selector: "#ctl00_ContentHolder_TxtGroupName",
@@ -48,7 +48,7 @@ const config = [
   },
   {
     name: "create-mutamer",
-    regex: `http://app${SERVER_NUMBER}.babalumra.com/Groups/EditMutamerNew.aspx\\?GroupId=\\d+`,
+    regex: `https?://app${SERVER_NUMBER}.babalumra.com/Groups/EditMutamerNew.aspx\\?GroupId=\\d+`,
     controller: {
       selector:
         "#aspnetForm > div.container-fluid.body-content > div.page-header",
@@ -103,7 +103,7 @@ async function runPageConfiguration(currentConfig) {
       break;
     case "main":
       await page.goto(
-        `http://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx?gMode=1`
+        `https://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx?gMode=1`
       );
       break;
     case "create-group":
