@@ -225,7 +225,11 @@ let gmaPage;
 let bauPage;
 let twfPage;
 async function pageContentHandler(currentConfig) {
-  let passenger = data.travellers[util.useCounter(0)];
+  let lastIndex = util.useCounter(0);
+  if (lastIndex >= data.travellers.length) {
+    lastIndex = 0;
+  }
+  const passenger = data.travellers[lastIndex];
   switch (currentConfig.name) {
     case "login":
       if (!fs.existsSync("./loop.txt")) {
@@ -339,8 +343,8 @@ async function pageContentHandler(currentConfig) {
           i < data.travellers.length;
           i++
         ) {
-          passenger = data.travellers[i];
-          const passportNumber = passenger.passportNumber;
+          const iPassenger = data.travellers[i];
+          const passportNumber = iPassenger.passportNumber;
           if (fs.existsSync("./" + passportNumber + ".txt")) {
             const importFileContent = fs.readFileSync(
               `./${passportNumber}.txt`,
