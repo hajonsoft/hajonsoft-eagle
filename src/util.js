@@ -645,7 +645,7 @@ function useCounter(currentCounter) {
     const selectedTraveller = fs.readFileSync(fileName, "utf8");
     output = parseInt(selectedTraveller);
   }
-  return output;
+  return output || 0;
 }
 
 function setCounter(currentCounter = 0) {

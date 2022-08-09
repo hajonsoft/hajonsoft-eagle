@@ -161,10 +161,20 @@ async function pageContentHandler(currentConfig) {
       await util.waitForCaptcha("#txtImagetext", 6);
       await page.click("#cmdlogin");
       await page.waitForTimeout(2000);
+      // Captcha image selector #Panel1 > div:nth-child(6) > div > img
+      // Captcha text selector #txtImagetext
+
       const isIDo = await page.$("#Button4");
       if (isIDo) {
         await page.click('aria/button[name="Yes, I DO"]');
       }
+      // use selector or Id for the image
+      // await util.commitCaptchaToken(
+      //   page,
+      //   "rdCap_CaptchaImage",
+      //   "#txtImagetext",
+      //   6
+      // );
       break;
     case "main":
       await page.goto(

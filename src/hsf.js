@@ -213,10 +213,6 @@ async function send(sendData) {
 }
 
 async function onContentLoaded(res) {
-  counter = util.useCounter(counter);
-  if (counter >= data?.travellers?.length) {
-    return;
-  }
   const currentConfig = util.findConfig(await page.url(), config);
   try {
     await pageContentHandler(currentConfig);
@@ -229,10 +225,16 @@ let gmaPage;
 let bauPage;
 let twfPage;
 async function pageContentHandler(currentConfig) {
-  const passenger = data.travellers[counter];
+  let passenger = data.travellers[util.useCounter(0)];
   switch (currentConfig.name) {
     case "login":
-    await util.premiumSupportAlert(page, 'body > div.page-header > div.page-header-top > div > div.page-logo.pull-left', data);
+      if (!fs.existsSync("./loop.txt")) {
+        await util.premiumSupportAlert(
+          page,
+          "body > div.page-header > div.page-header-top > div > div.page-logo.pull-left",
+          data
+        );
+      }
       if (startTime) {
         fs.appendFileSync(
           getLogFile(),
@@ -288,7 +290,6 @@ async function pageContentHandler(currentConfig) {
                   waitUntil: "domcontentloaded",
                 }
               );
-
             },
             twfAction: async () => {
               twfPage = await util.newPage(onTWFPageLoad, () => {});
@@ -338,7 +339,7 @@ async function pageContentHandler(currentConfig) {
           i < data.travellers.length;
           i++
         ) {
-          const passenger = data.travellers[i];
+          passenger = data.travellers[i];
           const passportNumber = passenger.passportNumber;
           if (fs.existsSync("./" + passportNumber + ".txt")) {
             const importFileContent = fs.readFileSync(
@@ -550,29 +551,6 @@ async function pageContentHandler(currentConfig) {
               passportNumber: passenger.passportNumber,
             })
           );
-
-          // const config = {
-          //   headers: { Authorization: `Bearer ${data.info.accessToken}` },
-          // };
-          // const passengerPath = data.travellers.find(
-          //   (p) => p.passportNumber === passenger.passportNumber
-          // )?.path;
-
-          // if (passengerPath) {
-          //   const url = `${data.info.databaseURL}/${passengerPath}/.json`;
-          //   try {
-          //     await axios.patch(
-          //       url,
-          //       {
-          //         eNumber,
-          //         mofaNumber,
-          //       },
-          //       config
-          //     );
-          //   } catch (err) {
-          //     console.log(err);
-          //   }
-          // }
         }
 
         return;
@@ -636,7 +614,7 @@ async function pageContentHandler(currentConfig) {
           type: "png",
         });
         await page.goto(config[0].url);
-        return ;
+        return;
       }
       page.goto(config[0].url);
       break;
@@ -1283,5 +1261,3 @@ const nationalities = [
 function getNationalityCode(name) {
   return nationalities.find((n) => n.name === name)?.value;
 }
-
-

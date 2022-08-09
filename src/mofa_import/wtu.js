@@ -104,7 +104,7 @@ async function handleImportWTUMofa() {
       mofas.push({ passportNumber, mofaNumber, nationality, name });
       if (passportNumber) {
         fs.writeFileSync(
-          passportNumber,
+          passportNumber + ".txt",
           JSON.stringify({ mofaNumber, nationality, name, passportNumber })
         );
       }
