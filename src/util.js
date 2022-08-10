@@ -737,7 +737,7 @@ async function downloadAndResizeImage(
   if (imageType == "vaccine2") {
     folder = vaccineFolder;
     url = passenger.images.vaccine2;
-    if (url.includes("placeholder")) {
+    if (url?.includes("placeholder")) {
       return path.join(__dirname, "covid-2.jpg");
     }
   }
@@ -745,7 +745,7 @@ async function downloadAndResizeImage(
   if (imageType == "id") {
     folder = idFolder;
     url = passenger.images.id;
-    if (url.includes("placeholder")) {
+    if (url?.includes("placeholder")) {
       return path.join(__dirname, "id.jpg");
     }
   }
@@ -756,7 +756,7 @@ async function downloadAndResizeImage(
     `${passenger.passportNumber}_${width}x${height}.jpg`
   );
 
-  if (url.includes("placeholder")) {
+  if (url?.includes("placeholder")) {
     return path.join(__dirname, "dummy-image.jpg");
   }
 

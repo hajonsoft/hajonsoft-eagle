@@ -607,6 +607,7 @@ async function pageContentHandler(currentConfig) {
           fs.mkdirSync(saveFolder);
         }
         await page.waitForTimeout(7000);
+        
         await visaElement.screenshot({
           path:
             path.join(
