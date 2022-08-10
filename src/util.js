@@ -781,6 +781,7 @@ async function downloadAndResizeImage(
     passenger.passportNumber + ".jpg"
   );
   if (imageType == "photo" && fs.existsSync(overridePhoto)) {
+    console.log('override found at: ', overridePhoto);
     imagePath = overridePhoto;
   }
   await sharp(imagePath)
