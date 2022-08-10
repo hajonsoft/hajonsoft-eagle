@@ -234,8 +234,8 @@ async function sendPassenger(passenger) {
     util.photosFolder,
     `${passenger.passportNumber}.jpg`
   );
-  // photoPath = util.getOverridePath(photoPath, `./photos/${passenger.passportNumber}.jpg` );
   await util.downloadImage(passenger.images.photo, photoPath);
+  photoPath = util.getOverridePath(photoPath, `./photos/${passenger.passportNumber}.jpg` );
   await page.waitForSelector("#ctl00_ContentHolder_imgSelectedFile");
   let futureFileChooser = page.waitForFileChooser();
   await page.evaluate(() =>

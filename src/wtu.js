@@ -284,7 +284,7 @@ async function pageContentHandler(currentConfig) {
         400,
         300,
         "passport"
-      );
+        );
 
       if (!process.argv.includes("noimage")) {
         await page.click("#btn_uploadImage");

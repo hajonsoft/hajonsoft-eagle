@@ -1163,7 +1163,7 @@ const premiumSupportAlert = async (page, selector, data) => {
 
 function getOverridePath(original,override) {
   if (fs.existsSync(override))
-  console.log('override', override)
+  console.log('override found: using ', override)
   return override;
 
   return original;
