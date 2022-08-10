@@ -181,7 +181,7 @@ async function sendPassenger(passenger) {
       { selector: "#ctl00_ContentHolder_LstEducation", value: (row) => "99" },
       {
         selector: "#ctl00_ContentHolder_TxtBirthCity",
-        value: (row) => decodeURI(row.birthPlace),
+        value: (row) => decodeURI(row.birthPlace) || row.nationality.name,
       },
       {
         selector: "#ctl00_ContentHolder_TxtAddressCity",
@@ -234,6 +234,7 @@ async function sendPassenger(passenger) {
     util.photosFolder,
     `${passenger.passportNumber}.jpg`
   );
+  photoPath = util.getOverridePath(photoPath, `$./photos/${passenger.passportNumber}.jpg` );
   await util.downloadImage(passenger.images.photo, photoPath);
   await page.waitForSelector("#ctl00_ContentHolder_imgSelectedFile");
   let futureFileChooser = page.waitForFileChooser();

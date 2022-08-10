@@ -1152,6 +1152,13 @@ const premiumSupportAlert = async (page, selector, data) => {
   );
 };
 
+function getOverridePath(original,override) {
+  if (fs.existsSync(override))
+  return override;
+
+  return original;
+}
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1185,4 +1192,5 @@ module.exports = {
   commitCaptchaToken,
   getIssuingCountry,
   premiumSupportAlert,
+  getOverridePath,
 };

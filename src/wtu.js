@@ -278,22 +278,13 @@ async function pageContentHandler(currentConfig) {
         200,
         "photo"
       );
+      resizedPhotoPath = util.getOverridePath(resizedPhotoPath, `./photo/${passenger.passportNumber}.jpg`);
       const resizedPassportPath = await util.downloadAndResizeImage(
         passenger,
         400,
         300,
         "passport"
       );
-      // removing vaccine submit since it became optionsl
-      // const resizedVaccinePath = await util.downloadAndResizeImage(
-      //   passenger,
-      //   100,
-      //   100,
-      //   "vaccine"
-      // );
-
-      // await page.select("#cmbVacc_cert_type", "2");
-      // await page.waitForSelector("#img_vaccination_copy");
 
       if (!process.argv.includes("noimage")) {
         await page.click("#btn_uploadImage");
