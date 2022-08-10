@@ -729,7 +729,7 @@ async function downloadAndResizeImage(
   if (imageType == "vaccine") {
     folder = vaccineFolder;
     url = passenger.images.vaccine;
-    if (url.includes("placeholder")) {
+    if (url?.includes("placeholder")) {
       return path.join(__dirname, "covid-1.jpg");
     }
   }
