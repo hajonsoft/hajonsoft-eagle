@@ -209,7 +209,7 @@ const config = [
 async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
-  await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
+ page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
 async function onContentLoaded(res) {

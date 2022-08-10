@@ -117,6 +117,35 @@ async function submitToProvider() {
     case "enj":
       return sendEnj(data);
     case "hsf":
+      if (process.argv.includes("-t")) {
+        if (fs.existsSync('t')) {
+          const eagleForks = fs.readdirSync(path.join(__dirname, 't'));
+          if (fs.existsSync('./run.bat')) {
+            fs.unlinkSync("./run.bat")
+          }
+
+          const allTextFiles = fs.readdirSync('./')
+
+          const threadLength = data.travellers.length / eagleForks.length;
+          for (let i = 0; i < eagleForks.length; i++) {
+            fs.writeFileSync(path.join("./t", eagleForks[i] , 'selectedTraveller.txt'), "0");
+            fs.writeFileSync(path.join("./t", eagleForks[i] ,'loop.txt'), "");
+            const trv = data.travellers.slice(i * threadLength, (i + 1) * threadLength);
+            const dataForThread = {system: {...data.system }, info: {...data.info, pax: trv.length}, travellers: trv};
+            fs.writeFileSync(path.join("./t", eagleForks[i] ,'data.json'), JSON.stringify(dataForThread));
+            for (const textFile of allTextFiles.filter(file => file.endsWith('.txt'))) {
+              fs.copyFileSync(textFile, path.join("./t", eagleForks[i] , textFile));
+            }
+            fs.appendFileSync('./run.bat', `
+            cd t/${eagleForks[i]}
+            node . &
+            cd ../..
+            `)
+          }
+          console.log('. ./run.bat')
+        }
+        return ;
+      }
       return sendHsf(data);
     case "sbr":
       return sendSbr(data);

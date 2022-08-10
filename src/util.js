@@ -85,6 +85,14 @@ async function initPage(config, onContentLoaded) {
   page = pages[0];
   await page.bringToFront();
   page.on("domcontentloaded", onContentLoaded);
+  page.on('requestfailed', request => {
+    console.log(`url: ${request.url()}, errText: ${request.failure().errorText}, method: ${request.method()}`)
+});
+// Catch console log errors
+page.on("pageerror", err => {
+    console.log(`Page error: ${err.toString()}`);
+});
+
 
   if (process.argv.length > 2) {
     page.on("console", (msg) => console.log(msg.text()));
