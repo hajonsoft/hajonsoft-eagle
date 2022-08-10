@@ -209,7 +209,7 @@ const config = [
 async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
- page.goto(config[0].url, { waitUntil: "domcontentloaded" });
+  page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
 async function onContentLoaded(res) {
@@ -592,33 +592,35 @@ async function pageContentHandler(currentConfig) {
         await page.goto(href, { waitUntil: "domcontentloaded" });
         const visaFolder = path.join(homedir, "hajonsoft", "visa");
         if (!fs.existsSync(visaFolder)) {
-          fs.mkdirSync(visaFolder);
+          fs.mkdirSync(visaFolder, { recursive: true });
         }
         await page.waitForSelector(
           "body > form > page > div > div > div > div.evisa-header > div > div.evisa-col-12"
         );
         const visaElement = await page.$("body > form > page > div");
-        const caravanName = data.info.caravan?.replace(/[^A-Z0-9]/g, "");
+        const caravanName = data.info?.caravan?.replace(/[^A-Z0-9]/g, "");
         let saveFolder = visaFolder;
         if (caravanName) {
           saveFolder = path.join(visaFolder, caravanName);
         }
         if (!fs.existsSync(saveFolder)) {
-          fs.mkdirSync(saveFolder);
+          fs.mkdirSync(saveFolder, { recursive: true });
         }
+
         await page.waitForTimeout(7000);
-        
-        await visaElement.screenshot({
-          path:
-            path.join(
-              saveFolder,
-              passenger.passportNumber +
-                "_" +
-                passenger.name.full.replace(/ /, "_")
-            ) + ".png",
-          type: "png",
+        await page.waitForSelector("#btnPrevious");
+        await util.commander(page, {
+          controller: {
+            selector: "#btnPrevious",
+            title: "Save and Continue",
+            arabicTitle: "تخزين واستمرار",
+            action: async () => {
+              page.goto("https://visa.mofa.gov.sa/Account/HajSmartForm");
+            },
+          },
         });
-        await page.goto(config[0].url);
+
+        await screenShotAndContinue(visaElement, saveFolder, passenger);
         return;
       }
       page.goto(config[0].url);
@@ -666,6 +668,18 @@ async function pageContentHandler(currentConfig) {
     default:
       break;
   }
+}
+
+async function screenShotAndContinue(visaElement, saveFolder, passenger) {
+  await visaElement.screenshot({
+    path:
+      path.join(
+        saveFolder,
+        passenger.passportNumber + "_" + passenger.name?.full.replace(/ /, "_")
+      ) + ".png",
+    type: "png",
+  });
+  await page.goto(config[0].url);
 }
 
 async function sendNewApplication(selectedTraveller) {
