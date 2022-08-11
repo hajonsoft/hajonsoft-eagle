@@ -13,7 +13,7 @@ const budgie = require("./budgie");
 let page;
 let data;
 let counter = 0;
-let groupNumber;
+let groupName;
 
 const config = [
   {
@@ -36,8 +36,7 @@ const config = [
     details: [
       {
         selector: "#txtGrpdesc",
-        value: (row) =>
-          `${row.caravan}-${moment().format("HH:mm:ss")}`,
+        value: (row) => `${row.caravan}-${moment().format("HH:mm:ss")}`,
       },
     ],
   },
@@ -54,12 +53,16 @@ const config = [
         );
         if (selectedTraveller) {
           fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
-          await page.goto(await page.url());
+          sendPassenger(data.travellers[selectedTraveller]);
         }
       },
     },
     details: [
-      { selector: "#ddlgroupname", value: (row) => groupNumber, autocomplete: 'wtu_group' },
+      {
+        selector: "#ddlgroupname",
+        value: (row) => groupName,
+        autocomplete: "wtu_group",
+      },
       { selector: "#ddltitle", value: (row) => "99" },
       { selector: "#ddlpptype", value: (row) => "1" },
       { selector: "#ddlbirthcountry", value: (row) => row.nationality.telCode },
@@ -68,7 +71,7 @@ const config = [
       {
         selector: "#txtprofession",
         value: (row) => decodeURI(row.profession),
-        autocomplete: 'wtu_profession',
+        autocomplete: "wtu_profession",
       },
       { selector: "#ddlmstatus", value: (row) => "99" },
       { selector: "#ddleducation", value: (row) => "99" },
@@ -78,19 +81,29 @@ const config = [
       },
       {
         selector: "#txtAfirstname",
-        value: (row) => row?.nameArabic?.first?.match(/[a-zA-Z]/) ? '' : row?.nameArabic?.first,
+        value: (row) =>
+          row?.nameArabic?.first?.match(/[a-zA-Z]/)
+            ? ""
+            : row?.nameArabic?.first,
       },
       {
         selector: "#txtAfamilyname",
-        value: (row) => row?.nameArabic?.last?.match(/[a-zA-Z]/) ? '' : row?.nameArabic?.last,
+        value: (row) =>
+          row?.nameArabic?.last?.match(/[a-zA-Z]/) ? "" : row?.nameArabic?.last,
       },
       {
         selector: "#txtAgfathername",
-        value: (row) => row?.nameArabic?.grand?.match(/[a-zA-Z]/) ? '' : row?.nameArabic?.grand,
+        value: (row) =>
+          row?.nameArabic?.grand?.match(/[a-zA-Z]/)
+            ? ""
+            : row?.nameArabic?.grand,
       },
       {
         selector: "#txtAfathername",
-        value: (row) => row?.nameArabic?.father?.match(/[a-zA-Z]/) ? '' : row?.nameArabic?.father,
+        value: (row) =>
+          row?.nameArabic?.father?.match(/[a-zA-Z]/)
+            ? ""
+            : row?.nameArabic?.father,
       },
       {
         selector: "#txtppissdd",
@@ -111,23 +124,22 @@ const config = [
       {
         selector: "#txtcity",
         value: (row) => "",
-        autocomplete: 'wtu_address_city',
+        autocomplete: "wtu_address_city",
       },
       {
         selector: "#txtstreet",
         value: (row) => "",
-        autocomplete: 'wtu_address_street',
+        autocomplete: "wtu_address_street",
       },
       {
         selector: "#txtstate",
         value: (row) => "",
-        autocomplete: 'wtu_address_state'
-
+        autocomplete: "wtu_address_state",
       },
       {
         selector: "#txtzipcode",
         value: (row) => "",
-        autocomplete: 'wtu_address_zipcode'
+        autocomplete: "wtu_address_zipcode",
       },
     ],
   },
@@ -200,8 +212,8 @@ async function pageContentHandler(currentConfig) {
         await page.select("#cmbEmb", firstOption.value);
       }
 
-      await page.focus('#BtnSave')
-      await page.hover('#BtnSave')
+      await page.focus("#BtnSave");
+      await page.hover("#BtnSave");
 
       // Wait for this string: Group saved successfully, Group code is 153635
       const groupCreatedSuccessfullyElement =
@@ -215,117 +227,130 @@ async function pageContentHandler(currentConfig) {
         (el) => el.innerText
       );
       const numberMatch = groupCreatedSuccessfullyElementText.match(/\d+/g);
-      if (numberMatch){
-        groupNumber = numberMatch[0];
-        budgie.save("wtu_group", groupNumber);
-      } 
+      if (numberMatch) {
+        groupName = numberMatch[0];
+        budgie.save("wtu_group", groupName);
+      }
 
       await page.goto(
         "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
       );
       break;
     case "create-mutamer":
-      await page.emulateVisionDeficiency("blurredVision"); 
       await util.controller(page, currentConfig, data.travellers);
-      await page.waitForSelector("#txtppno");
-      const passportNumber = await page.$eval("#txtppno", (e) => e.value);
-      // Do not continue if the passport number field is not empty - This could be a manual page refresh
-      if (passportNumber || util.isCodelineLooping(passenger)) {
-        return;
-      }
-      await page.waitForSelector("#ddlgroupname");
-      if (!groupNumber) {
-        groupNumber = budgie.get("wtu_group");
-      }
-      await page.select("#ddlgroupname", groupNumber);
-      await page.waitForTimeout(3000);
-      await page.waitForSelector("#btnppscan");
-      await page.evaluate(() => {
-        const divBtn = document.querySelector("#btnppscan");
-        if (divBtn) {
-          divBtn.click();
-        }
-      });
 
-      await page.waitForSelector("#divshowmsg");
-      await page.type("#divshowmsg", passenger.codeline, {
-        delay: 0,
-      });
-      await page.waitForTimeout(5000);
-      await util.commit(page, currentConfig.details, passenger);
-      if (passenger.gender == "Female") {
-        await page.waitForSelector("#ddlrelation");
-        await page.select("#ddlrelation", "15");
+      if (fs.existsSync("./loop.txt")) {
+        sendPassenger(passenger);
       }
 
-      let blankPassportPath;
-
-      try {
-        blankPassportPath = util.createMRZImage(
-          path.join(
-            util.passportsFolder,
-            passenger.passportNumber + "_400x300_mrz.jpg"
-          ),
-          passenger?.codeline
-        );
-      } catch (err) {
-        console.log(err)
-      }
-
-      let resizedPhotoPath = await util.downloadAndResizeImage(
-        passenger,
-        200,
-        200,
-        "photo"
-      );
-      resizedPhotoPath = util.getOverridePath(resizedPhotoPath, `./photo/${passenger.passportNumber}.jpg`);
-      const resizedPassportPath = await util.downloadAndResizeImage(
-        passenger,
-        400,
-        300,
-        "passport"
-        );
-
-      if (!process.argv.includes("noimage")) {
-        await page.click("#btn_uploadImage");
-        await util.commitFile("#file_photo_upload", resizedPhotoPath);
-        await page.waitForNavigation();
-      }
-
-      await page.waitForSelector("#imgppcopy");
-      if (
-        !process.argv.includes("noimage")
-      ) {
-        await util.commitFile("#fuppcopy", resizedPassportPath);
-      }
-
-      // await page.waitForSelector("#img_vaccination_copy")
-      // if (
-      //   !process.argv.includes("noimage")
-      // ) {
-      //   await util.commitFile("#F_Vaccinationcopy", resizedVaccinePath);
-      // }
-      await page.emulateVisionDeficiency("none"); 
-      await util.waitForCaptcha("#txtImagetext", 5);
-      await util.sniff(page, currentConfig.details)
-      await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
-      counter = counter + 1;
-      // TODO: Wait for success message before advancing the counter
-      await page.waitForSelector("body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span");
-      const errorButton = await page.waitForSelector('body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-footer.text-center > button')
-      await errorButton.click();
-      await page.waitForSelector("#imgppcopy");
-      if (
-        !process.argv.includes("noimage")
-      ) {
-        await util.commitFile("#fuppcopy", blankPassportPath);
-      }
-      await util.waitForCaptcha("#txtImagetext", 5);
-      await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
       break;
     default:
       break;
   }
+}
+
+async function sendPassenger(passenger) {
+  await page.emulateVisionDeficiency("blurredVision");
+
+  await page.waitForSelector("#txtppno");
+  const passportNumber = await page.$eval("#txtppno", (e) => e.value);
+  // Do not continue if the passport number field is not empty - This could be a manual page refresh
+  if (passportNumber || util.isCodelineLooping(passenger)) {
+    return;
+  }
+  await page.waitForSelector("#ddlgroupname");
+  if (!groupName) {
+    groupName = budgie.get("wtu_group");
+  }
+  await page.select("#ddlgroupname", groupName);
+  await page.waitForTimeout(3000);
+  await page.waitForSelector("#btnppscan");
+  await page.evaluate(() => {
+    const divBtn = document.querySelector("#btnppscan");
+    if (divBtn) {
+      divBtn.click();
+    }
+  });
+
+  await page.waitForSelector("#divshowmsg");
+  await page.type("#divshowmsg", passenger.codeline, {
+    delay: 0,
+  });
+  await page.emulateVisionDeficiency("none");
+
+  await page.waitForTimeout(5000);
+  await util.commit(
+    page,
+    config.find((c) => c.name === "create-mutamer").details,
+    passenger
+  );
+  if (passenger.gender == "Female") {
+    await page.waitForSelector("#ddlrelation");
+    await page.select("#ddlrelation", "15");
+  }
+
+  let blankPassportPath;
+
+  // try {
+  //   blankPassportPath = util.createMRZImage(
+  //     path.join(
+  //       util.passportsFolder,
+  //       passenger.passportNumber + "_400x300_mrz.jpg"
+  //     ),
+  //     passenger?.codeline
+  //   );
+  // } catch (err) {
+  //   console.log(err);
+  // }
+
+  let resizedPhotoPath = await util.downloadAndResizeImage(
+    passenger,
+    200,
+    200,
+    "photo"
+  );
+  const resizedPassportPath = await util.downloadAndResizeImage(
+    passenger,
+    400,
+    300,
+    "passport"
+  );
+
+  // resizedPhotoPath = util.getOverridePath(
+  //   resizedPhotoPath,
+  //   path.join(__dirname, `/photos/${passenger.passportNumber}.jpg`)
+  // );
+
+  if (!process.argv.includes("noimage")) {
+    await page.click("#btn_uploadImage");
+    await page.waitForTimeout(2000);
+    await util.commitFile("#file_photo_upload", resizedPhotoPath);
+    await page.waitForNavigation();
+  }
+
+  await page.waitForSelector("#imgppcopy");
+  if (!process.argv.includes("noimage")) {
+    await util.commitFile("#fuppcopy", resizedPassportPath);
+  }
+  // await page.emulateVisionDeficiency("none");
+  await util.waitForCaptcha("#txtImagetext", 5);
+  await util.sniff(page, currentConfig.details);
+  await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
+  counter = counter + 1;
+  // TODO: Wait for success message before advancing the counter
+  await page.waitForSelector(
+    "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span"
+  );
+  const errorButton = await page.waitForSelector(
+    "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-footer.text-center > button"
+  );
+  await errorButton.click();
+  await page.waitForSelector("#imgppcopy");
+  if (!process.argv.includes("noimage")) {
+    await util.commitFile("#fuppcopy", blankPassportPath);
+  }
+  await util.waitForCaptcha("#txtImagetext", 5);
+  await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
 }
 
 module.exports = { send };
