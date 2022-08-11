@@ -77,7 +77,7 @@ const config = [
       { selector: "#ddleducation", value: (row) => "99" },
       {
         selector: "#txtbirthcity",
-        value: (row) => decodeURI(row.birthPlace),
+        value: (row) => decodeURI(row.birthPlace) || row.nationality.name,
       },
       {
         selector: "#txtAfirstname",
@@ -237,8 +237,8 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "create-mutamer":
+      await page.emulateVisionDeficiency("none");
       await util.controller(page, currentConfig, data.travellers);
-
       if (fs.existsSync("./loop.txt")) {
         sendPassenger(passenger);
       }
@@ -250,7 +250,8 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function sendPassenger(passenger) {
-  await page.emulateVisionDeficiency("blurredVision");
+  await page.emulateVisionDeficiency("none");
+  // await page.emulateVisionDeficiency("blurredVision");
 
   await page.waitForSelector("#txtppno");
   const passportNumber = await page.$eval("#txtppno", (e) => e.value);
@@ -291,17 +292,17 @@ async function sendPassenger(passenger) {
 
   let blankPassportPath;
 
-  // try {
-  //   blankPassportPath = util.createMRZImage(
-  //     path.join(
-  //       util.passportsFolder,
-  //       passenger.passportNumber + "_400x300_mrz.jpg"
-  //     ),
-  //     passenger?.codeline
-  //   );
-  // } catch (err) {
-  //   console.log(err);
-  // }
+  try {
+    blankPassportPath = util.createMRZImage(
+      path.join(
+        util.passportsFolder,
+        passenger.passportNumber + "_400x300_mrz.jpg"
+      ),
+      passenger?.codeline
+    );
+  } catch (err) {
+    console.log(err);
+  }
 
   let resizedPhotoPath = await util.downloadAndResizeImage(
     passenger,
@@ -316,10 +317,10 @@ async function sendPassenger(passenger) {
     "passport"
   );
 
-  // resizedPhotoPath = util.getOverridePath(
-  //   resizedPhotoPath,
-  //   path.join(__dirname, `/photos/${passenger.passportNumber}.jpg`)
-  // );
+  resizedPhotoPath = util.getOverridePath(
+    resizedPhotoPath,
+    path.join(__dirname, `/photos/${passenger.passportNumber}.jpg`)
+  );
 
   if (!process.argv.includes("noimage")) {
     await page.click("#btn_uploadImage");
@@ -334,7 +335,10 @@ async function sendPassenger(passenger) {
   }
   // await page.emulateVisionDeficiency("none");
   await util.waitForCaptcha("#txtImagetext", 5);
-  await util.sniff(page, currentConfig.details);
+  await util.sniff(
+    page,
+    config.find((c) => c.name == "create-mutamer")?.details
+  );
   await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
   counter = counter + 1;
   // TODO: Wait for success message before advancing the counter
@@ -351,6 +355,8 @@ async function sendPassenger(passenger) {
   }
   await util.waitForCaptcha("#txtImagetext", 5);
   await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
+  const lastIndex = fs.readFileSync("./selectedTraveller.txt", "utf-8");
+  fs.writeFileSync("./selectedTraveller.txt", (parseInt(lastIndex) + 1).toString());
 }
 
 module.exports = { send };
