@@ -38,7 +38,16 @@ function getChromePath() {
         return chromePath;
       }
 
-      throw new Error("Google Chrome not found");
+      throw new Error(`Google Chrome not found at ${chromePath}`);
+      break;
+    case "linux":
+      const linuxChromePath = "/usr/bin/google-chrome-stable";
+      if (fs.existsSync(linuxChromePath)) {
+        console.log(os.platform(), linuxChromePath);
+        return linuxChromePath;
+      }
+
+      throw new Error(`Google Chrome not found at ${linuxChromePath}`);
       break;
     default:
       const windows46ChromePath =
@@ -54,7 +63,9 @@ function getChromePath() {
         console.log(os.platform(), windows32ChromePath);
         return windows32ChromePath;
       }
-      throw new Error("Google Chrome not found");
+      throw new Error(
+        `Google Chrome not found at ${windows32ChromePath} or ${windows46ChromePath}`
+      );
   }
 }
 
@@ -85,14 +96,17 @@ async function initPage(config, onContentLoaded) {
   page = pages[0];
   await page.bringToFront();
   page.on("domcontentloaded", onContentLoaded);
-  page.on('requestfailed', request => {
-    console.log(`url: ${request.url()}, errText: ${request.failure().errorText}, method: ${request.method()}`)
-});
-// Catch console log errors
-page.on("pageerror", err => {
+  page.on("requestfailed", (request) => {
+    console.log(
+      `url: ${request.url()}, errText: ${
+        request.failure().errorText
+      }, method: ${request.method()}`
+    );
+  });
+  // Catch console log errors
+  page.on("pageerror", (err) => {
     console.log(`Page error: ${err.toString()}`);
-});
-
+  });
 
   if (process.argv.length > 2) {
     page.on("console", (msg) => console.log(msg.text()));
@@ -781,7 +795,7 @@ async function downloadAndResizeImage(
     passenger.passportNumber + ".jpg"
   );
   if (imageType == "photo" && fs.existsSync(overridePhoto)) {
-    console.log('override found at: ', overridePhoto);
+    console.log("override found at: ", overridePhoto);
     imagePath = overridePhoto;
   }
   await sharp(imagePath)
@@ -1144,9 +1158,7 @@ const premiumSupportAlert = async (page, selector, data) => {
       </span>
 
       <button onclick="location.href='https://hajonsoft.on.spiceworks.com/portal/registrations'" type="button" style="background-color: #5B9A63; color: #C7E5C8; border: none; padding: 8px 16px; border-radius: 4px; font-size: 1.4rem; cursor: pointer;">
-      Pay ${
-        json.travellers.length * 1.5
-      }.00 USD to a temporary worker (${
+      Pay ${json.travellers.length * 1.5}.00 USD to a temporary worker (${
         json.travellers.length
       } pax x $1.5 = ${json.travellers.length * 1.5} USD)
       </button
@@ -1161,9 +1173,8 @@ const premiumSupportAlert = async (page, selector, data) => {
   );
 };
 
-function getOverridePath(original,override) {
-  if (fs.existsSync(override))
-  console.log('override found: using ', override)
+function getOverridePath(original, override) {
+  if (fs.existsSync(override)) console.log("override found: using ", override);
   return override;
 
   return original;
