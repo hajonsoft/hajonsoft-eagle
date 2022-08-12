@@ -88,7 +88,7 @@ async function initPage(config, onContentLoaded) {
   page.on("requestfailed", (request) => {
     console.log(
       `url: ${request.url()}, errText: ${
-        request.failure().errorText
+        request.failure()?.errorText
       }, method: ${request.method()}`
     );
   });
@@ -764,6 +764,9 @@ async function downloadAndResizeImage(
   }
 
   const writer = fs.createWriteStream(imagePath);
+  if (!url){
+    return path.join(__dirname, "dummy-image.jpg");
+  }
   const response = await axios({
     url,
     method: "GET",

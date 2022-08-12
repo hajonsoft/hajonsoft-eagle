@@ -417,6 +417,7 @@ async function pageContentHandler(currentConfig) {
         await page.type("#FlightDataModel\\.ExpectedStayDuration", "");
         await page.type("#FlightDataModel\\.ExpectedStayDuration", "15");
       }
+      await page.waitForSelector("#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)")
       await page.click(
         "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
       );
@@ -520,7 +521,9 @@ async function pageContentHandler(currentConfig) {
                   `;
         }, passenger);
       }
-      await page.waitForTimeout(1000);
+      await page.waitForSelector(
+        "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
+      );
       await page.click(
         "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
       );
@@ -840,6 +843,7 @@ async function sendPassenger(selectedTraveller) {
           (el) => el.value.length > 7
         );
         if (isMofaFilled && isPassportFilled) {
+          await page.waitForSelector(actionSelector);
           await page.click(actionSelector);
         }
       }
