@@ -66,6 +66,17 @@ function getIssuingCountry(passenger) {
 }
 
 async function initPage(config, onContentLoaded) {
+  const args = [
+    "--incognito",
+    "--disable-web-security",
+    "--disable-features=IsolateOrigins,site-per-process",
+    "--allow-running-insecure-content",
+  ];
+
+  if (!process.argv.find(c => c.startsWith("range="))) {
+    args.push( "--start-fullscreen");
+  }
+
   browser = await puppeteer.launch({
     // executablePath: "c:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
     // executablePath: "c:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
@@ -73,13 +84,7 @@ async function initPage(config, onContentLoaded) {
     headless: false,
     ignoreHTTPSErrors: true,
     defaultViewport: null,
-    args: [
-      "--start-fullscreen",
-      "--incognito",
-      "--disable-web-security",
-      "--disable-features=IsolateOrigins,site-per-process",
-      "--allow-running-insecure-content",
-    ],
+    args
   });
   const pages = await browser.pages();
   page = pages[0];
@@ -386,7 +391,7 @@ async function controller(page, structure, travellers) {
     return;
   }
 
-  let lastTraveler = useCounter();
+  let lastTraveler = getSelectedTraveler();
   // check the last traveler is less than travellers otherwise set last traveler to 0
   if (lastTraveler >= travellers.length) {
     lastTraveler = 0;
@@ -649,22 +654,38 @@ async function handleLoadImportedOnlyClick() {
   // }).unref();
 }
 
-function useCounter(currentCounter) {
-  let output = currentCounter;
-  const fileName = "./selectedTraveller.txt";
+function getSelectedTraveler() {
+  const range = process.argv.find((arg) => arg.startsWith("range="));
+  const fileName = "./selectedTraveller" + range + ".txt";
   if (fs.existsSync(fileName)) {
-    const selectedTraveller = fs.readFileSync(fileName, "utf8");
-    output = parseInt(selectedTraveller);
+    return fs.readFileSync(fileName, "utf8");
+  } 
+
+  if (range) {
+      const [, start, end] = range.split("=");
+      fs.writeFileSync(fileName, (parseInt(start) - 1).toString());
+      return start;
   }
-  return output || 0;
+
+  fs.writeFileSync(fileName, "-1");
+  return "-1";
+}
+
+function incrementSelectedTraveler(overrideValue) {
+  const selectedTraveler = getSelectedTraveler();
+  const nextTraveler = parseInt(selectedTraveler) + 1;
+  const range = process.argv.find((arg) => arg.startsWith("range="));
+  const fileName = "./selectedTraveller" + range + ".txt";
+  fs.writeFileSync(fileName, nextTraveler.toString());
+  return nextTraveler;
+}
+
+function useCounter(currentCounter) {
+  return getSelectedTraveler(currentCounter)
 }
 
 function setCounter(currentCounter = 0) {
-  const fileName = "./selectedTraveller.txt";
-  const selectedTraveller = fs.writeFileSync(
-    "./selectedTraveller.txt",
-    currentCounter.toString()
-  );
+  incrementSelectedTraveler(currentCounter)
 }
 
 async function commitFile(selector, fileName, imgElementSelector) {
@@ -1258,4 +1279,6 @@ module.exports = {
   getIssuingCountry,
   premiumSupportAlert,
   getOverridePath,
+  getSelectedTraveler,
+  incrementSelectedTraveler,
 };

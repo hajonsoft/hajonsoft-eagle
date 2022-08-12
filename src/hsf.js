@@ -232,6 +232,7 @@ async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[lastIndex];
   switch (currentConfig.name) {
     case "login":
+      util.getSelectedTraveler();
       if (!fs.existsSync("./loop.txt")) {
         await util.premiumSupportAlert(
           page,
@@ -248,7 +249,7 @@ async function pageContentHandler(currentConfig) {
       startTime = moment().format("YYYY-MM-DD HH:mm:ss");
       fs.appendFileSync(
         getLogFile(),
-        `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger.codeline}\n`
+        `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger?.codeline}\n`
       );
 
       await util.controller(
@@ -328,18 +329,9 @@ async function pageContentHandler(currentConfig) {
       }
 
       if (fs.existsSync("./loop.txt")) {
-        if (!fs.existsSync("./selectedTraveller.txt")) {
-          fs.writeFileSync("./selectedTraveller.txt", "-1");
-        }
-        let passengerIndex = fs.readFileSync(
-          "./selectedTraveller.txt",
-          "utf-8"
-        );
-
-        let nextIndex = parseInt(passengerIndex) + 1;
-
+        const nextIndex = util.incrementSelectedTraveler()
         for (
-          let i = parseInt(passengerIndex) + 1;
+          let i = nextIndex;
           i < data.travellers.length;
           i++
         ) {
@@ -351,6 +343,7 @@ async function pageContentHandler(currentConfig) {
               "utf-8"
             );
 
+            // TODO: revise for range
             fs.readFileSync("./loop.txt", "utf-8")
               .split("\n")
               .forEach((keyword) => {
@@ -417,7 +410,9 @@ async function pageContentHandler(currentConfig) {
         await page.type("#FlightDataModel\\.ExpectedStayDuration", "");
         await page.type("#FlightDataModel\\.ExpectedStayDuration", "15");
       }
-      await page.waitForSelector("#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)")
+      await page.waitForSelector(
+        "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
+      );
       await page.click(
         "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
       );
@@ -652,11 +647,10 @@ async function pageContentHandler(currentConfig) {
 
       if (fs.existsSync("./add.json")) {
         if (
-          fs.existsSync("./loop.txt") &&
-          fs.existsSync("./selectedTraveller.txt")
+          fs.existsSync("./loop.txt") 
         ) {
-          const last = fs.readFileSync("./selectedTraveller.txt", "utf-8");
-          sendNewApplication((parseInt(last) + 1).toString());
+          const nextTraveller = incrementSelectedTraveler();
+          sendNewApplication((nextTraveller).toString());
         }
         await page.hover(
           "#myform > div.form-actions.fluid.right > div > div > button"
@@ -688,7 +682,6 @@ async function screenShotAndContinue(visaElement, saveFolder, passenger) {
 async function sendNewApplication(selectedTraveller) {
   if (selectedTraveller) {
     try {
-      fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
       const data = fs.readFileSync("./data.json", "utf-8");
       var passengersData = JSON.parse(data);
       var passenger = passengersData.travellers[selectedTraveller];
@@ -777,7 +770,6 @@ async function sendPassenger(selectedTraveller) {
   if (selectedTraveller) {
     try {
       // await page.emulateVisionDeficiency("blurredVision");
-      fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
       const data = fs.readFileSync("./data.json", "utf-8");
       var passengersData = JSON.parse(data);
       var passenger = passengersData.travellers[selectedTraveller];
