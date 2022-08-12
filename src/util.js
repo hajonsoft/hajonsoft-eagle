@@ -816,7 +816,12 @@ async function downloadAndResizeImage(
 }
 
 const loopMonitor = [];
+
 function isCodelineLooping(traveller, numberOfEntries = 1) {
+  if (!traveller) {
+    return true;
+  }
+
   loopMonitor.push({
     key: traveller.codeline,
     data: traveller,
@@ -1129,6 +1134,50 @@ async function commitCaptchaToken(
   }
 }
 
+async function commitCaptchaTokenWithSelector(
+  page,
+  imgId,
+  textFieldSelector,
+  captchaLength = 6
+) {
+  await page.waitForTimeout(3000);
+  await page.$eval(imgId, (ele) => ele.id =  "captchaImageHTMLElement");
+
+  try {
+    const base64 = await page.evaluate((selector) => {
+      const image = document.getElementById("captchaImageHTMLElement");
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      canvas.getContext("2d").drawImage(image, 0, 0);
+      const dataURL = canvas.toDataURL();
+      return dataURL.replace("data:", "").replace(/^.+,/, "");
+    }, imgId);
+
+    if (!base64) {
+      return;
+    }
+
+    const captchaSolver = new RuCaptcha2Captcha(
+      "637a1787431d77ad2c1618440a3d7149",
+      2
+    );
+    const id = await captchaSolver.send({
+      method: "base64",
+      body: base64,
+      max_len: captchaLength,
+      min_len: captchaLength,
+    });
+
+    const token = await captchaSolver.get(id);
+
+    await page.type(textFieldSelector, token);
+    return token;
+  } catch (err) {
+    // console.log(err);
+  }
+}
+
 const premiumSupportAlert = async (page, selector, data) => {
   const adNode = await page.$(selector);
   if (!adNode) {
@@ -1202,6 +1251,7 @@ module.exports = {
   VISION_DEFICIENCY,
   downloadAndResizeImage,
   commitCaptchaToken,
+  commitCaptchaTokenWithSelector,
   getIssuingCountry,
   premiumSupportAlert,
   getOverridePath,

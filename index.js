@@ -113,33 +113,54 @@ async function submitToProvider() {
       return sendEnj(data);
     case "hsf":
       if (process.argv.includes("-t")) {
-        if (fs.existsSync('t')) {
-          const eagleForks = fs.readdirSync(path.join(__dirname, 't'));
-          if (fs.existsSync('./run.bat')) {
-            fs.unlinkSync("./run.bat")
+        if (fs.existsSync("t")) {
+          const eagleForks = fs.readdirSync(path.join(__dirname, "t"));
+          if (fs.existsSync("./run.bat")) {
+            fs.unlinkSync("./run.bat");
           }
 
-          const allTextFiles = fs.readdirSync('./')
+          const allTextFiles = fs.readdirSync("./");
 
           const threadLength = data.travellers.length / eagleForks.length;
           for (let i = 0; i < eagleForks.length; i++) {
-            fs.writeFileSync(path.join("./t", eagleForks[i] , 'selectedTraveller.txt'), "0");
-            fs.writeFileSync(path.join("./t", eagleForks[i] ,'loop.txt'), "");
-            const trv = data.travellers.slice(i * threadLength, (i + 1) * threadLength);
-            const dataForThread = {system: {...data.system }, info: {...data.info, pax: trv.length}, travellers: trv};
-            fs.writeFileSync(path.join("./t", eagleForks[i] ,'data.json'), JSON.stringify(dataForThread));
-            for (const textFile of allTextFiles.filter(file => file.endsWith('.txt'))) {
-              fs.copyFileSync(textFile, path.join("./t", eagleForks[i] , textFile));
+            fs.writeFileSync(
+              path.join("./t", eagleForks[i], "selectedTraveller.txt"),
+              "0"
+            );
+            fs.writeFileSync(path.join("./t", eagleForks[i], "loop.txt"), "");
+            const trv = data.travellers.slice(
+              i * threadLength,
+              (i + 1) * threadLength
+            );
+            const dataForThread = {
+              system: { ...data.system },
+              info: { ...data.info, pax: trv.length },
+              travellers: trv,
+            };
+            fs.writeFileSync(
+              path.join("./t", eagleForks[i], "data.json"),
+              JSON.stringify(dataForThread)
+            );
+            for (const textFile of allTextFiles.filter((file) =>
+              file.endsWith(".txt")
+            )) {
+              fs.copyFileSync(
+                textFile,
+                path.join("./t", eagleForks[i], textFile)
+              );
             }
-            fs.appendFileSync('./run.bat', `
+            fs.appendFileSync(
+              "./run.bat",
+              `
             cd t/${eagleForks[i]}
             node . &
             cd ../..
-            `)
+            `
+            );
           }
-          console.log('. ./run.bat')
+          console.log(". ./run.bat");
         }
-        return ;
+        return;
       }
       return sendHsf(data);
     case "sbr":
@@ -181,7 +202,7 @@ async function getDataFileName() {
     }
     if (!fileParam.includes("/")) {
       //Only file name was provided: Assume default download folder
-      fileName = path.join(homedir(), "Downloads", fileName);
+      fileName = path.join(getDownloadFolder(), fileName);
       console.log("FILE NAME: ", fileName);
     }
     if (!fs.existsSync(fileName)) {
@@ -438,44 +459,6 @@ async function generateFour3MFiles(file, json) {
   return true;
 }
 
-async function create3MFiles() {
-  const incomingContinue = await inquirer.prompt([
-    {
-      type: "list",
-      name: "mode",
-      choices: ["1- Continue previous run?", "2- Start from beginning?"],
-      message: "continue previous 3M files?",
-    },
-  ]);
-
-  if (incomingContinue.mode.startsWith("2-")) {
-    // cleanup log folder and 3M folder
-    if (fs.existsSync(logFolder)) {
-      fs.readdirSync(logFolder).forEach((file) => {
-        fs.unlinkSync(path.join(logFolder, file));
-      });
-    }
-
-    if (fs.existsSync(folder3M)) {
-      fs.readdirSync(folder3M).forEach((file) => {
-        fs.unlinkSync(path.join(folder3M, file));
-      });
-    }
-  }
-
-  const files = fs.readdirSync(visionFolder);
-  createSandBox();
-  for (const file of files) {
-    if (!file.endsWith(".json")) {
-      continue;
-    }
-    const raw = fs.readFileSync(path.join(visionFolder, file), "utf-8");
-    const json = JSON.parse(raw);
-    const isDone = await generateFour3MFiles(file, json);
-  }
-  console.log(`open "${folder3M}"`);
-}
-
 async function downloadImages() {
   const data = readDataFile();
   for (const passenger of data.travellers) {
@@ -524,9 +507,8 @@ function runInteractive() {
           `1- Run eagle default file ${currentSlug}`,
           "2- Run Budgie display",
           "3- Update Budgie... [will prompt]",
-          "4- Set download folder. [CURRENT-FOLDER]",
+          `4- Set download folder. [${getDownloadFolder()}]`,
           "5- Get SMS number",
-          `6- Vision to 3M ${visionFolder}`,
           "0- Exit",
         ],
       },
@@ -542,16 +524,34 @@ function runInteractive() {
       if (answers.action.startsWith("3-")) {
         return console.log("not implemented, try node . budgie=KEY:VALUE");
       }
+      if (answers.action.startsWith("4-")) {
+        inquirer
+          .prompt({
+            type: "input",
+            message: `Download folder: ${getDownloadFolder()}`,
+            name: "downloadFolder",
+          })
+          .then((answers) => {
+            if (answers.downloadFolder) {
+              fs.writeFileSync(".downloadFolder", answers.downloadFolder);
+            }
+          });
+        return;
+      }
       if (answers.action.startsWith("5-")) {
         return runGetSMSNumber();
-      }
-      if (answers.action.startsWith("6-")) {
-        return create3MFiles();
       }
       if (answers.action.startsWith("0-")) {
         process.exit(0);
       }
     });
+}
+
+function getDownloadFolder() {
+  if (fs.existsSync(".downloadFolder")) {
+    return fs.readFileSync(".downloadFolder", "utf-8");
+  }
+  return path.join(homedir(), "Downloads");
 }
 
 main();

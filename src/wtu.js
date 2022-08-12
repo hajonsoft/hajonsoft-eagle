@@ -12,7 +12,6 @@ const budgie = require("./budgie");
 
 let page;
 let data;
-let counter = 0;
 let groupName;
 
 const config = [
@@ -152,10 +151,6 @@ async function send(sendData) {
 }
 
 async function onContentLoaded(res) {
-  counter = util.useCounter(counter);
-  if (counter >= data?.travellers?.length) {
-    return;
-  }
   const currentConfig = util.findConfig(await page.url(), config);
   try {
     await pageContentHandler(currentConfig);
@@ -165,7 +160,8 @@ async function onContentLoaded(res) {
 }
 
 async function pageContentHandler(currentConfig) {
-  const passenger = data?.travellers?.[counter];
+  const lastIndex = fs.readFileSync("./selectedTraveller.txt", "utf8");
+  const passenger = data?.travellers?.[parseInt(lastIndex)];
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
@@ -181,9 +177,9 @@ async function pageContentHandler(currentConfig) {
         await page.click('aria/button[name="Yes, I DO"]');
       }
       // use selector or Id for the image
-      // await util.commitCaptchaToken(
+      // await util.commitCaptchaTokenWithSelector(
       //   page,
-      //   "rdCap_CaptchaImage",
+      //   "#Panel1 > div:nth-child(6) > div > img",
       //   "#txtImagetext",
       //   6
       // );
@@ -340,23 +336,29 @@ async function sendPassenger(passenger) {
     config.find((c) => c.name == "create-mutamer")?.details
   );
   await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
-  counter = counter + 1;
   // TODO: Wait for success message before advancing the counter
-  await page.waitForSelector(
-    "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span"
-  );
-  const errorButton = await page.waitForSelector(
-    "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-footer.text-center > button"
-  );
-  await errorButton.click();
+  try {
+    await page.waitForSelector(
+      "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span"
+    );
+    const errorButton = await page.waitForSelector(
+      "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-footer.text-center > button"
+    );
+    await errorButton.click();
+  } catch {}
+
   await page.waitForSelector("#imgppcopy");
   if (!process.argv.includes("noimage")) {
     await util.commitFile("#fuppcopy", blankPassportPath);
   }
+  // TODO: Read the captcha value and renter it #txtImagetext
   await util.waitForCaptcha("#txtImagetext", 5);
   await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
   const lastIndex = fs.readFileSync("./selectedTraveller.txt", "utf-8");
-  fs.writeFileSync("./selectedTraveller.txt", (parseInt(lastIndex) + 1).toString());
+  fs.writeFileSync(
+    "./selectedTraveller.txt",
+    (parseInt(lastIndex) + 1).toString()
+  );
 }
 
 module.exports = { send };
