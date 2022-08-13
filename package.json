@@ -13,7 +13,7 @@
     "@google-cloud/vision": "^2.4.2",
     "axios": "^0.25.0",
     "beautify": "^0.0.8",
-    "canvas": "^2.9.3",
+    "canvas": "2.9.3",
     "cheerio": "^1.0.0-rc.12",
     "cryptr": "^6.0.2",
     "downloads-folder": "^3.0.1",
@@ -27,7 +27,7 @@
     "puppeteer-extra-plugin-recaptcha": "^3.5.0",
     "puppeteer-extra-plugin-stealth": "2.9.0",
     "rucaptcha-2captcha": "^2.2.1",
-    "sharp": "^0.29.3",
+    "sharp": "0.30.7",
     "totp-generator": "^0.0.13"
   }
 }
