@@ -73,8 +73,8 @@ async function initPage(config, onContentLoaded) {
     "--allow-running-insecure-content",
   ];
 
-  if (!process.argv.find(c => c.startsWith("range="))) {
-    args.push( "--start-fullscreen");
+  if (!process.argv.find((c) => c.startsWith("range="))) {
+    args.push("--start-fullscreen");
   }
 
   browser = await puppeteer.launch({
@@ -84,7 +84,7 @@ async function initPage(config, onContentLoaded) {
     headless: false,
     ignoreHTTPSErrors: true,
     defaultViewport: null,
-    args
+    args,
   });
   const pages = await browser.pages();
   page = pages[0];
@@ -100,6 +100,11 @@ async function initPage(config, onContentLoaded) {
   // Catch console log errors
   page.on("pageerror", (err) => {
     console.log(`Page error: ${err.toString()}`);
+  });
+
+  page.on("dialog", async (dialog) => {
+    await dialog.dismiss();
+    // await browser.close();
   });
 
   if (process.argv.length > 2) {
@@ -436,7 +441,7 @@ async function controller(page, structure, travellers) {
         container.outerHTML = `
         <div style="background-color: #8BC34B; padding: 16px;"> 
         <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 8px">
-        <img style='width: 32px; height: 32px; border-radius: 8px; '  src=${htLogo}> </img> 
+        <img style='width: 32px; height: 32px; border-radius: 8px; '  src=${htLogo} onclick="closeBrowser(); return false;"> </img> 
         <div style='color: #151F0A; font-size: 2rem;flex: 1;'> HAJonSoft Eagle حج أونسوفت النسر</div> 
         <div style="color: #F0F7E8; font-size: 1.5rem; text-transform: uppercase;">إرسال Send</div>
         </div>
@@ -530,6 +535,7 @@ async function controller(page, structure, travellers) {
         "handleLoadImportedOnlyClick",
         handleLoadImportedOnlyClick
       );
+      await page.exposeFunction("closeBrowser", closeBrowser);
     }
   } catch (err) {
     // console.log(err);
@@ -544,7 +550,9 @@ function unregisterLoop() {
     fs.unlink("./loop.txt", (err) => {});
   }
 }
-
+async function closeBrowser() {
+  await browser.close();
+}
 async function commander(page, structure, travellers) {
   if (
     !structure.controller ||
@@ -594,6 +602,7 @@ async function commander(page, structure, travellers) {
         controllerHandleMethod,
         structure.controller.action
       );
+      await page.exposeFunction("closeBrowser", closeBrowser);
     }
   } catch (err) {
     console.log(err);
@@ -659,12 +668,12 @@ function getSelectedTraveler() {
   const fileName = "./selectedTraveller" + range + ".txt";
   if (fs.existsSync(fileName)) {
     return fs.readFileSync(fileName, "utf8");
-  } 
+  }
 
   if (range) {
-      const [, start, end] = range.split("=");
-      fs.writeFileSync(fileName, (parseInt(start) - 1).toString());
-      return start;
+    const [start, end] = range.split("=")?.[1]?.split("-");
+    fs.writeFileSync(fileName, (parseInt(start) - 1).toString());
+    return start;
   }
 
   fs.writeFileSync(fileName, "-1");
@@ -674,18 +683,42 @@ function getSelectedTraveler() {
 function incrementSelectedTraveler(overrideValue) {
   const selectedTraveler = getSelectedTraveler();
   const nextTraveler = parseInt(selectedTraveler) + 1;
+  const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
   const range = process.argv.find((arg) => arg.startsWith("range="));
+  let start, end;
+  if (range) {
+    [start, end] = range.split("=")?.[1]?.split("-");
+    fs.writeFileSync(fileName, (parseInt(start) - 1).toString());
+    // TODO: handle end
+    if (fs.existsSync("./loop.txt") && nextTraveler >= end) {
+      fs.unlinkSync("./loop.txt");
+    }
+    return;
+  }
   const fileName = "./selectedTraveller" + range + ".txt";
   fs.writeFileSync(fileName, nextTraveler.toString());
+  // TODO: handle end
+  if (fs.existsSync("./loop.txt") && nextTraveler >= data?.travellers?.length) {
+    fs.unlinkSync("./loop.txt");
+  }
   return nextTraveler;
 }
 
+function setSelectedTraveller(value) {
+  getSelectedTraveler(); //initialize
+  const range = process.argv.find((arg) => arg.startsWith("range="));
+  const fileName = "./selectedTraveller" + range + ".txt";
+  if (fs.existsSync(fileName)) {
+    return fs.writeFileSync(fileName, value.toString());
+  }
+}
+
 function useCounter(currentCounter) {
-  return getSelectedTraveler(currentCounter)
+  return getSelectedTraveler(currentCounter);
 }
 
 function setCounter(currentCounter = 0) {
-  incrementSelectedTraveler(currentCounter)
+  incrementSelectedTraveler(currentCounter);
 }
 
 async function commitFile(selector, fileName, imgElementSelector) {
@@ -785,7 +818,7 @@ async function downloadAndResizeImage(
   }
 
   const writer = fs.createWriteStream(imagePath);
-  if (!url){
+  if (!url) {
     return path.join(__dirname, "dummy-image.jpg");
   }
   const response = await axios({
@@ -1165,7 +1198,7 @@ async function commitCaptchaTokenWithSelector(
   captchaLength = 6
 ) {
   await page.waitForTimeout(3000);
-  await page.$eval(imgId, (ele) => ele.id =  "captchaImageHTMLElement");
+  await page.$eval(imgId, (ele) => (ele.id = "captchaImageHTMLElement"));
 
   try {
     const base64 = await page.evaluate((selector) => {
@@ -1281,4 +1314,5 @@ module.exports = {
   getOverridePath,
   getSelectedTraveler,
   incrementSelectedTraveler,
+  setSelectedTraveller,
 };

@@ -7,6 +7,8 @@ const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
+const os = require("os")
+
 const SERVER_NUMBER = 1;
 let page;
 let data;
@@ -34,6 +36,7 @@ const config = [
         value: (row) =>
           row.info.caravan.replace(/ /g, "-") +
           "-" +
+          os.hostname() + "_" + 
           moment().format("MMDDHHmmss"),
       },
       {
@@ -58,7 +61,7 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveller) {
-          fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
+          util.setSelectedTraveller(selectedTraveller);
           const passenger = data.travellers[selectedTraveller];
           await sendPassenger(passenger);
         }
@@ -131,9 +134,10 @@ async function runPageConfiguration(currentConfig) {
     case "create-mutamer":
       await util.controller(page, currentConfig, data.travellers);
       if (fs.existsSync("./loop.txt")) {
+        const currentIndex = util.getSelectedTraveler();
         const passenger =
           data.travellers[
-            parseInt(fs.readFileSync("./selectedTraveller.txt", "utf-8"))
+            parseInt(currentIndex)
           ];
         sendPassenger(passenger);
       }
@@ -280,24 +284,18 @@ async function sendPassenger(passenger) {
     await fileChooser.accept([resizedPassportFile]);
   }
 
-  // move index to next passenger if exists
-  const passengerIndex = fs.readFileSync("./selectedTraveller.txt", "utf8");
-  if (passengerIndex < data.travellers.length - 1) {
-    const nextIndex = parseInt(passengerIndex) + 1;
-    fs.writeFileSync("./selectedTraveller.txt", nextIndex.toString());
-  } else {
-    // if no more passengers, delete loop.txt
-    if (fs.existsSync("./loop.txt")) {
-      fs.unlinkSync("./loop.txt");
-    }
-  }
-
   await util.commitCaptchaToken(
     page,
     "ctl00_ContentHolder_rdCap_CaptchaImageUP",
     "#ctl00_ContentHolder_rdCap_CaptchaTextBox",
     5
   );
+  util.incrementSelectedTraveler();
+
+  await page.waitForTimeout(10000);
+  await page.waitForSelector("#ctl00_ContentHolder_BtnEdit");
+  await page.click("#ctl00_ContentHolder_BtnEdit")
+  
 }
 
 module.exports = { send, config, SERVER_NUMBER };
