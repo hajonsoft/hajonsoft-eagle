@@ -340,6 +340,7 @@ async function sendPassenger(passenger) {
   await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
   util.incrementSelectedTraveler();
 
+  // This is assumed. fix starting from here. Because passports can succeed from the first time - check if you this is a new page refresh?
   // TODO: Wait for success message before advancing the counter
   try {
     await page.waitForSelector(
