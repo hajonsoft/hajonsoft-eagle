@@ -51,7 +51,7 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveller) {
-          fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
+          util.setSelectedTraveller(selectedTraveller);
           sendPassenger(data.travellers[selectedTraveller]);
         }
       },
@@ -325,6 +325,7 @@ async function sendPassenger(passenger) {
     await page.waitForNavigation();
   }
 
+  // Upload the passport image
   await page.waitForSelector("#imgppcopy");
   if (!process.argv.includes("noimage")) {
     await util.commitFile("#fuppcopy", resizedPassportPath);
@@ -335,7 +336,10 @@ async function sendPassenger(passenger) {
     page,
     config.find((c) => c.name == "create-mutamer")?.details
   );
+  await page.waitForSelector("#btnsave");
   await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
+  util.incrementSelectedTraveler();
+
   // TODO: Wait for success message before advancing the counter
   try {
     await page.waitForSelector(
@@ -355,7 +359,7 @@ async function sendPassenger(passenger) {
   await util.waitForCaptcha("#txtImagetext", 5);
   await page.waitForSelector("#btnsave");
   await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
-  util.incrementSelectedTraveler();
+
 }
 
 module.exports = { send };
