@@ -353,12 +353,9 @@ async function sendPassenger(passenger) {
   }
   // TODO: Read the captcha value and renter it #txtImagetext
   await util.waitForCaptcha("#txtImagetext", 5);
+  await page.waitForSelector("#btnsave");
   await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
-  const lastIndex = fs.readFileSync("./selectedTraveller.txt", "utf-8");
-  fs.writeFileSync(
-    "./selectedTraveller.txt",
-    (parseInt(lastIndex) + 1).toString()
-  );
+  util.incrementSelectedTraveler();
 }
 
 module.exports = { send };
