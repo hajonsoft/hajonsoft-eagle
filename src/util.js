@@ -893,7 +893,6 @@ function isCodelineLooping(traveller, numberOfEntries = 1) {
 }
 
 function createMRZImage(fileName, codeline) {
-  console.log('%cMyProject%cline:895%cfileName', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(96, 143, 159);padding:3px;border-radius:2px', fileName)
   // let f = new FontFace("test", "url(x)");
   // await f.load();
   if (!process.argv.includes("nocanvas")) {
