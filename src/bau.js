@@ -239,8 +239,7 @@ async function sendPassenger(passenger) {
     `${passenger.passportNumber}.jpg`
   );
   await util.downloadImage(passenger.images.photo, photoPath);
-  photoPath = util.getOverridePath(photoPath, path.join(__dirname, `photos/${passenger.passportNumber}.jpg`) );
-  console.log('%cMyProject%cline:242%cpath.join(__dirname, `photos/${passenger.passportNumber}.jpg`)', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(130, 57, 53);padding:3px;border-radius:2px', path.join(__dirname, `photos/${passenger.passportNumber}.jpg`))
+  photoPath = util.getOverridePath(photoPath, path.join(__dirname, `../photos/${passenger.passportNumber}.jpg`) );
   await page.waitForSelector("#ctl00_ContentHolder_imgSelectedFile");
   let futureFileChooser = page.waitForFileChooser();
   await page.evaluate(() =>
