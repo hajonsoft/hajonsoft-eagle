@@ -9,9 +9,11 @@ const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
 const budgie = require("./budgie");
+const os = require("os");
 
 let page;
 let data;
+let token;
 let groupName;
 
 const config = [
@@ -35,7 +37,10 @@ const config = [
     details: [
       {
         selector: "#txtGrpdesc",
-        value: (row) => `${row.caravan}-${moment().format("HH:mm:ss")}`,
+        value: (row) =>
+          `${row.caravan.substring(0, 20)}-${os
+            .hostname()
+            .substring(0, 8)}-${moment().format("HHmmss")}`,
       },
     ],
   },
@@ -160,29 +165,27 @@ async function onContentLoaded(res) {
 }
 
 async function pageContentHandler(currentConfig) {
-  const lastIndex = fs.readFileSync("./selectedTraveller.txt", "utf8");
+  const lastIndex = util.getSelectedTraveler();
   const passenger = data?.travellers?.[parseInt(lastIndex)];
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
       util.endCase(currentConfig.name);
-      await util.waitForCaptcha("#txtImagetext", 6);
+      // use selector or Id for the image
+      token = await util.commitCaptchaTokenWithSelector(
+        page,
+        "#Panel1 > div:nth-child(6) > div > img",
+        "#txtImagetext",
+        6
+      );
+
+      await page.waitForTimeout(5000);
       await page.click("#cmdlogin");
       await page.waitForTimeout(2000);
-      // Captcha image selector #Panel1 > div:nth-child(6) > div > img
-      // Captcha text selector #txtImagetext
-
       const isIDo = await page.$("#Button4");
       if (isIDo) {
         await page.click('aria/button[name="Yes, I DO"]');
       }
-      // use selector or Id for the image
-      // await util.commitCaptchaTokenWithSelector(
-      //   page,
-      //   "#Panel1 > div:nth-child(6) > div > img",
-      //   "#txtImagetext",
-      //   6
-      // );
       break;
     case "main":
       await page.goto(
@@ -210,6 +213,15 @@ async function pageContentHandler(currentConfig) {
 
       await page.focus("#BtnSave");
       await page.hover("#BtnSave");
+      setTimeout(async () => {
+        const url = await page.url();
+        const createGroupRegex = config.find(
+          (c) => c.name === "create-group"
+        ).regex;
+        if (new RegExp(createGroupRegex).test(url)) {
+          page.click("#BtnSave");
+        }
+      }, 10000);
 
       // Wait for this string: Group saved successfully, Group code is 153635
       const groupCreatedSuccessfullyElement =
@@ -236,7 +248,7 @@ async function pageContentHandler(currentConfig) {
       await page.emulateVisionDeficiency("none");
       await util.controller(page, currentConfig, data.travellers);
       if (fs.existsSync("./loop.txt")) {
-        sendPassenger(passenger);
+        return sendPassenger(passenger);
       }
 
       break;
@@ -297,7 +309,7 @@ async function sendPassenger(passenger) {
       passenger?.codeline
     );
   } catch (err) {
-    console.log("Canvas: dummy-passport-error",  err);
+    console.log("Canvas: dummy-passport-error", err);
   }
 
   let resizedPhotoPath = await util.downloadAndResizeImage(
@@ -331,18 +343,23 @@ async function sendPassenger(passenger) {
     await util.commitFile("#fuppcopy", resizedPassportPath);
   }
   // await page.emulateVisionDeficiency("none");
-  await util.waitForCaptcha("#txtImagetext", 5);
+  token = await util.commitCaptchaTokenWithSelector(
+    page,
+    "#imgtxtsv",
+    "#txtImagetext",
+    5
+  );
   await util.sniff(
     page,
     config.find((c) => c.name == "create-mutamer")?.details
   );
-  await page.waitForSelector("#btnsave");
-  await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
-  util.incrementSelectedTraveler();
-
   // This is assumed. fix starting from here. Because passports can succeed from the first time - check if you this is a new page refresh?
   // TODO: Wait for success message before advancing the counter
   try {
+    await page.waitForSelector("#btnsave");
+    await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
+    util.incrementSelectedTraveler();
+
     await page.waitForSelector(
       "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span"
     );
@@ -351,12 +368,16 @@ async function sendPassenger(passenger) {
     );
     await errorButton.click();
   } catch {}
-  
-  await page.waitForNavigation();
+
   // If there is a passport number still that means it is the same page
+  await page.waitForTimeout(2000);
   await page.waitForSelector("#txtppno");
   const pn = await page.$eval("#txtppno", (e) => e.value);
   if (!pn) {
+    await page.waitForTimeout(5000);
+    await page.goto(
+      "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+    );
     return;
   }
 
@@ -364,10 +385,11 @@ async function sendPassenger(passenger) {
   if (!process.argv.includes("noimage")) {
     await util.commitFile("#fuppcopy", blankPassportPath);
   }
-  // TODO: Read the captcha value and renter it #txtImagetext
-  await util.waitForCaptcha("#txtImagetext", 5);
-  await page.waitForSelector("#btnsave");
-  await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
+  try {
+    await page.type("#txtImagetext", token?.toString());
+  } catch (err) {
+    console.log("Canvas: dummy-passport-error", err);
+  }
 }
 
 module.exports = { send };
