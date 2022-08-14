@@ -38,7 +38,16 @@ function getChromePath() {
         return chromePath;
       }
 
-      throw new Error("Google Chrome not found");
+      throw new Error(`Google Chrome not found at ${chromePath}`);
+      break;
+    case "linux":
+      const linuxChromePath = "/usr/bin/google-chrome-stable";
+      if (fs.existsSync(linuxChromePath)) {
+        console.log(os.platform(), linuxChromePath);
+        return linuxChromePath;
+      }
+
+      throw new Error(`Google Chrome not found at ${linuxChromePath}`);
       break;
     default:
       const windows46ChromePath =
@@ -54,7 +63,9 @@ function getChromePath() {
         console.log(os.platform(), windows32ChromePath);
         return windows32ChromePath;
       }
-      throw new Error("Google Chrome not found");
+      throw new Error(
+        `Google Chrome not found at ${windows32ChromePath} or ${windows46ChromePath}`
+      );
   }
 }
 
