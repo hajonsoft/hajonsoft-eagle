@@ -685,6 +685,7 @@ function incrementSelectedTraveler(overrideValue) {
   const nextTraveler = parseInt(selectedTraveler) + 1;
   const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
   const range = process.argv.find((arg) => arg.startsWith("range="));
+  const fileName = "./selectedTraveller" + range + ".txt";
   let start, end;
   if (range) {
     [start, end] = range.split("=")?.[1]?.split("-");
@@ -695,7 +696,6 @@ function incrementSelectedTraveler(overrideValue) {
     }
     return;
   }
-  const fileName = "./selectedTraveller" + range + ".txt";
   fs.writeFileSync(fileName, nextTraveler.toString());
   // TODO: handle end
   if (fs.existsSync("./loop.txt") && nextTraveler >= data?.travellers?.length) {
