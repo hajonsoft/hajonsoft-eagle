@@ -34,9 +34,9 @@ const config = [
       {
         selector: "#ctl00_ContentHolder_TxtGroupName",
         value: (row) =>
-          row.info.caravan.replace(/ /g, "-") +
+          row.info.caravan.replace(/ /g, "-").substring(0,20) +
           "-" +
-          os.hostname() + "_" + 
+          os.hostname().substring(0,8) + "_" + 
           moment().format("MMDDHHmmss"),
       },
       {
@@ -240,7 +240,7 @@ async function sendPassenger(passenger) {
   );
   await util.downloadImage(passenger.images.photo, photoPath);
   photoPath = util.getOverridePath(photoPath, path.join(__dirname, `photos/${passenger.passportNumber}.jpg`) );
-  console.log('%cMyProject%cline:242%cphotoPath', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(60, 79, 57);padding:3px;border-radius:2px', photoPath)
+  console.log('%cMyProject%cline:242%cpath.join(__dirname, `photos/${passenger.passportNumber}.jpg`)', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(130, 57, 53);padding:3px;border-radius:2px', path.join(__dirname, `photos/${passenger.passportNumber}.jpg`))
   await page.waitForSelector("#ctl00_ContentHolder_imgSelectedFile");
   let futureFileChooser = page.waitForFileChooser();
   await page.evaluate(() =>
