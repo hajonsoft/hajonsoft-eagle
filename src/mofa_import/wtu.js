@@ -48,6 +48,24 @@ async function onWTUPageLoad(res) {
     await page.waitForSelector("#txtUserName");
     await page.type("#txtUserName", data.system.username);
     await page.type("#txtPwd", data.system.password);
+    const token = await util.commitCaptchaTokenWithSelector(
+      page,
+      "#Panel1 > div:nth-child(6) > div > img",
+      "#txtImagetext",
+      6
+    );
+
+    if (!token) {
+      page.evaluate("document.title='Eagle: Captcha Failed'");
+      return;
+    }
+    await page.waitForTimeout(5000);
+    await page.click("#cmdlogin");
+    await page.waitForTimeout(2000);
+    const isIDo = await page.$("#Button4");
+    if (isIDo) {
+      await page.click('aria/button[name="Yes, I DO"]');
+    }
     return;
   }
   if (
