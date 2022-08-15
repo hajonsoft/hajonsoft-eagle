@@ -704,6 +704,7 @@ function incrementSelectedTraveler(overrideValue) {
     // TODO: handle end
     if (fs.existsSync("./loop.txt") && nextTraveler >= end) {
       fs.unlinkSync("./loop.txt");
+      page.evaluate("document.title='Eagle: All done!'");
     }
     return;
   }
@@ -878,6 +879,7 @@ async function downloadAndResizeImage(
     }
   }
 
+  // TODO: Test with wtu group 7 pax because the size of the photo is too small
   if (sizeAfter > maxKb) {
   }
   return resizedPath;

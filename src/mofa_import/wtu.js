@@ -102,6 +102,7 @@ async function handleImportWTUMofa() {
         passportNumber + ".txt",
         JSON.stringify({ mofaNumber, nationality, name, passportNumber })
       );
+      try {
       // Write to Kea
       const params = {
         passportNumber,
@@ -122,6 +123,8 @@ async function handleImportWTUMofa() {
             })\n`
           );
         });
+    } catch (err) {
+      console.log("Kea error:", err);
     }
   }
   await page.evaluate((passportsArrayFromNode) => {

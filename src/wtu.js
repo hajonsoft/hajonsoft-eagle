@@ -171,6 +171,8 @@ async function pageContentHandler(currentConfig) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
       // use selector or Id for the image
+      page.evaluate("document.title='Eagle: Captcha thinking'");
+      await page.waitForTimeout(3000);
       token = await util.commitCaptchaTokenWithSelector(
         page,
         "#Panel1 > div:nth-child(6) > div > img",
@@ -179,6 +181,7 @@ async function pageContentHandler(currentConfig) {
       );
 
       if (!token) {
+        page.evaluate("document.title='Eagle: Captcha Failed'");
         return;
       }
       await page.waitForTimeout(5000);
@@ -190,9 +193,15 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "main":
-      await page.goto(
-        "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx?PageId=M"
-      );
+      setTimeout(async () => {
+        const url = await page.url();
+        if (url.search(config.find((c) => c.name === "main").url) !== -1) {
+          await page.goto(
+            "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx?PageId=M"
+          );
+        }
+      }, 3000);
+
       break;
     case "create-group":
       await util.commit(page, currentConfig.details, data.info);
@@ -262,6 +271,8 @@ async function pageContentHandler(currentConfig) {
 async function sendPassenger(passenger) {
   await page.emulateVisionDeficiency("none");
   // await page.emulateVisionDeficiency("blurredVision");
+  const titleMessage = `Eagle: sending passenger ${passenger.name}`;
+  await page.evaluate("document.title='" + titleMessage + "'");
 
   await page.waitForSelector("#txtppno");
   const passportNumber = await page.$eval("#txtppno", (e) => e.value);
@@ -389,6 +400,15 @@ async function sendPassenger(passenger) {
   }
   try {
     await page.type("#txtImagetext", token?.toString());
+    setTimeout(async () => {
+      try {
+        if (token === (await page.$eval("#txtImagetext", (e) => e.value))) {
+          await page.click("#btnsave");
+        }
+      } catch (err) {
+        console.log("Canvas: skipped silent", err);
+      }
+    }, 3000);
   } catch (err) {
     console.log("Canvas: dummy-passport-error", err);
   }
