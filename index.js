@@ -81,6 +81,11 @@ async function submitToProvider() {
   const dataFileName = await getDataFileName();
   const content = fs.readFileSync(dataFileName, "utf8");
   const data = JSON.parse(content);
+  if (!data.info.run) {
+    data.info.run = 0;
+  }
+  data.info.run += 1;
+  fs.writeFileSync(dataFileName, JSON.stringify(data, null, 2));
   if (data?.info?.munazim) {
     const cryptr = new Cryptr(data?.info?.munazim);
     if (data.system.username && data.system.username.length > 30) {

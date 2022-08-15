@@ -2,7 +2,7 @@ const puppeteer = require("puppeteer-extra");
 // Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
-
+const _ = require("lodash");
 const fs = require("fs");
 const path = require("path");
 const util = require("./util");
@@ -37,10 +37,10 @@ const config = [
     details: [
       {
         selector: "#txtGrpdesc",
-        value: (row) =>
-          `${row.caravan.substring(0, 20)}-${os
+        value: (row) => 
+          `${row.travellers?.[0].name?.first?.substring(0, 10)}-${row.travellers?.[0].name?.last?.substring(0, 10)}-${os
             .hostname()
-            .substring(0, 8)}-${moment().format("HHmmss")}`,
+            .substring(0, 8)}_${row.info.run}`,
       },
     ],
   },
@@ -184,6 +184,8 @@ async function pageContentHandler(currentConfig) {
         page.evaluate("document.title='Eagle: Captcha Failed'");
         return;
       }
+      page.evaluate("document.title='Eagle: Captcha solved'");
+
       await page.waitForTimeout(5000);
       await page.click("#cmdlogin");
       await page.waitForTimeout(2000);
@@ -193,18 +195,13 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "main":
-      setTimeout(async () => {
-        const url = await page.url();
-        if (url.search(config.find((c) => c.name === "main").url) !== -1) {
-          await page.goto(
-            "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx?PageId=M"
-          );
-        }
-      }, 3000);
+      await page.goto(
+        "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx?PageId=M"
+      );
 
       break;
     case "create-group":
-      await util.commit(page, currentConfig.details, data.info);
+      await util.commit(page, currentConfig.details, data);
       const firstOption = await page.$eval("#cmbEmb", (e) => {
         const options = e.querySelectorAll("option");
         for (const opt of options) {
@@ -271,7 +268,7 @@ async function pageContentHandler(currentConfig) {
 async function sendPassenger(passenger) {
   await page.emulateVisionDeficiency("none");
   // await page.emulateVisionDeficiency("blurredVision");
-  const titleMessage = `Eagle: sending passenger ${passenger.name}`;
+  const titleMessage = `Eagle: send.. ${parseInt(util.getSelectedTraveler()) + 1} ${passenger.name.last}`;
   await page.evaluate("document.title='" + titleMessage + "'");
 
   await page.waitForSelector("#txtppno");
@@ -329,7 +326,9 @@ async function sendPassenger(passenger) {
     passenger,
     200,
     200,
-    "photo"
+    "photo",
+    4,
+    17
   );
   const resizedPassportPath = await util.downloadAndResizeImage(
     passenger,
@@ -388,6 +387,13 @@ async function sendPassenger(passenger) {
   const pn = await page.$eval("#txtppno", (e) => e.value);
   if (!pn) {
     await page.waitForTimeout(5000);
+          // Write to Kea
+          const params = {
+            passportNumber: passenger.passportNumber,
+            mofaNumber: "check..",
+            accountId: data.system.accountId,
+          };
+          util.updatePassengerInKea(params);
     await page.goto(
       "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
     );

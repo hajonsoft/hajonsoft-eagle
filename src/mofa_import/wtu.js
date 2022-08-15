@@ -124,31 +124,10 @@ async function handleImportWTUMofa() {
       // Write to Kea
       const params = {
         passportNumber,
-        mofaNumber,
+        mofaNumber: mofaNumber || "waiting",
         accountId: data.system.accountId,
       };
-      axios
-        .post(
-          "https://us-central1-hajonsoft-kea.cloudfunctions.net/https-putPassenger",
-          params
-        )
-        .then((result) => {
-          // Log post call
-          fs.appendFileSync(
-            logFile,
-            `Writing to kea: ${JSON.stringify(params)} (status: ${
-              result.status
-            })\n`
-          );
-        })
-        .catch((err) => {
-          fs.appendFileSync(
-            logFile,
-            `Writing to kea: ${JSON.stringify(params)} (status: ${
-              err.status
-            })\n`
-          );
-        });
+      util.updatePassengerInKea(params, logFile);
     }
   }
   await page.evaluate((passportsArrayFromNode) => {
@@ -162,3 +141,5 @@ async function handleImportWTUMofa() {
 }
 
 module.exports = { initialize, injectWTUEagleButton, onWTUPageLoad };
+
+

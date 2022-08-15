@@ -865,12 +865,12 @@ async function downloadAndResizeImage(
   let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   if (sizeAfter < minKb) {
     for (let i = 1; i < 20; i++) {
-      const newWidth = width + 100 * i;
-      const newHeight = width + 100 * i;
+      // TODO: handle this better. May be increase image size on desk by stuffing strings in the image
       await sharp(imagePath)
-        .resize(newWidth, newHeight, {
+        .resize(width * i, height * i, {
           fit: sharp.fit.inside,
-        })
+          withoutEnlargement: true,
+          })
         .toFile(resizedPath);
       sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
       if (sizeAfter > minKb) {
@@ -1238,7 +1238,11 @@ async function commitCaptchaTokenWithSelector(
     });
 
     const token = await captchaSolver.get(id);
-    await commit(page, [{ selector: textFieldSelector, value: () => token.toString() }], {});
+    await commit(
+      page,
+      [{ selector: textFieldSelector, value: () => token.toString() }],
+      {}
+    );
     return token;
   } catch (err) {
     // console.log(err);
@@ -1287,6 +1291,29 @@ function getOverridePath(original, override) {
   return original;
 }
 
+function updatePassengerInKea(params, logFile) {
+  axios
+    .post(
+      "https://us-central1-hajonsoft-kea.cloudfunctions.net/https-putPassenger",
+      params
+    )
+    .then((result) => {
+      // Log post call
+      if (!logFile) return;
+      fs.appendFileSync(
+        logFile,
+        `Writing to kea: ${JSON.stringify(params)} (status: ${result.status})\n`
+      );
+    })
+    .catch((err) => {
+      if (!logFile) return;
+      fs.appendFileSync(
+        logFile,
+        `Writing to kea: ${JSON.stringify(params)} (status: ${err.status})\n`
+      );
+    });
+}
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1325,4 +1352,5 @@ module.exports = {
   getSelectedTraveler,
   incrementSelectedTraveler,
   setSelectedTraveller,
+  updatePassengerInKea,
 };
