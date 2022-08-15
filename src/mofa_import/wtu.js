@@ -102,13 +102,13 @@ async function handleImportWTUMofa() {
         passportNumber + ".txt",
         JSON.stringify({ mofaNumber, nationality, name, passportNumber })
       );
-      try {
       // Write to Kea
       const params = {
         passportNumber,
         mofaNumber,
         accountId: data.system.accountId,
       };
+      try {
       axios
         .post(
           "https://us-central1-hajonsoft-kea.cloudfunctions.net/https-putPassenger",
@@ -123,8 +123,10 @@ async function handleImportWTUMofa() {
             })\n`
           );
         });
-    } catch (err) {
-      console.log("Kea error:", err);
+
+      } catch (err) {
+        console.log("Error writing to kea", err);
+      }
     }
   }
   await page.evaluate((passportsArrayFromNode) => {
