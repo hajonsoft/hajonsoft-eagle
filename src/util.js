@@ -645,7 +645,7 @@ async function handleLoadImportedOnlyClick() {
           (n) => n.name === jsonData.nationality
         );
         travellersData.push({
-          nationality: {
+          nationality: nationality || {
             name: defaultNationalityName,
             code: defaultNationalityCode,
             telCode: defaultNationalityCode,

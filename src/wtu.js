@@ -37,8 +37,11 @@ const config = [
     details: [
       {
         selector: "#txtGrpdesc",
-        value: (row) => 
-          `${row.travellers?.[0].name?.first?.substring(0, 10)}-${row.travellers?.[0].name?.last?.substring(0, 10)}-${os
+        value: (row) =>
+          `${row.travellers?.[0].name?.first?.substring(
+            0,
+            10
+          )}-${row.travellers?.[0].name?.last?.substring(0, 10)}-${os
             .hostname()
             .substring(0, 8)}_${row.info.run}`,
       },
@@ -268,7 +271,9 @@ async function pageContentHandler(currentConfig) {
 async function sendPassenger(passenger) {
   await page.emulateVisionDeficiency("none");
   // await page.emulateVisionDeficiency("blurredVision");
-  const titleMessage = `Eagle: send.. ${parseInt(util.getSelectedTraveler()) + 1} ${passenger.name.last}`;
+  const titleMessage = `Eagle: send.. ${
+    parseInt(util.getSelectedTraveler()) + 1
+  }/${data.travellers.length}-${passenger.name.last}`;
   await page.evaluate("document.title='" + titleMessage + "'");
 
   await page.waitForSelector("#txtppno");
@@ -346,6 +351,20 @@ async function sendPassenger(passenger) {
     await page.click("#btn_uploadImage");
     await page.waitForTimeout(2000);
     await util.commitFile("#file_photo_upload", resizedPhotoPath);
+    //TODO: check dialog and reduce clicks
+    // await page.waitForTimeout(2000);
+    // // Check for image resize error
+    // const imageResizeError = await page.$eval(
+    //   "#div_image_upload > div.lobibox-body > div.lobibox-body-text-wrapper > span",
+    //   (el) => el.innerText
+    // );
+    // console.log(
+    //   "%cMyProject%cline:352%cimageResizeError",
+    //   "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
+    //   "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
+    //   "color:#fff;background:rgb(3, 38, 58);padding:3px;border-radius:2px",
+    //   imageResizeError
+    // );
     await page.waitForNavigation();
   }
 
@@ -387,13 +406,13 @@ async function sendPassenger(passenger) {
   const pn = await page.$eval("#txtppno", (e) => e.value);
   if (!pn) {
     await page.waitForTimeout(5000);
-          // Write to Kea
-          const params = {
-            passportNumber: passenger.passportNumber,
-            mofaNumber: "check..",
-            accountId: data.system.accountId,
-          };
-          util.updatePassengerInKea(params);
+    // Write to Kea
+    const params = {
+      passportNumber: passenger.passportNumber,
+      mofaNumber: "check..",
+      accountId: data.system.accountId,
+    };
+    util.updatePassengerInKea(params);
     await page.goto(
       "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
     );
@@ -406,6 +425,7 @@ async function sendPassenger(passenger) {
   }
   try {
     await page.type("#txtImagetext", token?.toString());
+    await page.evaluate("document.title=Eagle: mrz passport fix");
     setTimeout(async () => {
       try {
         if (token === (await page.$eval("#txtImagetext", (e) => e.value))) {
