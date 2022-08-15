@@ -55,6 +55,7 @@ async function onWTUPageLoad(res) {
       6
     );
 
+    console.log("Token", token);
     if (!token) {
       page.evaluate("document.title='Eagle: Captcha Failed'");
       return;
@@ -126,7 +127,6 @@ async function handleImportWTUMofa() {
         mofaNumber,
         accountId: data.system.accountId,
       };
-      try {
       axios
         .post(
           "https://us-central1-hajonsoft-kea.cloudfunctions.net/https-putPassenger",
@@ -140,11 +140,15 @@ async function handleImportWTUMofa() {
               result.status
             })\n`
           );
+        })
+        .catch((err) => {
+          fs.appendFileSync(
+            logFile,
+            `Writing to kea: ${JSON.stringify(params)} (status: ${
+              err.status
+            })\n`
+          );
         });
-
-      } catch (err) {
-        console.log("Error writing to kea", err);
-      }
     }
   }
   await page.evaluate((passportsArrayFromNode) => {
