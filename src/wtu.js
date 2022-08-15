@@ -170,7 +170,6 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      util.endCase(currentConfig.name);
       // use selector or Id for the image
       token = await util.commitCaptchaTokenWithSelector(
         page,
@@ -179,6 +178,9 @@ async function pageContentHandler(currentConfig) {
         6
       );
 
+      if (!token) {
+        return;
+      }
       await page.waitForTimeout(5000);
       await page.click("#cmdlogin");
       await page.waitForTimeout(2000);
@@ -327,7 +329,7 @@ async function sendPassenger(passenger) {
 
   resizedPhotoPath = util.getOverridePath(
     resizedPhotoPath,
-    path.join(__dirname, `/photos/${passenger.passportNumber}.jpg`)
+    path.join(__dirname, `../photos/${passenger.passportNumber}.jpg`)
   );
 
   if (!process.argv.includes("noimage")) {
