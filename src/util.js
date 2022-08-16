@@ -113,10 +113,9 @@ async function initPage(config, onContentLoaded) {
     console.log(`Page error: ${err.toString()}`);
   });
 
-  // page.on("dialog", async (dialog) => {
-  //   await dialog.dismiss();
-  //   // await browser.close();
-  // });
+  page.on("dialog", async (dialog) => {
+    await dialog.accept();
+  });
 
   if (process.argv.length > 2) {
     page.on("console", (msg) => console.log(msg.text()));

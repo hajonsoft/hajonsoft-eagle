@@ -15,6 +15,7 @@ let page;
 let data;
 let token;
 let groupName;
+let status = "";
 
 const config = [
   {
@@ -43,7 +44,7 @@ const config = [
             10
           )}-${row.travellers?.[0].name?.last?.substring(0, 10)}-${os
             .hostname()
-            .substring(0, 8)}_${row.info.run}`,
+            .substring(0, 8)}${moment().format("mmss")}_${row.info.run}`,
       },
     ],
   },
@@ -262,6 +263,13 @@ async function pageContentHandler(currentConfig) {
         return sendPassenger(passenger);
       }
 
+      setTimeout(() => {
+        if (status === "") {
+          fs.writeFileSync("./loop.txt", "1");
+          sendPassenger(passenger);
+        }
+      }, 5000);
+
       break;
     default:
       break;
@@ -269,6 +277,7 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function sendPassenger(passenger) {
+  status = "sending";
   await page.emulateVisionDeficiency("none");
   // await page.emulateVisionDeficiency("blurredVision");
   const titleMessage = `Eagle: send.. ${
@@ -351,21 +360,16 @@ async function sendPassenger(passenger) {
     await page.click("#btn_uploadImage");
     await page.waitForTimeout(2000);
     await util.commitFile("#file_photo_upload", resizedPhotoPath);
-    //TODO: check dialog and reduce clicks
-    // await page.waitForTimeout(2000);
-    // // Check for image resize error
-    // const imageResizeError = await page.$eval(
-    //   "#div_image_upload > div.lobibox-body > div.lobibox-body-text-wrapper > span",
-    //   (el) => el.innerText
-    // );
-    // console.log(
-    //   "%cMyProject%cline:352%cimageResizeError",
-    //   "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
-    //   "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
-    //   "color:#fff;background:rgb(3, 38, 58);padding:3px;border-radius:2px",
-    //   imageResizeError
-    // );
-    await page.waitForNavigation();
+    await page.waitForTimeout(2000);
+    try {
+      const isProceedBtn = await page.$("#btnProceedtoUpload");
+      if (isProceedBtn) {
+        await page.$eval("#btnProceedtoUpload", (e) => e.click());
+      }
+      await page.waitForNavigation();
+    } catch (err) {
+      console.log("Canvas: dummy-passport-error", err);
+    }
   }
 
   // Upload the passport image
@@ -425,7 +429,9 @@ async function sendPassenger(passenger) {
   }
   try {
     await page.type("#txtImagetext", token?.toString());
-    await page.evaluate("document.title=Eagle: mrz passport fix");
+    await page.evaluate(
+      "document.title='Eagle: mrz fix " + passenger.name.full + "'"
+    );
     setTimeout(async () => {
       try {
         if (token === (await page.$eval("#txtImagetext", (e) => e.value))) {
