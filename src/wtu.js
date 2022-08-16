@@ -322,20 +322,6 @@ async function sendPassenger(passenger) {
     await page.select("#ddlrelation", "15");
   }
 
-  let blankPassportPath;
-
-  try {
-    blankPassportPath = util.createMRZImage(
-      path.join(
-        util.passportsFolder,
-        passenger.passportNumber + "_400x300_mrz.jpg"
-      ),
-      passenger?.codeline
-    );
-  } catch (err) {
-    console.log("Canvas: dummy-passport-error", err);
-  }
-
   let resizedPhotoPath = await util.downloadAndResizeImage(
     passenger,
     200,
@@ -423,6 +409,11 @@ async function sendPassenger(passenger) {
     return;
   }
 
+  const blankPassportPath = `./${passenger.passportNumber}_mrz.jpg`;
+  if (!fs.existsSync(blankPassportPath)) {
+    // Try to generate it using the browser, then save it and then use it
+    return;
+  }
   await page.waitForSelector("#imgppcopy");
   if (!process.argv.includes("noimage")) {
     await util.commitFile("#fuppcopy", blankPassportPath);

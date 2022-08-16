@@ -904,36 +904,6 @@ function isCodelineLooping(traveller, numberOfEntries = 1) {
   return false;
 }
 
-function createMRZImage(fileName, codeline) {
-  // let f = new FontFace("test", "url(x)");
-  // await f.load();
-  if (!process.argv.includes("nocanvas")) {
-    const { createCanvas } = require("canvas");
-
-    const canvas = createCanvas(400, 300);
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "black";
-    ctx.font = "11px Verdana, Verdana, Geneva, sans-serif"; // Verdana, Verdana, Geneva, sans-serif
-    ctx.fillText(codeline.substring(0, 44), 15, canvas.height - 45);
-    ctx.fillText(codeline.substring(44), 15, canvas.height - 20);
-
-    ctx.lineWidth = 2;
-    ctx.strokeRect(20, 20, 120, 150);
-    ctx.fillStyle = "blue";
-    ctx.strokeRect(180, 20, 200, 150);
-
-    const out = fs.createWriteStream(fileName);
-    const stream = canvas.createJPEGStream({
-      quality: 0.95,
-      chromaSubsampling: false,
-    });
-    stream.pipe(out);
-  }
-  return fileName;
-}
-
 function endCase(name) {
   const regEx = new RegExp(`${name}[_-]only`);
   if (process.argv.some((arg) => regEx.test(arg))) {
@@ -1330,7 +1300,6 @@ module.exports = {
   passportsFolder,
   vaccineFolder,
   isCodelineLooping,
-  createMRZImage,
   endCase,
   setCounter,
   selectByValue,

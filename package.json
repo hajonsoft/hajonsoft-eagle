@@ -13,7 +13,6 @@
     "@google-cloud/vision": "^2.4.2",
     "axios": "^0.25.0",
     "beautify": "^0.0.8",
-    "canvas": "2.9.3",
     "cheerio": "^1.0.0-rc.12",
     "cryptr": "^6.0.2",
     "downloads-folder": "^3.0.1",
