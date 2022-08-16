@@ -869,7 +869,7 @@ async function downloadAndResizeImage(
         .resize(width * i, height * i, {
           fit: sharp.fit.inside,
           withoutEnlargement: true,
-          })
+        })
         .toFile(resizedPath);
       sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
       if (sizeAfter > minKb) {
@@ -1290,11 +1290,15 @@ function getOverridePath(original, override) {
   return original;
 }
 
-function updatePassengerInKea(params, logFile) {
+function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
   axios
     .post(
       "https://us-central1-hajonsoft-kea.cloudfunctions.net/https-putPassenger",
-      params
+      {
+        accountId,
+        passportNumber,
+        ...params,
+      }
     )
     .then((result) => {
       // Log post call

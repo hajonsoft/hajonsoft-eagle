@@ -412,11 +412,13 @@ async function sendPassenger(passenger) {
     await page.waitForTimeout(5000);
     // Write to Kea
     const params = {
-      passportNumber: passenger.passportNumber,
       mofaNumber: "check..",
-      accountId: data.system.accountId,
     };
-    util.updatePassengerInKea(params);
+    util.updatePassengerInKea(
+      data.system.accountId,
+      passenger.passportNumber,
+      params
+    );
     await page.goto(
       "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
     );
