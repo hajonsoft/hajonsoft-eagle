@@ -397,14 +397,10 @@ async function sendPassenger(passenger) {
     util.incrementSelectedTraveler();
 
     try {
-      console.log("********************************");
-      console.log(
-        "Waiting for selector body > div.lobibox-notify-wrapper > div.lobibox-notify.lobibox-notify-success"
-      );
       await page.waitForSelector(
         "body > div.lobibox-notify-wrapper > div.lobibox-notify.lobibox-notify-success",
         {
-          timeout: 20000,
+          timeout: 10000,
         }
       );
       // Store submitted reason in kea
@@ -444,7 +440,6 @@ async function sendPassenger(passenger) {
     // Write to Kea
     const params = {
       mofaNumber: "check..",
-      "submissionData.wtu.status": "Submitted",
     };
     util.updatePassengerInKea(
       data.system.accountId,
