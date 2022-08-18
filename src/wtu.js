@@ -282,7 +282,7 @@ async function sendPassenger(passenger) {
   // await page.emulateVisionDeficiency("blurredVision");
   const titleMessage = `Eagle: send.. ${
     parseInt(util.getSelectedTraveler()) + 1
-  }/${data.travellers.length}-${passenger.name.last}`;
+  }/${data.travellers.length}-${passenger?.name?.last}`;
   await page.evaluate("document.title='" + titleMessage + "'");
 
   await page.waitForSelector("#txtppno");
@@ -412,6 +412,43 @@ async function sendPassenger(passenger) {
   const blankPassportPath = `./${passenger.passportNumber}_mrz.jpg`;
   if (!fs.existsSync(blankPassportPath)) {
     // Try to generate it using the browser, then save it and then use it
+    await page.evaluate((passportPath) => {
+      const ele = document.createElement("canvas");
+      ele.id = "canvas";
+      document.appendChild(ele);
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      // White background
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "black";
+      // Font must be 11 to fit in the canvas
+      ctx.font = "11px Verdana, Verdana, Geneva, sans-serif";
+      ctx.fillText(
+        passenger.codeline?.substring(0, 44),
+        15,
+        canvas.height - 45
+      );
+      ctx.fillText(passenger.codeline?.substring(44), 15, canvas.height - 25);
+
+      // Photo
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "hsl(240, 25%, 94%)";
+      ctx.fillRect(45, 25, 100, 125);
+      // Visible area
+      ctx.fillStyle = "hsl(240, 25%, 94%)";
+      ctx.fillRect(170, 25, 200, 175);
+
+      // under photo area
+      ctx.fillStyle = "hsl(240, 25%, 94%)";
+      ctx.fillRect(45, 165, 100, 35);
+      canvas.toBlob(
+        (blob) => fs.writeFileSync(passportPath, blob),
+        "image/jpg",
+        1
+      );
+    }, blankPassportPath);
     return;
   }
   await page.waitForSelector("#imgppcopy");

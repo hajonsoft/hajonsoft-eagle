@@ -181,7 +181,7 @@ async function submitToProvider() {
 
 async function unzipFile(source) {
   try {
-    await extract(source, { dir: __dirname });
+    await extract(source, { dir: __dirname, defaultDirMode: 0o755, defaultFileMode: 0o644 });
   } catch (err) {
     console.log(err);
   }
