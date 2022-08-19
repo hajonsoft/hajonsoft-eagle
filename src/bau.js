@@ -218,7 +218,7 @@ async function sendPassenger(passenger) {
       {
         selector: "#ctl00_ContentHolder_LstType",
         value: (row) =>
-          row.codeline.substring(2, 5) != row.codeline.substring(54, 57)
+          row.codeline?.replace(/\n/g,'')?.substring(2, 5) != row.codeline?.replace(/\n/g,'')?.substring(54, 57)
             ? "3"
             : "1",
       },
