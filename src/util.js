@@ -56,7 +56,15 @@ function getChromePath() {
         console.log(os.platform(), windows46ChromePath);
         return windows46ChromePath;
       }
-      const userPath = path.join(homedir, "AppData", "Local", "Google", "Chrome", "Application", "chrome.exe");
+      const userPath = path.join(
+        homedir,
+        "AppData",
+        "Local",
+        "Google",
+        "Chrome",
+        "Application",
+        "chrome.exe"
+      );
       if (fs.existsSync(userPath)) {
         console.log(os.platform(), userPath);
         return userPath;
@@ -567,8 +575,14 @@ function unregisterLoop() {
   }
 }
 function getVisaCount() {
-  const files = fs.readdirSync(path.join(homedir, "hajonsoft", "visa"))
-  console.log('%cMyProject%cline:570%cfiles', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(254, 67, 101);padding:3px;border-radius:2px', files)
+  const files = fs.readdirSync(path.join(homedir, "hajonsoft", "visa"));
+  console.log(
+    "%cMyProject%cline:570%cfiles",
+    "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
+    "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
+    "color:#fff;background:rgb(254, 67, 101);padding:3px;border-radius:2px",
+    files
+  );
 }
 async function closeBrowser() {
   await browser.close();
@@ -879,7 +893,7 @@ async function downloadAndResizeImage(
         .resize(width * i, height * i, {
           fit: sharp.fit.inside,
           withoutEnlargement: true,
-          })
+        })
         .toFile(resizedPath);
       sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
       if (sizeAfter > minKb) {
