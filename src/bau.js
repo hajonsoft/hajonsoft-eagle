@@ -92,6 +92,9 @@ async function runPageConfiguration(currentConfig) {
       await util.premiumSupportAlert(page, '#form1 > div:nth-child(14) > div', data);
       await page.waitForSelector("#rdCap_CaptchaTextBox");
       await page.focus("#rdCap_CaptchaTextBox");
+      await page.evaluate(
+        "document.title='Eagle: Solving Captcha'"
+      );
       await util.commitCaptchaToken(
         page,
         "rdCap_CaptchaImage",
@@ -99,10 +102,13 @@ async function runPageConfiguration(currentConfig) {
         5
       );
       await page.waitForTimeout(5000);
-      await page.waitForFunction(
-        "document.querySelector('#rdCap_CaptchaTextBox').value.length === 5"
-      );
-      await page.click("#lnkLogin");
+      try {
+        await page.waitForFunction(
+          "document.querySelector('#rdCap_CaptchaTextBox').value.length === 5"
+        );
+        await page.click("#lnkLogin");
+      } catch {}
+
       break;
     case "main":
       await page.goto(
@@ -110,6 +116,9 @@ async function runPageConfiguration(currentConfig) {
       );
       break;
     case "create-group":
+      await page.evaluate(
+        "document.title='Eagle: Create group'"
+      );
       const groupName = await page.$eval(
         "#ctl00_ContentHolder_TxtGroupName",
         (e) => e.value
@@ -148,6 +157,10 @@ async function runPageConfiguration(currentConfig) {
 }
 
 async function sendPassenger(passenger) {
+  const titleMessage = `Eagle: Send.. ${util.getSelectedTraveler()}/${data.travellers.length} ${passenger.name}`;
+  await page.evaluate(
+    "document.title=" + titleMessage
+  );
   const passportNumber = await page.$eval(
     "#ctl00_ContentHolder_TxtNumber",
     (e) => e.value

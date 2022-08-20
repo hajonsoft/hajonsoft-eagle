@@ -91,11 +91,13 @@ async function onBAUPageLoad(res) {
       5
     );
     await page.waitForTimeout(5000);
+    try {
     await page.waitForFunction(
       "document.querySelector('#rdCap_CaptchaTextBox').value.length === 5",
       { timeout: 0 }
     );
     await page.click("#lnkLogin");
+    } catch {}
     return;
   }
 
@@ -114,12 +116,14 @@ async function onBAUPageLoad(res) {
 
   if (
     mofaUrl
-      .toLowerCase()
-      .includes("babalumra.com/Groups/SearchGroups.aspx".toLowerCase())
-  ) {
+    .toLowerCase()
+    .includes("babalumra.com/Groups/SearchGroups.aspx".toLowerCase())
+    ) {
+    console.log('%cMyProject%cline:116%cmofaUrl', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(248, 214, 110);padding:3px;border-radius:2px', mofaUrl)
     try {
       await page.$$eval("a", (els) => {
         els.map((el) => el.removeAttribute("target"));
+        els.map((el) => el.setAttribute("target", "_self"));
       });
     } catch {}
     return;
