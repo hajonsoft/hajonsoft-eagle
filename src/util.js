@@ -472,7 +472,7 @@ async function controller(page, structure, travellers) {
             controller.mokhaa
               ? `<div>
               <div style="display: flex; width: 100%; align-items: center; justify-content: space-between;"> 
-              <div>Receive folder: ${visaPath}</div>
+              <div>Visa folder: ${visaPath}</div>
               <div style="color: #F0F7E8; font-size: 1.5rem; text-transform: uppercase;">إستقبال Receive</div>
   
                 
@@ -530,6 +530,7 @@ async function controller(page, structure, travellers) {
       );
       await page.exposeFunction("registerLoop", registerLoop);
       await page.exposeFunction("unregisterLoop", unregisterLoop);
+      await page.exposeFunction("getVisaCount", getVisaCount);
       await page.exposeFunction(
         "handleWTUClick",
         structure.controller.wtuAction || (() => {})
@@ -564,6 +565,10 @@ function unregisterLoop() {
   if (fs.existsSync("./loop.txt")) {
     fs.unlink("./loop.txt", (err) => {});
   }
+}
+function getVisaCount() {
+  const files = fs.readdirSync(path.join(homedir, "hajonsoft", "visa"))
+  console.log('%cMyProject%cline:570%cfiles', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(254, 67, 101);padding:3px;border-radius:2px', files)
 }
 async function closeBrowser() {
   await browser.close();
@@ -620,7 +625,7 @@ async function commander(page, structure, travellers) {
       await page.exposeFunction("closeBrowser", closeBrowser);
     }
   } catch (err) {
-    console.log(err);
+    // console.log(err);
   }
 }
 

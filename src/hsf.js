@@ -225,7 +225,7 @@ let gmaPage;
 let bauPage;
 let twfPage;
 async function pageContentHandler(currentConfig) {
-  let lastIndex = util.useCounter(0);
+  let lastIndex = util.useCounter();
   if (lastIndex >= data.travellers.length) {
     lastIndex = 0;
   }
@@ -263,6 +263,7 @@ async function pageContentHandler(currentConfig) {
                 "#hajonsoft_select",
                 (el) => el.value
               );
+              util.setSelectedTraveller(selectedTraveller);
               await sendPassenger(selectedTraveller);
             },
             wtuAction: async () => {
@@ -610,15 +611,16 @@ async function pageContentHandler(currentConfig) {
         await util.commander(page, {
           controller: {
             selector: "#btnPrevious",
-            title: "Save and Continue",
-            arabicTitle: "تخزين واستمرار",
+            title: "Continue",
+            arabicTitle: "استمرار",
             action: async () => {
               page.goto("https://visa.mofa.gov.sa/Account/HajSmartForm");
             },
           },
         });
 
-        await screenShotAndContinue(visaElement, saveFolder, passenger);
+        const currentPassenger = data.travellers[parseInt(util.getSelectedTraveler())]  
+        await screenShotAndContinue(visaElement, saveFolder, currentPassenger);
         return;
       }
       page.goto(config[0].url);
@@ -667,12 +669,12 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
-async function screenShotAndContinue(visaElement, saveFolder, passenger) {
+async function screenShotAndContinue(visaElement, saveFolder, currentPassenger) {
   await visaElement.screenshot({
     path:
       path.join(
         saveFolder,
-        passenger.passportNumber + "_" + passenger.name?.full.replace(/ /, "_")
+        currentPassenger?.passportNumber + "_" + currentPassenger?.name?.full.replace(/ /, "_") + "_" + moment().format("YYYY-MM-DD_HH-mm-ss") 
       ) + ".png",
     type: "png",
   });
