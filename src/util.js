@@ -1189,11 +1189,16 @@ async function commitCaptchaToken(
     });
 
     const token = await captchaSolver.get(id);
+    console.log(`Captcha token: ${token}`); // Don't remove this line
 
-    await page.type(textFieldSelector, token);
+    await commit(
+      page,
+      [{ selector: textFieldSelector, value: () => token }],
+      {}
+    );
     return token;
   } catch (err) {
-    // console.log(err);
+    console.log(err);
   }
 }
 

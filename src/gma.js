@@ -11,6 +11,7 @@ const sharp = require("sharp");
 let page;
 let data;
 let counter = 0;
+let previousTableInfo = "dummy";
 
 const mutamerConfig = {
   details: [
@@ -118,82 +119,11 @@ const config = [
             await page.click(
               "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-warning"
             );
-            fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
-            const data = fs.readFileSync("./data.json", "utf-8");
-            var passengersData = JSON.parse(data);
-            var passenger = passengersData.travellers[selectedTraveller];
-            await page.evaluate(
-              () => (document.querySelector("#txt_Mrz").disabled = false)
-            );
-            await page.type(
-              "#txt_Mrz",
-              passenger.codeline || "codeline missing"
-            );
-            await page.emulateVisionDeficiency("blurredVision");
-
-            await page.waitForTimeout(5000);
-            await util.commit(page, mutamerConfig.details, passenger);
-            for (const field of mutamerConfig.details) {
-              await page.$eval(field.selector, e=> {
-                e.removeAttribute('readonly');
-                e.removeAttribute('disabled');
-              });
-            }
-            await page.click("#CodeNumberTextBox");
-            let photoPath = path.join(
-              util.photosFolder,
-              `${passenger.passportNumber}.jpg`
-            );
-
-            await util.downloadImage(passenger.images.photo, photoPath);
-            const resizedPhotoPath = path.join(
-              util.photosFolder,
-              `${passenger.passportNumber}_200x200.jpg`
-            );
-            await sharp(photoPath).resize(200, 200, {
-              fit: sharp.fit.inside,
-              withoutEnlargement: true,
-            }).toFile(resizedPhotoPath);
-            if (!process.argv.includes("noimage")) {
-              await util.commitFile("#img_Mutamer", resizedPhotoPath);
-            }
-
-            const passportPath = path.join(
-              util.passportsFolder,
-              `${passenger.passportNumber}.jpg`
-            );
-            await util.downloadImage(passenger.images.passport, passportPath);
-            let resizedPassportFile = path.join(
-              util.passportsFolder,
-              `${passenger.passportNumber}_400x300.jpg`
-            );
-            await sharp(passportPath)
-              .resize(400, 300, {
-                fit: sharp.fit.inside,
-                withoutEnlargement: true,
-              })
-              .toFile(resizedPassportFile);
-
-            await page.waitForSelector("#Mutamer_imgPP");
-            if (!process.argv.includes("noimage")) {
-              await util.commitFile("#img_MutamerPP", resizedPassportFile);
-            }
-            // const resizedVaccinePath = await util.downloadAndResizeImage(
-            //   passenger,
-            //   100,
-            //   100,
-            //   "vaccine"
-            // );
-            // if (
-            //   !process.argv.includes("noimage")
-            // ) {
-            //   await util.commitFile("#VaccineCertificate", resizedVaccinePath);
-            // }
-            await page.emulateVisionDeficiency("none");
-            await util.waitForCaptcha("#CodeNumberTextBox", 5);
-            await page.click(
-              "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success"
-            );
+            util.setSelectedTraveller(selectedTraveller);
+            const dataRaw = fs.readFileSync("./data.json", "utf-8");
+            var data = JSON.parse(dataRaw);
+            var passenger = data.travellers[selectedTraveller];
+            sendPassenger(passenger);
           } catch (err) {
             console.log(err.message);
           }
@@ -202,6 +132,95 @@ const config = [
     },
   },
 ];
+
+async function sendPassenger(passenger) {
+  await page.evaluate(
+    () => (document.querySelector("#txt_Mrz").disabled = false)
+  );
+  await page.type(
+    "#txt_Mrz",
+    passenger.codeline || "codeline missing"
+  );
+  await page.emulateVisionDeficiency("blurredVision");
+
+  await page.waitForTimeout(5000);
+  await util.commit(page, mutamerConfig.details, passenger);
+  for (const field of mutamerConfig.details) {
+    await page.$eval(field.selector, (e) => {
+      e.removeAttribute("readonly");
+      e.removeAttribute("disabled");
+    });
+  }
+  await page.click("#CodeNumberTextBox");
+  let photoPath = path.join(
+    util.photosFolder,
+    `${passenger.passportNumber}.jpg`
+  );
+
+  await util.downloadImage(passenger.images.photo, photoPath);
+  const resizedPhotoPath = path.join(
+    util.photosFolder,
+    `${passenger.passportNumber}_200x200.jpg`
+  );
+  await sharp(photoPath)
+    .resize(200, 200, {
+      fit: sharp.fit.inside,
+      withoutEnlargement: true,
+    })
+    .toFile(resizedPhotoPath);
+  if (!process.argv.includes("noimage")) {
+    await util.commitFile("#img_Mutamer", resizedPhotoPath);
+  }
+
+  const passportPath = path.join(
+    util.passportsFolder,
+    `${passenger.passportNumber}.jpg`
+  );
+  await util.downloadImage(passenger.images.passport, passportPath);
+  let resizedPassportFile = path.join(
+    util.passportsFolder,
+    `${passenger.passportNumber}_400x300.jpg`
+  );
+  await sharp(passportPath)
+    .resize(400, 300, {
+      fit: sharp.fit.inside,
+      withoutEnlargement: true,
+    })
+    .toFile(resizedPassportFile);
+
+  await page.waitForSelector("#Mutamer_imgPP");
+  if (!process.argv.includes("noimage")) {
+    await util.commitFile("#img_MutamerPP", resizedPassportFile);
+  }
+  await page.emulateVisionDeficiency("none");
+
+  const token = await util.commitCaptchaToken(
+    page,
+    "imgCaptcha",
+    "#CodeNumberTextBox",
+    5
+  );
+  await page.waitForTimeout(3000);
+
+  if (token) {
+    await page.click(
+      "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success"
+    );
+  }
+  await page.waitForTimeout(10000);
+
+  const tableInfo = await page.$eval(
+    "#tableGroupMutamers_info",
+    (el) => el.innerText
+  );
+  if (previousTableInfo != tableInfo && fs.existsSync("./loop.txt")) {
+    previousTableInfo = tableInfo;
+    const nextTraveller = util.incrementSelectedTraveler();
+
+    sendPassenger(data.travellers[nextTraveller]);
+
+  }
+}
 
 async function send(sendData) {
   data = sendData;
@@ -226,8 +245,18 @@ async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      await util.waitForCaptcha("#CodeNumberTextBox", 5);
-      await page.click("#btn_Login");
+
+      const token = await util.commitCaptchaToken(
+        page,
+        "imgCaptcha",
+        "#CodeNumberTextBox",
+        5
+      );
+      await page.waitForTimeout(3000);
+      if (token) {
+        await page.click("#btn_Login");
+      }
+
       break;
     case "main":
     case "download":
