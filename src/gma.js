@@ -142,7 +142,11 @@ async function sendPassenger(passenger) {
     passenger.codeline || "codeline missing"
   );
   await page.emulateVisionDeficiency("blurredVision");
-
+  const titleMessage = `Eagle: send.. ${
+    parseInt(util.getSelectedTraveler()) + 1
+  }/${data.travellers.length}-${passenger?.name?.last}`;
+  await page.evaluate("document.title='" + titleMessage + "'");
+  
   await page.waitForTimeout(5000);
   await util.commit(page, mutamerConfig.details, passenger);
   for (const field of mutamerConfig.details) {
