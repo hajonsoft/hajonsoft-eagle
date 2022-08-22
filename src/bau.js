@@ -157,10 +157,8 @@ async function runPageConfiguration(currentConfig) {
 }
 
 async function sendPassenger(passenger) {
-  const titleMessage = `Eagle: Send.. ${util.getSelectedTraveler()}/${data.travellers.length} ${passenger.name}`;
-  await page.evaluate(
-    "document.title=" + titleMessage
-  );
+  // const titleMessage = `document.title=Eagle: Send.. ${util.getSelectedTraveler()}/${data.travellers?.length} ${passenger.name?.full}`;
+  // await page.evaluate(titleMessage);
   const passportNumber = await page.$eval(
     "#ctl00_ContentHolder_TxtNumber",
     (e) => e.value
