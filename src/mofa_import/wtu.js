@@ -123,11 +123,14 @@ async function handleImportWTUMofa() {
       );
       // Write to Kea
       const params = {
-        passportNumber,
         mofaNumber: mofaNumber || "waiting",
-        accountId: data.system.accountId,
       };
-      util.updatePassengerInKea(params, logFile);
+      util.updatePassengerInKea(
+        data.system.accountId,
+        passportNumber,
+        params,
+        logFile
+      );
     }
   }
   await page.evaluate((passportsArrayFromNode) => {
@@ -141,5 +144,3 @@ async function handleImportWTUMofa() {
 }
 
 module.exports = { initialize, injectWTUEagleButton, onWTUPageLoad };
-
-

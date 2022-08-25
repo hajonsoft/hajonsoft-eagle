@@ -377,16 +377,43 @@ async function sendPassenger(passenger) {
   // This is assumed. fix starting from here. Because passports can succeed from the first time - check if you this is a new page refresh?
   // TODO: Wait for success message before advancing the counter
   try {
+    const keaParams = {};
     await page.waitForSelector("#btnsave");
     await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
     util.incrementSelectedTraveler();
 
-    await page.waitForSelector(
+    try {
+      await page.waitForSelector(
+        "body > div.lobibox-notify-wrapper > div.lobibox-notify.lobibox-notify-success",
+        {
+          timeout: 10000,
+        }
+      );
+      // Store submitted reason in kea
+      util.updatePassengerInKea(
+        data.system.accountId,
+        passenger.passportNumber,
+        {
+          "submissionData.wtu.status": "Submitted",
+        }
+      );
+    } catch {}
+
+    const errorMessage = await page.waitForSelector(
       "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span"
     );
+
+    // Store error reason in kea
+    util.updatePassengerInKea(data.system.accountId, passenger.passportNumber, {
+      "submissionData.wtu.status": "Rejected",
+      "submissionData.wtu.rejectionReason": await errorMessage.evaluate(
+        (el) => el.textContent
+      ),
+    });
     const errorButton = await page.waitForSelector(
       "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-footer.text-center > button"
     );
+
     await errorButton.click();
   } catch {}
 
@@ -398,11 +425,13 @@ async function sendPassenger(passenger) {
     await page.waitForTimeout(5000);
     // Write to Kea
     const params = {
-      passportNumber: passenger.passportNumber,
       mofaNumber: "check..",
-      accountId: data.system.accountId,
     };
-    util.updatePassengerInKea(params);
+    util.updatePassengerInKea(
+      data.system.accountId,
+      passenger.passportNumber,
+      params
+    );
     await page.goto(
       "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
     );
@@ -464,6 +493,22 @@ async function sendPassenger(passenger) {
       try {
         if (token === (await page.$eval("#txtImagetext", (e) => e.value))) {
           await page.click("#btnsave");
+          try {
+            await page.waitForSelector(
+              "body > div.lobibox-notify-wrapper > div.lobibox-notify.lobibox-notify-success",
+              {
+                timeout: 20000,
+              }
+            );
+            // Store submitted reason in kea
+            util.updatePassengerInKea(
+              data.system.accountId,
+              passenger.passportNumber,
+              {
+                "submissionData.wtu.status": "Submitted",
+              }
+            );
+          } catch {}
         }
       } catch (err) {
         console.log("Canvas: skipped silent", err);

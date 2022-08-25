@@ -1289,11 +1289,15 @@ function getOverridePath(original, override) {
   return original;
 }
 
-function updatePassengerInKea(params, logFile) {
+function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
   axios
     .post(
       "https://us-central1-hajonsoft-kea.cloudfunctions.net/https-putPassenger",
-      params
+      {
+        accountId,
+        passportNumber,
+        ...params,
+      }
     )
     .then((result) => {
       // Log post call
