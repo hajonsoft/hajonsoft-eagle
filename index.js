@@ -180,8 +180,17 @@ async function submitToProvider() {
 }
 
 async function unzipFile(source) {
+  console.log("hi");
   try {
-    await extract(source, { dir: __dirname, defaultDirMode: 0o755, defaultFileMode: 0o644 });
+    const files = fs.readFileSync(__dirname);
+    for (const file of files.filter((file) => file.endsWith("_photo.jpg") || file.endsWith("_mrz.jpg") || file.endsWith("_passport.jpg"))) {
+      fs.unlinkSync(path.join(__dirName, file));
+    }
+
+  } catch {}
+
+  try {
+    await extract(source, { dir: __dirname });
   } catch (err) {
     console.log(err);
   }
