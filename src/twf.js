@@ -97,59 +97,48 @@ async function pageContentHandler(currentConfig) {
                     value: (row) => row.name.last
                   },
                   {
-                    xPath: '//input[@type="text"]',
-                    index: 33,
+                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(2) > td:nth-child(1) > input',
                     value: (row) => row.nationality.isArabic && row.nameArabic.first
                   },
                   {
-                    xPath: '//input[@type="text"]',
-                    index: 34,
+                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(2) > td:nth-child(2) > input',
                     value: (row) => row.nationality.isArabic && row.nameArabic.father
                   },
                   {
-                    xPath: '//input[@type="text"]',
-                    index: 35,
+                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(2) > td:nth-child(3) > input',
                     value: (row) => row.nationality.isArabic && row.nameArabic.grand
                   },
                   {
-                    xPath: '//input[@type="text"]',
-                    index: 36,
+                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(2) > td:nth-child(4) > input',
                     value: (row) => row.nationality.isArabic && row.nameArabic.last
                   },
                   {
-                    xPath: '//input[@type="text"]',
-                    index: 45,
+                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(8) > td:nth-child(3) > table > tbody > tr > td:nth-child(1) > input',
                     value: (row) => row.birthPlace
                   },
                   {
-                    xPath: '//input[@type="text"]',
-                    index: 48,
-                    value: (row) => 'city'
-                  },
-                  {
-                    xPath: '//input[@type="text"]',
-                    index: 49,
+                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(10) > td:nth-child(4) > table > tbody > tr > td:nth-child(1) > input',
                     value: (row) => row.profession
                   },
                   {
-                    xPath: '//input[@type="text"]',
-                    index: 51,
+                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(1) > td:nth-child(6) > table > tbody > tr > td:nth-child(1) > input',
                     value: (row) => row.placeOfIssue
                   },
                   {
-                    xPath: '//input[@type="text"]',
-                    index: 53,
+                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(2) > td:nth-child(4) > table > tbody > tr > td:nth-child(1) > input',
                     value: (row) => row.passIssueDt.dd
                   },
                   {
-                    xPath: '//input[@type="text"]',
-                    index: 54,
+                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(2) > td:nth-child(4) > table > tbody > tr > td:nth-child(2) > input',
                     value: (row) => row.passIssueDt.mm
                   },
                   {
-                    xPath: '//input[@type="text"]',
-                    index: 55,
+                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(2) > td:nth-child(4) > table > tbody > tr > td:nth-child(3) > input',
                     value: (row) => row.passIssueDt.yyyy
+                  },
+                  {
+                    selector: '#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(10) > td:nth-child(3) > table > tbody > tr > td:nth-child(1) > input',
+                    value: (row) => row.nationality.name
                   },
                   {
                     xPath: '//select',
@@ -200,12 +189,6 @@ async function pageContentHandler(currentConfig) {
                   300,
                   "passport"
                 );
-                // const vaccineImage = await util.downloadAndResizeImage(
-                //   passenger,
-                //   400,
-                //   400,
-                //   "vaccine"
-                // );
 
                 await util.commitFile("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(1) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", portraitImage);
                 // await util.commitFile("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(12) > td:nth-child(3) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", vaccineImage);

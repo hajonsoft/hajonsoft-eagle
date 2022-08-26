@@ -127,6 +127,7 @@ async function initPage(config, onContentLoaded) {
   });
 
   page.on("dialog", async (dialog) => {
+    await page.waitForTimeout(5000);
     await dialog.accept();
   });
 
