@@ -16,7 +16,7 @@ const config = [
   {
     name: "login",
     url: `https://www.etawaf.com/tawaf${util.hijriYear}/index.html`,
-    regex: `https:\/\/www.etawaf.com\/tawaf${util.hijriYear}\/index(_ar)?.html\?locale=([a-z]{2})`,
+    regex: `https?:\/\/www.etawaf.com\/tawaf${util.hijriYear}\/index(_ar)?\.html`,
     details: [
       {
         selector:
@@ -39,11 +39,8 @@ async function send(sendData) {
 }
 
 async function onContentLoaded(res) {
-  counter = util.useCounter(counter);
-  if (counter >= data?.travellers?.length) {
-    return;
-  }
-  const currentConfig = util.findConfig(await page.url(), config);
+  const url = await page.url();
+  const currentConfig = util.findConfig(url, config);
   try {
     await pageContentHandler(currentConfig);
   } catch (err) {
@@ -55,8 +52,10 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      util.endCase(currentConfig.name);
-      // await page.waitForXPath("//button[contains(text(), 'Upload Passport')]", { timeout: 0 });
+      const token = await util.commitCaptchaTokenWithSelector(page, "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(1) > table > tbody > tr > td > img" , "#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(5) > td > table > tbody > tr > td:nth-child(2) > input", 5);
+      if (token) {
+        await page.click("#login > table > tbody > tr > td > table > tbody > tr:nth-child(2) > td > table > tbody > tr:nth-child(3) > td > table > tbody > tr:nth-child(6) > td > button");
+      }
       await page.waitForSelector("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(1) > table > tbody > tr > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(3) > td > img", { timeout: 0 });
       await util.controller(page, {
         controller: {
@@ -69,7 +68,7 @@ async function pageContentHandler(currentConfig) {
             if (selectedTraveler) {
               try {
                 await page.click('#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(5) > td > fieldset > table > tbody > tr > td:nth-child(1) > button');
-                fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
+                util.setSelectedTraveller(selectedTraveler);
                 const data = fs.readFileSync("./data.json", "utf-8");
                 var passengersData = JSON.parse(data);
                 var passenger = passengersData.travellers[selectedTraveler];
