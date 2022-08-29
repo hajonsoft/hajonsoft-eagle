@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const { send: sendEhj } = require("./src/ehj");
 const { send: sendBau } = require("./src/bau");
 const { send: sendWtu } = require("./src/wtu");
@@ -183,10 +184,14 @@ async function unzipFile(source) {
   console.log("hi");
   try {
     const files = fs.readFileSync(__dirname);
-    for (const file of files.filter((file) => file.endsWith("_photo.jpg") || file.endsWith("_mrz.jpg") || file.endsWith("_passport.jpg"))) {
+    for (const file of files.filter(
+      (file) =>
+        file.endsWith("_photo.jpg") ||
+        file.endsWith("_mrz.jpg") ||
+        file.endsWith("_passport.jpg")
+    )) {
       fs.unlinkSync(path.join(__dirName, file));
     }
-
   } catch {}
 
   try {
