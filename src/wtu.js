@@ -444,7 +444,7 @@ async function sendPassenger(passenger) {
     await page.evaluate((passportPath) => {
       const ele = document.createElement("canvas");
       ele.id = "canvas";
-      document.appendChild(ele);
+      document.body.appendChild(ele);
       const canvas = document.getElementById("canvas");
       const ctx = canvas.getContext("2d");
       // White background
