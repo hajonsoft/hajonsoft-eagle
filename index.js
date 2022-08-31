@@ -17,6 +17,8 @@ const {
   createEagleJson,
 } = require("./src/vsn");
 
+const util = require("./src/util");
+
 const path = require("path");
 const mrz = require("mrz");
 const Cryptr = require("cryptr");
@@ -99,6 +101,10 @@ async function submitToProvider() {
     }
   }
   console.log("\x1b[32m", `starting process ...`, "\x1b[0m");
+  const lastIndex = util.getSelectedTraveler();
+  if (lastIndex >= data.travellers.length) {
+    util.setSelectedTraveller(0);
+  }
 
   switch (data.system.name) {
     case "ehj":
@@ -181,7 +187,6 @@ async function submitToProvider() {
 }
 
 async function unzipFile(source) {
-  console.log("hi");
   try {
     const files = fs.readFileSync(__dirname);
     for (const file of files.filter(
