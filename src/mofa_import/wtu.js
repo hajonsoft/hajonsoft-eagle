@@ -20,7 +20,9 @@ async function injectWTUEagleButton() {
     await page.waitForSelector(tdSelector, { timeout: 0 });
     const isExposed = await page.evaluate("!!window.handleImportWTUMofa");
     if (!isExposed) {
-      await page.exposeFunction("handleImportWTUMofa", handleImportWTUMofa);
+      try {
+        await page.exposeFunction("handleImportWTUMofa", handleImportWTUMofa);
+      } catch {}
     }
     await page.$eval(
       tdSelector,
