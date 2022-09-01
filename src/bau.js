@@ -7,7 +7,8 @@ const path = require("path");
 const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
-const os = require("os")
+const os = require("os");
+const { default: axios } = require("axios");
 
 const SERVER_NUMBER = 1;
 let page;
@@ -28,15 +29,20 @@ const config = [
     regex: `https?://app${SERVER_NUMBER}.babalumra.com/Security/MainPage.aspx`,
   },
   {
+    name: "search-group",
+    regex: `https://app${SERVER_NUMBER}.babalumra.com/Groups/SearchGroups.aspx`,
+  },
+  {
     name: "create-group",
     regex: `https?://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx.gMode=1`,
     details: [
       {
         selector: "#ctl00_ContentHolder_TxtGroupName",
         value: (row) =>
-          row.info.caravan.replace(/ /g, "-").substring(0,20) +
+          row.info.caravan.replace(/ /g, "-").substring(0, 20) +
           "-" +
-          os.hostname().substring(0,8) + "_" + 
+          os.hostname().substring(0, 8) +
+          "_" +
           moment().format("MMDDHHmmss"),
       },
       {
@@ -89,12 +95,14 @@ async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      await util.premiumSupportAlert(page, '#form1 > div:nth-child(14) > div', data);
+      await util.premiumSupportAlert(
+        page,
+        "#form1 > div:nth-child(14) > div",
+        data
+      );
       await page.waitForSelector("#rdCap_CaptchaTextBox");
       await page.focus("#rdCap_CaptchaTextBox");
-      await page.evaluate(
-        "document.title='Eagle: Solving Captcha'"
-      );
+      await page.evaluate("document.title='Eagle: Solving Captcha'");
       await util.commitCaptchaToken(
         page,
         "rdCap_CaptchaImage",
@@ -115,10 +123,17 @@ async function runPageConfiguration(currentConfig) {
         `https://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx?gMode=1`
       );
       break;
+    case "search-group":
+      // remove target _blank from all links
+      await page.evaluate(() => {
+        const links = document.querySelectorAll("a");
+        links.forEach((link) => {
+          link.removeAttribute("target");
+        });
+      });
+      break;
     case "create-group":
-      await page.evaluate(
-        "document.title='Eagle: Create group'"
-      );
+      await page.evaluate("document.title='Eagle: Create group'");
       const groupName = await page.$eval(
         "#ctl00_ContentHolder_TxtGroupName",
         (e) => e.value
@@ -133,21 +148,22 @@ async function runPageConfiguration(currentConfig) {
         );
         const consulateOptions = consulate.querySelectorAll("option");
         const consulateOptionsCount = [...consulateOptions].length;
-        if (consulateOptionsCount === 2) {
-          consulateOptions[1].selected = true;
-        }
+        consulateOptions[1].selected = true;
       });
-      // await page.click("#ctl00_ContentHolder_btnCreate");
-      // #ctl00_ContentHolder_LblDepLtPackEnd
+
+      await page.waitForTimeout(10000);
+      try {
+        await page.waitForSelector("#ctl00_ContentHolder_LstConsulate", {
+          timeout: 5000,
+        });
+        await page.click("#ctl00_ContentHolder_btnCreate");
+      } catch {}
       break;
     case "create-mutamer":
       await util.controller(page, currentConfig, data.travellers);
       if (fs.existsSync("./loop.txt")) {
         const currentIndex = util.getSelectedTraveler();
-        const passenger =
-          data.travellers[
-            parseInt(currentIndex)
-          ];
+        const passenger = data.travellers[parseInt(currentIndex)];
         sendPassenger(passenger);
       }
       break;
@@ -187,7 +203,10 @@ async function sendPassenger(passenger) {
   await util.commit(
     page,
     [
-      { selector: "#ctl00_ContentHolder_LstTitle", value: (row) => "99" },
+      {
+        selector: "#ctl00_ContentHolder_LstTitle",
+        value: (row) => (row.gender === "Male" ? "1" : "3"),
+      },
       {
         selector: "#ctl00_ContentHolder_txtMutamerOcc",
         value: (row) => decodeURI(row.profession),
@@ -229,7 +248,8 @@ async function sendPassenger(passenger) {
       {
         selector: "#ctl00_ContentHolder_LstType",
         value: (row) =>
-          row.codeline?.replace(/\n/g,'')?.substring(2, 5) != row.codeline?.replace(/\n/g,'')?.substring(54, 57)
+          row.codeline?.replace(/\n/g, "")?.substring(2, 5) !=
+          row.codeline?.replace(/\n/g, "")?.substring(54, 57)
             ? "3"
             : "1",
       },
@@ -239,18 +259,48 @@ async function sendPassenger(passenger) {
       },
       {
         selector: "#ctl00_ContentHolder_LstAddressCountry",
-        value: (row) => util.getIssuingCountry(row)?.telCode,
+        value: (row) =>  util.getIssuingCountry(row)?.telCode,
       },
     ],
     passenger
   );
+  // Try to get the current city of the passenger
+  const currentLocation = await axios.get("https://ipapi.co/json/");
+  if (currentLocation?.data?.city) {
+    await util.commit(
+      page,
+      [
+        {
+          selector: "#ctl00_ContentHolder_TxtAddressCity",
+          value: (row) => currentLocation?.data?.city,
+        },
+      ],
+      passenger
+    );
+  }
+
+  // commit "#ctl00_ContentHolder_LstAddressCountry" from system.country.telCode
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#ctl00_ContentHolder_LstAddressCountry",
+        value: (row) => row.country?.telCode,
+      },
+    ],
+    data.system
+  )
+
   // paste 2 images
   let photoPath = path.join(
     util.photosFolder,
     `${passenger.passportNumber}.jpg`
   );
   await util.downloadImage(passenger.images.photo, photoPath);
-  photoPath = util.getOverridePath(photoPath, path.join(__dirname, `../photos/${passenger.passportNumber}.jpg`) );
+  photoPath = util.getOverridePath(
+    photoPath,
+    path.join(__dirname, `../photos/${passenger.passportNumber}.jpg`)
+  );
   await page.waitForSelector("#ctl00_ContentHolder_imgSelectedFile");
   let futureFileChooser = page.waitForFileChooser();
   await page.evaluate(() =>
@@ -305,8 +355,7 @@ async function sendPassenger(passenger) {
 
   await page.waitForTimeout(10000);
   await page.waitForSelector("#ctl00_ContentHolder_BtnEdit");
-  await page.click("#ctl00_ContentHolder_BtnEdit")
-  
+  await page.click("#ctl00_ContentHolder_BtnEdit");
 }
 
 module.exports = { send, config, SERVER_NUMBER };
