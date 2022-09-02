@@ -213,7 +213,7 @@ async function pageContentHandler(currentConfig) {
         if (new RegExp(createGroupRegex).test(url)) {
           page.click("#BtnSave");
         }
-      }, 10000);
+      }, 15000);
 
       // Wait for this string: Group saved successfully, Group code is 153635
       const groupCreatedSuccessfullyElement =

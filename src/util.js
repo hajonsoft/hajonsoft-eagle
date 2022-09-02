@@ -702,7 +702,7 @@ async function handleLoadImportedOnlyClick() {
 
 function getSelectedTraveler() {
   const range = process.argv.find((arg) => arg.startsWith("range="));
-  const fileName = "./selectedTraveller" + range + ".txt";
+  const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
   if (fs.existsSync(fileName)) {
     return fs.readFileSync(fileName, "utf8");
   }
@@ -713,8 +713,8 @@ function getSelectedTraveler() {
     return start;
   }
 
-  fs.writeFileSync(fileName, "-1");
-  return "-1";
+  fs.writeFileSync(fileName, "0");
+  return "0";
 }
 
 function incrementSelectedTraveler(overrideValue) {
@@ -722,7 +722,7 @@ function incrementSelectedTraveler(overrideValue) {
   const nextTraveler = parseInt(selectedTraveler) + 1;
   const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
   const range = process.argv.find((arg) => arg.startsWith("range="));
-  const fileName = "./selectedTraveller" + range + ".txt";
+  const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
   let start, end;
   if (range) {
     [start, end] = range.split("=")?.[1]?.split("-");
@@ -745,7 +745,7 @@ function incrementSelectedTraveler(overrideValue) {
 function setSelectedTraveller(value) {
   getSelectedTraveler(); //initialize
   const range = process.argv.find((arg) => arg.startsWith("range="));
-  const fileName = "./selectedTraveller" + range + ".txt";
+  const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
   if (fs.existsSync(fileName)) {
     return fs.writeFileSync(fileName, value.toString());
   }
