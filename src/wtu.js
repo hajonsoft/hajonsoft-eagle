@@ -129,26 +129,6 @@ const config = [
         selector: "#txtppisscity",
         value: (row) => decodeURI(row.placeOfIssue),
       },
-      {
-        selector: "#txtcity",
-        value: (row) => "",
-        autocomplete: "wtu_address_city",
-      },
-      {
-        selector: "#txtstreet",
-        value: (row) => "",
-        autocomplete: "wtu_address_street",
-      },
-      {
-        selector: "#txtstate",
-        value: (row) => "",
-        autocomplete: "wtu_address_state",
-      },
-      {
-        selector: "#txtzipcode",
-        value: (row) => "",
-        autocomplete: "wtu_address_zipcode",
-      },
     ],
   },
 ];
@@ -363,7 +343,6 @@ async function sendPassenger(passenger) {
   if (!process.argv.includes("noimage")) {
     await util.commitFile("#fuppcopy", resizedPassportPath);
   }
-  // await page.emulateVisionDeficiency("none");
   token = await util.commitCaptchaTokenWithSelector(
     page,
     "#imgtxtsv",
@@ -439,47 +418,45 @@ async function sendPassenger(passenger) {
   }
 
   const blankPassportPath = `./${passenger.passportNumber}_mrz.jpg`;
-  if (!fs.existsSync(blankPassportPath)) {
-    // Try to generate it using the browser, then save it and then use it
-    await page.evaluate((passportPath) => {
-      const ele = document.createElement("canvas");
-      ele.id = "canvas";
-      document.body.appendChild(ele);
-      const canvas = document.getElementById("canvas");
-      const ctx = canvas.getContext("2d");
-      // White background
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Try to generate it using the browser, then save it and then use it
+  const dataUrl = await page.evaluate((passenger) => {
+    const ele = document.createElement("canvas");
+    ele.id = "hajonsoftcanvas";
+    ele.style.display = "none";
+    document.body.appendChild(ele);
+    const canvas = document.getElementById("hajonsoftcanvas");
+    canvas.width = 400;
+    canvas.height = 300;
+    const ctx = canvas.getContext("2d");
+    // White background
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.fillStyle = "black";
-      // Font must be 11 to fit in the canvas
-      ctx.font = "11px Verdana, Verdana, Geneva, sans-serif";
-      ctx.fillText(
-        passenger.codeline?.substring(0, 44),
-        15,
-        canvas.height - 45
-      );
-      ctx.fillText(passenger.codeline?.substring(44), 15, canvas.height - 25);
+    ctx.fillStyle = "black";
+    // Font must be 11 to fit in the canvas
+    ctx.font = "11px Verdana, Verdana, Geneva, sans-serif";
+    ctx.fillText(passenger.codeline?.substring(0, 44), 15, canvas.height - 45);
+    ctx.fillText(passenger.codeline?.substring(44), 15, canvas.height - 25);
 
-      // Photo
-      ctx.lineWidth = 1;
-      ctx.fillStyle = "hsl(240, 25%, 94%)";
-      ctx.fillRect(45, 25, 100, 125);
-      // Visible area
-      ctx.fillStyle = "hsl(240, 25%, 94%)";
-      ctx.fillRect(170, 25, 200, 175);
+    // Photo
+    ctx.lineWidth = 1;
+    ctx.fillStyle = "hsl(240, 25%, 94%)";
+    ctx.fillRect(45, 25, 100, 125);
+    // Visible area
+    ctx.fillStyle = "hsl(240, 25%, 94%)";
+    ctx.fillRect(170, 25, 200, 175);
 
-      // under photo area
-      ctx.fillStyle = "hsl(240, 25%, 94%)";
-      ctx.fillRect(45, 165, 100, 35);
-      canvas.toBlob(
-        (blob) => fs.writeFileSync(passportPath, blob),
-        "image/jpg",
-        1
-      );
-    }, blankPassportPath);
-    return;
-  }
+    // under photo area
+    ctx.fillStyle = "hsl(240, 25%, 94%)";
+    ctx.fillRect(45, 165, 100, 35);
+    return canvas.toDataURL("image/jpeg", 1.0);
+  }, passenger);
+
+  // Save dataUrl to file
+  const imageData = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+  const buf = Buffer.from(imageData, "base64");
+  fs.writeFileSync(blankPassportPath, buf);
+
   await page.waitForSelector("#imgppcopy");
   if (!process.argv.includes("noimage")) {
     await util.commitFile("#fuppcopy", blankPassportPath);
