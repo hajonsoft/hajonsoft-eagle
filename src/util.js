@@ -123,7 +123,7 @@ async function initPage(config, onContentLoaded) {
   });
   // Catch console log errors
   page.on("pageerror", (err) => {
-    console.log(`Page error: ${err.toString()}`);
+    console.log(`Eagle: Page error=>  ${err.toString()}`);
   });
 
   page.on("dialog", async (dialog) => {
@@ -134,7 +134,14 @@ async function initPage(config, onContentLoaded) {
   });
 
   if (process.argv.length > 2) {
-    page.on("console", (msg) => console.log(msg.text()));
+    page.on("console", (msg) => {
+      console.log("Eagle: Message=> " + msg.text());
+      // restart node process
+      if (msg.text().includes("500 (Internal Server Error)")) {
+        // process.exit(1);
+      }
+
+    });
   }
   await page.setUserAgent(
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36."
@@ -1211,6 +1218,7 @@ async function commitCaptchaTokenWithSelector(
   textFieldSelector,
   captchaLength = 6
 ) {
+  await page.evaluate("document.title='Eagle: Captcha thinking...'");
   try {
     const base64 = await page.evaluate((selector) => {
       const image = document.querySelector(selector);
@@ -1244,9 +1252,10 @@ async function commitCaptchaTokenWithSelector(
       [{ selector: textFieldSelector, value: () => token.toString() }],
       {}
     );
+    await page.evaluate("document.title='Eagle: Captcha solved!'");
     return token;
   } catch (err) {
-    // console.log(err);
+    await page.evaluate("document.title='Eagle: Captcha error!!'");
   }
 }
 

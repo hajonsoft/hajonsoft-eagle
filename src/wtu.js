@@ -179,10 +179,18 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "main":
-      await page.goto(
-        "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx?PageId=M"
-      );
-
+      // set document title
+      page.evaluate("document.title='Eagle: Pause 10 seconds'");
+      await page.waitForTimeout(10000);
+      // Continue only if still on the same page
+      if (
+        currentConfig.name ===
+        (await util.findConfig(await page.url(), config)).name
+      ) {
+        await page.goto(
+          "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx?PageId=M"
+        );
+      }
       break;
     case "create-group":
       await util.commit(page, currentConfig.details, data);
@@ -205,13 +213,17 @@ async function pageContentHandler(currentConfig) {
 
       await page.focus("#BtnSave");
       await page.hover("#BtnSave");
+      // update title
+      await page.evaluate("document.title='Eagle: pause 15 seconds'");
       setTimeout(async () => {
         const url = await page.url();
         const createGroupRegex = config.find(
           (c) => c.name === "create-group"
         ).regex;
         if (new RegExp(createGroupRegex).test(url)) {
-          page.click("#BtnSave");
+          try {
+            await page.click("#BtnSave");
+          } catch {}
         }
       }, 15000);
 
@@ -243,12 +255,15 @@ async function pageContentHandler(currentConfig) {
         return sendPassenger(passenger);
       }
 
+      await page.evaluate("document.title='Eagle: Pause 10 seconds'");
+      await page.waitForTimeout(10000);
+
       setTimeout(() => {
         if (status === "") {
           fs.writeFileSync("./loop.txt", "1");
           sendPassenger(passenger);
         }
-      }, 5000);
+      }, 10000);
 
       break;
     default:
@@ -298,8 +313,10 @@ async function sendPassenger(passenger) {
     passenger
   );
   if (passenger.gender == "Female") {
-    await page.waitForSelector("#ddlrelation");
-    await page.select("#ddlrelation", "15");
+    try {
+      await page.waitForSelector("#ddlrelation");
+      await page.select("#ddlrelation", "15");
+    } catch {}
   }
 
   let resizedPhotoPath = await util.downloadAndResizeImage(
@@ -322,27 +339,26 @@ async function sendPassenger(passenger) {
     path.join(__dirname, `../photos/${passenger.passportNumber}.jpg`)
   );
 
-  if (!process.argv.includes("noimage")) {
-    await page.click("#btn_uploadImage");
-    await page.waitForTimeout(2000);
-    await util.commitFile("#file_photo_upload", resizedPhotoPath);
-    await page.waitForTimeout(2000);
-    try {
-      const isProceedBtn = await page.$("#btnProceedtoUpload");
-      if (isProceedBtn) {
-        await page.$eval("#btnProceedtoUpload", (e) => e.click());
-      }
-      await page.waitForNavigation();
-    } catch (err) {
-      console.log("Canvas: dummy-passport-error", err);
+  await page.click("#btn_uploadImage");
+  await page.waitForTimeout(2000);
+  await util.commitFile("#file_photo_upload", resizedPhotoPath);
+  await page.waitForTimeout(2000);
+  try {
+    const isProceedBtn = await page.$("#btnProceedtoUpload");
+    if (isProceedBtn) {
+      await page.$eval("#btnProceedtoUpload", (e) => e.click());
     }
+    await page.waitForNavigation();
+  } catch (err) {
+    console.log("Canvas: dummy-passport-error", err);
   }
 
   // Upload the passport image
   await page.waitForSelector("#imgppcopy");
-  if (!process.argv.includes("noimage")) {
-    await util.commitFile("#fuppcopy", resizedPassportPath);
-  }
+  await util.commitFile("#fuppcopy", resizedPassportPath);
+  // scroll to bottom
+  await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
+
   token = await util.commitCaptchaTokenWithSelector(
     page,
     "#imgtxtsv",
@@ -353,39 +369,48 @@ async function sendPassenger(passenger) {
     page,
     config.find((c) => c.name == "create-mutamer")?.details
   );
-  // This is assumed. fix starting from here. Because passports can succeed from the first time - check if you this is a new page refresh?
+  // This is assumed. fix starting from here. Because passports can succeed from the first time - check if this is a new page refresh?
   // TODO: Wait for success message before advancing the counter
   try {
-    const keaParams = {};
     await page.waitForSelector("#btnsave");
     await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
-    util.incrementSelectedTraveler();
-
-    try {
-      await page.waitForSelector(
-        "body > div.lobibox-notify-wrapper > div.lobibox-notify.lobibox-notify-success",
-        {
-          timeout: 10000,
-        }
-      );
-      // Store submitted reason in kea
-      util.updatePassengerInKea(
-        data.system.accountId,
-        passenger.passportNumber,
-        {
-          "submissionData.wtu.status": "Submitted",
-        }
-      );
-    } catch {}
-
-    const errorMessage = await page.waitForSelector(
-      "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span"
+    // Wait for this string: Mutamer saved successfully
+    await page.waitForSelector(
+      "body > div.lobibox-notify-wrapper > div.lobibox-notify.lobibox-notify-success",
+      {
+        timeout: 10000,
+      }
     );
+    // Store submitted reason in kea
+    util.updatePassengerInKea(data.system.accountId, passenger.passportNumber, {
+      "submissionData.wtu.status": "Submitted",
+    });
+  } catch {}
 
-    // Store error reason in kea
+  // If there is a passport number still that means it is the same page
+  await page.waitForTimeout(2000);
+  await page.waitForSelector("#txtppno");
+  const pn = await page.$eval("#txtppno", (e) => e.value);
+  if (!pn) {
+    util.incrementSelectedTraveler();
+    return page.goto(
+      "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+    );
+  }
+
+  // If there is a passport number still that means it is the same page
+
+  // Passenger rejected
+  const errorMessageSelector =
+    "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span";
+  const isError = await page.$(errorMessageSelector);
+
+  // Store error reason in kea
+  if (isError) {
     util.updatePassengerInKea(data.system.accountId, passenger.passportNumber, {
       "submissionData.wtu.status": "Rejected",
-      "submissionData.wtu.rejectionReason": await errorMessage.evaluate(
+      "submissionData.wtu.rejectionReason": await page.$eval(
+        errorMessageSelector,
         (el) => el.textContent
       ),
     });
@@ -394,32 +419,12 @@ async function sendPassenger(passenger) {
     );
 
     await errorButton.click();
-  } catch {}
-
-  // If there is a passport number still that means it is the same page
-  await page.waitForTimeout(2000);
-  await page.waitForSelector("#txtppno");
-  const pn = await page.$eval("#txtppno", (e) => e.value);
-  if (!pn) {
-    await page.waitForTimeout(5000);
-    // Write to Kea
-    const params = {
-      mofaNumber: "check..",
-    };
-    util.updatePassengerInKea(
-      data.system.accountId,
-      passenger.passportNumber,
-      params
-    );
-    await page.goto(
-      "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
-    );
-    return;
   }
 
+  // Use fake passport image
   const blankPassportPath = `./${passenger.passportNumber}_mrz.jpg`;
-  // Try to generate it using the browser, then save it and then use it
-  const dataUrl = await page.evaluate((passenger) => {
+  // Generate fake passport image using the browser canvas api
+  const dataUrl = await page.evaluate((_passenger) => {
     const ele = document.createElement("canvas");
     ele.id = "hajonsoftcanvas";
     ele.style.display = "none";
@@ -435,8 +440,16 @@ async function sendPassenger(passenger) {
     ctx.fillStyle = "black";
     // Font must be 11 to fit in the canvas
     ctx.font = "11px Verdana, Verdana, Geneva, sans-serif";
-    ctx.fillText(passenger.codeline?.substring(0, 44), 15, canvas.height - 45);
-    ctx.fillText(passenger.codeline?.substring(44), 15, canvas.height - 25);
+    ctx.fillText(
+      _passenger.codeline?.replace(/\n/g, "")?.substring(0, 44),
+      15,
+      canvas.height - 45
+    );
+    ctx.fillText(
+      _passenger.codeline?.replace(/\n/g, "")?.substring(44),
+      15,
+      canvas.height - 25
+    );
 
     // Photo
     ctx.lineWidth = 1;
@@ -458,39 +471,31 @@ async function sendPassenger(passenger) {
   fs.writeFileSync(blankPassportPath, buf);
 
   await page.waitForSelector("#imgppcopy");
-  if (!process.argv.includes("noimage")) {
-    await util.commitFile("#fuppcopy", blankPassportPath);
-  }
+  await util.commitFile("#fuppcopy", blankPassportPath);
   try {
-    await page.type("#txtImagetext", token?.toString());
     await page.evaluate(
-      "document.title='Eagle: mrz fix " + passenger.name.full + "'"
+      "document.title='Eagle: retry passport " + passenger.name.full + "'"
     );
-    setTimeout(async () => {
-      try {
-        if (token === (await page.$eval("#txtImagetext", (e) => e.value))) {
-          await page.click("#btnsave");
-          try {
-            await page.waitForSelector(
-              "body > div.lobibox-notify-wrapper > div.lobibox-notify.lobibox-notify-success",
-              {
-                timeout: 20000,
-              }
-            );
-            // Store submitted reason in kea
-            util.updatePassengerInKea(
-              data.system.accountId,
-              passenger.passportNumber,
-              {
-                "submissionData.wtu.status": "Submitted",
-              }
-            );
-          } catch {}
-        }
-      } catch (err) {
-        console.log("Canvas: skipped silent", err);
+    await util.commitCaptchaTokenWithSelector(
+      page,
+      "#imgtxtsv",
+      "#txtImagetext",
+      5
+    );
+    await page.click("#btnsave");
+    await page.waitForSelector(
+      "body > div.lobibox-notify-wrapper > div.lobibox-notify.lobibox-notify-success",
+      {
+        timeout: 10000,
       }
-    }, 3000);
+    );
+    util.updatePassengerInKea(data.system.accountId, passenger.passportNumber, {
+      "submissionData.wtu.status": "Submitted",
+    });
+    util.incrementSelectedTraveler();
+    return page.goto(
+      "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+    );
   } catch (err) {
     console.log("Canvas: dummy-passport-error", err);
   }
