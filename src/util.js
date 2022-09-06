@@ -1315,15 +1315,9 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
 }
 
 const infoMessage = async (page, message, depth = 2) => {
-  console.log(`Eagle📣${".".repeat(depth)}${message}`);
+  console.log(`🦅 ${".".repeat(depth)}${message}`);
   if (page) {
     try {
-      await page.evaluate((message) => {
-        const info = document.createElement("div");
-        info.innerText = message;
-        info.style.color = "blue";
-        document.body.appendChild(info);
-      }, message);
       await page.evaluate("document.title='" + message + "'");
     } catch {}
   }
