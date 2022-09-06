@@ -153,9 +153,8 @@ async function pageContentHandler(currentConfig) {
   const passenger = data?.travellers?.[parseInt(lastIndex)];
   switch (currentConfig.name) {
     case "login":
+      util.infoMessage(page, "Captcha thinking");
       await util.commit(page, currentConfig.details, data.system);
-      // use selector or Id for the image
-      page.evaluate("document.title='Eagle: Captcha thinking'");
       await page.waitForTimeout(3000);
       token = await util.commitCaptchaTokenWithSelector(
         page,
@@ -165,10 +164,10 @@ async function pageContentHandler(currentConfig) {
       );
 
       if (!token) {
-        page.evaluate("document.title='Eagle: Captcha Failed'");
+        util.infoMessage(page, "Captcha Failed");
         return;
       }
-      page.evaluate("document.title='Eagle: Captcha solved'");
+      util.infoMessage(page, "Captcha Solved");
 
       await page.waitForTimeout(5000);
       await page.click("#cmdlogin");
@@ -213,8 +212,7 @@ async function pageContentHandler(currentConfig) {
 
       await page.focus("#BtnSave");
       await page.hover("#BtnSave");
-      // update title
-      await page.evaluate("document.title='Eagle: pause 15 seconds'");
+      util.infoMessage(page, "Redirect in 15 seconds");
       setTimeout(async () => {
         const url = await page.url();
         const createGroupRegex = config.find(
@@ -255,7 +253,7 @@ async function pageContentHandler(currentConfig) {
         return sendPassenger(passenger);
       }
 
-      await page.evaluate("document.title='Eagle: Pause 10 seconds'");
+      util.infoMessage(page, "Redirect in 10 seconds");
       await page.waitForTimeout(10000);
 
       setTimeout(() => {
