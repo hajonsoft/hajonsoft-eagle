@@ -180,7 +180,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "main":
       // set document title
-      util.infoMessage(page, "Redirect in 10 seconds);
+      util.infoMessage(page, "Redirect in 10 seconds");
       await page.waitForTimeout(10000);
       // Continue only if still on the same page
       if (
