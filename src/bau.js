@@ -41,13 +41,8 @@ const config = [
         value: (row) =>
           row.info.caravan.replace(/ /g, "-").substring(0, 20) +
           "-" +
-          os.hostname().substring(0, 8) +
-          "_" +
-          moment().format("MMDDHHmmss"),
-      },
-      {
-        selector: "#ctl00_ContentHolder_TxtNotes",
-        value: () => new Date().toString(),
+          `${os.hostname()
+            .substring(0, 8)}}${moment().format("mmss")}_${row.info.run}`,
       },
       {
         selector: "#ctl00_ContentHolder_TxtExpectedArrivalDate_dateInput",
@@ -102,7 +97,6 @@ async function runPageConfiguration(currentConfig) {
       );
       await page.waitForSelector("#rdCap_CaptchaTextBox");
       await page.focus("#rdCap_CaptchaTextBox");
-      await page.evaluate("document.title='Eagle: Solving Captcha'");
       await util.commitCaptchaToken(
         page,
         "rdCap_CaptchaImage",
@@ -115,7 +109,7 @@ async function runPageConfiguration(currentConfig) {
           "document.querySelector('#rdCap_CaptchaTextBox').value.length === 5"
         );
         await page.click("#lnkLogin");
-      } catch {}
+      } catch { }
 
       break;
     case "main":
@@ -133,7 +127,6 @@ async function runPageConfiguration(currentConfig) {
       });
       break;
     case "create-group":
-      await page.evaluate("document.title='Eagle: Create group'");
       const groupName = await page.$eval(
         "#ctl00_ContentHolder_TxtGroupName",
         (e) => e.value
@@ -142,12 +135,12 @@ async function runPageConfiguration(currentConfig) {
         return;
       }
       await util.commit(page, currentConfig.details, data);
+      util.infoMessage(page, `Creating group ${groupName || `${data.info.caravan.replace(/ /g, "-").substring(0, 20)}-${os.hostname().substring(0, 8)}`}`);
       await page.evaluate(() => {
         const consulate = document.querySelector(
           "#ctl00_ContentHolder_LstConsulate"
         );
         const consulateOptions = consulate.querySelectorAll("option");
-        const consulateOptionsCount = [...consulateOptions].length;
         consulateOptions[1].selected = true;
       });
 
@@ -157,7 +150,7 @@ async function runPageConfiguration(currentConfig) {
           timeout: 5000,
         });
         await page.click("#ctl00_ContentHolder_btnCreate");
-      } catch {}
+      } catch { }
       break;
     case "create-mutamer":
       await util.controller(page, currentConfig, data.travellers);
@@ -165,6 +158,11 @@ async function runPageConfiguration(currentConfig) {
         const currentIndex = util.getSelectedTraveler();
         const passenger = data.travellers[parseInt(currentIndex)];
         sendPassenger(passenger);
+      } else {
+        util.infoMessage(page, `pausing for 10 seconds`);
+        await page.waitForTimeout(10000);
+        fs.writeFileSync("./loop.txt", "loop");
+        await page.reload();
       }
       break;
     default:
@@ -173,8 +171,7 @@ async function runPageConfiguration(currentConfig) {
 }
 
 async function sendPassenger(passenger) {
-  // const titleMessage = `document.title=Eagle: Send.. ${util.getSelectedTraveler()}/${data.travellers?.length} ${passenger.name?.full}`;
-  // await page.evaluate(titleMessage);
+  util.infoMessage(page, `Sending passenger ${passenger.slug}`);
   const passportNumber = await page.$eval(
     "#ctl00_ContentHolder_TxtNumber",
     (e) => e.value
@@ -249,7 +246,7 @@ async function sendPassenger(passenger) {
         selector: "#ctl00_ContentHolder_LstType",
         value: (row) =>
           row.codeline?.replace(/\n/g, "")?.substring(2, 5) !=
-          row.codeline?.replace(/\n/g, "")?.substring(54, 57)
+            row.codeline?.replace(/\n/g, "")?.substring(54, 57)
             ? "3"
             : "1",
       },
@@ -259,7 +256,7 @@ async function sendPassenger(passenger) {
       },
       {
         selector: "#ctl00_ContentHolder_LstAddressCountry",
-        value: (row) =>  util.getIssuingCountry(row)?.telCode,
+        value: (row) => util.getIssuingCountry(row)?.telCode,
       },
     ],
     passenger
@@ -318,6 +315,7 @@ async function sendPassenger(passenger) {
     })
     .toFile(resizedPhotoPath);
   await fileChooser.accept([resizedPhotoPath]);
+  util.infoMessage(page, `portraight accepted ${resizedPhotoPath}`);
 
   const passportPath = path.join(
     util.passportsFolder,
@@ -343,6 +341,8 @@ async function sendPassenger(passenger) {
       })
       .toFile(resizedPassportFile);
     await fileChooser.accept([resizedPassportFile]);
+    util.infoMessage(page, `passport accepted ${resizedPassportFile}`);
+
   }
 
   await util.commitCaptchaToken(

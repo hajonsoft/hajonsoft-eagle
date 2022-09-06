@@ -80,6 +80,26 @@ function printBudgie() {
   process.exit(0);
 }
 
+async function sendToCloud(data) {
+  console.log("cloud submit command");
+  const fileName = process.argv.find((arg) =>
+    arg.toLowerCase().startsWith("file")
+  )?.split("=")?.[1];
+  const command = `git add . && git commit -m ${fileName} && git push && git push origin $(git branch --show-current):job --force`;
+  const childProcess = require('child_process');
+  let gitCommand;
+  gitCommand = childProcess.exec(command, function (error, stdout, stderr) {
+    if (error) {
+      console.log(error.stack);
+      console.log('Error code: ' + error.code);
+      console.log('Signal received: ' + error.signal);
+    } console.log('Child Process STDOUT: ' + stdout); console.log('Child Process STDERR: ' + stderr);
+  });
+
+
+  console.log("Status: https://github.com/hajonsoft/hajonsoft-eagle/actions");
+}
+
 async function submitToProvider() {
   const dataFileName = await getDataFileName();
   const content = fs.readFileSync(dataFileName, "utf8");
@@ -100,11 +120,16 @@ async function submitToProvider() {
       // console.log(data.system.password);
     }
   }
-  console.log("\x1b[32m", `starting process ...`, "\x1b[0m");
+  console.log("\x1b[32m", `starting process ...[${util.getSelectedTraveler()}]`, "\x1b[0m");
   const lastIndex = util.getSelectedTraveler();
   if (lastIndex >= data.travellers.length) {
     util.setSelectedTraveller(0);
   }
+
+  if (process.argv.includes("-cloud") || process.argv.includes("-submit")) {
+    return sendToCloud(data);
+  }
+
 
   switch (data.system.name) {
     case "ehj":
@@ -197,7 +222,7 @@ async function unzipFile(source) {
     )) {
       fs.unlinkSync(path.join(__dirName, file));
     }
-  } catch {}
+  } catch { }
 
   try {
     await extract(source, { dir: __dirname });
