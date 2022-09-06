@@ -1168,7 +1168,7 @@ function getSelectedTraveler() {
       });
 
       const token = await captchaSolver.get(id);
-      infoMessage(page, `Captcha token: ${token}`);
+      infoMessage(page, `Captcha solved! ${token}`);
 
 
       await commit(
