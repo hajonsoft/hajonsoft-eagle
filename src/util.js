@@ -676,11 +676,6 @@ async function handleLoadImportedOnlyClick() {
 
   fs.writeFileSync("./data.json", JSON.stringify(data));
   await browser.close();
-  // Restart process ...
-  // spawn(process.argv[0], process.argv.slice(1, 2), {
-  //   env: { process_restarting: 1 },
-  //   stdio: "ignore",
-  // }).unref();
 }
 
 function getSelectedTraveler() {
