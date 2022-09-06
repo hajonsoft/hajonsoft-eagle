@@ -89,7 +89,7 @@ function getIssuingCountry(passenger) {
   return issuingCountry;
 }
 
-async function initPage(config, onContentLoaded) {
+async function initPage(config, onContentLoaded, data) {
   const args = [
     "--incognito",
     "--disable-web-security",
@@ -100,16 +100,17 @@ async function initPage(config, onContentLoaded) {
   if (!process.argv.find((c) => c.startsWith("range="))) {
     args.push("--start-fullscreen");
   }
-
-  browser = await puppeteer.launch({
-    // executablePath: "c:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-    // executablePath: "c:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    // executablePath: getChromePath(),
-    headless: false,
+  const launchOptions = {
+    headless: data?.info?.caravan?.startsWith("CLOUD_"),
     ignoreHTTPSErrors: true,
     defaultViewport: null,
     args,
-  });
+  }
+
+  if (data?.info?.caravan?.startsWith("CLOUD_")) {
+    launchOptions.executablePath = getChromePath();
+  }
+  browser = await puppeteer.launch(launchOptions);
   const pages = await browser.pages();
   page = pages[0];
   await page.bringToFront();
@@ -676,577 +677,564 @@ async function handleLoadImportedOnlyClick() {
 
   fs.writeFileSync("./data.json", JSON.stringify(data));
   await browser.close();
-  // Restart process ...
-  // spawn(process.argv[0], process.argv.slice(1, 2), {
-  //   env: { process_restarting: 1 },
-  //   stdio: "ignore",
-  // }).unref();
 }
 
 function getSelectedTraveler() {
   const range = process.argv.find((arg) => arg.startsWith("range="));
   const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
-  if (fs.existsSync(fileName)) {
-    return fs.readFileSync(fileName, "utf8");
-  }
-
-  if (range) {
-    const [start, end] = range.split("=")?.[1]?.split("-");
-    fs.writeFileSync(fileName, (parseInt(start) - 1).toString());
-    return start;
-  }
-
-  fs.writeFileSync(fileName, "0");
-  return "0";
-}
-
-function incrementSelectedTraveler(overrideValue) {
-  const selectedTraveler = getSelectedTraveler();
-  const nextTraveler = parseInt(selectedTraveler) + 1;
   const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
-  const range = process.argv.find((arg) => arg.startsWith("range="));
-  const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
-  let start, end;
-  if (range) {
-    [start, end] = range.split("=")?.[1]?.split("-");
-    fs.writeFileSync(fileName, (parseInt(start) - 1).toString());
-    // TODO: handle end
-    if (fs.existsSync("./loop.txt") && nextTraveler >= end) {
-      fs.unlinkSync("./loop.txt");
-      page.evaluate("document.title='Eagle: All done!'");
-    }
-    return;
-  }
-  fs.writeFileSync(fileName, nextTraveler.toString());
-  // TODO: handle end
-  if (fs.existsSync("./loop.txt") && nextTraveler >= data?.travellers?.length) {
-    fs.unlinkSync("./loop.txt");
-  }
-  return nextTraveler;
-}
-
-function setSelectedTraveller(value) {
-  getSelectedTraveler(); //initialize
-  const range = process.argv.find((arg) => arg.startsWith("range="));
-  const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
   if (fs.existsSync(fileName)) {
-    return fs.writeFileSync(fileName, value.toString());
+    const lastIndex = fs.readFileSync(fileName, "utf8");
+    if ((parseInt(lastIndex) > data.travellers.length) || (range && parseInt(lastIndex) > parseInt(range.split("=")[1].split("-")[1]))) {
+      process.exit(0);
+    }
+    if (range && lastIndex < parseInt(range.split("=")[1].split("-")[0])) {
+      return range.split("=")[1].split("-")[0];
+    }
+    return lastIndex;
+  }
+  else {
+    fs.writeFileSync(fileName, "0");
+    if (range) {
+      return range.split("=")[1].split("-")[0];
+    }
+    return "0";
   }
 }
 
-function useCounter(currentCounter) {
-  return getSelectedTraveler(currentCounter);
-}
 
-function setCounter(currentCounter = 0) {
-  incrementSelectedTraveler(currentCounter);
-}
-
-async function commitFile(selector, fileName, imgElementSelector) {
-  if (!fs.existsSync(fileName) || process.argv.includes("noimage")) {
-    return;
-  }
-  await page.waitForSelector(selector);
-  if (imgElementSelector) {
-    await page.waitForSelector(imgElementSelector);
-  }
-  // This must be an input with type="file"
-  const input = await page.$(selector);
-  await input.uploadFile(fileName);
-  // await page.$eval(imgElementSelector, e=> e.setAttribute('src', fileName))
-}
-
-async function captchaClick(selector, numbers, actionSelector) {
-  await page.waitForSelector(selector);
-  await page.focus(selector);
-  await page.waitForFunction(
-    (args) => {
-      document.querySelector(args[0]).value.length === args[1];
-    },
-    { timeout: 0 },
-    [selector, numbers]
-  );
-  await page.click(actionSelector);
-}
-
-async function downloadImage(url, imagePath) {
-  if (!url) return;
-  const writer = fs.createWriteStream(imagePath);
-  const response = await axios({
-    url,
-    method: "GET",
-    responseType: "stream",
-  });
-
-  response.data.pipe(writer);
-  return new Promise((resolve, reject) => {
-    writer.on("finish", resolve);
-    writer.on("error", reject);
-  });
-}
-
-async function downloadAndResizeImage(
-  passenger,
-  width,
-  height,
-  imageType = "photo",
-  minKb,
-  maxKb
-) {
-  let folder = photosFolder;
-  let url = passenger?.images?.photo;
-  if (!url) {
-    return path.join(__dirname, "./dummy-image.jpg");
+  function incrementSelectedTraveler(overrideValue) {
+    const selectedTraveler = getSelectedTraveler();
+    const nextTraveler = parseInt(selectedTraveler) + 1;
+    const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
+    const range = process.argv.find((arg) => arg.startsWith("range="));
+    const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
+    fs.writeFileSync(fileName, nextTraveler.toString());
+    return nextTraveler;
   }
 
-  if (imageType == "passport") {
-    folder = passportsFolder;
-    url = passenger.images.passport;
-  }
-
-  if (imageType == "vaccine") {
-    folder = vaccineFolder;
-    url = passenger.images.vaccine;
-    if (url?.includes("placeholder")) {
-      return path.join(__dirname, "covid-1.jpg");
+  function setSelectedTraveller(value) {
+    getSelectedTraveler(); //initialize
+    const range = process.argv.find((arg) => arg.startsWith("range="));
+    const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
+    if (fs.existsSync(fileName)) {
+      return fs.writeFileSync(fileName, value.toString());
     }
   }
 
-  if (imageType == "vaccine2") {
-    folder = vaccineFolder;
-    url = passenger.images.vaccine2;
-    if (url?.includes("placeholder")) {
-      return path.join(__dirname, "covid-2.jpg");
+  function useCounter(currentCounter) {
+    return getSelectedTraveler(currentCounter);
+  }
+
+  function setCounter(currentCounter = 0) {
+    incrementSelectedTraveler(currentCounter);
+  }
+
+  async function commitFile(selector, fileName, imgElementSelector) {
+    if (!fs.existsSync(fileName) || process.argv.includes("noimage")) {
+      return;
     }
-  }
-
-  if (imageType == "id") {
-    folder = idFolder;
-    url = passenger.images.id;
-    if (url?.includes("placeholder")) {
-      return path.join(__dirname, "id.jpg");
-    }
-  }
-
-  let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
-  const resizedPath = path.join(
-    folder,
-    `${passenger.passportNumber}_${width}x${height}.jpg`
-  );
-
-  if (url?.includes("placeholder")) {
-    return path.join(__dirname, "dummy-image.jpg");
-  }
-
-  const writer = fs.createWriteStream(imagePath);
-  if (!url) {
-    return path.join(__dirname, "dummy-image.jpg");
-  }
-  const response = await axios({
-    url,
-    method: "GET",
-    responseType: "stream",
-  });
-
-  response.data.pipe(writer);
-  const result = new Promise((resolve, reject) => {
-    writer.on("finish", resolve);
-    writer.on("error", reject);
-  });
-  await result;
-
-  const overridePhoto = path.join(
-    __dirname,
-    "..",
-    "photos",
-    passenger.passportNumber + ".jpg"
-  );
-  if (imageType == "photo" && fs.existsSync(overridePhoto)) {
-    console.log("override found at: ", overridePhoto);
-    imagePath = overridePhoto;
-  }
-  await sharp(imagePath)
-    .resize(width, height, {
-      fit: sharp.fit.inside,
-      withoutEnlargement: true,
-    })
-    .toFile(resizedPath);
-  let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
-  if (sizeAfter < minKb) {
-    for (let i = 1; i < 20; i++) {
-      // TODO: handle this better. May be increase image size on desk by stuffing strings in the image
-      await sharp(imagePath)
-        .resize(width * i, height * i, {
-          fit: sharp.fit.inside,
-          withoutEnlargement: true,
-        })
-        .toFile(resizedPath);
-      sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
-      if (sizeAfter > minKb) {
-        return resizedPath;
-      }
-    }
-  }
-
-  // TODO: Test with wtu group 7 pax because the size of the photo is too small
-  if (sizeAfter > maxKb) {
-  }
-  return resizedPath;
-}
-
-const loopMonitor = [];
-
-function isCodelineLooping(traveller, numberOfEntries = 1) {
-  if (!traveller) {
-    return true;
-  }
-
-  loopMonitor.push({
-    key: traveller.codeline,
-    data: traveller,
-  });
-  if (
-    loopMonitor.filter((x) => x.key === traveller.codeline).length >
-    numberOfEntries
-  ) {
-    return true;
-  }
-  return false;
-}
-
-function endCase(name) {
-  const regEx = new RegExp(`${name}[_-]only`);
-  if (process.argv.some((arg) => regEx.test(arg))) {
-    browser.disconnect();
-  }
-}
-
-async function sniff(page, details) {
-  //TODO: Add xPath processing for all page operations below so we can sniff based on xPath
-  // TODO: Sniff tawaf birth place and other important fields
-  for (const detail of details) {
-    if (detail.autocomplete) {
-      let tagName = await page.$eval(detail.selector, (el) => el.tagName);
-      switch (tagName.toLowerCase()) {
-        case "input":
-          let inputText = await page.$eval(
-            detail.selector,
-            (el) => el.value || el.innerText
-          );
-          if (detail.autocomplete && inputText) {
-            budgie.save(detail.autocomplete, inputText);
-          }
-          break;
-        case "select":
-          let selectedValue = await page.$eval(
-            detail.selector,
-            (el) => el.value,
-            tagName
-          );
-          if (detail.autocomplete && selectedValue) {
-            budgie.save(detail.autocomplete, selectedValue);
-          }
-          break;
-      }
-    }
-  }
-}
-
-let mofaData = {};
-
-function getMofaData() {
-  return mofaData;
-}
-async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
-  const url = await currentPage.url();
-  if (!url) {
-    return;
-  }
-  switch (url.toLowerCase()) {
-    case "https://visa.mofa.gov.sa/".toLowerCase():
-    case "https://visa.mofa.gov.sa".toLowerCase():
-      mofaData = {};
-      const closeButtonSelector =
-        "#dlgMessageContent > div.modal-footer > button";
-      await currentPage.waitForSelector(closeButtonSelector);
-      await currentPage.$eval(closeButtonSelector, (btn) => {
-        btn.click();
-      });
-
-      if (mofa_visaTypeValue && /^[0-9]{1,5}$/.test(mofa_visaTypeValue)) {
-        await currentPage.select("#SearchingType", mofa_visaTypeValue);
-      }
-      await currentPage.waitForSelector("#ApplicationNumber");
-      await currentPage.type("#ApplicationNumber", id1);
-      await currentPage.type("#SponserID", id2);
-
-      await waitForPageCaptcha(currentPage, "#Captcha", 6);
-      await sniff(currentPage, [
-        { selector: "#SearchingType", autocomplete: "mofa_visaType" },
-        { selector: "#ApplicationNumber", autocomplete: "mofa_id1" },
-        { selector: "#SponserID", autocomplete: "mofa_id2" },
-      ]);
-      await currentPage.click("#btnSearch");
-      break;
-    case "https://visa.mofa.gov.sa/Home/PrintVisa".toLowerCase():
-      const applicationTypeSelector =
-        "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(1) > div:nth-child(2) > h2";
-      const applicationType = await readValue(
-        currentPage,
-        applicationTypeSelector
-      );
-      if (applicationType == "خطاب الدعوة") {
-        mofaData.applicationType = "invitation";
-
-        const inv_id1Selector =
-          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
-        const id2Selector =
-          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(4) > label";
-
-        const sponsorNameSelector =
-          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(2) > label";
-        const addressSelector =
-          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(7) > div > label";
-        const visaTypeSelector =
-          "#tblDocumentVisaList > tbody > tr > td:nth-child(1)";
-        const embassySelector =
-          "#tblDocumentVisaList > tbody > tr > td:nth-child(5)";
-        const nameSelector =
-          "#tblDocumentVisaList > tbody > tr > td:nth-child(4)";
-        const professionSelector =
-          "#tblDocumentVisaList > tbody > tr > td:nth-child(8)";
-        const id1Selector =
-          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
-        const telSelector =
-          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(6) > div > label";
-        const numberOfEntriesSelector =
-          "#tblDocumentVisaList > tbody > tr > td:nth-child(9)";
-        const durationSelector =
-          "#tblDocumentVisaList > tbody > tr > td:nth-child(10)";
-
-        // #content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label
-        mofaData = {
-          ...mofaData,
-          name: await readValue(currentPage, nameSelector),
-          sponsorName: await readValue(currentPage, sponsorNameSelector),
-          tel: await readValue(currentPage, telSelector),
-          address: await readValue(currentPage, addressSelector),
-          numberOfEntries: await readValue(
-            currentPage,
-            numberOfEntriesSelector
-          ),
-          embassy: await readValue(currentPage, embassySelector),
-          duration: await readValue(currentPage, durationSelector),
-          visaType: await readValue(currentPage, visaTypeSelector),
-          id1: await readValue(currentPage, id1Selector),
-          id2: await readValue(currentPage, id2Selector),
-          profession: await readValue(currentPage, professionSelector),
-        };
-      } else if (applicationType == "مستند تأشيرة") {
-        mofaData.applicationType = "visa";
-        const sponsorNameSelector =
-          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(2) > label";
-        const addressSelector =
-          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(7) > div > label";
-        const visaTypeSelector =
-          "#tblDocumentVisaList > tbody > tr > td:nth-child(1)";
-        const embassySelector =
-          "#tblDocumentVisaList > tbody > tr > td:nth-child(5)";
-        const nameSelector =
-          "#tblDocumentVisaList > tbody > tr > td:nth-child(4)";
-        const id2Selector =
-          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(4) > label";
-        const professionSelector =
-          "#tblDocumentVisaList > tbody > tr > td:nth-child(8)";
-        const id1Selector =
-          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
-        const telSelector =
-          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(6) > div > label";
-        const numberOfEntriesSelector =
-          "#tblDocumentVisaList > tbody > tr > td:nth-child(9)";
-        const durationSelector =
-          "#tblDocumentVisaList > tbody > tr > td:nth-child(10)";
-
-        mofaData = {
-          ...mofaData,
-          name: await readValue(currentPage, nameSelector),
-          sponsorName: await readValue(currentPage, sponsorNameSelector),
-          tel: await readValue(currentPage, telSelector),
-          address: await readValue(currentPage, addressSelector),
-          numberOfEntries: await readValue(
-            currentPage,
-            numberOfEntriesSelector
-          ),
-          embassy: await readValue(currentPage, embassySelector),
-          duration: await readValue(currentPage, durationSelector),
-          visaType: await readValue(currentPage, visaTypeSelector),
-          id1: await readValue(currentPage, id1Selector),
-          id2: await readValue(currentPage, id2Selector),
-          profession: await readValue(currentPage, professionSelector),
-        };
-      }
-
-      break;
-  }
-}
-
-async function readValue(currentPage, selector) {
-  await currentPage.waitForSelector(selector);
-  const value = await currentPage.$eval(selector, (ele) => ele.innerText);
-  return value;
-}
-
-async function waitForCaptcha(selector, captchaLength, timeout = 0) {
-  const captchaElement = await page.$(selector);
-  if (!captchaElement) {
-    return;
-  }
-  try {
     await page.waitForSelector(selector);
-    await page.evaluate((cap) => {
+    if (imgElementSelector) {
+      await page.waitForSelector(imgElementSelector);
+    }
+    // This must be an input with type="file"
+    const input = await page.$(selector);
+    await input.uploadFile(fileName);
+    // await page.$eval(imgElementSelector, e=> e.setAttribute('src', fileName))
+  }
+
+  async function captchaClick(selector, numbers, actionSelector) {
+    await page.waitForSelector(selector);
+    await page.focus(selector);
+    await page.waitForFunction(
+      (args) => {
+        document.querySelector(args[0]).value.length === args[1];
+      },
+      { timeout: 0 },
+      [selector, numbers]
+    );
+    await page.click(actionSelector);
+  }
+
+  async function downloadImage(url, imagePath) {
+    if (!url) return;
+    const writer = fs.createWriteStream(imagePath);
+    const response = await axios({
+      url,
+      method: "GET",
+      responseType: "stream",
+    });
+
+    response.data.pipe(writer);
+    return new Promise((resolve, reject) => {
+      writer.on("finish", resolve);
+      writer.on("error", reject);
+    });
+  }
+
+  async function downloadAndResizeImage(
+    passenger,
+    width,
+    height,
+    imageType = "photo",
+    minKb,
+    maxKb
+  ) {
+    let folder = photosFolder;
+    let url = passenger?.images?.photo;
+    if (!url) {
+      return path.join(__dirname, "./dummy-image.jpg");
+    }
+
+    if (imageType == "passport") {
+      folder = passportsFolder;
+      url = passenger.images.passport;
+    }
+
+    if (imageType == "vaccine") {
+      folder = vaccineFolder;
+      url = passenger.images.vaccine;
+      if (url?.includes("placeholder")) {
+        return path.join(__dirname, "covid-1.jpg");
+      }
+    }
+
+    if (imageType == "vaccine2") {
+      folder = vaccineFolder;
+      url = passenger.images.vaccine2;
+      if (url?.includes("placeholder")) {
+        return path.join(__dirname, "covid-2.jpg");
+      }
+    }
+
+    if (imageType == "id") {
+      folder = idFolder;
+      url = passenger.images.id;
+      if (url?.includes("placeholder")) {
+        return path.join(__dirname, "id.jpg");
+      }
+    }
+
+    let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
+    const resizedPath = path.join(
+      folder,
+      `${passenger.passportNumber}_${width}x${height}.jpg`
+    );
+
+    if (url?.includes("placeholder")) {
+      return path.join(__dirname, "dummy-image.jpg");
+    }
+
+    const writer = fs.createWriteStream(imagePath);
+    if (!url) {
+      return path.join(__dirname, "dummy-image.jpg");
+    }
+    const response = await axios({
+      url,
+      method: "GET",
+      responseType: "stream",
+    });
+
+    response.data.pipe(writer);
+    const result = new Promise((resolve, reject) => {
+      writer.on("finish", resolve);
+      writer.on("error", reject);
+    });
+    await result;
+
+    const overridePhoto = path.join(
+      __dirname,
+      "..",
+      "photos",
+      passenger.passportNumber + ".jpg"
+    );
+    if (imageType == "photo" && fs.existsSync(overridePhoto)) {
+      console.log("override found at: ", overridePhoto);
+      imagePath = overridePhoto;
+    }
+    await sharp(imagePath)
+      .resize(width, height, {
+        fit: sharp.fit.inside,
+        withoutEnlargement: true,
+      })
+      .toFile(resizedPath);
+    let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
+    if (sizeAfter < minKb) {
+      for (let i = 1; i < 20; i++) {
+        // TODO: handle this better. May be increase image size on desk by stuffing strings in the image
+        await sharp(imagePath)
+          .resize(width * i, height * i, {
+            fit: sharp.fit.inside,
+            withoutEnlargement: true,
+          })
+          .toFile(resizedPath);
+        sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
+        if (sizeAfter > minKb) {
+          return resizedPath;
+        }
+      }
+    }
+
+    // TODO: Test with wtu group 7 pax because the size of the photo is too small
+    if (sizeAfter > maxKb) {
+    }
+    return resizedPath;
+  }
+
+  const loopMonitor = [];
+
+  function isCodelineLooping(traveller, numberOfEntries = 1) {
+    if (!traveller) {
+      return true;
+    }
+
+    loopMonitor.push({
+      key: traveller.codeline,
+      data: traveller,
+    });
+    if (
+      loopMonitor.filter((x) => x.key === traveller.codeline).length >
+      numberOfEntries
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  function endCase(name) {
+    const regEx = new RegExp(`${name}[_-]only`);
+    if (process.argv.some((arg) => regEx.test(arg))) {
+      browser.disconnect();
+    }
+  }
+
+  async function sniff(page, details) {
+    //TODO: Add xPath processing for all page operations below so we can sniff based on xPath
+    // TODO: Sniff tawaf birth place and other important fields
+    for (const detail of details) {
+      if (detail.autocomplete) {
+        let tagName = await page.$eval(detail.selector, (el) => el.tagName);
+        switch (tagName.toLowerCase()) {
+          case "input":
+            let inputText = await page.$eval(
+              detail.selector,
+              (el) => el.value || el.innerText
+            );
+            if (detail.autocomplete && inputText) {
+              budgie.save(detail.autocomplete, inputText);
+            }
+            break;
+          case "select":
+            let selectedValue = await page.$eval(
+              detail.selector,
+              (el) => el.value,
+              tagName
+            );
+            if (detail.autocomplete && selectedValue) {
+              budgie.save(detail.autocomplete, selectedValue);
+            }
+            break;
+        }
+      }
+    }
+  }
+
+  let mofaData = {};
+
+  function getMofaData() {
+    return mofaData;
+  }
+  async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
+    const url = await currentPage.url();
+    if (!url) {
+      return;
+    }
+    switch (url.toLowerCase()) {
+      case "https://visa.mofa.gov.sa/".toLowerCase():
+      case "https://visa.mofa.gov.sa".toLowerCase():
+        mofaData = {};
+        const closeButtonSelector =
+          "#dlgMessageContent > div.modal-footer > button";
+        await currentPage.waitForSelector(closeButtonSelector);
+        await currentPage.$eval(closeButtonSelector, (btn) => {
+          btn.click();
+        });
+
+        if (mofa_visaTypeValue && /^[0-9]{1,5}$/.test(mofa_visaTypeValue)) {
+          await currentPage.select("#SearchingType", mofa_visaTypeValue);
+        }
+        await currentPage.waitForSelector("#ApplicationNumber");
+        await currentPage.type("#ApplicationNumber", id1);
+        await currentPage.type("#SponserID", id2);
+
+        await waitForPageCaptcha(currentPage, "#Captcha", 6);
+        await sniff(currentPage, [
+          { selector: "#SearchingType", autocomplete: "mofa_visaType" },
+          { selector: "#ApplicationNumber", autocomplete: "mofa_id1" },
+          { selector: "#SponserID", autocomplete: "mofa_id2" },
+        ]);
+        await currentPage.click("#btnSearch");
+        break;
+      case "https://visa.mofa.gov.sa/Home/PrintVisa".toLowerCase():
+        const applicationTypeSelector =
+          "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(1) > div:nth-child(2) > h2";
+        const applicationType = await readValue(
+          currentPage,
+          applicationTypeSelector
+        );
+        if (applicationType == "خطاب الدعوة") {
+          mofaData.applicationType = "invitation";
+
+          const inv_id1Selector =
+            "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
+          const id2Selector =
+            "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(4) > label";
+
+          const sponsorNameSelector =
+            "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(2) > label";
+          const addressSelector =
+            "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(7) > div > label";
+          const visaTypeSelector =
+            "#tblDocumentVisaList > tbody > tr > td:nth-child(1)";
+          const embassySelector =
+            "#tblDocumentVisaList > tbody > tr > td:nth-child(5)";
+          const nameSelector =
+            "#tblDocumentVisaList > tbody > tr > td:nth-child(4)";
+          const professionSelector =
+            "#tblDocumentVisaList > tbody > tr > td:nth-child(8)";
+          const id1Selector =
+            "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
+          const telSelector =
+            "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(6) > div > label";
+          const numberOfEntriesSelector =
+            "#tblDocumentVisaList > tbody > tr > td:nth-child(9)";
+          const durationSelector =
+            "#tblDocumentVisaList > tbody > tr > td:nth-child(10)";
+
+          // #content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label
+          mofaData = {
+            ...mofaData,
+            name: await readValue(currentPage, nameSelector),
+            sponsorName: await readValue(currentPage, sponsorNameSelector),
+            tel: await readValue(currentPage, telSelector),
+            address: await readValue(currentPage, addressSelector),
+            numberOfEntries: await readValue(
+              currentPage,
+              numberOfEntriesSelector
+            ),
+            embassy: await readValue(currentPage, embassySelector),
+            duration: await readValue(currentPage, durationSelector),
+            visaType: await readValue(currentPage, visaTypeSelector),
+            id1: await readValue(currentPage, id1Selector),
+            id2: await readValue(currentPage, id2Selector),
+            profession: await readValue(currentPage, professionSelector),
+          };
+        } else if (applicationType == "مستند تأشيرة") {
+          mofaData.applicationType = "visa";
+          const sponsorNameSelector =
+            "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(2) > label";
+          const addressSelector =
+            "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(7) > div > label";
+          const visaTypeSelector =
+            "#tblDocumentVisaList > tbody > tr > td:nth-child(1)";
+          const embassySelector =
+            "#tblDocumentVisaList > tbody > tr > td:nth-child(5)";
+          const nameSelector =
+            "#tblDocumentVisaList > tbody > tr > td:nth-child(4)";
+          const id2Selector =
+            "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(5) > div:nth-child(4) > label";
+          const professionSelector =
+            "#tblDocumentVisaList > tbody > tr > td:nth-child(8)";
+          const id1Selector =
+            "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(4) > div:nth-child(2) > label";
+          const telSelector =
+            "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(6) > div > label";
+          const numberOfEntriesSelector =
+            "#tblDocumentVisaList > tbody > tr > td:nth-child(9)";
+          const durationSelector =
+            "#tblDocumentVisaList > tbody > tr > td:nth-child(10)";
+
+          mofaData = {
+            ...mofaData,
+            name: await readValue(currentPage, nameSelector),
+            sponsorName: await readValue(currentPage, sponsorNameSelector),
+            tel: await readValue(currentPage, telSelector),
+            address: await readValue(currentPage, addressSelector),
+            numberOfEntries: await readValue(
+              currentPage,
+              numberOfEntriesSelector
+            ),
+            embassy: await readValue(currentPage, embassySelector),
+            duration: await readValue(currentPage, durationSelector),
+            visaType: await readValue(currentPage, visaTypeSelector),
+            id1: await readValue(currentPage, id1Selector),
+            id2: await readValue(currentPage, id2Selector),
+            profession: await readValue(currentPage, professionSelector),
+          };
+        }
+
+        break;
+    }
+  }
+
+  async function readValue(currentPage, selector) {
+    await currentPage.waitForSelector(selector);
+    const value = await currentPage.$eval(selector, (ele) => ele.innerText);
+    return value;
+  }
+
+  async function waitForCaptcha(selector, captchaLength, timeout = 0) {
+    const captchaElement = await page.$(selector);
+    if (!captchaElement) {
+      return;
+    }
+    try {
+      await page.waitForSelector(selector);
+      await page.evaluate((cap) => {
+        const captchaElement = document.querySelector(cap);
+        captchaElement.scrollIntoView({ block: "end" });
+        captchaElement.value = "";
+      }, selector);
+      await page.focus(selector);
+      await page.hover(selector);
+      await page.waitForFunction(
+        `document.querySelector('${selector}').value.length === ${captchaLength}`,
+        { timeout }
+      );
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async function waitForPageCaptcha(
+    captchaPage,
+    selector,
+    captchaLength,
+    timeout = 0
+  ) {
+    await captchaPage.waitForSelector(selector);
+    await captchaPage.bringToFront();
+    await captchaPage.evaluate((cap) => {
       const captchaElement = document.querySelector(cap);
       captchaElement.scrollIntoView({ block: "end" });
       captchaElement.value = "";
     }, selector);
-    await page.focus(selector);
-    await page.hover(selector);
-    await page.waitForFunction(
+    await captchaPage.focus(selector);
+    await captchaPage.hover(selector);
+    await captchaPage.waitForFunction(
       `document.querySelector('${selector}').value.length === ${captchaLength}`,
       { timeout }
     );
-  } catch (err) {
-    console.log(err);
   }
-}
 
-async function waitForPageCaptcha(
-  captchaPage,
-  selector,
-  captchaLength,
-  timeout = 0
-) {
-  await captchaPage.waitForSelector(selector);
-  await captchaPage.bringToFront();
-  await captchaPage.evaluate((cap) => {
-    const captchaElement = document.querySelector(cap);
-    captchaElement.scrollIntoView({ block: "end" });
-    captchaElement.value = "";
-  }, selector);
-  await captchaPage.focus(selector);
-  await captchaPage.hover(selector);
-  await captchaPage.waitForFunction(
-    `document.querySelector('${selector}').value.length === ${captchaLength}`,
-    { timeout }
-  );
-}
+  async function commitCaptchaToken(
+    page,
+    imgId,
+    textFieldSelector,
+    captchaLength = 6
+  ) {
+    await page.waitForTimeout(3000);
+    infoMessage(page, "Captcha thinking...");
 
-async function commitCaptchaToken(
-  page,
-  imgId,
-  textFieldSelector,
-  captchaLength = 6
-) {
-  await page.waitForTimeout(3000);
-  infoMessage(page, "Captcha thinking...");
+    try {
+      const base64 = await page.evaluate((selector) => {
+        const image = document.getElementById(selector);
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        const dataURL = canvas.toDataURL();
+        return dataURL.replace("data:", "").replace(/^.+,/, "");
+      }, imgId);
 
-  try {
-    const base64 = await page.evaluate((selector) => {
-      const image = document.getElementById(selector);
-      const canvas = document.createElement("canvas");
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      canvas.getContext("2d").drawImage(image, 0, 0);
-      const dataURL = canvas.toDataURL();
-      return dataURL.replace("data:", "").replace(/^.+,/, "");
-    }, imgId);
+      if (!base64) {
+        return;
+      }
 
-    if (!base64) {
+      const captchaSolver = new RuCaptcha2Captcha(
+        "637a1787431d77ad2c1618440a3d7149",
+        2
+      );
+      const id = await captchaSolver.send({
+        method: "base64",
+        body: base64,
+        max_len: captchaLength,
+        min_len: captchaLength,
+      });
+
+      const token = await captchaSolver.get(id);
+      infoMessage(page, `Captcha solved! ${token}`);
+
+
+      await commit(
+        page,
+        [{ selector: textFieldSelector, value: () => token }],
+        {}
+      );
+      return token;
+    } catch (err) {
+      infoMessage(page, `Captcha error`);
+    }
+  }
+
+  async function commitCaptchaTokenWithSelector(
+    page,
+    imageSelector,
+    textFieldSelector,
+    captchaLength = 6
+  ) {
+    infoMessage(page, "Captcha is being solved...");
+    try {
+      const base64 = await page.evaluate((selector) => {
+        const image = document.querySelector(selector);
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        const dataURL = canvas.toDataURL();
+        return dataURL.replace("data:", "").replace(/^.+,/, "");
+      }, imageSelector);
+
+      if (!base64) {
+        return;
+      }
+
+      const captchaSolver = new RuCaptcha2Captcha(
+        "637a1787431d77ad2c1618440a3d7149",
+        2
+      );
+
+      const id = await captchaSolver.send({
+        method: "base64",
+        body: base64,
+        max_len: captchaLength,
+        min_len: captchaLength,
+      });
+
+      const token = await captchaSolver.get(id);
+      await commit(
+        page,
+        [{ selector: textFieldSelector, value: () => token.toString() }],
+        {}
+      );
+      infoMessage(page, "Captcha is solved!");
+      return token;
+    } catch (err) {
+      infoMessage(page, "Captcha error!");
+
+    }
+  }
+
+  const premiumSupportAlert = async (page, selector, data) => {
+    const adNode = await page.$(selector);
+    if (!adNode) {
       return;
     }
-
-    const captchaSolver = new RuCaptcha2Captcha(
-      "637a1787431d77ad2c1618440a3d7149",
-      2
-    );
-    const id = await captchaSolver.send({
-      method: "base64",
-      body: base64,
-      max_len: captchaLength,
-      min_len: captchaLength,
-    });
-
-    const token = await captchaSolver.get(id);
-    infoMessage(page, `Captcha token: ${token}`);
-
-
-    await commit(
-      page,
-      [{ selector: textFieldSelector, value: () => token }],
-      {}
-    );
-    return token;
-  } catch (err) {
-    infoMessage(page, `Captcha error`);
-  }
-}
-
-async function commitCaptchaTokenWithSelector(
-  page,
-  imageSelector,
-  textFieldSelector,
-  captchaLength = 6
-) {
-  infoMessage(page, "Captcha is being solved...");
-  try {
-    const base64 = await page.evaluate((selector) => {
-      const image = document.querySelector(selector);
-      const canvas = document.createElement("canvas");
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      canvas.getContext("2d").drawImage(image, 0, 0);
-      const dataURL = canvas.toDataURL();
-      return dataURL.replace("data:", "").replace(/^.+,/, "");
-    }, imageSelector);
-
-    if (!base64) {
-      return;
-    }
-
-    const captchaSolver = new RuCaptcha2Captcha(
-      "637a1787431d77ad2c1618440a3d7149",
-      2
-    );
-
-    const id = await captchaSolver.send({
-      method: "base64",
-      body: base64,
-      max_len: captchaLength,
-      min_len: captchaLength,
-    });
-
-    const token = await captchaSolver.get(id);
-    await commit(
-      page,
-      [{ selector: textFieldSelector, value: () => token.toString() }],
-      {}
-    );
-    infoMessage(page, "Captcha is solved!");
-    return token;
-  } catch (err) {
-    infoMessage(page, "Captcha error!");
-
-  }
-}
-
-const premiumSupportAlert = async (page, selector, data) => {
-  const adNode = await page.$(selector);
-  if (!adNode) {
-    return;
-  }
-  await page.$eval(
-    selector,
-    (el, json) => {
-      return (el.outerHTML = `<div style="width: 100%; height: 100px; background-color: #4CAE4F; padding: 16px 8px 8px 16px ">
+    await page.$eval(
+      selector,
+      (el, json) => {
+        return (el.outerHTML = `<div style="width: 100%; height: 100px; background-color: #4CAE4F; padding: 16px 8px 8px 16px ">
       <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px">
 <img style='width: 32px; height: 32px; border-radius: 8px; margin-right: 0.5rem'  src='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAIBAQIBAQICAgICAgICAwUDAwMDAwYEBAMFBwYHBwcGBwcICQsJCAgKCAcHCg0KCgsMDAwMBwkODw0MDgsMDAz/2wBDAQICAgMDAwYDAwYMCAcIDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAz/wAARCAAyADIDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD96PGvjXR/hv4P1TxB4g1Sw0XQtDtJb7UNQvZ1gtrK3jUvJLJIxCqiqCSxIAANfix+21/wdvSxeMbzw3+zv4L0vUraF2ji8S+LI52N+BkGS306No5VQjDK88itz88C4wf0X/4Kp+GfhX8R/hBo/hr4yeItWh8B3F+uoX/hPR5XhvfGb25V4LaR42WQWiSYlcKY90qW2ZkUNHL82+Cf+CmvhX9nTRP+Ef8Ag58D/B3gfwzCw2wQeXZm4x0d4reJVDnJJYu5JJJJJr6HKeFc0zKHtMJSbj3bSXybav8AK58/m3FWV5dP2eLqpS7JNv5pJ2+dj81fAf8AwdG/tXeGfFjXl7rngHxTbxuVl0vUfDiRwJzyoa2eKVWHbc5weoPQ/fH7MX/B2x8JfG9jbWvxY8C+LPh5qxwst7pQXXdJ4wC+VCXK5OTsEEmBxvY8nF/4KIftteGf2xP2eruzvP2aPhr46+IW37PZ3XiXUWWLT4iMtLBcwpDdq5YAeVHcW4wxPncbW/Ln4Jf8Ec/jp8cdIjudNsfA+m7iyLBrPjbSrW8bazISbcTNKgJUkF0XcMMuVIJyzDhvNMC7YmhJLuldferr8TXL+JMsxqvhq0X5N2f3Oz/A/oA8O/8ABwL+x74ntPOt/jbotupz8t9pWo2Mn/fE1ujfpWP45/4ONv2O/A1nLI3xa/taaNN6waX4d1S6aT2DrbeWD/vOo96/GzRv+DcP9oi9ulXU9Y+C3hm2YZN3qvjZBCo9T5MUrf8AjtfYP/BOr/g3G+DNn8YtJuPiX8ZvD3xe17Rwurt4Q8KqjaP+5kQEXsxMj3EG9kBjK24bIVg6llby44Su4uag7Ld2dl6npyxdBSUHNXeyurv0P1X+Gv7VN58Wfhz4f8VaP8LfiU2k+JtNt9VsTcpplrOYJ4llj3xSXoeNtrjKOAynIIBBFFet0VznQfPUP/BPbwz8R/iTqXjj4oyTeNvE2qODHaNM8Wl6RCufKtoY1KmRUU4LScSMWk8tGcirv7QX7I/wY0/4G+JmvvDPgPwParp0sY1+HQ7WObSWZSiTo2wFpFZlKqc7n2jDZwfeK+dtb+DGm/t6eJ4fEHiLVJr74YaDe3FtouhWc7RQ6xdQSyW819cyKQWUSJIkSIcbF37iJmjH0uEzLFYiaqYrEThSp2Xut6LpGEU0k3bTZaNvY+bxeW4WhBww2HhOrO795LV9ZTbTbSvru9UlufnB8RPBfhn4ifERtN+Cvh/4g69p1jCsczXMBvrm6cADzhFDFuhRsFvnPO77sYG2gfsafFe6C/8AFtfGTbum7SpB+eRx+Nfst4S8HaT4B0GDS9D0vT9H0y1GIbSyt0t4Y/oigAflXGa/+1r8OPCnxefwLqni3S9N8URxxyNa3TNDGpkG5EMzARCRlKkRlt5DqQMEV9xQ8SMa/wBzgMM5qC3k5TlZbyk0l8+i7nw9fw4waftsdiFBye0VGEbv7MU2/l1fY/M74ef8EuPjF49vI1fwna+HbWTrdaxeRQon1jjLzf8AkP8AGv0E/Yf/AGJtN/Y78H30Zvl1vxJrbo+oaiIPJUIgOyCJckiNSWOScszEnA2qvuQORRXyefccZlmtJ4eraNN7qKettrttv5XS8j6zIeB8tyqqsRSvKa2cmtL72SSX4N+YUUUV8cfYHn37WHiy+8C/sx/EDWNMkkh1DT/D97NbSxnDQSCFtsg91PzfhXz1/wAEe/2gdJ8RfA//AIVzNNDb674TlnmtrdmAa8spZWl8xP72ySR0YD7o8sn7wr648UeGrLxn4Z1HR9SgW603VrWWzuoWJAmikQo6nHPKkj8a/Ij9pP8AZD8efsVePP7RiOrNotjcebpPijT2aPyx0TzJI8GCbBwQcBjnaWGcfofCODwWZ4CvlFaahVlKM4N9Wk1bztd6b2ldbM/PuLcZjcsx1DNqMHOlGMozS6JtO/ley12urPdH7C1+fvxI/wCCPnijxd8eF1Obxlaa54b8Qao97rd5cobbU4Ud2kkCooaN2YfKrAqFLD93tWuD+Ev/AAWJ+JHgqzhtvEem6H40t4x/r5M6feyf70kYaI/hCD6k16dB/wAFv7M22ZfhreLN/dTW0ZP++jCD+ld+X8NcU5NVm8BCMuZWbTi/S3M1JW32Xnc4Mw4k4XzmlBY6bXK7pNSXrflTi77bvysfcug6FZ+F9Ds9M062hs9P06BLW2t4l2xwRIoVEUdgFAAHoK5v4mfEK58N694a0HSYY7rXPEt7sVXBKWllDte7uXx0VUKxqeR51xACMMa+Jh/wVh+KPx415PDvwx+HGnx6xdfKA00mqSxA8eYSFhjiAJHzy5Qd+K+qP2T/AIA+IPhlpl54j8f69L4r+I3iJEGo37vuisIFJZLO2UBVjiVmZiEVQ7sTjAXHy+P4dr5ZH22ZuKm9ocylJt9Xa6UVu23rslq2vqMBxDQzOXscsUnBbzs4xSXRXs3J7JJabt6JP2CiiivlT6gKbJGs0bKyqysMMpGQR6GiinHcUtj4v/4KG/A7wV4Zgt7rTfB/hfT7q5iaSaa20qCGSVtx+ZmVQSfc186/s1fDzw/4h+Jlpb6hoej31uzJuiuLKOVDz3DAiiiv6Wyv/kWr0P5uzT/kYv1P1G8HeBND+Hejrp/h/RtJ0LT1O5bbT7SO1hB9diAD9K1qKK/njNv98qerP6Cyn/c6f+FBRRRXnnoH/9k='> </img> 
     <div style="font-size: 1.5rem;">Eagle Support</div>
@@ -1257,7 +1245,7 @@ const premiumSupportAlert = async (page, selector, data) => {
 
       <button onclick="location.href='https://hajonsoft.on.spiceworks.com/portal/registrations'" type="button" style="background-color: #5B9A63; color: #C7E5C8; border: none; padding: 8px 16px; border-radius: 4px; font-size: 1.4rem; cursor: pointer;">
       Pay ${json.travellers.length * 1.5}.00 USD to a temporary worker (${json.travellers.length
-        } pax x $1.5 = ${json.travellers.length * 1.5} USD)
+          } pax x $1.5 = ${json.travellers.length * 1.5} USD)
       </button
        
       
@@ -1265,96 +1253,96 @@ const premiumSupportAlert = async (page, selector, data) => {
         </div>
         
         `);
-    },
-    data
-  );
-};
+      },
+      data
+    );
+  };
 
-function getOverridePath(original, override) {
-  if (fs.existsSync(override)) {
-    console.log("override found: using ", override);
-    return override;
+  function getOverridePath(original, override) {
+    if (fs.existsSync(override)) {
+      console.log("override found: using ", override);
+      return override;
+    }
+
+    return original;
   }
 
-  return original;
-}
-
-function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
-  axios
-    .post(
-      "https://us-central1-hajonsoft-kea.cloudfunctions.net/https-putPassenger",
-      {
-        accountId,
-        passportNumber,
-        ...params,
-      }
-    )
-    .then((result) => {
-      // Log post call
-      if (!logFile) return;
-      fs.appendFileSync(
-        logFile,
-        `Writing to kea: ${JSON.stringify(params)} (status: ${result.status})\n`
-      );
-    })
-    .catch((err) => {
-      if (!logFile) return;
-      fs.appendFileSync(
-        logFile,
-        `Writing to kea: ${JSON.stringify(params)} (status: ${err.status})\n`
-      );
-    });
-}
-
-const infoMessage = async (page, message, depth = 2) => {
-  console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
-  if (page) {
-    try {
-      await page.evaluate("document.title='" + message + "'");
-    } catch { }
+  function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
+    axios
+      .post(
+        "https://us-central1-hajonsoft-kea.cloudfunctions.net/https-putPassenger",
+        {
+          accountId,
+          passportNumber,
+          ...params,
+        }
+      )
+      .then((result) => {
+        // Log post call
+        if (!logFile) return;
+        fs.appendFileSync(
+          logFile,
+          `Writing to kea: ${JSON.stringify(params)} (status: ${result.status})\n`
+        );
+      })
+      .catch((err) => {
+        if (!logFile) return;
+        fs.appendFileSync(
+          logFile,
+          `Writing to kea: ${JSON.stringify(params)} (status: ${err.status})\n`
+        );
+      });
   }
-  // TODO: log to file
-  // fs.appendFileSync(logFile, message + "\n");
-};
+
+  const infoMessage = async (page, message, depth = 2) => {
+    console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
+    if (page) {
+      try {
+        await page.evaluate("document.title='" + message + "'");
+      } catch { }
+    }
+    // TODO: log to file
+    // fs.appendFileSync(logFile, message + "\n");
+  };
 
 
-const hijriYear = 44;
+  const hijriYear = 44;
 
-module.exports = {
-  hijriYear,
-  findConfig,
-  commit,
-  controller,
-  commander,
-  initPage,
-  useCounter,
-  commitFile,
-  captchaClick,
-  downloadImage,
-  photosFolder,
-  passportsFolder,
-  vaccineFolder,
-  isCodelineLooping,
-  endCase,
-  setCounter,
-  selectByValue,
-  sniff,
-  newPage,
-  handleMofa,
-  mofaData,
-  getMofaData,
-  waitForCaptcha,
-  waitForPageCaptcha,
-  VISION_DEFICIENCY,
-  downloadAndResizeImage,
-  commitCaptchaToken,
-  commitCaptchaTokenWithSelector,
-  getIssuingCountry,
-  premiumSupportAlert,
-  getOverridePath,
-  getSelectedTraveler,
-  incrementSelectedTraveler,
-  setSelectedTraveller,
-  updatePassengerInKea,
-  infoMessage,
-};
+  module.exports = {
+    hijriYear,
+    findConfig,
+    commit,
+    controller,
+    commander,
+    initPage,
+    useCounter,
+    commitFile,
+    captchaClick,
+    downloadImage,
+    photosFolder,
+    passportsFolder,
+    vaccineFolder,
+    isCodelineLooping,
+    endCase,
+    setCounter,
+    selectByValue,
+    sniff,
+    newPage,
+    handleMofa,
+    mofaData,
+    getMofaData,
+    waitForCaptcha,
+    waitForPageCaptcha,
+    VISION_DEFICIENCY,
+    downloadAndResizeImage,
+    commitCaptchaToken,
+    commitCaptchaTokenWithSelector,
+    getIssuingCountry,
+    premiumSupportAlert,
+    getOverridePath,
+    getSelectedTraveler,
+    incrementSelectedTraveler,
+    setSelectedTraveller,
+    updatePassengerInKea,
+    infoMessage,
+  };

@@ -81,23 +81,30 @@ function printBudgie() {
 }
 
 async function sendToCloud(data) {
-  console.log("cloud submit command");
+  util.setSelectedTraveller(0);
+  data.info.caravan = "CLOUD_" + data.info.caravan;
+  data.info.cloud = moment().format("YYYY-MM-DD hh:mm:ss a");
+  fs.writeFileSync("./data.json", JSON.stringify(data));
   const fileName = process.argv.find((arg) =>
     arg.toLowerCase().startsWith("file")
   )?.split("=")?.[1];
-  const command = `git add . && git commit -m ${fileName} && git push && git push origin $(git branch --show-current):job --force`;
+  const command = `git add . && git commit -m ${fileName.replace(/[^A-Za-z0-9]/g, '')} && git push origin $(git branch --show-current):job --force`;
   const childProcess = require('child_process');
-  let gitCommand;
-  gitCommand = childProcess.exec(command, function (error, stdout, stderr) {
+  
+  childProcess.exec(command, function (error, stdout, stderr) {
     if (error) {
-      console.log(error.stack);
-      console.log('Error code: ' + error.code);
-      console.log('Signal received: ' + error.signal);
-    } console.log('Child Process STDOUT: ' + stdout); console.log('Child Process STDERR: ' + stderr);
+      console.log('Eagle Cloud Error: ' + error.code);
+    } 
+    if (stdout) {
+    console.log('Eagle Cloud: ' + stdout); 
+    }
+    if (stderr) {
+    console.log('Eagle cloud: ' + stderr);
+    }
   });
 
 
-  console.log("Status: https://github.com/hajonsoft/hajonsoft-eagle/actions");
+  console.log("https://github.com/hajonsoft/hajonsoft-eagle/actions/workflows/submit.yml");
 }
 
 async function submitToProvider() {
@@ -120,7 +127,7 @@ async function submitToProvider() {
       // console.log(data.system.password);
     }
   }
-  console.log("\x1b[32m", `starting process ...[${util.getSelectedTraveler()}]`, "\x1b[0m");
+  console.log("\x1b[32m", `starting process ...[${data.system.name} ${data.travellers.length} PAX => ${util.getSelectedTraveler()}]`, "\x1b[0m");
   const lastIndex = util.getSelectedTraveler();
   if (lastIndex >= data.travellers.length) {
     util.setSelectedTraveller(0);

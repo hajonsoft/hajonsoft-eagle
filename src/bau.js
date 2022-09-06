@@ -14,6 +14,7 @@ const SERVER_NUMBER = 1;
 let page;
 let data;
 let counter = 0;
+let configs = [];
 
 const config = [
   {
@@ -74,11 +75,18 @@ const config = [
 async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
+  setTimeout(() => {
+    // No login for 10 seconds exist
+    if (!configs.find((c) => c.name === "main")) {
+      process.exit(17000);
+    }
+  }, 60000);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
 async function onContentLoaded(res) {
   const currentConfig = util.findConfig(await page.url(), config);
+  configs.push(currentConfig);
   try {
     await runPageConfiguration(currentConfig);
   } catch (err) {
@@ -315,7 +323,7 @@ async function sendPassenger(passenger) {
     })
     .toFile(resizedPhotoPath);
   await fileChooser.accept([resizedPhotoPath]);
-  util.infoMessage(page, `portraight accepted ${resizedPhotoPath}`);
+  util.infoMessage(page, `portrait accepted ${resizedPhotoPath}`);
 
   const passportPath = path.join(
     util.passportsFolder,
@@ -345,6 +353,7 @@ async function sendPassenger(passenger) {
 
   }
 
+  util.infoMessage(page, `passenger ${passenger.passportNumber} captcha`);
   await util.commitCaptchaToken(
     page,
     "ctl00_ContentHolder_rdCap_CaptchaImageUP",
@@ -356,6 +365,14 @@ async function sendPassenger(passenger) {
   await page.waitForTimeout(10000);
   await page.waitForSelector("#ctl00_ContentHolder_BtnEdit");
   await page.click("#ctl00_ContentHolder_BtnEdit");
+  await page.waitForTimeout(5000);
+  try {
+    const isError = await page.$("#ctl00_ContentHolder_divErrorsList > div > ul > li");
+    if (isError) {
+      util.infoMessage(page, `Error: ${isError.innerText}`);
+    }
+  } catch {}
+
 }
 
 module.exports = { send, config, SERVER_NUMBER };
