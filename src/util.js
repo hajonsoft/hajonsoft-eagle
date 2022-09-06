@@ -1214,7 +1214,7 @@ async function commitCaptchaTokenWithSelector(
   textFieldSelector,
   captchaLength = 6
 ) {
-  await page.evaluate("document.title='Eagle: Captcha thinking...'");
+  infoMessage(page, "Captcha is being solved...");
   try {
     const base64 = await page.evaluate((selector) => {
       const image = document.querySelector(selector);
@@ -1248,10 +1248,11 @@ async function commitCaptchaTokenWithSelector(
       [{ selector: textFieldSelector, value: () => token.toString() }],
       {}
     );
-    await page.evaluate("document.title='Eagle: Captcha solved!'");
+    infoMessage(page, "Captcha is solved!");
     return token;
   } catch (err) {
-    await page.evaluate("document.title='Eagle: Captcha error!!'");
+    infoMessage(page, "Captcha error!");
+
   }
 }
 
@@ -1324,6 +1325,24 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
     });
 }
 
+const infoMessage = async (page, message, depth = 2) => {
+  console.log(`Eagle📣${".".repeat(depth)}${message}`);
+  if (page) {
+    try {
+      await page.evaluate((message) => {
+        const info = document.createElement("div");
+        info.innerText = message;
+        info.style.color = "blue";
+        document.body.appendChild(info);
+      }, message);
+      await page.evaluate("document.title='" + message + "'");
+    } catch {}
+  }
+  // TODO: log to file
+  // fs.appendFileSync(logFile, message + "\n");
+};
+
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1362,4 +1381,5 @@ module.exports = {
   incrementSelectedTraveler,
   setSelectedTraveller,
   updatePassengerInKea,
+  infoMessage,
 };

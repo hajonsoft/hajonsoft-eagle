@@ -223,7 +223,7 @@ async function pageContentHandler(currentConfig) {
         if (new RegExp(createGroupRegex).test(url)) {
           try {
             await page.click("#BtnSave");
-          } catch {}
+          } catch { }
         }
       }, 15000);
 
@@ -272,25 +272,29 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function sendPassenger(passenger) {
-  console.log(passenger?.slug);
+  util.infoMessage(page, `sending ${passenger?.slug}`);
   status = "sending";
   await page.emulateVisionDeficiency("none");
   // await page.emulateVisionDeficiency("blurredVision");
-  const titleMessage = `Eagle: send.. ${
-    parseInt(util.getSelectedTraveler()) + 1
-  }/${data.travellers.length}-${passenger?.name?.last}`;
-  await page.evaluate("document.title='" + titleMessage + "'");
+  const titleMessage = `sending ${parseInt(util.getSelectedTraveler()) + 1
+    }/${data.travellers.length}-${passenger?.slug}`;
+  await util.infoMessage(page, titleMessage);
 
   await page.waitForSelector("#txtppno");
-  const passportNumber = await page.$eval("#txtppno", (e) => e.value);
-  // Do not continue if the passport number field is not empty - This could be a manual page refresh
-  if (passportNumber || util.isCodelineLooping(passenger)) {
+  if (await page.$("#txtppno")) {
+    const passportNumber = await page.$eval("#txtppno", (e) => e.value);
+    // Do not continue if the passport number field is not empty - This could be a manual page refresh
+    if (passportNumber || util.isCodelineLooping(passenger)) {
+      return;
+    }
+  } else {
     return;
   }
   await page.waitForSelector("#ddlgroupname");
   if (!groupName) {
     groupName = budgie.get("wtu_group");
   }
+  util.infoMessage(page, `Group name 👨‍👩‍👦 ${groupName}`);
   await page.select("#ddlgroupname", groupName);
   await page.waitForTimeout(3000);
   await page.waitForSelector("#btnppscan");
@@ -302,6 +306,7 @@ async function sendPassenger(passenger) {
   });
 
   await page.waitForSelector("#divshowmsg");
+  util.infoMessage(page, `Passport ${passenger.passportNumber} scanned 👍`);
   await page.type("#divshowmsg", passenger.codeline, {
     delay: 0,
   });
@@ -317,7 +322,7 @@ async function sendPassenger(passenger) {
     try {
       await page.waitForSelector("#ddlrelation");
       await page.select("#ddlrelation", "15");
-    } catch {}
+    } catch { }
   }
 
   let resizedPhotoPath = await util.downloadAndResizeImage(
@@ -341,12 +346,14 @@ async function sendPassenger(passenger) {
   );
 
   await page.click("#btn_uploadImage");
+  util.infoMessage(page, "Uploading photo", 4);
   await page.waitForTimeout(2000);
   await util.commitFile("#file_photo_upload", resizedPhotoPath);
   await page.waitForTimeout(2000);
   try {
     const isProceedBtn = await page.$("#btnProceedtoUpload");
     if (isProceedBtn) {
+      util.infoMessage(page, "Proceeding to upload photo", 6);
       await page.$eval("#btnProceedtoUpload", (e) => e.click());
     }
     await page.waitForNavigation();
@@ -357,6 +364,7 @@ async function sendPassenger(passenger) {
   // Upload the passport image
   await page.waitForSelector("#imgppcopy");
   await util.commitFile("#fuppcopy", resizedPassportPath);
+  util.infoMessage(page, "Uploading passport", 4);
   // scroll to bottom
   await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
 
@@ -386,7 +394,7 @@ async function sendPassenger(passenger) {
     util.updatePassengerInKea(data.system.accountId, passenger.passportNumber, {
       "submissionData.wtu.status": "Submitted",
     });
-  } catch {}
+  } catch { }
 
   // If there is a passport number still that means it is the same page
   await page.waitForTimeout(2000);
@@ -473,10 +481,8 @@ async function sendPassenger(passenger) {
 
   await page.waitForSelector("#imgppcopy");
   await util.commitFile("#fuppcopy", blankPassportPath);
+  util.infoMessage(page, "Uploading passport exception retry", 6);
   try {
-    await page.evaluate(
-      "document.title='Eagle: retry passport " + passenger.name.full + "'"
-    );
     await util.commitCaptchaTokenWithSelector(
       page,
       "#imgtxtsv",
