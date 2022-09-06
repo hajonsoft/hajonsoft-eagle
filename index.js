@@ -85,9 +85,9 @@ async function sendToCloud(data) {
   const fileName = process.argv.find((arg) =>
     arg.toLowerCase().startsWith("file")
   )?.split("=")?.[1];
-  const command = `git add . && git commit -m ${fileName} && git push origin $(git branch --show-current):job --force`;
-  console.log("command: ", command);
-  console.log("https://github.com/hajonsoft/hajonsoft-eagle/actions");
+  const command = `git add . && git commit -m ${fileName} && git push && git push origin $(git branch --show-current):job --force`;
+  console.log(command);
+  console.log("Status: https://github.com/hajonsoft/hajonsoft-eagle/actions");
 }
 
 async function submitToProvider() {
