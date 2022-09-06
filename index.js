@@ -120,7 +120,7 @@ async function submitToProvider() {
       // console.log(data.system.password);
     }
   }
-  console.log("\x1b[32m", `starting process ...[${util.getSelectedTraveler()}]`, "\x1b[0m");
+  console.log("\x1b[32m", `starting process ...[${data.system.name} ${data.travellers.length} PAX => ${util.getSelectedTraveler()}]`, "\x1b[0m");
   const lastIndex = util.getSelectedTraveler();
   if (lastIndex >= data.travellers.length) {
     util.setSelectedTraveller(0);
