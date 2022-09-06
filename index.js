@@ -86,6 +86,17 @@ async function sendToCloud(data) {
     arg.toLowerCase().startsWith("file")
   )?.split("=")?.[1];
   const command = `git add . && git commit -m ${fileName} && git push && git push origin $(git branch --show-current):job --force`;
+  const childProcess = require('child_process');
+  let gitCommand;
+  gitCommand = childProcess.exec(command, function (error, stdout, stderr) {
+    if (error) {
+      console.log(error.stack);
+      console.log('Error code: ' + error.code);
+      console.log('Signal received: ' + error.signal);
+    } console.log('Child Process STDOUT: ' + stdout); console.log('Child Process STDERR: ' + stderr);
+  });
+
+
   console.log(command);
   console.log("Status: https://github.com/hajonsoft/hajonsoft-eagle/actions");
 }
