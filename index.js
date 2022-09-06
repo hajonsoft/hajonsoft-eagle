@@ -81,7 +81,7 @@ function printBudgie() {
 }
 
 async function sendToCloud(data) {
-  console.log("cloud submit command");
+  util.setSelectedTraveller(0);
   const fileName = process.argv.find((arg) =>
     arg.toLowerCase().startsWith("file")
   )?.split("=")?.[1];
