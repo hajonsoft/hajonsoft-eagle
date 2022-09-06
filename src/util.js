@@ -101,13 +101,13 @@ async function initPage(config, onContentLoaded, data) {
     args.push("--start-fullscreen");
   }
   const launchOptions = {
-    headless: data.info.caravan.startsWith("CLOUD_"),
+    headless: data?.info?.caravan?.startsWith("CLOUD_"),
     ignoreHTTPSErrors: true,
     defaultViewport: null,
     args,
   }
 
-  if (data.info.caravan.startsWith("CLOUD_")) {
+  if (data?.info?.caravan?.startsWith("CLOUD_")) {
     launchOptions.executablePath = getChromePath();
   }
   browser = await puppeteer.launch(launchOptions);
