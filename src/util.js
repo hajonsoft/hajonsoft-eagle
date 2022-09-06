@@ -104,7 +104,7 @@ async function initPage(config, onContentLoaded) {
   browser = await puppeteer.launch({
     // executablePath: "c:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
     // executablePath: "c:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    executablePath: getChromePath(),
+    // executablePath: getChromePath(),
     headless: false,
     ignoreHTTPSErrors: true,
     defaultViewport: null,
@@ -123,7 +123,7 @@ async function initPage(config, onContentLoaded) {
   });
   // Catch console log errors
   page.on("pageerror", (err) => {
-    console.log(`Eagle: Page error=>  ${err.toString()}`);
+    // console.log(`Eagle: Page error=>  ${err.toString()}`);
   });
 
   page.on("dialog", async (dialog) => {
@@ -135,11 +135,7 @@ async function initPage(config, onContentLoaded) {
 
   if (process.argv.length > 2) {
     page.on("console", (msg) => {
-      console.log("Eagle: Message=> " + msg.text());
-      // restart node process
-      if (msg.text().includes("500 (Internal Server Error)")) {
-        // process.exit(1);
-      }
+      // console.log("Eagle: Message=> " + msg.text());
 
     });
   }
@@ -1218,7 +1214,7 @@ async function commitCaptchaTokenWithSelector(
   textFieldSelector,
   captchaLength = 6
 ) {
-  await page.evaluate("document.title='Eagle: Captcha thinking...'");
+  infoMessage(page, "Captcha is being solved...");
   try {
     const base64 = await page.evaluate((selector) => {
       const image = document.querySelector(selector);
@@ -1252,10 +1248,11 @@ async function commitCaptchaTokenWithSelector(
       [{ selector: textFieldSelector, value: () => token.toString() }],
       {}
     );
-    await page.evaluate("document.title='Eagle: Captcha solved!'");
+    infoMessage(page, "Captcha is solved!");
     return token;
   } catch (err) {
-    await page.evaluate("document.title='Eagle: Captcha error!!'");
+    infoMessage(page, "Captcha error!");
+
   }
 }
 
@@ -1328,6 +1325,24 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
     });
 }
 
+const infoMessage = async (page, message, depth = 2) => {
+  console.log(`Eagle📣${".".repeat(depth)}${message}`);
+  if (page) {
+    try {
+      await page.evaluate((message) => {
+        const info = document.createElement("div");
+        info.innerText = message;
+        info.style.color = "blue";
+        document.body.appendChild(info);
+      }, message);
+      await page.evaluate("document.title='" + message + "'");
+    } catch {}
+  }
+  // TODO: log to file
+  // fs.appendFileSync(logFile, message + "\n");
+};
+
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1366,4 +1381,5 @@ module.exports = {
   incrementSelectedTraveler,
   setSelectedTraveller,
   updatePassengerInKea,
+  infoMessage,
 };
