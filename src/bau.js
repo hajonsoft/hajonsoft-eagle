@@ -14,6 +14,7 @@ const SERVER_NUMBER = 1;
 let page;
 let data;
 let counter = 0;
+let configs = [];
 
 const config = [
   {
@@ -74,11 +75,18 @@ const config = [
 async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
+  setTimeout(() => {
+    // No login for 10 seconds exist
+    if (!configs.find((c) => c.name === "main")) {
+      process.exit(1);
+    }
+  }, 10000);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
 async function onContentLoaded(res) {
   const currentConfig = util.findConfig(await page.url(), config);
+  configs.push(currentConfig);
   try {
     await runPageConfiguration(currentConfig);
   } catch (err) {
