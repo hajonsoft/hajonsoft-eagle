@@ -42,11 +42,7 @@ const config = [
           row.info.caravan.replace(/ /g, "-").substring(0, 20) +
           "-" +
           `${os.hostname()
-          .substring(0, 8)}}${moment().format("mmss")}_${row.info.run}`,
-      },
-      {
-        selector: "#ctl00_ContentHolder_TxtNotes",
-        value: () => new Date().toString(),
+            .substring(0, 8)}}${moment().format("mmss")}_${row.info.run}`,
       },
       {
         selector: "#ctl00_ContentHolder_TxtExpectedArrivalDate_dateInput",
@@ -162,6 +158,11 @@ async function runPageConfiguration(currentConfig) {
         const currentIndex = util.getSelectedTraveler();
         const passenger = data.travellers[parseInt(currentIndex)];
         sendPassenger(passenger);
+      } else {
+        util.infoMessage(page, `pausing for 10 seconds`);
+        await page.waitForTimeout(10000);
+        fs.writeFileSync("./loop.txt", "loop");
+        await page.reload();
       }
       break;
     default:
