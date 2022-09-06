@@ -85,8 +85,9 @@ async function sendToCloud(data) {
   const fileName = process.argv.find((arg) =>
     arg.toLowerCase().startsWith("file")
   )?.split("=")?.[1];
-  const command = `git add . && git commit -m ${fileName} && git push origin task/submit1:job --force`;
+  const command = `git add . && git commit -m ${fileName} && git push origin $(git branch --show-current):job --force`;
   console.log("command: ", command);
+  console.log("https://github.com/hajonsoft/hajonsoft-eagle/actions");
 }
 
 async function submitToProvider() {
@@ -109,13 +110,13 @@ async function submitToProvider() {
       // console.log(data.system.password);
     }
   }
-  console.log("\x1b[32m", `starting process ...`, "\x1b[0m");
+  console.log("\x1b[32m", `starting process ...[${util.getSelectedTraveler()}]`, "\x1b[0m");
   const lastIndex = util.getSelectedTraveler();
   if (lastIndex >= data.travellers.length) {
     util.setSelectedTraveller(0);
   }
 
-  if (process.argv.includes("-cloud")) {
+  if (process.argv.includes("-cloud") || process.argv.includes("-submit")) {
     return sendToCloud(data);
   }
 
