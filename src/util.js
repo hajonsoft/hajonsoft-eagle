@@ -1315,7 +1315,7 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
 }
 
 const infoMessage = async (page, message, depth = 2) => {
-  console.log(`🦅 ${".".repeat(depth)}${message}`);
+  console.log(`🦅 ${util.getSelectedTraveler()}.${".".repeat(depth)}${message}`);
   if (page) {
     try {
       await page.evaluate("document.title='" + message + "'");

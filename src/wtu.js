@@ -180,7 +180,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "main":
       // set document title
-      page.evaluate("document.title='Eagle: Pause 10 seconds'");
+      util.infoMessage(page, "Redirect in 10 seconds);
       await page.waitForTimeout(10000);
       // Continue only if still on the same page
       if (
@@ -300,9 +300,9 @@ async function sendPassenger(passenger) {
     10
   )}-${data.travellers?.[0].name?.last?.substring(0, 10)}-${os
     .hostname()
-    .substring(0, 8)}##_n`;
+    .substring(0, 8)}`;
 
-  util.infoMessage(page, `Group 👨‍👩‍👦  ${submittionName}[${groupName}]: Attention!!!Embassy default to first option`);
+  util.infoMessage(page, `group 👨‍👩‍👦  ${submittionName}[${groupName}]: Attention!!!Embassy-first-option`);
   await page.select("#ddlgroupname", groupName);
   await page.waitForTimeout(3000);
   await page.waitForSelector("#btnppscan");
@@ -366,7 +366,7 @@ async function sendPassenger(passenger) {
     }
     await page.waitForNavigation();
   } catch (err) {
-    console.log("Canvas: dummy-passport-error", err);
+    console.log("Canvas: dummy-passport-exception");
   }
 
   // Upload the passport image
