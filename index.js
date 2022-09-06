@@ -80,6 +80,15 @@ function printBudgie() {
   process.exit(0);
 }
 
+async function sendToCloud(data) {
+  console.log("cloud submit command");
+  const fileName = process.argv.find((arg) =>
+    arg.toLowerCase().startsWith("file")
+  )?.split("=")?.[1];
+  const command = `git add . && git commit -m ${fileName} && git push origin task/submit1:job --force`;
+  console.log("command: ", command);
+}
+
 async function submitToProvider() {
   const dataFileName = await getDataFileName();
   const content = fs.readFileSync(dataFileName, "utf8");
@@ -105,6 +114,11 @@ async function submitToProvider() {
   if (lastIndex >= data.travellers.length) {
     util.setSelectedTraveller(0);
   }
+
+  if (process.argv.includes("-cloud")) {
+    return sendToCloud(data);
+  }
+
 
   switch (data.system.name) {
     case "ehj":
@@ -197,7 +211,7 @@ async function unzipFile(source) {
     )) {
       fs.unlinkSync(path.join(__dirName, file));
     }
-  } catch {}
+  } catch { }
 
   try {
     await extract(source, { dir: __dirname });
