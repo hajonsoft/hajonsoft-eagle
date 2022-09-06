@@ -5,7 +5,7 @@ name: Build and Test
 
 on:
   push:
-    branches: [ submission, job ]
+    branches: [ job ]
 
 jobs:
   build:
@@ -20,6 +20,6 @@ jobs:
     - run: npm ci
     - uses: nick-invision/retry@v2
       with:
-        max_attempts: 1
-        timeout_minutes: 2
+        max_attempts: 2
+        timeout_minutes: 3
         command: node .
