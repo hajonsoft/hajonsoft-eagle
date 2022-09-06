@@ -315,7 +315,7 @@ async function sendPassenger(passenger) {
     })
     .toFile(resizedPhotoPath);
   await fileChooser.accept([resizedPhotoPath]);
-  util.infoMessage(page, `portraight accepted ${resizedPhotoPath}`);
+  util.infoMessage(page, `portrait accepted ${resizedPhotoPath}`);
 
   const passportPath = path.join(
     util.passportsFolder,
@@ -345,6 +345,7 @@ async function sendPassenger(passenger) {
 
   }
 
+  util.infoMessage(page, `passenger ${passenger.passportNumber} captcha`);
   await util.commitCaptchaToken(
     page,
     "ctl00_ContentHolder_rdCap_CaptchaImageUP",
@@ -356,6 +357,14 @@ async function sendPassenger(passenger) {
   await page.waitForTimeout(10000);
   await page.waitForSelector("#ctl00_ContentHolder_BtnEdit");
   await page.click("#ctl00_ContentHolder_BtnEdit");
+  await page.waitForTimeout(5000);
+  try {
+    const isError = await page.$("#ctl00_ContentHolder_divErrorsList > div > ul > li");
+    if (isError) {
+      util.infoMessage(page, `Error: ${isError.innerText}`);
+    }
+  } catch {}
+
 }
 
 module.exports = { send, config, SERVER_NUMBER };
