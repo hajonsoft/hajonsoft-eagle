@@ -114,17 +114,6 @@ async function initPage(config, onContentLoaded) {
   page = pages[0];
   await page.bringToFront();
   page.on("domcontentloaded", onContentLoaded);
-  page.on("requestfailed", (request) => {
-    console.log(
-      `url: ${request.url()}, errText: ${
-        request.failure()?.errorText
-      }, method: ${request.method()}`
-    );
-  });
-  // Catch console log errors
-  page.on("pageerror", (err) => {
-    // console.log(`Eagle: Page error=>  ${err.toString()}`);
-  });
 
   page.on("dialog", async (dialog) => {
     await page.waitForTimeout(5000);

@@ -294,7 +294,15 @@ async function sendPassenger(passenger) {
   if (!groupName) {
     groupName = budgie.get("wtu_group");
   }
-  util.infoMessage(page, `Group name 👨‍👩‍👦 ${groupName}`);
+
+  const submittionName = `${data.travellers?.[0].name?.first?.substring(
+    0,
+    10
+  )}-${data.travellers?.[0].name?.last?.substring(0, 10)}-${os
+    .hostname()
+    .substring(0, 8)}##_n`;
+
+  util.infoMessage(page, `Group 👨‍👩‍👦  ${submittionName}[${groupName}]: Attention!!!Embassy default to first option`);
   await page.select("#ddlgroupname", groupName);
   await page.waitForTimeout(3000);
   await page.waitForSelector("#btnppscan");
