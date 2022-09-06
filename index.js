@@ -90,14 +90,12 @@ async function sendToCloud(data) {
   let gitCommand;
   gitCommand = childProcess.exec(command, function (error, stdout, stderr) {
     if (error) {
-      console.log(error.stack);
       console.log('Error code: ' + error.code);
-      console.log('Signal received: ' + error.signal);
-    } console.log('Child Process STDOUT: ' + stdout); console.log('Child Process STDERR: ' + stderr);
+    } console.log('Child Process STDOUT: ' + stdout); console.log('Eagle cloud ' + stderr);
   });
 
 
-  console.log("Status: https://github.com/hajonsoft/hajonsoft-eagle/actions");
+  console.log("https://github.com/hajonsoft/hajonsoft-eagle/actions/workflows/submit.yml");
 }
 
 async function submitToProvider() {
