@@ -90,8 +90,8 @@ async function sendToCloud(data) {
   )?.split("=")?.[1];
   const command = `git add . && git commit -m ${fileName.replace(/[^A-Za-z0-9]/g, '')} && git push origin $(git branch --show-current):job --force`;
   const childProcess = require('child_process');
-  let gitCommand;
-  gitCommand = childProcess.exec(command, function (error, stdout, stderr) {
+  
+  childProcess.exec(command, function (error, stdout, stderr) {
     if (error) {
       console.log('Eagle Cloud Error: ' + error.code);
     } 
