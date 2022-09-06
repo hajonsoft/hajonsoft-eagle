@@ -89,7 +89,7 @@ function getIssuingCountry(passenger) {
   return issuingCountry;
 }
 
-async function initPage(config, onContentLoaded) {
+async function initPage(config, onContentLoaded, data) {
   const args = [
     "--incognito",
     "--disable-web-security",
@@ -100,16 +100,17 @@ async function initPage(config, onContentLoaded) {
   if (!process.argv.find((c) => c.startsWith("range="))) {
     args.push("--start-fullscreen");
   }
-
-  browser = await puppeteer.launch({
-    // executablePath: "c:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-    // executablePath: "c:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    // executablePath: getChromePath(),
-    headless: false,
+  const launchOptions = {
+    headless: data.info.caravan.startsWith("CLOUD_"),
     ignoreHTTPSErrors: true,
     defaultViewport: null,
     args,
-  });
+  }
+
+  if (data.info.caravan.startsWith("CLOUD_")) {
+    launchOptions.executablePath = getChromePath();
+  }
+  browser = await puppeteer.launch(launchOptions);
   const pages = await browser.pages();
   page = pages[0];
   await page.bringToFront();

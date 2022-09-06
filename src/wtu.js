@@ -135,7 +135,7 @@ const config = [
 
 async function send(sendData) {
   data = sendData;
-  page = await util.initPage(config, onContentLoaded);
+  page = await util.initPage(config, onContentLoaded, data);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
