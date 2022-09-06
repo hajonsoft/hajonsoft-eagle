@@ -82,6 +82,9 @@ function printBudgie() {
 
 async function sendToCloud(data) {
   util.setSelectedTraveller(0);
+  data.info.caravan = "CLOUD_" + data.info.caravan;
+  data.info.cloud = moment().format("YYYY-MM-DD hh:mm:ss a");
+  fs.writeFileSync("./data.json", JSON.stringify(data));
   const fileName = process.argv.find((arg) =>
     arg.toLowerCase().startsWith("file")
   )?.split("=")?.[1];
@@ -90,8 +93,14 @@ async function sendToCloud(data) {
   let gitCommand;
   gitCommand = childProcess.exec(command, function (error, stdout, stderr) {
     if (error) {
-      console.log('Error code: ' + error.code);
-    } console.log('Child Process STDOUT: ' + stdout); console.log('Eagle cloud ' + stderr);
+      console.log('Eagle Cloud Error: ' + error.code);
+    } 
+    if (stdout) {
+    console.log('Eagle Cloud: ' + stdout); 
+    }
+    if (stderr) {
+    console.log('Eagle cloud: ' + stderr);
+    }
   });
 
 
