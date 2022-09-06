@@ -272,6 +272,7 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function sendPassenger(passenger) {
+  console.log(passenger?.slug);
   status = "sending";
   await page.emulateVisionDeficiency("none");
   // await page.emulateVisionDeficiency("blurredVision");

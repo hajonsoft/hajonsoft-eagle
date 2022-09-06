@@ -123,7 +123,7 @@ async function initPage(config, onContentLoaded) {
   });
   // Catch console log errors
   page.on("pageerror", (err) => {
-    console.log(`Eagle: Page error=>  ${err.toString()}`);
+    // console.log(`Eagle: Page error=>  ${err.toString()}`);
   });
 
   page.on("dialog", async (dialog) => {
@@ -135,11 +135,7 @@ async function initPage(config, onContentLoaded) {
 
   if (process.argv.length > 2) {
     page.on("console", (msg) => {
-      console.log("Eagle: Message=> " + msg.text());
-      // restart node process
-      if (msg.text().includes("500 (Internal Server Error)")) {
-        // process.exit(1);
-      }
+      // console.log("Eagle: Message=> " + msg.text());
 
     });
   }
