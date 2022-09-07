@@ -45,4 +45,4 @@ async function runPageConfiguration(currentConfig) {
   }
 }
 
-module.exports = { send, config, SERVER_NUMBER };
+module.exports = { send, config };
