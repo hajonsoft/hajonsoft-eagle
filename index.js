@@ -611,4 +611,13 @@ function getDownloadFolder() {
   return path.join(homedir(), "Downloads");
 }
 
+process.on('uncaughtException', function(error) {
+  util.infoMessage(page, "uncaughtException: " + error);
+ });
+
+process.on('unhandledRejection', function(reason, p){
+  util.infoMessage(page, "uncaughtException: " + reason);
+
+});
+
 main();

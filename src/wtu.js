@@ -167,7 +167,6 @@ async function pageContentHandler(currentConfig) {
         util.infoMessage(page, "Captcha Failed");
         return;
       }
-      util.infoMessage(page, "Captcha Solved");
 
       await page.waitForTimeout(5000);
       await page.click("#cmdlogin");
@@ -273,7 +272,7 @@ async function sendPassenger(passenger) {
   status = "sending";
   await page.emulateVisionDeficiency("none");
   // await page.emulateVisionDeficiency("blurredVision");
-  const titleMessage = `${parseInt(util.getSelectedTraveler()) + 1
+  const titleMessage = `🧟 ${parseInt(util.getSelectedTraveler()) + 1
     }/${data.travellers.length}-${passenger?.slug}`;
   await util.infoMessage(page, titleMessage);
 
@@ -351,7 +350,7 @@ async function sendPassenger(passenger) {
   );
 
   await page.click("#btn_uploadImage");
-  util.infoMessage(page, "Uploading photo", 4);
+  util.infoMessage(page, "🌄 Uploading photo", 4);
   await page.waitForTimeout(2000);
   await util.commitFile("#file_photo_upload", resizedPhotoPath);
   await page.waitForTimeout(2000);

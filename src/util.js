@@ -254,7 +254,7 @@ function findConfig(url, config) {
   }
 
   if (urlConfig) {
-    infoMessage(page, `Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex}`);
+    infoMessage(page, `✈️ Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex}`, 9);
     return urlConfig;
   }
   return {};
@@ -685,7 +685,7 @@ function getSelectedTraveler() {
   const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
   if (fs.existsSync(fileName)) {
     const lastIndex = fs.readFileSync(fileName, "utf8");
-    if ((parseInt(lastIndex) > data.travellers.length) || (range && parseInt(lastIndex) > parseInt(range.split("=")[1].split("-")[1]))) {
+    if ((parseInt(lastIndex) >= data.travellers.length) || (range && parseInt(lastIndex) >= parseInt(range.split("=")[1].split("-")[1]))) {
       process.exit(0);
     }
     if (range && lastIndex < parseInt(range.split("=")[1].split("-")[0])) {
@@ -694,10 +694,11 @@ function getSelectedTraveler() {
     return lastIndex;
   }
   else {
-    fs.writeFileSync(fileName, "0");
     if (range) {
-      return range.split("=")[1].split("-")[0];
+      fs.writeFileSync(fileName, range.split("=")?.[1]?.split("-")?.[0]);
+      return range.split("=")?.[1]?.split("-")?.[0];
     }
+    fs.writeFileSync(fileName, "0");
     return "0";
   }
 }
@@ -706,7 +707,6 @@ function getSelectedTraveler() {
   function incrementSelectedTraveler(overrideValue) {
     const selectedTraveler = getSelectedTraveler();
     const nextTraveler = parseInt(selectedTraveler) + 1;
-    const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
     const range = process.argv.find((arg) => arg.startsWith("range="));
     const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
     fs.writeFileSync(fileName, nextTraveler.toString());
@@ -1135,7 +1135,7 @@ function getSelectedTraveler() {
     captchaLength = 6
   ) {
     await page.waitForTimeout(3000);
-    infoMessage(page, "Captcha thinking...");
+    infoMessage(page, "🔓 Captcha thinking...");
 
     try {
       const base64 = await page.evaluate((selector) => {
@@ -1164,7 +1164,7 @@ function getSelectedTraveler() {
       });
 
       const token = await captchaSolver.get(id);
-      infoMessage(page, `Captcha solved! ${token}`);
+      infoMessage(page, `🔓 Captcha solved! ${token}`);
 
 
       await commit(
@@ -1174,7 +1174,7 @@ function getSelectedTraveler() {
       );
       return token;
     } catch (err) {
-      infoMessage(page, `Captcha error`);
+      infoMessage(page, `🔓 Captcha error!!!`);
     }
   }
 
