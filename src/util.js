@@ -254,7 +254,7 @@ function findConfig(url, config) {
   }
 
   if (urlConfig) {
-    console.log("Workflow: ", urlConfig.name);
+    infoMessage(page, `Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex}`);
     return urlConfig;
   }
   return {};

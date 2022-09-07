@@ -270,11 +270,10 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function sendPassenger(passenger) {
-  util.infoMessage(page, `sending ${passenger?.slug}`);
   status = "sending";
   await page.emulateVisionDeficiency("none");
   // await page.emulateVisionDeficiency("blurredVision");
-  const titleMessage = `sending ${parseInt(util.getSelectedTraveler()) + 1
+  const titleMessage = `${parseInt(util.getSelectedTraveler()) + 1
     }/${data.travellers.length}-${passenger?.slug}`;
   await util.infoMessage(page, titleMessage);
 
@@ -496,21 +495,18 @@ async function sendPassenger(passenger) {
       5
     );
     await page.click("#btnsave");
-    await page.waitForSelector(
-      "body > div.lobibox-notify-wrapper > div.lobibox-notify.lobibox-notify-success",
-      {
-        timeout: 10000,
-      }
-    );
     util.updatePassengerInKea(data.system.accountId, passenger.passportNumber, {
       "submissionData.wtu.status": "Submitted",
     });
+    // allow 10 seconds to save
+    util.infoMessage(page, "allow 10 seconds for save", 7);
+    await page.waitForTimeout(10000);
     util.incrementSelectedTraveler();
     return page.goto(
       "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
     );
   } catch (err) {
-    console.log("Canvas: dummy-passport-error", err);
+    util.infoMessage(page, "Canvas: dummy-passport-error", 7);
   }
 }
 
