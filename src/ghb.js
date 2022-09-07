@@ -2,15 +2,8 @@ const puppeteer = require("puppeteer-extra");
 // Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
-const fs = require("fs");
-const path = require("path");
 const util = require("./util");
-const moment = require("moment");
-const sharp = require("sharp");
-const os = require("os");
-const { default: axios } = require("axios");
 
-const SERVER_NUMBER = 1;
 let page;
 let data;
 let counter = 0;
@@ -19,7 +12,7 @@ let configs = [];
 const config = [
   {
     name: "login",
-    url: `https://github.com/hajonsoft/hajonsoft-eagle/actions/workflows/submit.yml`,
+    url: `https://github.com/hajonsoft/hajonsoft-eagle/actions/workflows/eagle.yml`,
   },
 ];
 
