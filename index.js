@@ -87,12 +87,9 @@ async function sendToCloud(data) {
   data.info.range = process.argv.find((arg) =>
     arg.toLowerCase().startsWith("range")
   )?.substring(6);
-  data.info.cloud = moment().format("YYYY-MM-DD hh:mm:ss a");
+  data.info.stamp = moment().format("YYYY-MM-DD hh:mm:ss a");
   fs.writeFileSync("./data.json", JSON.stringify(data));
-  const fileName = process.argv.find((arg) =>
-    arg.toLowerCase().startsWith("file")
-  )?.split("=")?.[1];
-  const command = `git add . && git commit -m "${data.system?.country?.code} ${data.travellers?.length} Pax ${data.system?.name} ${data.system?.username}.0${moment().format("mm")} ${process.argv.find(arg => arg.toLowerCase().startsWith("range")) ?? ''}" && git push origin $(git branch --show-current):job --force`;
+  const command = `git add . && git commit -m "${data.system?.country?.code} ${data.travellers?.length} Pax ${data.system?.name} ${data.system?.username}.0${moment().format("mm")} ${process.argv.find(arg => arg.toLowerCase().startsWith("range")) ?? data.info.range}'}" && git push origin $(git branch --show-current):job --force`;
   const childProcess = require('child_process');
 
   childProcess.exec(command, function (error, stdout, stderr) {

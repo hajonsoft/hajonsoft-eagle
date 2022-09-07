@@ -691,10 +691,25 @@ async function handleLoadImportedOnlyClick() {
   await browser.close();
 }
 
+const getRange = () => {
+  const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
+  const isCloudRun = data.info.caravan.startsWith("CLOUD_");
+  if (isCloudRun) {
+    // read range from data.json
+    const range = data.info.range;
+    return range ? `range=${range}` : "";
+  }
+  // Not a cloud run
+  const cliRange = process.argv.find((arg) => arg.startsWith("range="));
+  if (cliRange) {
+    return cliRange;
+  }
+  return "";
+}
 function getSelectedTraveler() {
   const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
-  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? "range=" + data.info.range;
-  const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
+  const range = getRange();
+  const fileName = "./selectedTraveller" + range + ".txt";
   console.log("counter file name", fileName);
   if (fs.existsSync(fileName)) {
     const lastIndex = fs.readFileSync(fileName, "utf8");
@@ -719,8 +734,8 @@ function getSelectedTraveler() {
 function incrementSelectedTraveler(overrideValue) {
   const selectedTraveler = getSelectedTraveler();
   const nextTraveler = parseInt(selectedTraveler) + 1;
-  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? "range=" + data.info.range;
-  const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
+  const range = getRange();
+  const fileName = "./selectedTraveller" + range + ".txt";
   fs.writeFileSync(fileName, nextTraveler.toString());
   return nextTraveler;
 }
@@ -729,17 +744,16 @@ function incrementSelectedTraveler(overrideValue) {
   const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
   const selectedTraveler = getSelectedTraveler();
   const nextTraveler = parseInt(selectedTraveler) + 1;
-  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? "range=" + data.info.range;
-  const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
+  const range = getRange();
+  const fileName = "./selectedTraveller" + range + ".txt";
   fs.writeFileSync(fileName, nextTraveler.toString());
   return nextTraveler;
 }
 
 function setSelectedTraveller(value) {
-  getSelectedTraveler(); //initialize
-  const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
-  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? "range=" + data.info.range;
-  const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
+  getSelectedTraveler(); // Make sure the file exists
+  const range = getRange();
+  const fileName = "./selectedTraveller" + range + ".txt";
   if (fs.existsSync(fileName)) {
     return fs.writeFileSync(fileName, value.toString());
   }

@@ -6,7 +6,6 @@ const util = require("./util");
 
 let page;
 let data;
-let counter = 0;
 let configs = [];
 
 const config = [
