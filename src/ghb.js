@@ -45,8 +45,9 @@ async function runPageConfiguration(currentConfig) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
       await page.waitForTimeout(10000);
-      await page.reload({ waitUntil: "domcontentloaded" });
-      await page.browser().disconnect();
+      setInterval(async () => {
+        await page.reload({ waitUntil: "domcontentloaded" });
+      }, 3000);
       break;
     default:
       break;

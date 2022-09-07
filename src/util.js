@@ -1220,7 +1220,7 @@ async function commitCaptchaTokenWithSelector(
       [{ selector: textFieldSelector, value: () => token.toString() }],
       {}
     );
-    infoMessage(page, "🔓 Captcha is solved! " + token);
+    infoMessage(page, "🔓 Captcha solved! " + token);
     return token;
   } catch (err) {
     infoMessage(page, "🔓 Captcha error!");
