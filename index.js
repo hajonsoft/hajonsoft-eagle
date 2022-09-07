@@ -9,6 +9,7 @@ const { send: sendTwf } = require("./src/twf");
 const { send: sendHsf } = require("./src/hsf");
 const { send: sendSbr } = require("./src/sbr");
 const { send: sendMtf } = require("./src/mtf");
+const { send: sendGhb } = require("./src/ghb");
 const {
   send: sendVsn,
   createCodelineFile,
@@ -83,28 +84,29 @@ function printBudgie() {
 async function sendToCloud(data) {
   util.setSelectedTraveller(0);
   data.info.caravan = "CLOUD_" + data.info.caravan;
+  data.info.range = process.argv.find((arg) =>
+    arg.toLowerCase().startsWith("range")
+  )?.substring(6);
   data.info.cloud = moment().format("YYYY-MM-DD hh:mm:ss a");
   fs.writeFileSync("./data.json", JSON.stringify(data));
   const fileName = process.argv.find((arg) =>
     arg.toLowerCase().startsWith("file")
   )?.split("=")?.[1];
-  const command = `git add . && git commit -m ${fileName.replace(/[^A-Za-z0-9]/g, '')} && git push origin $(git branch --show-current):job --force`;
+  const command = `git add . && git commit -m "${data.system?.country?.code} ${data.travellers?.length} Pax ${data.system?.name} ${data.system?.username}.0${moment().format("mm")} ${process.argv.find(arg => arg.toLowerCase().startsWith("range")) ?? ''}" && git push origin $(git branch --show-current):job --force`;
   const childProcess = require('child_process');
-  
+
   childProcess.exec(command, function (error, stdout, stderr) {
     if (error) {
       console.log('Eagle Cloud Error: ' + error.code);
-    } 
+    }
     if (stdout) {
-    console.log('Eagle Cloud: ' + stdout); 
+      console.log('Eagle Cloud: ' + stdout);
     }
     if (stderr) {
-    console.log('Eagle cloud: ' + stderr);
+      console.log('Eagle cloud: ' + stderr);
     }
   });
-
-
-  console.log("https://github.com/hajonsoft/hajonsoft-eagle/actions/workflows/submit.yml");
+  sendGhb(data);
 }
 
 async function submitToProvider() {
@@ -145,6 +147,8 @@ async function submitToProvider() {
       return sendBau(data);
     case "wtu":
       return sendWtu(data);
+    case "ghb":
+      return sendGhb(data);
     case "gma":
       return sendGma(data);
     case "twf":
@@ -609,5 +613,14 @@ function getDownloadFolder() {
   }
   return path.join(homedir(), "Downloads");
 }
+
+process.on('uncaughtException', function(error) {
+  util.infoMessage(null, "uncaughtException: " + error);
+ });
+
+process.on('unhandledRejection', function(reason, p){
+  util.infoMessage(null, "uncaughtException: " + reason);
+
+});
 
 main();

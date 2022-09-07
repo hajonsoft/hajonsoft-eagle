@@ -91,23 +91,27 @@ function getIssuingCountry(passenger) {
 
 async function initPage(config, onContentLoaded, data) {
   const args = [
-    "--incognito",
     "--disable-web-security",
     "--disable-features=IsolateOrigins,site-per-process",
     "--allow-running-insecure-content",
   ];
 
+  const isCloudRun = Boolean(data?.info?.caravan?.startsWith("CLOUD_"));
+  if (!isCloudRun) {
+    args.push("ingognito");
+  }
+
   if (!process.argv.find((c) => c.startsWith("range="))) {
     args.push("--start-fullscreen");
   }
   const launchOptions = {
-    headless: Boolean(data?.info?.caravan?.startsWith("CLOUD_")),
+    headless: isCloudRun,
     ignoreHTTPSErrors: true,
     defaultViewport: null,
     args,
   };
 
-  if (data?.info?.caravan?.startsWith("CLOUD_")) {
+  if (!isCloudRun) {
     launchOptions.executablePath = getChromePath();
   }
   browser = await puppeteer.launch(launchOptions);
@@ -253,7 +257,7 @@ function findConfig(url, config) {
   }
 
   if (urlConfig) {
-    console.log("Workflow: ", urlConfig.name);
+    infoMessage(page, `✈️ Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex}`, 9);
     return urlConfig;
   }
   return {};
@@ -688,27 +692,25 @@ async function handleLoadImportedOnlyClick() {
 }
 
 function getSelectedTraveler() {
-  const range = process.argv.find((arg) => arg.startsWith("range="));
-  const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
   const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
+  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? data.info.range;
+  const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
   if (fs.existsSync(fileName)) {
     const lastIndex = fs.readFileSync(fileName, "utf8");
-    if (
-      parseInt(lastIndex) > data.travellers.length ||
-      (range &&
-        parseInt(lastIndex) > parseInt(range.split("=")[1].split("-")[1]))
-    ) {
+    if ((parseInt(lastIndex) >= data.travellers.length) || (range && parseInt(lastIndex) >= parseInt(range.split("=")[1].split("-")[1]))) {
       process.exit(0);
     }
     if (range && lastIndex < parseInt(range.split("=")[1].split("-")[0])) {
       return range.split("=")[1].split("-")[0];
     }
     return lastIndex;
-  } else {
-    fs.writeFileSync(fileName, "0");
+  }
+  else {
     if (range) {
-      return range.split("=")[1].split("-")[0];
+      fs.writeFileSync(fileName, range.split("=")?.[1]?.split("-")?.[0]);
+      return range.split("=")?.[1]?.split("-")?.[0];
     }
+    fs.writeFileSync(fileName, "0");
     return "0";
   }
 }
@@ -723,9 +725,20 @@ function incrementSelectedTraveler(overrideValue) {
   return nextTraveler;
 }
 
+function incrementSelectedTraveler(overrideValue) {
+  const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
+  const selectedTraveler = getSelectedTraveler();
+  const nextTraveler = parseInt(selectedTraveler) + 1;
+  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? data.info.range;
+  const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
+  fs.writeFileSync(fileName, nextTraveler.toString());
+  return nextTraveler;
+}
+
 function setSelectedTraveller(value) {
   getSelectedTraveler(); //initialize
-  const range = process.argv.find((arg) => arg.startsWith("range="));
+  const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
+  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? data.info.range;
   const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
   if (fs.existsSync(fileName)) {
     return fs.writeFileSync(fileName, value.toString());
@@ -1145,7 +1158,7 @@ async function commitCaptchaToken(
   captchaLength = 6
 ) {
   await page.waitForTimeout(3000);
-  infoMessage(page, "Captcha thinking...");
+  infoMessage(page, "🔓 Captcha thinking...");
 
   try {
     const base64 = await page.evaluate((selector) => {
@@ -1174,7 +1187,7 @@ async function commitCaptchaToken(
     });
 
     const token = await captchaSolver.get(id);
-    infoMessage(page, `Captcha solved! ${token}`);
+    infoMessage(page, `🔓 Captcha solved! ${token}`);
 
     await commit(
       page,
@@ -1183,7 +1196,7 @@ async function commitCaptchaToken(
     );
     return token;
   } catch (err) {
-    infoMessage(page, `Captcha error`);
+    infoMessage(page, `🔓 Captcha error!!!`);
   }
 }
 
@@ -1193,7 +1206,7 @@ async function commitCaptchaTokenWithSelector(
   textFieldSelector,
   captchaLength = 6
 ) {
-  infoMessage(page, "Captcha is being solved...");
+  infoMessage(page, "🔓 Captcha is being solved...");
   try {
     const base64 = await page.evaluate((selector) => {
       const image = document.querySelector(selector);
@@ -1227,10 +1240,11 @@ async function commitCaptchaTokenWithSelector(
       [{ selector: textFieldSelector, value: () => token.toString() }],
       {}
     );
-    infoMessage(page, "Captcha is solved!");
+    infoMessage(page, "🔓 Captcha solved! " + token);
     return token;
   } catch (err) {
-    infoMessage(page, "Captcha error!");
+    infoMessage(page, "🔓 Captcha error!");
+
   }
 }
 
@@ -1252,9 +1266,8 @@ const premiumSupportAlert = async (page, selector, data) => {
       </span>
 
       <button onclick="location.href='https://hajonsoft.on.spiceworks.com/portal/registrations'" type="button" style="background-color: #5B9A63; color: #C7E5C8; border: none; padding: 8px 16px; border-radius: 4px; font-size: 1.4rem; cursor: pointer;">
-      Pay ${json.travellers.length * 1.5}.00 USD to a temporary worker (${
-        json.travellers.length
-      } pax x $1.5 = ${json.travellers.length * 1.5} USD)
+      Pay ${json.travellers.length * 1.5}.00 USD to a temporary worker (${json.travellers.length
+        } pax x $1.5 = ${json.travellers.length * 1.5} USD)
       </button
        
       
@@ -1308,7 +1321,7 @@ const infoMessage = async (page, message, depth = 2) => {
   if (page) {
     try {
       await page.evaluate("document.title='" + message + "'");
-    } catch {}
+    } catch { }
   }
   // TODO: log to file
   // fs.appendFileSync(logFile, message + "\n");
