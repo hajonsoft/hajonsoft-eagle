@@ -28,7 +28,6 @@ async function send(sendData) {
   data.info.caravan = data?.info?.caravan?.replace(/CLOUD_/g, "");
   page = await util.initPage(config, onContentLoaded, data);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
-  await page.browser().disconnect();
 }
 
 async function onContentLoaded(res) {
@@ -47,6 +46,7 @@ async function runPageConfiguration(currentConfig) {
       await util.commit(page, currentConfig.details, data.system);
       await page.waitForTimeout(10000);
       await page.reload({ waitUntil: "domcontentloaded" });
+      await page.browser().disconnect();
       break;
     default:
       break;
