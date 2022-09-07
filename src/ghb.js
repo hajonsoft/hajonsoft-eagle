@@ -47,7 +47,7 @@ async function runPageConfiguration(currentConfig) {
       await page.waitForTimeout(10000);
       setTimeout(async () => {
         await page.reload({ waitUntil: "domcontentloaded" });
-      }, 5000);
+      }, 10000);
       break;
     default:
       break;

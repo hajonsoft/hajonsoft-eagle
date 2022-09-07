@@ -91,23 +91,27 @@ function getIssuingCountry(passenger) {
 
 async function initPage(config, onContentLoaded, data) {
   const args = [
-    data?.system?.name === "ghb" ? "" : "--incognito",
     "--disable-web-security",
     "--disable-features=IsolateOrigins,site-per-process",
     "--allow-running-insecure-content",
   ];
 
+  const isCloudRun = Boolean(data?.info?.caravan?.startsWith("CLOUD_"));
+  if (!isCloudRun) {
+    args.push("ingognito");
+  }
+
   if (!process.argv.find((c) => c.startsWith("range="))) {
     args.push("--start-fullscreen");
   }
   const launchOptions = {
-    headless: data?.info?.caravan?.startsWith("CLOUD_"),
+    headless: isCloudRun,
     ignoreHTTPSErrors: true,
     defaultViewport: null,
     args,
   }
 
-  if (data?.info?.caravan?.startsWith("CLOUD_")) {
+  if (!isCloudRun) {
     launchOptions.executablePath = getChromePath();
   }
   browser = await puppeteer.launch(launchOptions);
