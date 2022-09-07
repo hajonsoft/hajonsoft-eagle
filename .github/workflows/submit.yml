@@ -22,4 +22,4 @@ jobs:
       with:
         max_attempts: 5
         timeout_minutes: 30
-        command: node .
+        command: node . range=0-5
