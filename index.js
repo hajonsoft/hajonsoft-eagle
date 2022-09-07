@@ -615,11 +615,11 @@ function getDownloadFolder() {
 }
 
 process.on('uncaughtException', function(error) {
-  util.infoMessage(page, "uncaughtException: " + error);
+  util.infoMessage(null, "uncaughtException: " + error);
  });
 
 process.on('unhandledRejection', function(reason, p){
-  util.infoMessage(page, "uncaughtException: " + reason);
+  util.infoMessage(null, "uncaughtException: " + reason);
 
 });
 
