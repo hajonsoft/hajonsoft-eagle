@@ -25,7 +25,8 @@ const config = [
 
 async function send(sendData) {
   data = sendData;
-  page = await util.initPage(config, onContentLoaded);
+  data.info.caravan = data?.info?.caravan?.replace(/CLOUD_/g, "");
+  page = await util.initPage(config, onContentLoaded, data);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
