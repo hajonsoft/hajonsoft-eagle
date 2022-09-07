@@ -693,7 +693,7 @@ async function handleLoadImportedOnlyClick() {
 
 function getSelectedTraveler() {
   const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
-  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? data.info.range;
+  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? "range=" + data.info.range;
   const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
   if (fs.existsSync(fileName)) {
     const lastIndex = fs.readFileSync(fileName, "utf8");
@@ -718,8 +718,7 @@ function getSelectedTraveler() {
 function incrementSelectedTraveler(overrideValue) {
   const selectedTraveler = getSelectedTraveler();
   const nextTraveler = parseInt(selectedTraveler) + 1;
-  const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
-  const range = process.argv.find((arg) => arg.startsWith("range="));
+  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? "range=" + data.info.range;
   const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
   fs.writeFileSync(fileName, nextTraveler.toString());
   return nextTraveler;
@@ -729,7 +728,7 @@ function incrementSelectedTraveler(overrideValue) {
   const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
   const selectedTraveler = getSelectedTraveler();
   const nextTraveler = parseInt(selectedTraveler) + 1;
-  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? data.info.range;
+  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? "range=" + data.info.range;
   const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
   fs.writeFileSync(fileName, nextTraveler.toString());
   return nextTraveler;
@@ -738,7 +737,7 @@ function incrementSelectedTraveler(overrideValue) {
 function setSelectedTraveller(value) {
   getSelectedTraveler(); //initialize
   const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
-  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? data.info.range;
+  const range = process.argv.find((arg) => arg.startsWith("range=")) ?? "range=" + data.info.range;
   const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
   if (fs.existsSync(fileName)) {
     return fs.writeFileSync(fileName, value.toString());

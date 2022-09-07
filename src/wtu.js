@@ -368,7 +368,7 @@ async function sendPassenger(passenger) {
   // Upload the passport image
   await page.waitForSelector("#imgppcopy");
   await util.commitFile("#fuppcopy", resizedPassportPath);
-  util.infoMessage(page, "Uploading passport", 4);
+  util.infoMessage(page, "🌇 Uploading passport", 4);
   // scroll to bottom
   await page.evaluate("window.scrollTo(0, document.body.scrollHeight)");
 
@@ -485,7 +485,7 @@ async function sendPassenger(passenger) {
 
   await page.waitForSelector("#imgppcopy");
   await util.commitFile("#fuppcopy", blankPassportPath);
-  util.infoMessage(page, "Uploading passport exception retry", 6);
+  util.infoMessage(page, "🌇 Uploading passport exception", 6);
   try {
     await util.commitCaptchaTokenWithSelector(
       page,
