@@ -98,7 +98,7 @@ async function initPage(config, onContentLoaded, data) {
 
   const isCloudRun = Boolean(data?.info?.caravan?.startsWith("CLOUD_"));
   if (!isCloudRun) {
-    args.push("ingognito");
+    args.push("incognito");
   }
 
   if (!process.argv.find((c) => c.startsWith("range="))) {
