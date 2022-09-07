@@ -9,6 +9,7 @@ const { send: sendTwf } = require("./src/twf");
 const { send: sendHsf } = require("./src/hsf");
 const { send: sendSbr } = require("./src/sbr");
 const { send: sendMtf } = require("./src/mtf");
+const { send: sendGhb } = require("./src/ghb");
 const {
   send: sendVsn,
   createCodelineFile,
@@ -90,16 +91,16 @@ async function sendToCloud(data) {
   )?.split("=")?.[1];
   const command = `git add . && git commit -m "${data.system?.country?.code} ${data.travellers?.length} Pax ${data.system?.name} ${data.system?.username}.0${moment().format("mm")}" && git push origin $(git branch --show-current):job --force`;
   const childProcess = require('child_process');
-  
+
   childProcess.exec(command, function (error, stdout, stderr) {
     if (error) {
       console.log('Eagle Cloud Error: ' + error.code);
-    } 
+    }
     if (stdout) {
-    console.log('Eagle Cloud: ' + stdout); 
+      console.log('Eagle Cloud: ' + stdout);
     }
     if (stderr) {
-    console.log('Eagle cloud: ' + stderr);
+      console.log('Eagle cloud: ' + stderr);
     }
   });
 
@@ -145,6 +146,8 @@ async function submitToProvider() {
       return sendBau(data);
     case "wtu":
       return sendWtu(data);
+    case "ghb":
+      return sendGhb(data);
     case "gma":
       return sendGma(data);
     case "twf":
