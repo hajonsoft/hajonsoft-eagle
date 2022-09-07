@@ -91,7 +91,7 @@ function getIssuingCountry(passenger) {
 
 async function initPage(config, onContentLoaded, data) {
   const args = [
-    "--incognito",
+    data?.info?.caravan?.startsWith("CLOUD_") ? "" : "--incognito",
     "--disable-web-security",
     "--disable-features=IsolateOrigins,site-per-process",
     "--allow-running-insecure-content",
