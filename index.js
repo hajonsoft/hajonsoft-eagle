@@ -84,6 +84,9 @@ function printBudgie() {
 async function sendToCloud(data) {
   util.setSelectedTraveller(0);
   data.info.caravan = "CLOUD_" + data.info.caravan;
+  data.info.range = process.argv.find((arg) =>
+    arg.toLowerCase().startsWith("range")
+  )?.substring(6);
   data.info.cloud = moment().format("YYYY-MM-DD hh:mm:ss a");
   fs.writeFileSync("./data.json", JSON.stringify(data));
   const fileName = process.argv.find((arg) =>

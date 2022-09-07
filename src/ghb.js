@@ -45,6 +45,8 @@ async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
+      await waitforTime(10000);
+      await page.reload({ waitUntil: "domcontentloaded" });
       break;
     default:
       break;
