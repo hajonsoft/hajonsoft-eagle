@@ -39,7 +39,6 @@ async function onContentLoaded(res) {
     console.log(err);
   }
 }
-
 async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
