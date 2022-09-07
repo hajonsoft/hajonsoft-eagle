@@ -695,6 +695,7 @@ function getSelectedTraveler() {
   const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
   const range = process.argv.find((arg) => arg.startsWith("range=")) ?? "range=" + data.info.range;
   const fileName = "./selectedTraveller" + (range ?? "") + ".txt";
+  console.log("counter file name", fileName);
   if (fs.existsSync(fileName)) {
     const lastIndex = fs.readFileSync(fileName, "utf8");
     if ((parseInt(lastIndex) >= data.travellers.length) || (range && parseInt(lastIndex) >= parseInt(range.split("=")[1].split("-")[1]))) {
