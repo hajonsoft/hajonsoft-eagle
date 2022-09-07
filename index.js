@@ -88,7 +88,7 @@ async function sendToCloud(data) {
   const fileName = process.argv.find((arg) =>
     arg.toLowerCase().startsWith("file")
   )?.split("=")?.[1];
-  const command = `git add . && git commit -m "${data.info?.munazim} ${data.travellers?.length} Pax ${data.system?.wtu} ${data.system?.username}~${moment().format("mmss")}" && git push origin $(git branch --show-current):job --force`;
+  const command = `git add . && git commit -m "${data.system?.country?.code} ${data.travellers?.length} Pax ${data.system?.name} ${data.system?.username}(${moment().format("mm")})" && git push origin $(git branch --show-current):job --force`;
   const childProcess = require('child_process');
   
   childProcess.exec(command, function (error, stdout, stderr) {
