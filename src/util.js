@@ -1322,9 +1322,8 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
 }
 
 const infoMessage = async (page, message, depth = 2) => {
-  console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
+  const fileName = `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`;
   if (page) {
-    const fileName = `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`;
     try {
       await page.evaluate("document.title='" + message + "'");
       // Capture screenshot and display image in log
@@ -1336,6 +1335,8 @@ const infoMessage = async (page, message, depth = 2) => {
 
     } catch { }
   }
+  console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 ${fileName}`);
+
   // TODO: log to file
   // fs.appendFileSync(logFile, message + "\n");
 };
