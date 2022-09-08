@@ -1328,12 +1328,13 @@ const infoMessage = async (page, message, depth = 2) => {
     try {
       await page.evaluate("document.title='" + message + "'");
       // Capture screenshot and display image in log
-      await page.screenshot({
-        path: path.join(__dirname, fileName),
-        fullPage: true,
-      });
+      const base64 = await page.screenshot({ encoding: "base64", fullPage: true  });
       // upload image to imgbb and get url
-      imgbbUploader(IMAGE_UPLOADER_KEY, path.join(__dirname, fileName))
+      // imgbbUploader(IMAGE_UPLOADER_KEY, path.join(__dirname, fileName))
+      imgbbUploader({
+        apiKey: IMAGE_UPLOADER_KEY,
+        base64string: base64,
+      })
       .then((response) => console.log(`[screenshot] 📸 ${response?.display_url}`))
     } catch { }
   }
