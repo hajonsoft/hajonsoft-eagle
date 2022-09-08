@@ -1329,26 +1329,13 @@ const infoMessage = async (page, message, depth = 2) => {
       await page.evaluate("document.title='" + message + "'");
       // Capture screenshot and display image in log
       await page.screenshot({
-        path: fileName,
+        path: path.join(__dirname, fileName),
         fullPage: true,
       });
-
+      // upload image to imgbb and get url
+      imgbbUploader(IMAGE_UPLOADER_KEY, fileName)
+      .then((response) => console.log(`📸 ${response?.data?.data?.url}`))
     } catch { }
-    // upload image to imgbb and get url
-    const response = await axios.post(
-      "https://api.imgbb.com/1/upload",
-      {
-        params: {
-          key: `5846c50eb79feaa73a67f0fb8804c878`,
-          image: `${fs.readFileSync(fileName).toString("base64")}`,
-          name: ``,
-        }
-      },
-    );
-    imgbbUploader(IMAGE_UPLOADER_KEY, fileName)
-    .then((response) => console.log(`🦅 📸 ${response?.data?.data?.url}`))
-    
-    console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 ${response?.data?.data?.url}`);
   }
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
 
