@@ -1328,7 +1328,7 @@ const infoMessage = async (page, message, depth = 2) => {
     try {
       await page.evaluate("document.title='" + message + "'");
       // Capture screenshot and display image in log
-      const base64 = await page.screenshot({ encoding: "base64" });
+      const base64 = await page.screenshot({ encoding: "base64", fullPage: true  });
       // upload image to imgbb and get url
       // imgbbUploader(IMAGE_UPLOADER_KEY, path.join(__dirname, fileName))
       imgbbUploader({
