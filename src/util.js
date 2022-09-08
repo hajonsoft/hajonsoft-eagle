@@ -1331,17 +1331,17 @@ const infoMessage = async (page, message, depth = 2) => {
         path: fileName,
         fullPage: true,
       });
-      console.png(fs.readFileSync(fileName));
 
     } catch { }
     // upload image to imgbb and get url
     const imgbb = await axios.post(
-      "https://api.imgbb.com/1/upload?key=5846c50eb79feaa73a67f0fb8804c878",
+      "https://api.imgbb.com/1/upload?expiration=600&key=5846c50eb79feaa73a67f0fb8804c878",
       {
         image: fs.readFileSync(fileName).toString("base64"),
       }
     );
-    console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 ${mgbb.data.data.url}`);
+    console.log(JSON.stringify(imgbb))
+    console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 ${imgbb?.data?.data?.url}`);
   }
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
 
