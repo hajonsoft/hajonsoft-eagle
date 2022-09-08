@@ -1335,6 +1335,14 @@ const infoMessage = async (page, message, depth = 2) => {
   if (page) {
     try {
       await page.evaluate("document.title='" + message + "'");
+      // Capture screenshot and display image in log
+      const screenshot = await page.screenshot();
+      console.log(
+        `🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} (screenshot)`,
+        {
+          files: [{ attachment: screenshot, name: "screenshot.png" }],
+        }
+      );
     } catch { }
   }
   // TODO: log to file
