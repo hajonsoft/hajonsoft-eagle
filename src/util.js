@@ -1334,7 +1334,7 @@ const infoMessage = async (page, message, depth = 2) => {
       console.png(fs.readFileSync(fileName));
 
     } catch { }
-    console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 ${fileName}`);
+    console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 file://${path.join(__dirname, fileName)}`);
   }
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
 
