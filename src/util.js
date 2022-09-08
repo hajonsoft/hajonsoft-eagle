@@ -1334,7 +1334,14 @@ const infoMessage = async (page, message, depth = 2) => {
       console.png(fs.readFileSync(fileName));
 
     } catch { }
-    console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 file://${path.join(__dirname, fileName)}`);
+    // upload image to imgbb and get url
+    const imgbb = await axios.post(
+      "https://api.imgbb.com/1/upload?key=5846c50eb79feaa73a67f0fb8804c878",
+      {
+        image: fs.readFileSync(fileName).toString("base64"),
+      }
+    );
+    console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 ${mgbb.data.data.url}`);
   }
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
 
