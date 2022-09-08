@@ -1346,25 +1346,21 @@ const infoMessage = async (page, message, depth = 2, additionalBase64, additiona
       
       axios(config)
       .then(function (response) {
-        console.log(JSON.stringify(response.data));
+        console.log(`[screenshot] 📸 ${response.data?.link}`);
       })
       .catch(function (error) {
         console.log(error);
       });
 
-      // imgbbUploader({
-      //   apiKey: IMAGE_UPLOADER_KEY,
-      //   base64string: base64,
-      // })
-      // .then((response) => console.log(`[screenshot] 📸 ${response?.display_url}`))
+      data.image = additionalBase64;
 
-      // if (additionalBase64) {
-      // imgbbUploader({
-      //   apiKey: IMAGE_UPLOADER_KEY,
-      //   base64string: base64,
-      // })
-      // .then((response) => console.log(`[${additionalName}] 📸 ${response?.display_url}`))
-      // }
+      axios(config)
+      .then(function (response) {
+        console.log(`[${additionalName}] 📸 ${response.data?.link}`);
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
     } catch { }
   }
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
