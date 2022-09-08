@@ -1295,11 +1295,13 @@ function getOverridePath(original, override) {
 
   return original;
 }
+// initialize imgur
+imgur.setClientId("a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6");
 
 function uploadImage(base64) {
   return new Promise((resolve, reject) => {
     imgur
-      .uploadBase64(base64)
+      .upload(base64)
       .then((json) => {
         resolve(json.data.link);
       })
@@ -1345,7 +1347,6 @@ const infoMessage = async (page, message, depth = 2, additionalBase64, additiona
       await page.evaluate("document.title='" + message + "'");
       // Capture screenshot and display image in log
       const base64 = await page.screenshot({ encoding: "base64", fullPage: true });
-      // upload image to imgur and get url
       const url = await uploadImage(base64);
       console.log("Screenshot: ", url);
       // upload image to imgur and get url
