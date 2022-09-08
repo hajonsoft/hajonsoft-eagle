@@ -1328,9 +1328,11 @@ const infoMessage = async (page, message, depth = 2) => {
     try {
       await page.evaluate("document.title='" + message + "'");
       // Capture screenshot and display image in log
-      const buffer = await page.screenshot();
-      console.png(buffer);
-      // console.png(fs.readFileSync(fileName));
+      await page.screenshot({
+        path: fileName,
+        fullPage: true,
+      });
+      console.png(fs.readFileSync(fileName));
 
     } catch { }
   }
