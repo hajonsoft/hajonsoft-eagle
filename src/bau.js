@@ -231,16 +231,32 @@ async function sendPassenger(passenger) {
         value: (row) => row.nameArabic.first,
       },
       {
-        selector: "#ctl00_ContentHolder_TxtAltLastName",
-        value: (row) => row.nameArabic.last,
+        selector: "#ctl00_ContentHolder_TxtAltSecondName",
+        value: (row) => row.nameArabic.father,
       },
       {
         selector: "#ctl00_ContentHolder_TxtAltGrandFatherName",
         value: (row) => row.nameArabic.grand,
       },
       {
-        selector: "#ctl00_ContentHolder_TxtAltSecondName",
-        value: (row) => row.nameArabic.father,
+        selector: "#ctl00_ContentHolder_TxtAltLastName",
+        value: (row) => row.nameArabic.last,
+      },
+      {
+        selector: "#ctl00_ContentHolder_TxtFirstName",
+        value: (row) => row.name.first,
+      },
+      {
+        selector: "#ctl00_ContentHolder_TxtSecondName",
+        value: (row) => row.name.father,
+      },
+      {
+        selector: "#ctl00_ContentHolder_TxtGrandFatherName",
+        value: (row) => row.name.grand,
+      },
+      {
+        selector: "#ctl00_ContentHolder_TxtLastName",
+        value: (row) => row.name.last,
       },
       {
         selector: "#ctl00_ContentHolder_calPassIssue_dateInput",

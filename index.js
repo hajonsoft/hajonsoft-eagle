@@ -33,6 +33,8 @@ const budgie = require("./src/budgie");
 const inquirer = require("inquirer");
 const defaultSMSAPIKeyMustOverride = "88fd2e1A3f4d327740A9408c12872A39";
 
+let userInput;
+
 let data = readDataFile();
 async function main() {
   if (process.argv.includes("-v")) {
@@ -553,6 +555,13 @@ function readDataFile() {
 function runInteractive() {
   readDataFile();
   let currentSlug = data?.travellers?.[0]?.slug || "unknown Slug";
+  setTimeout(() => {
+    if (userInput) {
+      console.log("userInput", userInput);
+      return;
+    }
+    process.exit(0);
+  }, 15000);
 
   inquirer
     .prompt([
@@ -571,6 +580,7 @@ function runInteractive() {
       },
     ])
     .then((answers) => {
+      userInput = answers.action;
       if (answers.action.startsWith("1-")) {
         return submitToProvider();
       }
@@ -613,6 +623,8 @@ function getDownloadFolder() {
 
 process.on('uncaughtException', function(error) {
   util.infoMessage(null, "uncaughtException: " + error);
+  util.infoMessage(null, "exit error code 1" );
+  process.exit(1);
  });
 
 process.on('unhandledRejection', function(reason, p){
