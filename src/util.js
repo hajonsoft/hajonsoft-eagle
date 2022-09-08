@@ -1322,7 +1322,7 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
     });
 }
 
-const infoMessage = async (page, message, depth = 2) => {
+const infoMessage = async (page, message, depth = 2, additionalBase64, additionalName) => {
   const fileName = `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`;
   if (page) {
     try {
@@ -1336,6 +1336,14 @@ const infoMessage = async (page, message, depth = 2) => {
         base64string: base64,
       })
       .then((response) => console.log(`[screenshot] 📸 ${response?.display_url}`))
+
+      if (additionalBase64) {
+      imgbbUploader({
+        apiKey: IMAGE_UPLOADER_KEY,
+        base64string: base64,
+      })
+      .then((response) => console.log(`[${additionalName}] 📸 ${response?.display_url}`))
+      }
     } catch { }
   }
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
