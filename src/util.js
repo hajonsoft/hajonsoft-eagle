@@ -1334,8 +1334,9 @@ const infoMessage = async (page, message, depth = 2) => {
       console.png(fs.readFileSync(fileName));
 
     } catch { }
+    console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 ${fileName}`);
   }
-  console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 ${fileName}`);
+  console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
 
   // TODO: log to file
   // fs.appendFileSync(logFile, message + "\n");
