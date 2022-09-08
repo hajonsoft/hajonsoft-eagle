@@ -75,8 +75,8 @@ const config = [
 async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
+  // exist program if no login 10 seconds
   setTimeout(() => {
-    // No login for 10 seconds exist
     if (!configs.find((c) => c.name === "main")) {
       process.exit(17000);
     }
