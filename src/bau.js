@@ -339,7 +339,7 @@ async function sendPassenger(passenger) {
     })
     .toFile(resizedPhotoPath);
   await fileChooser.accept([resizedPhotoPath]);
-  util.infoMessage(page, `portrait accepted ${resizedPhotoPath}`);
+  util.infoMessage(page, `🌇 portrait accepted ${resizedPhotoPath}`);
 
   const passportPath = path.join(
     util.passportsFolder,
@@ -365,11 +365,11 @@ async function sendPassenger(passenger) {
       })
       .toFile(resizedPassportFile);
     await fileChooser.accept([resizedPassportFile]);
-    util.infoMessage(page, `passport accepted ${resizedPassportFile}`);
+    util.infoMessage(page, `🛂 passport accepted ${resizedPassportFile}`);
 
   }
 
-  util.infoMessage(page, `passenger ${passenger.passportNumber} captcha`);
+  util.infoMessage(page, `🧟 passenger ${passenger.passportNumber} captcha`);
   await util.commitCaptchaToken(
     page,
     "ctl00_ContentHolder_rdCap_CaptchaImageUP",
@@ -383,9 +383,9 @@ async function sendPassenger(passenger) {
   await page.click("#ctl00_ContentHolder_BtnEdit");
   await page.waitForTimeout(5000);
   try {
-    const isError = await page.$("#ctl00_ContentHolder_divErrorsList > div > ul > li");
-    if (isError) {
-      util.infoMessage(page, `Error: ${isError.innerText}`);
+    const errorMessage = await page.$eval("#ctl00_ContentHolder_divErrorsList > div > ul > li", (el) => el.textContent || el.innerText);
+    if (errorMessage) {
+      util.infoMessage(page, `🛑 Error: ${errorMessage}`);
     }
   } catch {}
 

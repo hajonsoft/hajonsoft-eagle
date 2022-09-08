@@ -696,13 +696,13 @@ const getRange = () => {
   const isCloudRun = data.info.caravan.startsWith("CLOUD_");
   if (isCloudRun) {
     // read range from data.json
-    const range = data.info.range;
+    const range = data.info?.range?.replace(",", "-");
     return range ? `range=${range}` : "";
   }
   // Not a cloud run
   const cliRange = process.argv.find((arg) => arg.startsWith("range="));
   if (cliRange) {
-    return cliRange;
+    return cliRange?.replace(",", "-");
   }
   return "";
 }
