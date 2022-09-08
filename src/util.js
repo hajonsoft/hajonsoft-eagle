@@ -3,6 +3,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const puppeteer = require("puppeteer-extra");
 const os = require("os");
+const imgur = require("imgur");
 const RuCaptcha2Captcha = require("rucaptcha-2captcha");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
@@ -14,7 +15,6 @@ const sharp = require("sharp");
 const FormData = require('form-data');
 const budgie = require("./budgie");
 const axios = require("axios");
-const imgbbUploader = require("imgbb-uploader");
 const nationalities = require("./data/nationalities");
 const moment = require("moment");
 const _ = require("lodash");
@@ -1296,6 +1296,21 @@ function getOverridePath(original, override) {
   return original;
 }
 
+function uploadImage(base64) {
+  return new Promise((resolve, reject) => {
+    imgur
+      .uploadBase64(base64)
+      .then((json) => {
+        resolve(json.data.link);
+      })
+      .catch((err) => {
+        console.error(err.message);
+        resolve("Error uploading image");
+      });
+  });
+} // end of uploadImage
+
+
 function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
   axios
     .post(
@@ -1324,45 +1339,26 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
 }
 
 const infoMessage = async (page, message, depth = 2, additionalBase64, additionalName) => {
-  const fileName = path.join(__dirname, `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`);
+  const signature = path.join(__dirname, `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`);
+  console.log("signature", signature);
   if (page) {
     try {
       await page.evaluate("document.title='" + message + "'");
       // Capture screenshot and display image in log
-      const base64 = await page.screenshot({ encoding: "base64", fullPage: true  });
-      // upload image to imgbb and get url
-      // imgbbUploader(IMAGE_UPLOADER_KEY, path.join(__dirname, fileName))
-      var data = new FormData();
-      data.append('image', base64);
-      const config = {
-        method: 'post',
-        url: 'https://api.imgur.com/3/upload',
-        headers: { 
-          'Authorization': 'Bearer 5eeae49394cd929e299785c8805bd168fc675280', 
-          ...data.getHeaders()
-        },
-        data : data
-      };
-      
-      axios(config)
-      .then(function (response) {
-        console.log(`[screenshot] 📸 ${response.data?.link}`);
-      })
-      .catch(function (error) {
-        console.log(error);
-      });
-
-      data.image = additionalBase64;
-
-      axios(config)
-      .then(function (response) {
-        console.log(`[${additionalName}] 📸 ${response.data?.link}`);
-      })
-      .catch(function (error) {
-        console.log(error);
-      });
-    } catch { }
+      const base64 = await page.screenshot({ encoding: "base64", fullPage: true });
+      // upload image to imgur and get url
+      const url = await uploadImage(base64);
+      console.log("Screenshot: ", url);
+      // upload image to imgur and get url
+      if (additionalBase64) {
+        const additionalUrl = await uploadImage(additionalBase64);
+        console.log(`${additionalName} ${additionalUrl)}`;
+      }
+    } catch (e) {
+      console.log("Error while taking screenshot: ", e);
+    }
   }
+
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
 
   // TODO: log to file
