@@ -6,7 +6,6 @@ const util = require("./util");
 
 let page;
 let data;
-let counter = 0;
 let configs = [];
 
 const config = [
@@ -46,4 +45,4 @@ async function runPageConfiguration(currentConfig) {
   }
 }
 
-module.exports = { send, config, SERVER_NUMBER };
+module.exports = { send, config };

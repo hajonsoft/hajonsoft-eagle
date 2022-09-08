@@ -231,16 +231,32 @@ async function sendPassenger(passenger) {
         value: (row) => row.nameArabic.first,
       },
       {
-        selector: "#ctl00_ContentHolder_TxtAltLastName",
-        value: (row) => row.nameArabic.last,
+        selector: "#ctl00_ContentHolder_TxtAltSecondName",
+        value: (row) => row.nameArabic.father,
       },
       {
         selector: "#ctl00_ContentHolder_TxtAltGrandFatherName",
         value: (row) => row.nameArabic.grand,
       },
       {
-        selector: "#ctl00_ContentHolder_TxtAltSecondName",
-        value: (row) => row.nameArabic.father,
+        selector: "#ctl00_ContentHolder_TxtAltLastName",
+        value: (row) => row.nameArabic.last,
+      },
+      {
+        selector: "#ctl00_ContentHolder_TxtFirstName",
+        value: (row) => row.name.first,
+      },
+      {
+        selector: "#ctl00_ContentHolder_TxtSecondName",
+        value: (row) => row.name.father,
+      },
+      {
+        selector: "#ctl00_ContentHolder_TxtGrandFatherName",
+        value: (row) => row.name.grand,
+      },
+      {
+        selector: "#ctl00_ContentHolder_TxtLastName",
+        value: (row) => row.name.last,
       },
       {
         selector: "#ctl00_ContentHolder_calPassIssue_dateInput",
@@ -323,7 +339,7 @@ async function sendPassenger(passenger) {
     })
     .toFile(resizedPhotoPath);
   await fileChooser.accept([resizedPhotoPath]);
-  util.infoMessage(page, `portrait accepted ${resizedPhotoPath}`);
+  util.infoMessage(page, `🌇 portrait accepted ${resizedPhotoPath}`);
 
   const passportPath = path.join(
     util.passportsFolder,
@@ -349,11 +365,11 @@ async function sendPassenger(passenger) {
       })
       .toFile(resizedPassportFile);
     await fileChooser.accept([resizedPassportFile]);
-    util.infoMessage(page, `passport accepted ${resizedPassportFile}`);
+    util.infoMessage(page, `🛂 passport accepted ${resizedPassportFile}`);
 
   }
 
-  util.infoMessage(page, `passenger ${passenger.passportNumber} captcha`);
+  util.infoMessage(page, `🧟 passenger ${passenger.passportNumber} captcha`);
   await util.commitCaptchaToken(
     page,
     "ctl00_ContentHolder_rdCap_CaptchaImageUP",
@@ -367,9 +383,9 @@ async function sendPassenger(passenger) {
   await page.click("#ctl00_ContentHolder_BtnEdit");
   await page.waitForTimeout(5000);
   try {
-    const isError = await page.$("#ctl00_ContentHolder_divErrorsList > div > ul > li");
-    if (isError) {
-      util.infoMessage(page, `Error: ${isError.innerText}`);
+    const errorMessage = await page.$eval("#ctl00_ContentHolder_divErrorsList > div > ul > li", (el) => el.textContent || el.innerText);
+    if (errorMessage) {
+      util.infoMessage(page, `🛑 Error: ${errorMessage}`);
     }
   } catch {}
 

@@ -33,6 +33,7 @@ const budgie = require("./src/budgie");
 const inquirer = require("inquirer");
 const defaultSMSAPIKeyMustOverride = "88fd2e1A3f4d327740A9408c12872A39";
 
+let userInput;
 let data = readDataFile();
 async function main() {
   if (process.argv.includes("-v")) {
@@ -86,13 +87,10 @@ async function sendToCloud(data) {
   data.info.caravan = "CLOUD_" + data.info.caravan;
   data.info.range = process.argv.find((arg) =>
     arg.toLowerCase().startsWith("range")
-  )?.substring(6);
-  data.info.cloud = moment().format("YYYY-MM-DD hh:mm:ss a");
+  )?.substring(6)?.replace(',', '-');
+  data.info.stamp = moment().format("YYYY-MM-DD hh:mm:ss a");
   fs.writeFileSync("./data.json", JSON.stringify(data));
-  const fileName = process.argv.find((arg) =>
-    arg.toLowerCase().startsWith("file")
-  )?.split("=")?.[1];
-  const command = `git add . && git commit -m "${data.system?.country?.code} ${data.travellers?.length} Pax ${data.system?.name} ${data.system?.username}.0${moment().format("mm")} ${process.argv.find(arg => arg.toLowerCase().startsWith("range")) ?? ''}" && git push origin $(git branch --show-current):job --force`;
+  const command = `git add . && git commit -m "${data.system?.country?.code} ${data.travellers?.length} Pax ${data.system?.name} ${data.system?.username}.0${moment().format("mm")} ${process.argv.find(arg => arg.toLowerCase().startsWith("range")).replace(',','-') ?? ""}" && git push origin $(git branch --show-current):job --force`;
   const childProcess = require('child_process');
 
   childProcess.exec(command, function (error, stdout, stderr) {
@@ -556,6 +554,13 @@ function readDataFile() {
 function runInteractive() {
   readDataFile();
   let currentSlug = data?.travellers?.[0]?.slug || "unknown Slug";
+  setTimeout(() => {
+    if (userInput) {
+      console.log("userInput", userInput);
+      return;
+    }
+    process.exit(0);
+  }, 15000);
 
   inquirer
     .prompt([
@@ -574,6 +579,7 @@ function runInteractive() {
       },
     ])
     .then((answers) => {
+      userInput = answers.action;
       if (answers.action.startsWith("1-")) {
         return submitToProvider();
       }
@@ -616,6 +622,8 @@ function getDownloadFolder() {
 
 process.on('uncaughtException', function(error) {
   util.infoMessage(null, "uncaughtException: " + error);
+  util.infoMessage(null, "exit error code 1" );
+  process.exit(1);
  });
 
 process.on('unhandledRejection', function(reason, p){
