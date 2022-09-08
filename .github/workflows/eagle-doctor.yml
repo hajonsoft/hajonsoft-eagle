@@ -10,10 +10,9 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  microsoft_install:
 
     runs-on: windows-latest
-
     strategy:
       matrix:
         node-version: [16.x]
