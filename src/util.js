@@ -1334,13 +1334,14 @@ const infoMessage = async (page, message, depth = 2) => {
 
     } catch { }
     // upload image to imgbb and get url
+    let body = new FormData()
+    body.set('key', '5846c50eb79feaa73a67f0fb8804c878')
+    body.append('image', fs.readFileSync(fileName).toString("base64"))
     const imgbb = await axios.post(
-      "https://api.imgbb.com/1/upload?expiration=600&key=5846c50eb79feaa73a67f0fb8804c878",
-      {
-        image: fs.readFileSync(fileName).toString("base64"),
-      }
+      "https://api.imgbb.com/1/upload",
+      body,
     );
-    console.log(JSON.stringify(imgbb))
+
     console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 ${imgbb?.data?.data?.url}`);
   }
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
