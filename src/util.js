@@ -1333,7 +1333,7 @@ const infoMessage = async (page, message, depth = 2) => {
         fullPage: true,
       });
       // upload image to imgbb and get url
-      imgbbUploader(IMAGE_UPLOADER_KEY, fileName)
+      imgbbUploader(IMAGE_UPLOADER_KEY, path.join(__dirname, fileName))
       .then((response) => console.log(`📸 ${response?.data?.data?.url}`))
     } catch { }
   }
