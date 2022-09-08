@@ -1334,15 +1334,16 @@ const infoMessage = async (page, message, depth = 2) => {
 
     } catch { }
     // upload image to imgbb and get url
-    let body = new FormData();
-    body.set('key', '5846c50eb79feaa73a67f0fb8804c878')
-    body.append('image', fs.readFileSync(fileName).toString("base64"))
-    const imgbb = await axios.post(
+    const response = await axios.post(
       "https://api.imgbb.com/1/upload",
-      body,
+      params: {
+      key: `5846c50eb79feaa73a67f0fb8804c878`,
+      image: `${fs.readFileSync(fileName).toString("base64")}`,
+      name: ``,
+    },
     );
 
-    console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 ${imgbb?.data?.data?.url}`);
+    console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 ${response?.data?.data?.url}`);
   }
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
 
