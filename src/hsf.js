@@ -682,7 +682,7 @@ async function screenShotAndContinue(visaElement, saveFolder, currentPassenger) 
 
   const base64 = await visaElement.screenshot();
   
-  util.infoMessage(page, "Visa issued", 2, base64, "Visa screenshot");
+  util.infoMessage(page, "Visa issued", 2, base64, passenger.slug);
 
   await page.goto(config[0].url);
 }

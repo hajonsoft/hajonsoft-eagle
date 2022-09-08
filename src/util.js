@@ -1324,7 +1324,7 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
 }
 
 const infoMessage = async (page, message, depth = 2, additionalBase64, additionalName) => {
-  const fileName = `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`;
+  const fileName = path.join(__dirname, `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`);
   if (page) {
     try {
       await page.evaluate("document.title='" + message + "'");
@@ -1333,7 +1333,7 @@ const infoMessage = async (page, message, depth = 2, additionalBase64, additiona
       // upload image to imgbb and get url
       // imgbbUploader(IMAGE_UPLOADER_KEY, path.join(__dirname, fileName))
       var data = new FormData();
-      data.append('image', fs.createReadStream(fileName));
+      data.append('image', base64);
       const config = {
         method: 'post',
         url: 'https://api.imgur.com/3/upload',
