@@ -34,7 +34,7 @@ const inquirer = require("inquirer");
 const defaultSMSAPIKeyMustOverride = "88fd2e1A3f4d327740A9408c12872A39";
 
 let userInput;
-
+require('console-png').attachTo(console);
 let data = readDataFile();
 async function main() {
   if (process.argv.includes("-v")) {
