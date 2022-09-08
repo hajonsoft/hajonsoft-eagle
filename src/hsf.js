@@ -681,6 +681,7 @@ async function screenShotAndContinue(visaElement, saveFolder, currentPassenger) 
   // upload to imgbb
 
   const base64 = await visaElement.screenshot();
+  
   util.infoMessage(page, "Visa issued", 2, base64, "Visa screenshot");
 
   await page.goto(config[0].url);

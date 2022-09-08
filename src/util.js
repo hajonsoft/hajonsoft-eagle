@@ -100,7 +100,7 @@ async function initPage(config, onContentLoaded, data) {
 
   const isCloudRun = Boolean(data?.info?.caravan?.startsWith("CLOUD_"));
   if (!isCloudRun) {
-    args.push("incognito");
+    args.push("--incognito");
   }
 
   if (!process.argv.find((c) => c.startsWith("range="))) {
@@ -1333,8 +1333,7 @@ const infoMessage = async (page, message, depth = 2, additionalBase64, additiona
       // upload image to imgbb and get url
       // imgbbUploader(IMAGE_UPLOADER_KEY, path.join(__dirname, fileName))
       var data = new FormData();
-      data.image = base64;
-
+      data.append('image', fs.createReadStream(fileName));
       const config = {
         method: 'post',
         url: 'https://api.imgur.com/3/upload',
