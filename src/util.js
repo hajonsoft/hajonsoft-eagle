@@ -1304,8 +1304,7 @@ function uploadImage(base64) {
         resolve(json.data.link);
       })
       .catch((err) => {
-        console.error(err.message);
-        resolve("Error uploading image");
+        resolve("Error uploading image to imgur");
       });
   });
 } // end of uploadImage
@@ -1352,7 +1351,7 @@ const infoMessage = async (page, message, depth = 2, additionalBase64, additiona
       // upload image to imgur and get url
       if (additionalBase64) {
         const additionalUrl = await uploadImage(additionalBase64);
-        console.log(`${additionalName} ${additionalUrl)}`;
+        console.log(`${additionalName} ${additionalUrl}`);
       }
     } catch (e) {
       console.log("Error while taking screenshot: ", e);
@@ -1360,9 +1359,6 @@ const infoMessage = async (page, message, depth = 2, additionalBase64, additiona
   }
 
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
-
-  // TODO: log to file
-  // fs.appendFileSync(logFile, message + "\n");
 };
 
 const hijriYear = 44;
