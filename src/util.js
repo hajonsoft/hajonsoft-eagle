@@ -11,6 +11,7 @@ const RecaptchaPlugin = require("puppeteer-extra-plugin-recaptcha");
 puppeteer.use(RecaptchaPlugin());
 
 const sharp = require("sharp");
+const FormData = require('form-data');
 const budgie = require("./budgie");
 const axios = require("axios");
 const imgbbUploader = require("imgbb-uploader");
@@ -1331,19 +1332,40 @@ const infoMessage = async (page, message, depth = 2, additionalBase64, additiona
       const base64 = await page.screenshot({ encoding: "base64", fullPage: true  });
       // upload image to imgbb and get url
       // imgbbUploader(IMAGE_UPLOADER_KEY, path.join(__dirname, fileName))
-      imgbbUploader({
-        apiKey: IMAGE_UPLOADER_KEY,
-        base64string: base64,
-      })
-      .then((response) => console.log(`[screenshot] 📸 ${response?.display_url}`))
+      var data = new FormData();
+      data.image = base64;
 
-      if (additionalBase64) {
-      imgbbUploader({
-        apiKey: IMAGE_UPLOADER_KEY,
-        base64string: base64,
+      const config = {
+        method: 'post',
+        url: 'https://api.imgur.com/3/upload',
+        headers: { 
+          'Authorization': 'Bearer 5eeae49394cd929e299785c8805bd168fc675280', 
+          ...data.getHeaders()
+        },
+        data : data
+      };
+      
+      axios(config)
+      .then(function (response) {
+        console.log(JSON.stringify(response.data));
       })
-      .then((response) => console.log(`[${additionalName}] 📸 ${response?.display_url}`))
-      }
+      .catch(function (error) {
+        console.log(error);
+      });
+
+      // imgbbUploader({
+      //   apiKey: IMAGE_UPLOADER_KEY,
+      //   base64string: base64,
+      // })
+      // .then((response) => console.log(`[screenshot] 📸 ${response?.display_url}`))
+
+      // if (additionalBase64) {
+      // imgbbUploader({
+      //   apiKey: IMAGE_UPLOADER_KEY,
+      //   base64string: base64,
+      // })
+      // .then((response) => console.log(`[${additionalName}] 📸 ${response?.display_url}`))
+      // }
     } catch { }
   }
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
