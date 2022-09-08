@@ -1334,7 +1334,7 @@ const infoMessage = async (page, message, depth = 2) => {
       });
       // upload image to imgbb and get url
       imgbbUploader(IMAGE_UPLOADER_KEY, path.join(__dirname, fileName))
-      .then((response) => console.log(`📸 ${JSON.stringify(response?.display_url)}`))
+      .then((response) => console.log(`[screenshot] 📸 ${response?.display_url}`))
     } catch { }
   }
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
