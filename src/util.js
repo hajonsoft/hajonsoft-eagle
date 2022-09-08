@@ -13,6 +13,7 @@ puppeteer.use(RecaptchaPlugin());
 const sharp = require("sharp");
 const budgie = require("./budgie");
 const axios = require("axios");
+const imgbbUploader = require("imgbb-uploader");
 const nationalities = require("./data/nationalities");
 const moment = require("moment");
 const _ = require("lodash");
@@ -24,7 +25,7 @@ const idFolder = path.join(homedir, "hajonsoft", "id");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
 const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
 const VISION_DEFICIENCY = "none";
-
+const IMAGE_UPLOADER_KEY = "5846c50eb79feaa73a67f0fb8804c878"
 let page;
 let browser;
 
@@ -1336,13 +1337,17 @@ const infoMessage = async (page, message, depth = 2) => {
     // upload image to imgbb and get url
     const response = await axios.post(
       "https://api.imgbb.com/1/upload",
-      params: {
-      key: `5846c50eb79feaa73a67f0fb8804c878`,
-      image: `${fs.readFileSync(fileName).toString("base64")}`,
-      name: ``,
-    },
+      {
+        params: {
+          key: `5846c50eb79feaa73a67f0fb8804c878`,
+          image: `${fs.readFileSync(fileName).toString("base64")}`,
+          name: ``,
+        }
+      },
     );
-
+    imgbbUploader(IMAGE_UPLOADER_KEY, fileName)
+    .then((response) => console.log(`🦅 📸 ${response?.data?.data?.url}`))
+    
     console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message} 📸 ${response?.data?.data?.url}`);
   }
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);

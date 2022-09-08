@@ -17,6 +17,7 @@
     "cryptr": "^6.0.2",
     "downloads-folder": "^3.0.1",
     "extract-zip": "^2.0.1",
+    "imgbb-uploader": "^1.5.0",
     "inquirer": "^8.2.0",
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
