@@ -50,7 +50,7 @@ function getPath(filename) {
       let dataFileName = path.join(getTmpDir(), "data.json");
       // Fallback to current working dir (used by eagle cloud)
       if (!fs.existsSync(dataFileName)) {
-        dataFileName = "./data.json";
+        dataFileName = "./data.json");
       }
       return dataFileName;
     default:
