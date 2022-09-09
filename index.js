@@ -19,6 +19,7 @@ const {
 } = require("./src/vsn");
 
 const util = require("./src/util");
+const { getPath } = util;
 const path = require("path");
 const mrz = require("mrz");
 const Cryptr = require("cryptr");

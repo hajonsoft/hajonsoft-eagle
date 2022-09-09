@@ -47,14 +47,14 @@ function getTmpDir() {
 function getPath(filename) {
   switch (filename) {
     case "data.json":
-      let dataFileName = path.join(getTmpDir, "data.json");
+      let dataFileName = path.join(getTmpDir(), "data.json");
       // Fallback to current working dir (used by eagle cloud)
       if (!fs.existsSync(dataFileName)) {
-        dataFileName = getPath("data.json");
+        dataFileName = "./data.json";
       }
       return dataFileName;
     default:
-      return path.join(getTmpDir, filename);
+      return path.join(getTmpDir(), filename);
   }
 }
 
