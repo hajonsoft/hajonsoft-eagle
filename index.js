@@ -90,7 +90,7 @@ async function sendToCloud(data) {
     ?.substring(6)
     ?.replace(",", "-");
   data.info.stamp = moment().format("YYYY-MM-DD hh:mm:ss a");
-  fs.writeFileSync("./data.json", JSON.stringify(data));
+  fs.writeFileSync(getPath("data.json"), JSON.stringify(data));
   const command = `git add . && git commit -m "${data.system?.country?.code} ${
     data.travellers?.length
   } Pax ${data.system?.name} ${data.system?.username}.0${moment().format(
@@ -236,21 +236,22 @@ async function submitToProvider() {
   }
 }
 
-async function unzipFile(source) {
+async function unzipFile(source, outputDir) {
+  const dir = outputDir ?? __dirname;
   try {
-    const files = fs.readFileSync(__dirname);
+    const files = fs.readFileSync(dir);
     for (const file of files.filter(
       (file) =>
         file.endsWith("_photo.jpg") ||
         file.endsWith("_mrz.jpg") ||
         file.endsWith("_passport.jpg")
     )) {
-      fs.unlinkSync(path.join(__dirName, file));
+      fs.unlinkSync(path.join(dir, file));
     }
   } catch {}
 
   try {
-    await extract(source, { dir: __dirname });
+    await extract(source, { dir: dir });
   } catch (err) {
     console.log(err);
   }
@@ -284,10 +285,11 @@ async function getDataFileName() {
       process.exit(1);
     }
 
-    await unzipFile(fileName);
+    const outputDir = dataFileName.replace('data.json','')
+    await unzipFile(fileName, outputDir);
     console.log(
       "\x1b[7m",
-      `Success: ${fileName} => ${__dirname}/data.json`,
+      `Success: ${fileName} => ${outputDir}/data.json`,
       "\x1b[0m"
     );
   }

@@ -44,13 +44,17 @@ function getTmpDir() {
   return tmpDir;
 }
 
+function isCloudRun() {
+  return Boolean(process.argv.find((c) => c.startsWith("-cloud")))
+}
+
 function getPath(filename) {
   switch (filename) {
     case "data.json":
       let dataFileName = path.join(getTmpDir(), "data.json");
       // Fallback to current working dir (used by eagle cloud)
-      if (!fs.existsSync(dataFileName)) {
-        dataFileName = "./data.json";
+      if (isCloudRun()) {
+        dataFileName = path.join(__dirname,"..","data.json");
       }
       return dataFileName;
     default:
@@ -131,7 +135,8 @@ async function initPage(config, onContentLoaded, data) {
     args.push("--incognito");
   }
 
-  if (!process.argv.find((c) => c.startsWith("range="))) {
+  const isWindowed = process.argv.find((c) => c.startsWith("-windowed"));
+  if (!process.argv.find((c) => c.startsWith("range=")) && !isWindowed) {
     args.push("--start-fullscreen");
   }
   const launchOptions = {
@@ -1374,7 +1379,11 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
 }
 
 const infoMessage = async (page, message, depth = 2, screenshot, title) => {
-  const signature = getPath(`${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`);
+  const screenshotsDir = getPath("screenshots");
+  if(!fs.existsSync(screenshotsDir)) {
+    fs.mkdirSync(screenshotsDir)
+  }
+  const signature = path.join(screenshotsDir,`${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`);
   console.log("signature", signature);
   if (page) {
     try {
@@ -1437,4 +1446,5 @@ module.exports = {
   setSelectedTraveller,
   updatePassengerInKea,
   infoMessage,
+  isCloudRun
 };
