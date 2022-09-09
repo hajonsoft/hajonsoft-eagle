@@ -9,6 +9,7 @@ const util = require("./util");
 const moment = require("moment");
 const sharp = require("sharp");
 const { default: axios } = require("axios");
+const JSZip = require('jszip');
 
 const {
   injectTWFEagleButton,
@@ -42,6 +43,8 @@ function getLogFile() {
   const logFile = path.join(logFolder, data.info.caravan + "_hsf.txt");
   return logFile;
 }
+
+const zip = new JSZip();
 
 const config = [
   {
@@ -337,7 +340,7 @@ async function pageContentHandler(currentConfig) {
       } catch {
         // Do nothing
       }
-// Review this logic because hsf doesnt start auromatically
+      // Review this logic because hsf doesnt start auromatically
 
       if (fs.existsSync("./loop.txt")) {
         const nextIndex = util.incrementSelectedTraveler()
@@ -631,6 +634,20 @@ async function pageContentHandler(currentConfig) {
 
         const currentPassenger = data.travellers[parseInt(util.getSelectedTraveler())]
         await screenShotAndContinue(visaElement, saveFolder, currentPassenger);
+        const visaFileName = path.join(
+          saveFolder,
+          currentPassenger?.passportNumber + "_" + currentPassenger?.name?.full.replace(/ /, "_") + "_" + moment().format("YYYY-MM-DD_HH-mm-ss")
+        ) + ".png";
+
+
+        const visaData = fs.readFileSync(visaFileName);
+        zip.file(fileName, visaData);
+        zip.generateNodeStream({ type: 'nodebuffer', streamFiles: true })
+          .pipe(fs.createWriteStream(path.join(__dirname, "visas.zip")))
+          .on('finish', function () {
+            console.log(path.join(__dirname, "visas.zip"));
+            util.infoMessage(page, "Visas are zipped successfully", 2, path.join(__dirname, "visas.zip"), "visas.zip");
+          });
         return;
       }
       page.goto(config[0].url);
@@ -691,7 +708,7 @@ async function screenShotAndContinue(visaElement, saveFolder, currentPassenger) 
   // upload to imgbb
 
   const base64 = await visaElement.screenshot();
-  
+
   util.infoMessage(page, "Visa issued", 2, base64, passenger.slug);
 
   await page.goto(config[0].url);
@@ -791,6 +808,7 @@ async function sendPassenger(selectedTraveller) {
       const data = fs.readFileSync("./data.json", "utf-8");
       var passengersData = JSON.parse(data);
       var passenger = passengersData.travellers[selectedTraveller];
+      util.infoMessage(page, `Sending ${passenger.slug}`);
       if (!passenger.mofaNumber) {
         const found = mofas.find(
           (mofa) => mofa.passportNumber === passenger.passportNumber
