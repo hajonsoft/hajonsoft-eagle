@@ -1,12 +1,20 @@
 const fs = require("fs");
 const path = require("path");
-const { getPath } = require("./util");
+const os = require("os");
+
+function getPath(filename) {
+  const tmpDir = path.join(os.tmpdir(), "hajonsoft-eagle");
+  if (!fs.existsSync(tmpDir)) {
+    fs.mkdirSync(tmpDir);
+  }
+  return path.join(tmpDir, filename);
+}
 
 const dbFile = getPath("budgie.json");
 
 function print() {
   const data = readKey();
-  console.log("Budgie: ", data);
+  console.log("🐥 Budgie: ", data);
 }
 
 function get(key, defaultValue) {
