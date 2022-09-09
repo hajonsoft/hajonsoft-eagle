@@ -25,10 +25,10 @@ const photosFolder = path.join(homedir, "hajonsoft", "photos");
 const idFolder = path.join(homedir, "hajonsoft", "id");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
 const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
-const imgurClient = new imgur({ clientId: IMGUR_CLIENT_ID });
 const VISION_DEFICIENCY = "none";
 const IMGUR_CLIENT_ID = "0b4827447357d6b";
 
+const imgurClient = new imgur({ clientId: IMGUR_CLIENT_ID });
 
 let page;
 let browser;
