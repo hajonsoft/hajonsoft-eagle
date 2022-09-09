@@ -3,6 +3,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const puppeteer = require("puppeteer-extra");
 const os = require("os");
+const { ImgurClient } = require('imgur');
 const RuCaptcha2Captcha = require("rucaptcha-2captcha");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
@@ -11,9 +12,9 @@ const RecaptchaPlugin = require("puppeteer-extra-plugin-recaptcha");
 puppeteer.use(RecaptchaPlugin());
 
 const sharp = require("sharp");
+const FormData = require('form-data');
 const budgie = require("./budgie");
 const axios = require("axios");
-const imgbbUploader = require("imgbb-uploader");
 const nationalities = require("./data/nationalities");
 const moment = require("moment");
 const _ = require("lodash");
@@ -25,9 +26,15 @@ const idFolder = path.join(homedir, "hajonsoft", "id");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
 const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
 const VISION_DEFICIENCY = "none";
-const IMAGE_UPLOADER_KEY = "5846c50eb79feaa73a67f0fb8804c878"
+const IMGUR_CLIENT_ID = "0b4827447357d6b";
+
+// or your client ID
+const imgurClient = new ImgurClient({ clientId: IMGUR_CLIENT_ID, clientSecret: "c842b1a08f0748150465ec643c04c0aeb17329c7" })
+
 let page;
 let browser;
+
+
 
 function getChromePath() {
   switch (os.platform()) {
@@ -99,7 +106,7 @@ async function initPage(config, onContentLoaded, data) {
 
   const isCloudRun = Boolean(data?.info?.caravan?.startsWith("CLOUD_"));
   if (!isCloudRun) {
-    args.push("incognito");
+    args.push("--incognito");
   }
 
   if (!process.argv.find((c) => c.startsWith("range="))) {
@@ -732,16 +739,6 @@ function incrementSelectedTraveler(overrideValue) {
   return nextTraveler;
 }
 
-function incrementSelectedTraveler(overrideValue) {
-  const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
-  const selectedTraveler = getSelectedTraveler();
-  const nextTraveler = parseInt(selectedTraveler) + 1;
-  const range = getRange();
-  const fileName = "./selectedTraveller" + range + ".txt";
-  fs.writeFileSync(fileName, nextTraveler.toString());
-  return nextTraveler;
-}
-
 function setSelectedTraveller(value) {
   getSelectedTraveler(); // Make sure the file exists
   const range = getRange();
@@ -1294,6 +1291,23 @@ function getOverridePath(original, override) {
 
   return original;
 }
+async function uploadImage(fileName) {
+  return new Promise(async (resolve, reject) => {
+    imgurClient.on('uploadProgress', (progress) => console.log(progress));
+    imgurClient
+      .upload({
+        image: fs.createReadStream(fileName),
+        type: 'stream',
+      })
+      .then((json) => {
+        resolve(json.data.link);
+      })
+      .catch((err) => {
+        resolve("Error uploading image to imgur " + fileName);
+      });
+  });
+} 
+
 
 function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
   axios
@@ -1322,26 +1336,27 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
     });
 }
 
-const infoMessage = async (page, message, depth = 2) => {
-  const fileName = `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`;
+const infoMessage = async (page, message, depth = 2, screenshot, title) => {
+  const signature = path.join(__dirname, `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`);
+  console.log("signature", signature);
   if (page) {
     try {
       await page.evaluate("document.title='" + message + "'");
       // Capture screenshot and display image in log
-      const base64 = await page.screenshot({ encoding: "base64", fullPage: true  });
-      // upload image to imgbb and get url
-      // imgbbUploader(IMAGE_UPLOADER_KEY, path.join(__dirname, fileName))
-      imgbbUploader({
-        apiKey: IMAGE_UPLOADER_KEY,
-        base64string: base64,
-      })
-      .then((response) => console.log(`[screenshot] 📸 ${response?.display_url}`))
-    } catch { }
+      await page.screenshot({ path: signature, fullPage: true });
+      const url = await uploadImage(signature);
+      console.log("Screenshot: ", url);
+      // upload image to imgur and get url
+      if (screenshot) {
+        const additionalUrl = await uploadImage(screenshot);
+        console.log(`${title} ${additionalUrl}`);
+      }
+    } catch (e) {
+      console.log("Error while taking screenshot: ", e);
+    }
   }
-  console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
 
-  // TODO: log to file
-  // fs.appendFileSync(logFile, message + "\n");
+  console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
 };
 
 const hijriYear = 44;
