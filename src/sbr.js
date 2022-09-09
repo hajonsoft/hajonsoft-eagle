@@ -6,6 +6,7 @@ const fs = require("fs");
 const budgie = require("./budgie");
 const path = require("path");
 const util = require("./util");
+const { getPath } = util;
 const moment = require("moment");
 const sharp = require("sharp");
 
@@ -22,7 +23,7 @@ const config = [
   {
     name: "main",
     url: "https://accounts.havail.sabre.com/login/",
-    regex: 'https://accounts.havail.sabre.com/login/',
+    regex: "https://accounts.havail.sabre.com/login/",
     details: [
       {
         selector: "#username",
@@ -35,7 +36,7 @@ const config = [
       {
         selector: "#pcc",
         value: (system) => system.embassy,
-      }
+      },
     ],
   },
   {
@@ -61,7 +62,7 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveller) {
-          fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveller);
           await page.goto(await page.url());
         }
       },
@@ -204,7 +205,7 @@ async function onMofaContentClosed(res) {
   await page.bringToFront();
   const mofaData = util.getMofaData();
   await pasteMofaData(mofaData);
-  await page.emulateVisionDeficiency("none"); // Just in case 
+  await page.emulateVisionDeficiency("none"); // Just in case
   await util.waitForCaptcha("#Captcha", 6);
   await util.sniff(page, [
     {
@@ -240,7 +241,7 @@ async function onMofaContentClosed(res) {
 }
 
 async function pasteMofaData(mofaData) {
-  console.log('mofaData',mofaData)
+  console.log("mofaData", mofaData);
   const numberOfEntries = mofaData?.numberOfEntries?.split("-")?.[0]?.trim();
   const validityDuration = mofaData?.numberOfEntries
     ?.split("-")?.[1]
@@ -276,7 +277,8 @@ async function pasteMofaData(mofaData) {
     },
     {
       selector: "#SPONSER_NUMBER",
-      value: (row) => !mofaData.applicationType == "invitation" && `${mofaData.id2}`,
+      value: (row) =>
+        !mofaData.applicationType == "invitation" && `${mofaData.id2}`,
     },
     {
       selector: "#SPONSER_PHONE",
@@ -341,8 +343,8 @@ async function pasteMofaData(mofaData) {
   //Process ny additional data for type = invitation here
   if (mofaData.applicationType == "invitation") {
     await util.commit(page, [
-      {selector: '#Personal_Phone', value: (row) => `${mofaData.tel}`}
-    ])
+      { selector: "#Personal_Phone", value: (row) => `${mofaData.tel}` },
+    ]);
     return;
   }
 }
@@ -422,7 +424,7 @@ async function pageContentHandler(currentConfig) {
         travelDateDefault.format("MM"),
         travelDateDefault.format("DD")
       );
-      await page.emulateVisionDeficiency('none');
+      await page.emulateVisionDeficiency("none");
       await page.click("#HaveTraveledToOtherCountriesNo");
       mofaPage = await util.newPage(onMofaContentLoaded, onMofaContentClosed);
       await mofaPage.goto("https://visa.mofa.gov.sa", {

@@ -1,9 +1,11 @@
 const { config } = require("../wtu");
 const util = require("../util");
+const { getPath } = util;
 const fs = require("fs");
+const path = require("path");
 const { homedir } = require("os");
 const { default: axios } = require("axios");
-const logFile = "log/wtu.log";
+const logFile = getPath(path.join("log", "wtu.log"));
 let page;
 let data;
 let mofas = [];
@@ -120,7 +122,7 @@ async function handleImportWTUMofa() {
     mofas.push({ passportNumber, mofaNumber, nationality, name });
     if (passportNumber) {
       fs.writeFileSync(
-        passportNumber + ".txt",
+        getPath(passportNumber + ".txt"),
         JSON.stringify({ mofaNumber, nationality, name, passportNumber })
       );
       // Write to Kea

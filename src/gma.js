@@ -5,6 +5,7 @@ puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const path = require("path");
 const util = require("./util");
+const { getPath } = util;
 const moment = require("moment");
 const sharp = require("sharp");
 
@@ -120,7 +121,7 @@ const config = [
               "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-warning"
             );
             util.setSelectedTraveller(selectedTraveller);
-            const dataRaw = fs.readFileSync("./data.json", "utf-8");
+            const dataRaw = fs.readFileSync(getPath("data.json"), "utf-8");
             var data = JSON.parse(dataRaw);
             var passenger = data.travellers[selectedTraveller];
             sendPassenger(passenger);
@@ -137,16 +138,13 @@ async function sendPassenger(passenger) {
   await page.evaluate(
     () => (document.querySelector("#txt_Mrz").disabled = false)
   );
-  await page.type(
-    "#txt_Mrz",
-    passenger.codeline || "codeline missing"
-  );
+  await page.type("#txt_Mrz", passenger.codeline || "codeline missing");
   await page.emulateVisionDeficiency("blurredVision");
   const titleMessage = `Eagle: send.. ${
     parseInt(util.getSelectedTraveler()) + 1
   }/${data.travellers.length}-${passenger?.name?.last}`;
   await page.evaluate("document.title='" + titleMessage + "'");
-  
+
   await page.waitForTimeout(5000);
   await util.commit(page, mutamerConfig.details, passenger);
   for (const field of mutamerConfig.details) {
@@ -217,12 +215,11 @@ async function sendPassenger(passenger) {
     "#tableGroupMutamers_info",
     (el) => el.innerText
   );
-  if (previousTableInfo != tableInfo && fs.existsSync("./loop.txt")) {
+  if (previousTableInfo != tableInfo && fs.existsSync(getPath("loop.txt"))) {
     previousTableInfo = tableInfo;
     const nextTraveller = util.incrementSelectedTraveler();
 
     sendPassenger(data.travellers[nextTraveller]);
-
   }
 }
 

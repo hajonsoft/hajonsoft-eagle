@@ -6,6 +6,7 @@ const _ = require("lodash");
 const fs = require("fs");
 const path = require("path");
 const util = require("./util");
+const { getPath } = util;
 const moment = require("moment");
 const sharp = require("sharp");
 const budgie = require("./budgie");
@@ -220,7 +221,7 @@ async function pageContentHandler(currentConfig) {
         if (new RegExp(createGroupRegex).test(url)) {
           try {
             await page.click("#BtnSave");
-          } catch { }
+          } catch {}
         }
       }, 15000);
 
@@ -248,7 +249,7 @@ async function pageContentHandler(currentConfig) {
     case "create-mutamer":
       await page.emulateVisionDeficiency("none");
       await util.controller(page, currentConfig, data.travellers);
-      if (fs.existsSync("./loop.txt")) {
+      if (fs.existsSync(getPath("loop.txt"))) {
         return sendPassenger(passenger);
       }
 
@@ -257,7 +258,7 @@ async function pageContentHandler(currentConfig) {
 
       setTimeout(() => {
         if (status === "") {
-          fs.writeFileSync("./loop.txt", "1");
+          fs.writeFileSync(getPath("loop.txt"), "1");
           sendPassenger(passenger);
         }
       }, 10000);
@@ -272,8 +273,9 @@ async function sendPassenger(passenger) {
   status = "sending";
   await page.emulateVisionDeficiency("none");
   // await page.emulateVisionDeficiency("blurredVision");
-  const titleMessage = `🧟 ${parseInt(util.getSelectedTraveler()) + 1
-    }/${data.travellers.length}-${passenger?.slug}`;
+  const titleMessage = `🧟 ${parseInt(util.getSelectedTraveler()) + 1}/${
+    data.travellers.length
+  }-${passenger?.slug}`;
   await util.infoMessage(page, titleMessage);
 
   await page.waitForSelector("#txtppno");
@@ -298,7 +300,10 @@ async function sendPassenger(passenger) {
     .hostname()
     .substring(0, 8)}`;
 
-  util.infoMessage(page, `group 👨‍👩‍👦  ${submittionName}[${groupName}]: Attention!!!Embassy-first-option`);
+  util.infoMessage(
+    page,
+    `group 👨‍👩‍👦  ${submittionName}[${groupName}]: Attention!!!Embassy-first-option`
+  );
   await page.select("#ddlgroupname", groupName);
   await page.waitForTimeout(3000);
   await page.waitForSelector("#btnppscan");
@@ -326,7 +331,7 @@ async function sendPassenger(passenger) {
     try {
       await page.waitForSelector("#ddlrelation");
       await page.select("#ddlrelation", "15");
-    } catch { }
+    } catch {}
   }
 
   let resizedPhotoPath = await util.downloadAndResizeImage(
@@ -398,7 +403,7 @@ async function sendPassenger(passenger) {
     util.updatePassengerInKea(data.system.accountId, passenger.passportNumber, {
       "submissionData.wtu.status": "Submitted",
     });
-  } catch { }
+  } catch {}
 
   // If there is a passport number still that means it is the same page
   await page.waitForTimeout(2000);
@@ -435,7 +440,7 @@ async function sendPassenger(passenger) {
   }
 
   // Use fake passport image
-  const blankPassportPath = `./${passenger.passportNumber}_mrz.jpg`;
+  const blankPassportPath = getPath(`${passenger.passportNumber}_mrz.jpg`);
   // Generate fake passport image using the browser canvas api
   const dataUrl = await page.evaluate((_passenger) => {
     const ele = document.createElement("canvas");

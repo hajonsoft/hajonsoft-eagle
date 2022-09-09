@@ -1,5 +1,6 @@
 const { config, SERVER_NUMBER } = require("../bau");
 const util = require("../util");
+const { getPath } = util;
 const fs = require("fs");
 const { homedir } = require("os");
 const cheerio = require("cheerio");
@@ -92,11 +93,11 @@ async function onBAUPageLoad(res) {
     );
     await page.waitForTimeout(5000);
     try {
-    await page.waitForFunction(
-      "document.querySelector('#rdCap_CaptchaTextBox').value.length === 5",
-      { timeout: 0 }
-    );
-    await page.click("#lnkLogin");
+      await page.waitForFunction(
+        "document.querySelector('#rdCap_CaptchaTextBox').value.length === 5",
+        { timeout: 0 }
+      );
+      await page.click("#lnkLogin");
     } catch {}
     return;
   }
@@ -116,10 +117,16 @@ async function onBAUPageLoad(res) {
 
   if (
     mofaUrl
-    .toLowerCase()
-    .includes("babalumra.com/Groups/SearchGroups.aspx".toLowerCase())
-    ) {
-    console.log('%cMyProject%cline:116%cmofaUrl', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(248, 214, 110);padding:3px;border-radius:2px', mofaUrl)
+      .toLowerCase()
+      .includes("babalumra.com/Groups/SearchGroups.aspx".toLowerCase())
+  ) {
+    console.log(
+      "%cMyProject%cline:116%cmofaUrl",
+      "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
+      "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
+      "color:#fff;background:rgb(248, 214, 110);padding:3px;border-radius:2px",
+      mofaUrl
+    );
     try {
       await page.$$eval("a", (els) => {
         els.map((el) => el.removeAttribute("target"));
@@ -172,7 +179,7 @@ async function importFrameContent() {
         .trim();
       if (passportNumber) {
         fs.writeFileSync(
-          `./${passportNumber}.txt`,
+          getPath(`${passportNumber}.txt`),
           JSON.stringify({ passportNumber, mofaNumber })
         );
         passports.push(passportNumber);
@@ -191,12 +198,12 @@ async function importFromTableText(text) {
     switch (rank) {
       case 0:
         if (!line.match(/^\d{5,6}$/)) {
-          return ; // invalid table
+          return; // invalid table
         }
         break;
       case 1:
         if (!line.match(/[A-Z ]+/)) {
-          return ; // invalid table
+          return; // invalid table
         }
 
         break;
@@ -204,7 +211,7 @@ async function importFromTableText(text) {
         break;
       case 3:
         if (!line.match(/[A-Z0-9 ]*/)) {
-          return ; // invalid table
+          return; // invalid table
         }
 
         mofaRow.passportNumber = line;
@@ -219,9 +226,9 @@ async function importFromTableText(text) {
         mofaRow.mofaNumber = line;
         if (!passports.includes(mofaRow.passportNumber)) {
           fs.writeFileSync(
-            `./${mofaRow.passportNumber}.txt`,
+            getPath(`${mofaRow.passportNumber}.txt`),
             JSON.stringify(mofaRow)
-          );;
+          );
           passports.push(mofaRow.passportNumber);
         }
         break;
@@ -229,7 +236,6 @@ async function importFromTableText(text) {
         break;
     }
   }
-
 }
 
 async function importInputContent() {
@@ -247,16 +253,19 @@ async function handleImportBAUMofa() {
   importInputContent();
 
   // update eagle button text
-  await page.evaluate((param) => {
-    const eagleButton = document.querySelector(
-      "#form1 > div:nth-child(1) > button"
-    );
-    if (param.passports.length > 0) {
-      eagleButton.textContent = `Done... [${param.passports[0]}-${
-        param.passports[param.passports.length - 1]
-      }] => ${param.passports.length} <= ${param.beforeImport}`;
-    }
-  }, {passports, beforeImport});
+  await page.evaluate(
+    (param) => {
+      const eagleButton = document.querySelector(
+        "#form1 > div:nth-child(1) > button"
+      );
+      if (param.passports.length > 0) {
+        eagleButton.textContent = `Done... [${param.passports[0]}-${
+          param.passports[param.passports.length - 1]
+        }] => ${param.passports.length} <= ${param.beforeImport}`;
+      }
+    },
+    { passports, beforeImport }
+  );
 }
 
 module.exports = { initialize, injectBAUEagleButton, onBAUPageLoad };

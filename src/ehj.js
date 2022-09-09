@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const budgie = require("./budgie");
 const util = require("./util");
+const { getPath } = util;
 const moment = require("moment");
 const sharp = require("sharp");
 const homedir = require("os").homedir();
@@ -23,20 +24,22 @@ const passports = [];
 const housings = [];
 let importClicks = 0;
 let editPassportNumber;
-let  liberiaPassports = [];
+let liberiaPassports = [];
 
-if (fs.existsSync('./passports.txt')) {
-  const rawPassports = fs.readFileSync("./passports.txt", 'utf-8').split('\n')
+if (fs.existsSync(getPath("passports.txt"))) {
+  const rawPassports = fs
+    .readFileSync(getPath("passports.txt"), "utf-8")
+    .split("\n");
   for (let pass of rawPassports) {
-   liberiaPassports.push({
-     passportNumber: pass,
-     status: 'unknown'
-   })
+    liberiaPassports.push({
+      passportNumber: pass,
+      status: "unknown",
+    });
   }
 }
 
 function getLogFile() {
-  const logFolder = path.join("./log", data.info.munazim);
+  const logFolder = path.join(getPath("log"), data.info.munazim);
   if (!fs.existsSync(logFolder)) {
     fs.mkdirSync(logFolder, { recursive: true });
   }
@@ -124,7 +127,7 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveler) {
-          fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
           await sendPassenger(selectedTraveler);
         }
       },
@@ -143,8 +146,8 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveler) {
-          fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
-          const data = fs.readFileSync("./data.json", "utf-8");
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
+          const data = fs.readFileSync(getPath("data.json"), "utf-8");
           var passengersData = JSON.parse(data);
           await pasteCodeLine(selectedTraveler, passengersData);
         }
@@ -288,8 +291,8 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveler) {
-          fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
-          const data = fs.readFileSync("./data.json", "utf-8");
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
+          const data = fs.readFileSync(getPath("data.json"), "utf-8");
           var passengersData = JSON.parse(data);
           // If there is phone number selected then save it to budgie
           const countryCode = await page.$eval("#countryKey", (el) => el.value);
@@ -323,7 +326,7 @@ const config = [
 ];
 
 async function sendPassenger(selectedTraveler) {
-  const data = fs.readFileSync("./data.json", "utf-8");
+  const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
   await pasteCodeLine(selectedTraveler, passengersData);
 }
@@ -347,9 +350,9 @@ async function send(sendData) {
 async function onContentLoaded(res) {
   counter = util.useCounter(counter);
   if (counter >= data?.travellers?.length) {
-    util.setCounter(0)
-    if (fs.existsSync("./loop.txt")) {
-      fs.unlinkSync(".loop.txt")
+    util.setCounter(0);
+    if (fs.existsSync(getPath("loop.txt"))) {
+      fs.unlinkSync(getPath("loop.txt"));
     }
   }
   const currentConfig = util.findConfig(await page.url(), config);
@@ -400,7 +403,7 @@ async function pageContentHandler(currentConfig) {
         }
         //save to data.json immediately
         data.system.ehajCode = code;
-        fs.writeFileSync("./data.json", JSON.stringify(data, null, 2));
+        fs.writeFileSync(getPath("data.json"), JSON.stringify(data, null, 2));
 
         // Save to firebase
         const config = {
@@ -585,9 +588,11 @@ async function pageContentHandler(currentConfig) {
                 `tbody > tr:nth-child(${i}) > td:nth-child(11) > span`,
                 (el) => el.innerText
               );
-              const liberiaPass = liberiaPassports.find(p => p.passportNumber === passportNumber);
+              const liberiaPass = liberiaPassports.find(
+                (p) => p.passportNumber === passportNumber
+              );
               if (liberiaPass) {
-                liberiaPass.status = status
+                liberiaPass.status = status;
               }
               if (
                 status.toLowerCase().includes("cancel") ||
@@ -627,7 +632,7 @@ async function pageContentHandler(currentConfig) {
                 }
               }
               fs.writeFileSync(
-                passportNumber + ".txt",
+                getPath(passportNumber + ".txt"),
                 JSON.stringify({
                   ehajNumber,
                   mofaNumber,
@@ -638,9 +643,9 @@ async function pageContentHandler(currentConfig) {
             }
 
             console.table(missing);
-            console.log('local passports.txt comparison')
-            console.table(liberiaPassports.filter(p => p.status === "NEW"));
-            console.table(liberiaPassports.filter(p => p.status !== "NEW"));
+            console.log("local passports.txt comparison");
+            console.table(liberiaPassports.filter((p) => p.status === "NEW"));
+            console.table(liberiaPassports.filter((p) => p.status !== "NEW"));
             await page.evaluate((ehajNumbers) => {
               const eagleButton = document.querySelector("#importEhajNumber");
               eagleButton.textContent = `Done... [${ehajNumbers[0]}-${
@@ -659,7 +664,7 @@ async function pageContentHandler(currentConfig) {
         },
       });
 
-      if (fs.existsSync("./loop.txt")) {
+      if (fs.existsSync(getPath("loop.txt"))) {
         for (let i = 1; i <= 100; i++) {
           const isRowValid = await page.$(
             `tbody > tr:nth-child(${i}) > td:nth-child(1)`
@@ -681,7 +686,7 @@ async function pageContentHandler(currentConfig) {
             await page.evaluate((selector) => {
               const nextEditButton = document.querySelector(selector);
               if (nextEditButton) {
-              nextEditButton.click();
+                nextEditButton.click();
               }
             }, nextEdit);
             return;
@@ -717,21 +722,21 @@ async function pageContentHandler(currentConfig) {
       await page.emulateVisionDeficiency("none");
       await util.controller(page, currentConfig, data.travellers);
       if (
-        fs.existsSync("./loop.txt") &&
-        fs.existsSync("./selectedTraveller.txt")
+        fs.existsSync(getPath("loop.txt")) &&
+        fs.existsSync(getPath("selectedTraveller.txt"))
       ) {
         const selectedPassenger = fs.readFileSync(
-          "./selectedTraveller.txt",
+          getPath("selectedTraveller.txt"),
           "utf8"
         );
-        const data = fs.readFileSync("./data.json", "utf-8");
+        const data = fs.readFileSync(getPath("data.json"), "utf-8");
         var passengersData = JSON.parse(data);
         if (
           passengersData.travellers.length >
           parseInt(selectedPassenger) + 1
         ) {
           fs.writeFileSync(
-            "selectedTraveller.txt",
+            getPath("selectedTraveller.txt"),
             (parseInt(selectedPassenger) + 1).toString()
           );
           await sendPassenger(parseInt(selectedPassenger) + 1);
@@ -1000,7 +1005,7 @@ async function pageContentHandler(currentConfig) {
       if (passports.filter((x) => x == passenger.passportNumber).length > 3) {
         // Stop
       } else {
-        if (fs.existsSync("./loop.txt")) {
+        if (fs.existsSync(getPath("loop.txt"))) {
           const submitButtonSelector =
             "#actionPanel > div > div > input.btn.btn-primary";
           await page.click(submitButtonSelector);

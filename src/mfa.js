@@ -6,6 +6,7 @@ const fs = require("fs");
 const budgie = require("./budgie");
 const path = require("path");
 const util = require("./util");
+const { getPath } = util;
 const moment = require("moment");
 const sharp = require("sharp");
 
@@ -56,7 +57,7 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveller) {
-          fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveller);
           await page.goto(await page.url());
         }
       },

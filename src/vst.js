@@ -5,6 +5,7 @@ puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const path = require("path");
 const util = require("./util");
+const { getPath } = util;
 const moment = require("moment");
 const sharp = require("sharp");
 
@@ -289,8 +290,7 @@ const config = [
       { selector: "#LastNameEnglish", value: (row) => row.name.last },
       {
         selector: "#FatherNameEnglish",
-        value: (row) =>
-          (row?.name?.father + row?.name?.grand)?.trim(),
+        value: (row) => (row?.name?.father + row?.name?.grand)?.trim(),
       },
       {
         selector: "#Gender",
@@ -311,15 +311,21 @@ const config = [
       },
       { selector: "#CityOfBirth", value: (row) => row.birthPlace },
       { selector: "#Profession", value: (row) => row.profession },
-      { selector: "#City", value: (row) => row.address, autocomplete: 'VisaCity', defaultValue: 'main'  },
+      {
+        selector: "#City",
+        value: (row) => row.address,
+        autocomplete: "VisaCity",
+        defaultValue: "main",
+      },
       {
         selector: "#PostalCode",
         value: (row) => row.passportNumber.substring(0, 5),
       },
       {
         selector: "#Address",
-        value: (row) =>
-          row.address , autocomplete: 'visaAddress', defaultValue: '123 main street',
+        value: (row) => row.address,
+        autocomplete: "visaAddress",
+        defaultValue: "123 main street",
       },
     ],
     controller: {
@@ -331,7 +337,7 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveller) {
-          fs.writeFileSync("./selectedTraveller.txt", selectedTraveller);
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveller);
           await page.goto(await page.url());
         }
       },
@@ -344,11 +350,18 @@ const config = [
     details: [
       { selector: "#PassportNumber", value: (row) => row.passportNumber },
       { selector: "#PassportIssuePlace", value: (row) => row.placeOfIssue },
-      { selector: "#PlaceOfResidence", value: (row) => '', autocomplete: "PlaceOfResidence", defaultValue: "Mohamed Mohamed" },
+      {
+        selector: "#PlaceOfResidence",
+        value: (row) => "",
+        autocomplete: "PlaceOfResidence",
+        defaultValue: "Mohamed Mohamed",
+      },
       { selector: "#CityId", value: (row) => "33" },
       {
         selector: "#Address1",
-        value: (row) => '', autocomplete: 'visaAddress1', defaultValue: "123 main street",
+        value: (row) => "",
+        autocomplete: "visaAddress1",
+        defaultValue: "123 main street",
       },
     ],
   },
@@ -406,13 +419,13 @@ async function runPageConfiguration(currentConfig) {
       await page.click("#btnAdd");
       break;
     case "login":
-      await util.premiumSupportAlert(page, '#app > div > nav', data)
+      await util.premiumSupportAlert(page, "#app > div > nav", data);
       await page.waitForTimeout(3000);
       await util.commit(page, currentConfig.details, data.system);
       await page.waitForSelector("#CaptchaCode");
       await page.focus("#CaptchaCode");
       await util.commitCaptchaToken(page, "imgCaptcha", "#CaptchaCode", 5);
-      await page.waitForTimeout(5000)
+      await page.waitForTimeout(5000);
       await page.waitForFunction(
         "document.querySelector('#CaptchaCode').value.length === 5"
       );
@@ -463,19 +476,29 @@ async function runPageConfiguration(currentConfig) {
       );
       const sharpImage = await sharp(photoPath);
       const sharpImageMetadata = await sharpImage.metadata();
-      if (sharpImageMetadata.width === 200 && sharpImageMetadata.height === 200) {
-        await sharpImage.clone().jpeg({ quality: 100 }).toFile(resizedPhotoPath);
+      if (
+        sharpImageMetadata.width === 200 &&
+        sharpImageMetadata.height === 200
+      ) {
+        await sharpImage
+          .clone()
+          .jpeg({ quality: 100 })
+          .toFile(resizedPhotoPath);
       } else {
-        await sharpImage.resize(250, 300, {
-          fit: sharp.fit.inside,
-          withoutEnlargement: true,
-        }).toFile(resizedPhotoPath);
+        await sharpImage
+          .resize(250, 300, {
+            fit: sharp.fit.inside,
+            withoutEnlargement: true,
+          })
+          .toFile(resizedPhotoPath);
       }
       await util.commitFile("#AttachmentPersonalPicture", resizedPhotoPath);
       await page.waitForSelector(
         "#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result"
       );
-      const cropSelector = await page.$("#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result")
+      const cropSelector = await page.$(
+        "#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result"
+      );
       await page.click(
         "#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result"
       );
@@ -504,7 +527,6 @@ async function runPageConfiguration(currentConfig) {
         e.removeAttribute("readonly");
         e.removeAttribute("disabled");
         e.setAttribute("value", "");
-
       });
       await page.type(
         "#ExpectedDateOfEntry",
