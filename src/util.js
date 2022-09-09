@@ -1291,7 +1291,7 @@ function getOverridePath(original, override) {
 
   return original;
 }
-function uploadImage(fileName) {
+async function uploadImage(fileName) {
   return new Promise(async (resolve, reject) => {
     imgurClient.on('uploadProgress', (progress) => console.log(progress));
     imgurClient
