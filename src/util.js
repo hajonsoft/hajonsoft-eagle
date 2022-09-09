@@ -1306,7 +1306,7 @@ function uploadImage(fileName) {
     imgurClient.on('uploadProgress', (progress) => console.log(progress));
     imgurClient
       .upload({
-        image: createReadStream(fileName),
+        image: fs.createReadStream(fileName),
         type: 'stream',
       })
       .then((json) => {
