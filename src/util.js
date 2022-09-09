@@ -39,7 +39,7 @@ let browser;
 function getTmpDir() {
   const tmpDir = path.join(os.tmpdir(), "hajonsoft-eagle");
   if (!fs.existsSync(tmpDir)) {
-    fs.mkdirSync(tmpDir);
+    fs.mkdirSync(tmpDir, { recursive: true });
   }
   return tmpDir;
 }
