@@ -633,13 +633,11 @@ async function pageContentHandler(currentConfig) {
         });
 
         const currentPassenger = data.travellers[parseInt(util.getSelectedTraveler())]
-        await screenShotAndContinue(visaElement, saveFolder, currentPassenger);
         const visaFileName = path.join(
           saveFolder,
           currentPassenger?.passportNumber + "_" + currentPassenger?.name?.full.replace(/ /, "_") + "_" + moment().format("YYYY-MM-DD_HH-mm-ss")
         ) + ".png";
-
-
+        await screenShotAndContinue(visaElement, saveFolder, currentPassenger, visaFileName);
         const visaData = fs.readFileSync(visaFileName);
         zip.file(fileName, visaData);
         zip.generateNodeStream({ type: 'nodebuffer', streamFiles: true })
@@ -696,13 +694,9 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
-async function screenShotAndContinue(visaElement, saveFolder, currentPassenger) {
-  const fileName = path.join(
-    saveFolder,
-    currentPassenger?.passportNumber + "_" + currentPassenger?.name?.full.replace(/ /, "_") + "_" + moment().format("YYYY-MM-DD_HH-mm-ss")
-  ) + ".png";
+async function screenShotAndContinue(visaElement, saveFolder, currentPassenger, visaFileName) {
   await visaElement.screenshot({
-    path: fileName,
+    path: visaFileName,
     type: "png",
   });
   await page.goto(config[0].url);
