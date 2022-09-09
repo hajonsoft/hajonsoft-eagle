@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const budgie = require("./budgie");
 const util = require("./util");
+const { getPath } = util;
 const moment = require("moment");
 const sharp = require("sharp");
 const homedir = require("os").homedir();
@@ -272,7 +273,7 @@ const config = [
   //         (el) => el.value
   //       );
   //       if (selectedTraveler) {
-  //         fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
+  //         fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
   //         await sendPassenger(selectedTraveler);
   //       }
   //     },
@@ -300,7 +301,7 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveler) {
-          fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
           await sendContactInfo(selectedTraveler);
         }
       },
@@ -320,7 +321,7 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveler) {
-          fs.writeFileSync("./selectedTraveller.txt", selectedTraveler);
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
           await sendPilgrimInformation(selectedTraveler);
         }
       },
@@ -329,7 +330,7 @@ const config = [
 ];
 
 // async function sendPassenger(selectedTraveler) {
-//   const data = fs.readFileSync("./data.json", "utf-8");
+//   const data = fs.readFileSync(getPath("data.json"), "utf-8");
 //   var passengersData = JSON.parse(data);
 //   const passenger = passengersData.travellers[selectedTraveler];
 //   await page.type("#FirstName", passenger.name.first);
@@ -352,7 +353,7 @@ const config = [
 // }
 
 async function sendContactInfo(selectedTraveler) {
-  const data = fs.readFileSync("./data.json", "utf-8");
+  const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
   await page.waitForSelector("#NamePrefix");
@@ -362,14 +363,14 @@ async function sendContactInfo(selectedTraveler) {
   const uniqueNumber = moment().format("9MMDDHHmmss");
   await page.waitForSelector("#txtPhone");
   await page.type("#txtPhone", uniqueNumber);
-  fs.appendFileSync("./emails.txt", uniqueNumber.toString() + "\n");
+  fs.appendFileSync(getPath("emails.txt"), uniqueNumber.toString() + "\n");
   await page.waitForSelector("#txtEmail");
   let newEmail =
     budgie.get("motawif_gmail", "forhajjhajj") +
     "+" +
     uniqueNumber +
     "@gmail.com"; // await email.getNewEmail();
-  fs.appendFileSync("./emails.txt", newEmail + "\n");
+  fs.appendFileSync(getPath("emails.txt"), newEmail + "\n");
   await page.type("#txtEmail", newEmail);
   await page.click("#send_otp_btn");
   await page.waitForTimeout(2000);
@@ -377,7 +378,7 @@ async function sendContactInfo(selectedTraveler) {
   console.log(code);
 }
 async function sendPilgrimInformation(selectedTraveler) {
-  const data = fs.readFileSync("./data.json", "utf-8");
+  const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
 
@@ -660,10 +661,10 @@ async function pageContentHandler(currentConfig) {
     //   await acceptCookiesButton.click();
     // }
     // if (
-    //   fs.existsSync("./loop.txt") &&
-    //   fs.existsSync("./selectedTraveller.txt")
+    //   fs.existsSync(getPath("loop.txt")) &&
+    //   fs.existsSync(getPath("selectedTraveller.txt"))
     // ) {
-    //   sendPassenger(fs.readFileSync("./selectedTraveller.txt", "utf-8"));
+    //   sendPassenger(fs.readFileSync(getPath("selectedTraveller.txt"), "utf-8"));
     // }
     // await util.controller(page, currentConfig, data.travellers);
     // await util.commander(page, {
@@ -683,14 +684,14 @@ async function pageContentHandler(currentConfig) {
     // break;
     case "thankyou":
       // const selectedTravelerRaw = fs.readFileSync(
-      //   "./selectedTraveller.txt",
+      //   getPath("selectedTraveller.txt"),
       //   "utf-8"
       // );
       // if (selectedTravelerRaw) {
       //   if (/\d+/.test(selectedTravelerRaw)) {
       //     const selectedTraveler = parseInt(selectedTravelerRaw);
       //     fs.writeFileSync(
-      //       "./selectedTraveller.txt",
+      //       getPath("selectedTraveller.txt"),
       //       (selectedTraveler + 1).toString()
       //     );
       //   }
@@ -750,7 +751,10 @@ async function pageContentHandler(currentConfig) {
       await util.controller(page, currentConfig, data.travellers);
       await page.waitForSelector("#ticket-idguestpage");
       ticketNumber = await page.$eval("#ticket-idguestpage", (el) => el.value);
-      fs.appendFileSync("./emails.txt", "ticket: " + ticketNumber + "\n");
+      fs.appendFileSync(
+        getPath("emails.txt"),
+        "ticket: " + ticketNumber + "\n"
+      );
       await page.waitForTimeout(2000);
       await page.screenshot({
         path: path.join(__dirname, ticketNumber) + ".png",
@@ -759,21 +763,21 @@ async function pageContentHandler(currentConfig) {
       });
 
       if (
-        fs.existsSync("./loop.txt") &&
-        fs.existsSync("./selectedTraveller.txt")
+        fs.existsSync(getPath("loop.txt")) &&
+        fs.existsSync(getPath("selectedTraveller.txt"))
       ) {
         const selectedPassenger = fs.readFileSync(
-          "./selectedTraveller.txt",
+          getPath("selectedTraveller.txt"),
           "utf8"
         );
-        const data = fs.readFileSync("./data.json", "utf-8");
+        const data = fs.readFileSync(getPath("data.json"), "utf-8");
         var passengersData = JSON.parse(data);
         if (
           passengersData.travellers.length >
           parseInt(selectedPassenger) + 1
         ) {
           fs.writeFileSync(
-            "selectedTraveller.txt",
+            getPath("selectedTraveller.txt"),
             (parseInt(selectedPassenger) + 1).toString()
           );
           await sendPassenger(parseInt(selectedPassenger) + 1);

@@ -3,7 +3,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const puppeteer = require("puppeteer-extra");
 const os = require("os");
-const { ImgurClient } = require('imgur');
+const { ImgurClient } = require("imgur");
 const RuCaptcha2Captcha = require("rucaptcha-2captcha");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
@@ -12,7 +12,6 @@ const RecaptchaPlugin = require("puppeteer-extra-plugin-recaptcha");
 puppeteer.use(RecaptchaPlugin());
 
 const sharp = require("sharp");
-const FormData = require('form-data');
 const budgie = require("./budgie");
 const axios = require("axios");
 const nationalities = require("./data/nationalities");
@@ -29,12 +28,39 @@ const VISION_DEFICIENCY = "none";
 const IMGUR_CLIENT_ID = "0b4827447357d6b";
 
 // or your client ID
-const imgurClient = new ImgurClient({ clientId: IMGUR_CLIENT_ID, clientSecret: "c842b1a08f0748150465ec643c04c0aeb17329c7" })
+const imgurClient = new ImgurClient({
+  clientId: IMGUR_CLIENT_ID,
+  clientSecret: "c842b1a08f0748150465ec643c04c0aeb17329c7",
+});
 
 let page;
 let browser;
 
+function getTmpDir() {
+  const tmpDir = path.join(os.tmpdir(), "hajonsoft-eagle");
+  if (!fs.existsSync(tmpDir)) {
+    fs.mkdirSync(tmpDir);
+  }
+  return tmpDir;
+}
 
+function isCloudRun() {
+  return Boolean(process.argv.find((c) => c.startsWith("-cloud")))
+}
+
+function getPath(filename) {
+  switch (filename) {
+    case "data.json":
+      let dataFileName = path.join(getTmpDir(), "data.json");
+      // Fallback to current working dir (used by eagle cloud)
+      if (isCloudRun()) {
+        dataFileName = path.join(__dirname,"..","data.json");
+      }
+      return dataFileName;
+    default:
+      return path.join(getTmpDir(), filename);
+  }
+}
 
 function getChromePath() {
   switch (os.platform()) {
@@ -109,7 +135,8 @@ async function initPage(config, onContentLoaded, data) {
     args.push("--incognito");
   }
 
-  if (!process.argv.find((c) => c.startsWith("range="))) {
+  const isWindowed = process.argv.find((c) => c.startsWith("-windowed"));
+  if (!process.argv.find((c) => c.startsWith("range=")) && !isWindowed) {
     args.push("--start-fullscreen");
   }
   const launchOptions = {
@@ -132,7 +159,7 @@ async function initPage(config, onContentLoaded, data) {
     await page.waitForTimeout(5000);
     try {
       await dialog.accept();
-    } catch { }
+    } catch {}
   });
 
   if (process.argv.length > 2) {
@@ -162,7 +189,7 @@ async function initPage(config, onContentLoaded, data) {
   } else {
     fs.readdir(vaccineFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(vaccineFolder, file), (err) => { });
+        fs.unlink(path.join(vaccineFolder, file), (err) => {});
       }
     });
   }
@@ -185,9 +212,9 @@ async function createControlsFile(
   url,
   container,
   xPath,
-  fieldFunction = async () => { }
+  fieldFunction = async () => {}
 ) {
-  const logFolder = __dirname + "/../log/";
+  const logFolder = getPath("log");
   if (!fs.existsSync(logFolder)) {
     fs.mkdirSync(logFolder);
   }
@@ -265,7 +292,11 @@ function findConfig(url, config) {
   }
 
   if (urlConfig) {
-    infoMessage(page, `✈️ Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex}`, 9);
+    infoMessage(
+      page,
+      `✈️ Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex}`,
+      9
+    );
     return urlConfig;
   }
   return {};
@@ -407,13 +438,13 @@ async function selectByValue(selector, txt) {
 
 function getMofaImportString(passportNumber) {
   try {
-    const file = "./" + passportNumber + ".txt";
+    const file = getPath(passportNumber + ".txt");
     if (fs.existsSync(file)) {
       const importContent = fs.readFileSync(file, "utf-8");
       const importJSON = JSON.parse(importContent);
       return " - MOFA: " + importJSON?.status;
     }
-  } catch { }
+  } catch {}
   return "";
 }
 
@@ -439,11 +470,14 @@ async function controller(page, structure, travellers) {
     travellers
       .map(
         (traveller, cursor) =>
-          `<option value="${cursor}" ${cursor == lastTraveler ? "selected" : ""
-          }>${cursor + 1} - ${traveller.nationality?.isArabic
-            ? traveller?.nameArabic?.given + " " + traveller.nameArabic.last
-            : traveller.name.full
-          } - ${traveller.passportNumber} - ${traveller?.nationality?.name} - ${traveller?.gender || "gender"
+          `<option value="${cursor}" ${
+            cursor == lastTraveler ? "selected" : ""
+          }>${cursor + 1} - ${
+            traveller.nationality?.isArabic
+              ? traveller?.nameArabic?.given + " " + traveller.nameArabic.last
+              : traveller.name.full
+          } - ${traveller.passportNumber} - ${traveller?.nationality?.name} - ${
+            traveller?.gender || "gender"
           } - ${traveller?.dob?.age || "age"} years old${getMofaImportString(
             traveller.passportNumber
           )}</option>`
@@ -452,8 +486,9 @@ async function controller(page, structure, travellers) {
 
   try {
     await page.waitForSelector(structure.controller.selector);
-    const controllerHandleMethod = `handleEagle${structure.controller.name || "Send"
-      }Click`;
+    const controllerHandleMethod = `handleEagle${
+      structure.controller.name || "Send"
+    }Click`;
     await page.evaluate(
       (params) => {
         const structureParam = params[0];
@@ -479,8 +514,9 @@ async function controller(page, structure, travellers) {
           <button style='background-color: #F27F21; color: #ffffff; width: 6rem, padding: 0.5rem; margin: 0 5px; border-radius: 8px;' type="button" onclick="registerLoop();${handleMethodName}();return false">Send All إرسل الكل</button> 
           </div>
           <hr />
-          ${controller.mokhaa
-            ? `<div>
+          ${
+            controller.mokhaa
+              ? `<div>
               <div style="display: flex; width: 100%; align-items: center; justify-content: space-between;"> 
               <div>Visa folder: ${visaPath}</div>
               <div style="color: #F0F7E8; font-size: 1.5rem; text-transform: uppercase;">إستقبال Receive</div>
@@ -518,7 +554,7 @@ async function controller(page, structure, travellers) {
             </div>
             </div>
             `
-            : ""
+              : ""
           }
           `;
       },
@@ -543,19 +579,19 @@ async function controller(page, structure, travellers) {
       await page.exposeFunction("getVisaCount", getVisaCount);
       await page.exposeFunction(
         "handleWTUClick",
-        structure.controller.wtuAction || (() => { })
+        structure.controller.wtuAction || (() => {})
       );
       await page.exposeFunction(
         "handleGMAClick",
-        structure.controller.gmaAction || (() => { })
+        structure.controller.gmaAction || (() => {})
       );
       await page.exposeFunction(
         "handleBAUClick",
-        structure.controller.bauAction || (() => { })
+        structure.controller.bauAction || (() => {})
       );
       await page.exposeFunction(
         "handleTWFClick",
-        structure.controller.twfAction || (() => { })
+        structure.controller.twfAction || (() => {})
       );
       await page.exposeFunction(
         "handleLoadImportedOnlyClick",
@@ -569,11 +605,11 @@ async function controller(page, structure, travellers) {
 }
 
 function registerLoop() {
-  fs.writeFileSync("./loop.txt", "", "utf8");
+  fs.writeFileSync(getPath("loop.txt"), "", "utf8");
 }
 function unregisterLoop() {
-  if (fs.existsSync("./loop.txt")) {
-    fs.unlink("./loop.txt", (err) => { });
+  if (fs.existsSync(getPath("loop.txt"))) {
+    fs.unlink(getPath("loop.txt"), (err) => {});
   }
 }
 function getVisaCount() {
@@ -600,9 +636,10 @@ async function commander(page, structure, travellers) {
 
   try {
     await page.waitForSelector(structure.controller.selector);
-    const controllerHandleMethod = `handleEagle${structure.controller.name || "Budgie"
-      }Click`;
-    const isLoop = fs.existsSync("./loop.txt");
+    const controllerHandleMethod = `handleEagle${
+      structure.controller.name || "Budgie"
+    }Click`;
+    const isLoop = fs.existsSync(getPath("loop.txt"));
     await page.evaluate(
       (params) => {
         const structureParam = params[0];
@@ -610,16 +647,19 @@ async function commander(page, structure, travellers) {
         const container = document.querySelector(controller.selector);
         const handleMethodName = params[1];
         container.outerHTML = `
-          <div style='${controller.leftAlign ? "direction: rtl;" : ""
+          <div style='${
+            controller.leftAlign ? "direction: rtl;" : ""
           } background-color: #CCCCCC; border: 2px solid black; border-radius: 16px; padding: 0.5rem; display: flex; align-items: center; justify-content: space-between'>  
           <img style='width: 32px; height: 32px; border-radius: 8px; margin-right: 0.5rem'  src='data:image/jpeg;base64,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'> </img> 
           <h5 style='margin-right: 0.5rem; color: #311b92'> HAJonSoft-Eagle </h5> 
 
-          <button id="${structureParam.controller.name
-          }" style='background-color: #2196f3; color: #ffffff; width: 6rem, padding: 0.5rem; margin: 0 5px; border-radius: 8px; font-size: 2rem;' type="button" onclick="${handleMethodName}();return false"> ${structureParam.controller.title +
+          <button id="${
+            structureParam.controller.name
+          }" style='background-color: #2196f3; color: #ffffff; width: 6rem, padding: 0.5rem; margin: 0 5px; border-radius: 8px; font-size: 2rem;' type="button" onclick="${handleMethodName}();return false"> ${
+          structureParam.controller.title +
           " " +
           structureParam.controller.arabicTitle
-          } </button> 
+        } </button> 
           </div>
           `;
       },
@@ -642,10 +682,10 @@ async function commander(page, structure, travellers) {
 }
 
 async function handleLoadImportedOnlyClick() {
-  const existingDataRaw = fs.readFileSync("./data.json", "utf8");
+  const existingDataRaw = fs.readFileSync(getPath("data.json"), "utf8");
   const existingData = JSON.parse(existingDataRaw);
   const travellersData = [];
-  const files = fs.readdirSync("./").filter((f) => f.endsWith(".txt"));
+  const files = fs.readdirSync(getPath("")).filter((f) => f.endsWith(".txt"));
   const defaultNationalityCode = await page.$eval(
     "#NationalityIsoCode",
     (ele) => ele.value
@@ -659,7 +699,7 @@ async function handleLoadImportedOnlyClick() {
   );
   for (const file of files) {
     try {
-      const data = fs.readFileSync(path.join("./", file), "utf8");
+      const data = fs.readFileSync(getPath(file), "utf8");
       if (data.includes("mofaNumber")) {
         const jsonData = JSON.parse(data);
         const nationality = nationalities.nationalities.find(
@@ -675,7 +715,7 @@ async function handleLoadImportedOnlyClick() {
           passportNumber: jsonData.passportNumber,
         });
       }
-    } catch { }
+    } catch {}
   }
 
   const data = {
@@ -686,12 +726,12 @@ async function handleLoadImportedOnlyClick() {
     travellers: travellersData,
   };
 
-  fs.writeFileSync("./data.json", JSON.stringify(data));
+  fs.writeFileSync(getPath("data.json"), JSON.stringify(data));
   await browser.close();
 }
 
 const getRange = () => {
-  const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
+  const data = JSON.parse(fs.readFileSync(getPath("data.json"), "utf8"));
   const isCloudRun = data.info.caravan.startsWith("CLOUD_");
   if (isCloudRun) {
     // read range from data.json
@@ -704,23 +744,26 @@ const getRange = () => {
     return cliRange?.replace(",", "-");
   }
   return "";
-}
+};
 function getSelectedTraveler() {
-  const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
+  const data = JSON.parse(fs.readFileSync(getPath("data.json"), "utf8"));
   const range = getRange();
-  const fileName = "./selectedTraveller" + range + ".txt";
+  const fileName = getPath("selectedTraveller" + range + ".txt");
   console.log("counter file name", fileName);
   if (fs.existsSync(fileName)) {
     const lastIndex = fs.readFileSync(fileName, "utf8");
-    if ((parseInt(lastIndex) >= data.travellers.length) || (range && parseInt(lastIndex) >= parseInt(range.split("=")[1].split("-")[1]))) {
+    if (
+      parseInt(lastIndex) >= data.travellers.length ||
+      (range &&
+        parseInt(lastIndex) >= parseInt(range.split("=")[1].split("-")[1]))
+    ) {
       process.exit(0);
     }
     if (range && lastIndex < parseInt(range.split("=")[1].split("-")[0])) {
       return range.split("=")[1].split("-")[0];
     }
     return lastIndex;
-  }
-  else {
+  } else {
     if (range) {
       fs.writeFileSync(fileName, range.split("=")?.[1]?.split("-")?.[0]);
       return range.split("=")?.[1]?.split("-")?.[0];
@@ -734,7 +777,7 @@ function incrementSelectedTraveler(overrideValue) {
   const selectedTraveler = getSelectedTraveler();
   const nextTraveler = parseInt(selectedTraveler) + 1;
   const range = getRange();
-  const fileName = "./selectedTraveller" + range + ".txt";
+  const fileName = getPath("selectedTraveller" + range + ".txt");
   fs.writeFileSync(fileName, nextTraveler.toString());
   return nextTraveler;
 }
@@ -742,7 +785,7 @@ function incrementSelectedTraveler(overrideValue) {
 function setSelectedTraveller(value) {
   getSelectedTraveler(); // Make sure the file exists
   const range = getRange();
-  const fileName = "./selectedTraveller" + range + ".txt";
+  const fileName = getPath("selectedTraveller" + range + ".txt");
   if (fs.existsSync(fileName)) {
     return fs.writeFileSync(fileName, value.toString());
   }
@@ -1247,7 +1290,6 @@ async function commitCaptchaTokenWithSelector(
     return token;
   } catch (err) {
     infoMessage(page, "🔓 Captcha error!");
-
   }
 }
 
@@ -1269,8 +1311,9 @@ const premiumSupportAlert = async (page, selector, data) => {
       </span>
 
       <button onclick="location.href='https://hajonsoft.on.spiceworks.com/portal/registrations'" type="button" style="background-color: #5B9A63; color: #C7E5C8; border: none; padding: 8px 16px; border-radius: 4px; font-size: 1.4rem; cursor: pointer;">
-      Pay ${json.travellers.length * 1.5}.00 USD to a temporary worker (${json.travellers.length
-        } pax x $1.5 = ${json.travellers.length * 1.5} USD)
+      Pay ${json.travellers.length * 1.5}.00 USD to a temporary worker (${
+        json.travellers.length
+      } pax x $1.5 = ${json.travellers.length * 1.5} USD)
       </button
        
       
@@ -1293,11 +1336,11 @@ function getOverridePath(original, override) {
 }
 async function uploadImage(fileName) {
   return new Promise(async (resolve, reject) => {
-    imgurClient.on('uploadProgress', (progress) => console.log(progress));
+    imgurClient.on("uploadProgress", (progress) => console.log(progress));
     imgurClient
       .upload({
         image: fs.createReadStream(fileName),
-        type: 'stream',
+        type: "stream",
       })
       .then((json) => {
         resolve(json.data.link);
@@ -1306,8 +1349,7 @@ async function uploadImage(fileName) {
         resolve("Error uploading image to imgur " + fileName);
       });
   });
-} 
-
+}
 
 function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
   axios
@@ -1337,7 +1379,11 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
 }
 
 const infoMessage = async (page, message, depth = 2, screenshot, title) => {
-  const signature = path.join(__dirname, `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`);
+  const screenshotsDir = getPath("screenshots");
+  if(!fs.existsSync(screenshotsDir)) {
+    fs.mkdirSync(screenshotsDir)
+  }
+  const signature = path.join(screenshotsDir,`${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`);
   console.log("signature", signature);
   if (page) {
     try {
@@ -1362,6 +1408,8 @@ const infoMessage = async (page, message, depth = 2, screenshot, title) => {
 const hijriYear = 44;
 
 module.exports = {
+  getTmpDir,
+  getPath,
   hijriYear,
   findConfig,
   commit,
@@ -1398,4 +1446,5 @@ module.exports = {
   setSelectedTraveller,
   updatePassengerInKea,
   infoMessage,
+  isCloudRun
 };

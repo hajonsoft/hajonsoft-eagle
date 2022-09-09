@@ -5,6 +5,7 @@ puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const path = require("path");
 const util = require("./util");
+const { getPath } = util;
 const moment = require("moment");
 const sharp = require("sharp");
 const os = require("os");
@@ -42,8 +43,9 @@ const config = [
         value: (row) =>
           row.info.caravan.replace(/ /g, "-").substring(0, 20) +
           "-" +
-          `${os.hostname()
-            .substring(0, 8)}}${moment().format("mmss")}_${row.info.run}`,
+          `${os.hostname().substring(0, 8)}}${moment().format("mmss")}_${
+            row.info.run
+          }`,
       },
       {
         selector: "#ctl00_ContentHolder_TxtExpectedArrivalDate_dateInput",
@@ -117,7 +119,7 @@ async function runPageConfiguration(currentConfig) {
           "document.querySelector('#rdCap_CaptchaTextBox').value.length === 5"
         );
         await page.click("#lnkLogin");
-      } catch { }
+      } catch {}
 
       break;
     case "main":
@@ -143,7 +145,15 @@ async function runPageConfiguration(currentConfig) {
         return;
       }
       await util.commit(page, currentConfig.details, data);
-      util.infoMessage(page, `Creating group ${groupName || `${data.info.caravan.replace(/ /g, "-").substring(0, 20)}-${os.hostname().substring(0, 8)}`}`);
+      util.infoMessage(
+        page,
+        `Creating group ${
+          groupName ||
+          `${data.info.caravan.replace(/ /g, "-").substring(0, 20)}-${os
+            .hostname()
+            .substring(0, 8)}`
+        }`
+      );
       await page.evaluate(() => {
         const consulate = document.querySelector(
           "#ctl00_ContentHolder_LstConsulate"
@@ -158,18 +168,18 @@ async function runPageConfiguration(currentConfig) {
           timeout: 5000,
         });
         await page.click("#ctl00_ContentHolder_btnCreate");
-      } catch { }
+      } catch {}
       break;
     case "create-mutamer":
       await util.controller(page, currentConfig, data.travellers);
-      if (fs.existsSync("./loop.txt")) {
+      if (fs.existsSync(getPath("loop.txt"))) {
         const currentIndex = util.getSelectedTraveler();
         const passenger = data.travellers[parseInt(currentIndex)];
         sendPassenger(passenger);
       } else {
         util.infoMessage(page, `pausing for 10 seconds`);
         await page.waitForTimeout(10000);
-        fs.writeFileSync("./loop.txt", "loop");
+        fs.writeFileSync(getPath("loop.txt"), "loop");
         await page.reload();
       }
       break;
@@ -270,7 +280,7 @@ async function sendPassenger(passenger) {
         selector: "#ctl00_ContentHolder_LstType",
         value: (row) =>
           row.codeline?.replace(/\n/g, "")?.substring(2, 5) !=
-            row.codeline?.replace(/\n/g, "")?.substring(54, 57)
+          row.codeline?.replace(/\n/g, "")?.substring(54, 57)
             ? "3"
             : "1",
       },
@@ -310,7 +320,7 @@ async function sendPassenger(passenger) {
       },
     ],
     data.system
-  )
+  );
 
   // paste 2 images
   let photoPath = path.join(
@@ -366,7 +376,6 @@ async function sendPassenger(passenger) {
       .toFile(resizedPassportFile);
     await fileChooser.accept([resizedPassportFile]);
     util.infoMessage(page, `🛂 passport accepted ${resizedPassportFile}`);
-
   }
 
   util.infoMessage(page, `🧟 passenger ${passenger.passportNumber} captcha`);
@@ -383,12 +392,14 @@ async function sendPassenger(passenger) {
   await page.click("#ctl00_ContentHolder_BtnEdit");
   await page.waitForTimeout(5000);
   try {
-    const errorMessage = await page.$eval("#ctl00_ContentHolder_divErrorsList > div > ul > li", (el) => el.textContent || el.innerText);
+    const errorMessage = await page.$eval(
+      "#ctl00_ContentHolder_divErrorsList > div > ul > li",
+      (el) => el.textContent || el.innerText
+    );
     if (errorMessage) {
       util.infoMessage(page, `🛑 Error: ${errorMessage}`);
     }
   } catch {}
-
 }
 
 module.exports = { send, config, SERVER_NUMBER };

@@ -1,5 +1,6 @@
 const { config } = require("../twf");
 const util = require("../util");
+const { getPath } = util;
 const fs = require("fs");
 const { homedir } = require("os");
 const path = require("path");
@@ -40,7 +41,7 @@ async function injectTWFEagleButton(res) {
 
 let fileName;
 async function handleImportTWFMofa() {
-  fileName = '';
+  fileName = "";
   fs.watch(path.join(homedir(), "Downloads"), (eventType, filename) => {
     if (eventType === "rename") {
       try {
@@ -62,7 +63,7 @@ async function handleImportTWFMofa() {
               if (passportNumber) {
                 passports.push(passportNumber);
                 fs.writeFileSync(
-                  passportNumber,
+                  getPath(passportNumber),
                   JSON.stringify({ mofaNumber, nationality })
                 );
               }
@@ -73,12 +74,18 @@ async function handleImportTWFMofa() {
               );
               eagleButton.textContent = `Done... [${
                 passportsArrayFromNode[0]
-              }-${passportsArrayFromNode[passportsArrayFromNode.length - 1]}] (${passportsArrayFromNode.length} passports)`;
+              }-${
+                passportsArrayFromNode[passportsArrayFromNode.length - 1]
+              }] (${passportsArrayFromNode.length} passports)`;
             }, passports);
           }, 3000);
         }
       } catch (err) {
-        console.log('%c 🍻 err: ', 'font-size:20px;background-color: #B03734;color:#fff;', err);
+        console.log(
+          "%c 🍻 err: ",
+          "font-size:20px;background-color: #B03734;color:#fff;",
+          err
+        );
       }
     }
   });

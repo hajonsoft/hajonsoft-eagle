@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const util = require("./util");
+const { getPath } = util;
 const moment = require("moment");
 const sharp = require("sharp");
 const vision = require("@google-cloud/vision");
@@ -336,7 +337,11 @@ async function createCodelineFile(
   label0Mrz1(data, suggested);
 
   let mrz1;
-  ({ mrz1, suggested } = await chooseMrz1(suggested, passportImagePath, labelsWithPosition.map(x=> x.text)));
+  ({ mrz1, suggested } = await chooseMrz1(
+    suggested,
+    passportImagePath,
+    labelsWithPosition.map((x) => x.text)
+  ));
 
   label0Mrz2(data, suggested);
   let mrz2;
@@ -361,7 +366,7 @@ async function createCodelineFile(
 function label0Mrz1(data, suggested) {
   const firstLabel = data.textAnnotations[0].description;
   firstLabel.split("\n").forEach((line) => {
-    const clean = line.replace(/\s/g, '');
+    const clean = line.replace(/\s/g, "");
     if (/P[A-Z0-9<][A-Z]{3}<*?[A-Z]{1,15}<[A-Z]{1,15}</.test(clean)) {
       suggested.push(clean);
     }
@@ -371,7 +376,7 @@ function label0Mrz1(data, suggested) {
 function label0Mrz2(data, suggested) {
   const firstLabel = data.textAnnotations[0].description;
   firstLabel.split("\n").forEach((line) => {
-    const clean = line.replace(/[^A-Z0-9<]/, '');
+    const clean = line.replace(/[^A-Z0-9<]/, "");
     if (/^[A-Z0-9<]{9}[0-9][A-Z]{3}/.test(clean)) {
       suggested.push(clean);
     }
@@ -383,7 +388,7 @@ async function chooseMrz2(suggested, passportImagePath) {
   if (linesWith44.length === 1) {
     return { mrz2: linesWith44[0], suggested: [] };
   }
-  suggested.push('-Edit-');
+  suggested.push("-Edit-");
 
   const answersMrz2 = await inquirer.prompt([
     {
@@ -396,7 +401,7 @@ async function chooseMrz2(suggested, passportImagePath) {
     },
   ]);
   let mrz2 = answersMrz2.mrz2;
-  if (mrz2 === '-Edit-') {
+  if (mrz2 === "-Edit-") {
     const answersMrz2Edit = await inquirer.prompt([
       {
         type: "input",
@@ -531,8 +536,8 @@ async function chooseMrz1(suggested, passportImagePath, allLabels) {
       suggested: suggested.filter((x) => x != suggestedMrz1[0]),
     };
   }
-  suggestedMrz1.push('-Edit-')
-  suggestedMrz1 = [...suggestedMrz1, ...allLabels]
+  suggestedMrz1.push("-Edit-");
+  suggestedMrz1 = [...suggestedMrz1, ...allLabels];
   // Ask the user for help and provide suggestions
   const answers = await inquirer.prompt([
     {
@@ -545,7 +550,7 @@ async function chooseMrz1(suggested, passportImagePath, allLabels) {
     },
   ]);
   let mrz1 = answers.mrz1;
-  if (mrz1 === '-Edit-') {
+  if (mrz1 === "-Edit-") {
     const answersMrz1Edit = await inquirer.prompt([
       {
         type: "input",

@@ -19,7 +19,7 @@ const {
 } = require("./src/vsn");
 
 const util = require("./src/util");
-
+const { getPath } = util;
 const path = require("path");
 const mrz = require("mrz");
 const Cryptr = require("cryptr");
@@ -41,12 +41,12 @@ async function main() {
     process.exit(0);
   }
 
-  const addModeFile = "./add.json";
+  const addModeFile = getPath("add.json");
   if (fs.existsSync(addModeFile)) {
     fs.unlinkSync(addModeFile);
   }
 
-  const loopFile = "./loop.txt";
+  const loopFile = getPath("loop.txt");
   if (fs.existsSync(loopFile)) {
     fs.unlinkSync(loopFile);
   }
@@ -85,23 +85,32 @@ function printBudgie() {
 async function sendToCloud(data) {
   util.setSelectedTraveller(0);
   data.info.caravan = "CLOUD_" + data.info.caravan;
-  data.info.range = process.argv.find((arg) =>
-    arg.toLowerCase().startsWith("range")
-  )?.substring(6)?.replace(',', '-');
+  data.info.range = process.argv
+    .find((arg) => arg.toLowerCase().startsWith("range"))
+    ?.substring(6)
+    ?.replace(",", "-");
   data.info.stamp = moment().format("YYYY-MM-DD hh:mm:ss a");
-  fs.writeFileSync("./data.json", JSON.stringify(data));
-  const command = `git add . && git commit -m "${data.system?.country?.code} ${data.travellers?.length} Pax ${data.system?.name} ${data.system?.username}.0${moment().format("mm")} ${process.argv.find(arg => arg.toLowerCase().startsWith("range"))?.replace(',','-') ?? ""}" && git push origin $(git branch --show-current):job --force`;
-  const childProcess = require('child_process');
+  fs.writeFileSync(getPath("data.json"), JSON.stringify(data));
+  const command = `git add . && git commit -m "${data.system?.country?.code} ${
+    data.travellers?.length
+  } Pax ${data.system?.name} ${data.system?.username}.0${moment().format(
+    "mm"
+  )} ${
+    process.argv
+      .find((arg) => arg.toLowerCase().startsWith("range"))
+      ?.replace(",", "-") ?? ""
+  }" && git push origin $(git branch --show-current):job --force`;
+  const childProcess = require("child_process");
 
   childProcess.exec(command, function (error, stdout, stderr) {
     if (error) {
-      console.log('Eagle Cloud Error: ' + error.code);
+      console.log("Eagle Cloud Error: " + error.code);
     }
     if (stdout) {
-      console.log('Eagle Cloud: ' + stdout);
+      console.log("Eagle Cloud: " + stdout);
     }
     if (stderr) {
-      console.log('Eagle cloud: ' + stderr);
+      console.log("Eagle cloud: " + stderr);
     }
   });
   sendGhb(data);
@@ -127,7 +136,13 @@ async function submitToProvider() {
       // console.log(data.system.password);
     }
   }
-  console.log("\x1b[32m", `starting process ...[${data.system.name} ${data.travellers.length} PAX => ${util.getSelectedTraveler()}]`, "\x1b[0m");
+  console.log(
+    "\x1b[32m",
+    `starting process ...[${data.system.name} ${
+      data.travellers.length
+    } PAX => ${util.getSelectedTraveler()}]`,
+    "\x1b[0m"
+  );
   const lastIndex = util.getSelectedTraveler();
   if (lastIndex >= data.travellers.length) {
     util.setSelectedTraveller(0);
@@ -136,7 +151,6 @@ async function submitToProvider() {
   if (process.argv.includes("-cloud") || process.argv.includes("-submit")) {
     return sendToCloud(data);
   }
-
 
   switch (data.system.name) {
     case "ehj":
@@ -159,10 +173,10 @@ async function submitToProvider() {
       return sendEnj(data);
     case "hsf":
       if (process.argv.includes("-t")) {
-        if (fs.existsSync("t")) {
+        if (fs.existsSync(getPath("t"))) {
           const eagleForks = fs.readdirSync(path.join(__dirname, "t"));
-          if (fs.existsSync("./run.bat")) {
-            fs.unlinkSync("./run.bat");
+          if (fs.existsSync(getPath("run.bat"))) {
+            fs.unlinkSync(getPath("run.bat"));
           }
 
           const allTextFiles = fs.readdirSync("./");
@@ -170,10 +184,12 @@ async function submitToProvider() {
           const threadLength = data.travellers.length / eagleForks.length;
           for (let i = 0; i < eagleForks.length; i++) {
             fs.writeFileSync(
-              path.join("./t", eagleForks[i], "selectedTraveller.txt"),
+              getPath(path.join("t", eagleForks[i], "selectedTraveller.txt")),
               "0"
             );
-            fs.writeFileSync(path.join("./t", eagleForks[i], "loop.txt"), "");
+            fs.writeFileSync(
+              getPath(path.join("t", eagleForks[i], "loop.txt"), "")
+            );
             const trv = data.travellers.slice(
               i * threadLength,
               (i + 1) * threadLength
@@ -184,7 +200,7 @@ async function submitToProvider() {
               travellers: trv,
             };
             fs.writeFileSync(
-              path.join("./t", eagleForks[i], "data.json"),
+              getPath(path.join("t", eagleForks[i], "data.json")),
               JSON.stringify(dataForThread)
             );
             for (const textFile of allTextFiles.filter((file) =>
@@ -192,11 +208,11 @@ async function submitToProvider() {
             )) {
               fs.copyFileSync(
                 textFile,
-                path.join("./t", eagleForks[i], textFile)
+                getPath(path.join("t", eagleForks[i], textFile))
               );
             }
             fs.appendFileSync(
-              "./run.bat",
+              getPath("run.bat"),
               `
             cd t/${eagleForks[i]}
             node . &
@@ -220,21 +236,22 @@ async function submitToProvider() {
   }
 }
 
-async function unzipFile(source) {
+async function unzipFile(source, outputDir) {
+  const dir = outputDir ?? __dirname;
   try {
-    const files = fs.readFileSync(__dirname);
+    const files = fs.readFileSync(dir);
     for (const file of files.filter(
       (file) =>
         file.endsWith("_photo.jpg") ||
         file.endsWith("_mrz.jpg") ||
         file.endsWith("_passport.jpg")
     )) {
-      fs.unlinkSync(path.join(__dirName, file));
+      fs.unlinkSync(path.join(dir, file));
     }
-  } catch { }
+  } catch {}
 
   try {
-    await extract(source, { dir: __dirname });
+    await extract(source, { dir: dir });
   } catch (err) {
     console.log(err);
   }
@@ -245,7 +262,7 @@ async function getDataFileName() {
     arg.toLowerCase().startsWith("file")
   );
 
-  let dataFileName = path.join(__dirname, "data.json");
+  let dataFileName = getPath("data.json");
 
   if (fileParam) {
     let fileName = fileParam.substring(5);
@@ -268,10 +285,11 @@ async function getDataFileName() {
       process.exit(1);
     }
 
-    await unzipFile(fileName);
+    const outputDir = dataFileName.replace('data.json','')
+    await unzipFile(fileName, outputDir);
     console.log(
       "\x1b[7m",
-      `Success: ${fileName} => ${__dirname}/data.json`,
+      `Success: ${fileName} => ${outputDir}/data.json`,
       "\x1b[0m"
     );
   }
@@ -324,8 +342,8 @@ async function runGetSMSNumber() {
     console.log(balanceInquiry.data);
   }
   let activation = "";
-  if (fs.existsSync("./activation")) {
-    activation = fs.readFileSync("./activation", "utf-8");
+  if (fs.existsSync(getPath("activation"))) {
+    activation = fs.readFileSync(getPath("activation"), "utf-8");
   }
   if (activation) {
     const activationInquiry = axios.get(
@@ -337,7 +355,7 @@ async function runGetSMSNumber() {
   }
   if (activation) {
     if (activation === "NO_NUMBERS") {
-      fs.unlinkSync("./activation");
+      fs.unlinkSync(getPath("activation"));
       return console.log(balance, activation);
     }
     console.log(
@@ -359,7 +377,7 @@ async function runGetSMSNumber() {
         );
         if (cancelInquiry.status === 200) {
           console.log(balance, cancelInquiry.data);
-          return fs.unlinkSync("./activation");
+          return fs.unlinkSync(getPath("activation"));
         }
       }
       if (incomingActivationChoice.activationAction.startsWith("2-")) {
@@ -384,7 +402,7 @@ async function runGetSMSNumber() {
             );
             if (completeInquiry.status === 200) {
               console.log(balance, completeInquiry.data);
-              return fs.unlinkSync("./activation");
+              return fs.unlinkSync(getPath("activation"));
             }
           }
         }
@@ -393,8 +411,8 @@ async function runGetSMSNumber() {
     return;
   }
   let country = "";
-  if (fs.existsSync("./country")) {
-    country = fs.readFileSync("./country", "utf-8");
+  if (fs.existsSync(getPath("country"))) {
+    country = fs.readFileSync(getPath("country"), "utf-8");
   }
   const countriesInquiry = await axios.get(
     `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getCountries`
@@ -415,7 +433,7 @@ async function runGetSMSNumber() {
     ]);
     console.log(incomingCountry.country);
     country = incomingCountry.country.split(":")[0] | "2"; // kazakhestan by default
-    fs.writeFileSync("./country", incomingCountry.country.split(":")[0]);
+    fs.writeFileSync(getPath("country"), incomingCountry.country.split(":")[0]);
   }
 
   const numberInquiry = await axios.get(
@@ -423,14 +441,14 @@ async function runGetSMSNumber() {
   );
   if (numberInquiry.status === 200) {
     console.log(numberInquiry.data);
-    fs.writeFileSync("./activation", numberInquiry.data);
+    fs.writeFileSync(getPath("activation"), numberInquiry.data);
   }
 }
 
-const visionFolder = path.join(__dirname, "scan", "output", "vision");
-const inputFolder = path.join(__dirname, "scan", "input");
-const folder3M = path.join(__dirname, "scan", "output", "3M");
-const logFolder = path.join(__dirname, "scan", "output", "log");
+const visionFolder = getPath(path.join(__dirname, "scan", "output", "vision"));
+const inputFolder = getPath(path.join(__dirname, "scan", "input"));
+const folder3M = getPath(path.join(__dirname, "scan", "output", "3M"));
+const logFolder = getPath(path.join(__dirname, "scan", "output", "log"));
 
 function createSandBox() {
   if (!fs.existsSync(folder3M)) {
@@ -545,8 +563,8 @@ async function downloadImages() {
 }
 
 function readDataFile() {
-  if (fs.existsSync("./data.json")) {
-    return JSON.parse(fs.readFileSync("./data.json", "utf-8"));
+  if (fs.existsSync(getPath("data.json"))) {
+    return JSON.parse(fs.readFileSync(getPath("data.json"), "utf-8"));
   }
   console.error("NO data.json found");
 }
@@ -598,7 +616,10 @@ function runInteractive() {
           })
           .then((answers) => {
             if (answers.downloadFolder) {
-              fs.writeFileSync(".downloadFolder", answers.downloadFolder);
+              fs.writeFileSync(
+                getPath(".downloadFolder"),
+                answers.downloadFolder
+              );
             }
           });
         return;
@@ -613,19 +634,19 @@ function runInteractive() {
 }
 
 function getDownloadFolder() {
-  if (fs.existsSync(".downloadFolder")) {
-    return fs.readFileSync(".downloadFolder", "utf-8");
+  if (fs.existsSync(getPath(".downloadFolder"))) {
+    return fs.readFileSync(getPath(".downloadFolder"), "utf-8");
   }
   return path.join(homedir(), "Downloads");
 }
 
-process.on('uncaughtException', function(error) {
+process.on("uncaughtException", function (error) {
   util.infoMessage(null, "uncaughtException: " + error);
-  util.infoMessage(null, "exit error code 1" );
+  util.infoMessage(null, "exit error code 1");
   process.exit(1);
- });
+});
 
-process.on('unhandledRejection', function(reason, p){
+process.on("unhandledRejection", function (reason, p) {
   util.infoMessage(null, "unhandledRejection: " + reason);
 });
 

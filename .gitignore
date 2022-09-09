@@ -1,11 +1,1 @@
-/node_modules
-/log
-budgie*.json
-loop.txt
-add.json
-/scan
-api_key
-activation
-country
-/photos
-
+node_modules

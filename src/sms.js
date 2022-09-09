@@ -137,4 +137,10 @@ async function getNewNumber() {
   );
   return result;
 }
-module.exports = { runGetSMSNumber, abandoned, getNewNumber, getSMSCode, cancelActivation };
+module.exports = {
+  runGetSMSNumber,
+  abandoned,
+  getNewNumber,
+  getSMSCode,
+  cancelActivation,
+};
