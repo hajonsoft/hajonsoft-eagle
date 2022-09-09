@@ -43,7 +43,7 @@ const config = [
         value: (row) =>
           row.info.caravan.replace(/ /g, "-").substring(0, 20) +
           "-" +
-          `${os.hostname().substring(0, 8)}}${moment().format("mmss")}_${
+          `${os.hostname().substring(0, 8)}${moment().format("mmss")}_${
             row.info.run
           }`,
       },
