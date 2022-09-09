@@ -1374,10 +1374,7 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
 }
 
 const infoMessage = async (page, message, depth = 2, screenshot, title) => {
-  const signature = path.join(
-    __dirname,
-    `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`
-  );
+  const signature = getPath(`${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`);
   console.log("signature", signature);
   if (page) {
     try {
