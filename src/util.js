@@ -25,10 +25,15 @@ const photosFolder = path.join(homedir, "hajonsoft", "photos");
 const idFolder = path.join(homedir, "hajonsoft", "id");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
 const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
+const imgurClient = new imgur({ clientId: IMGUR_CLIENT_ID });
 const VISION_DEFICIENCY = "none";
-const IMAGE_UPLOADER_KEY = "5846c50eb79feaa73a67f0fb8804c878"
+const IMGUR_CLIENT_ID = "0b4827447357d6b";
+
+
 let page;
 let browser;
+
+
 
 function getChromePath() {
   switch (os.platform()) {
@@ -1295,12 +1300,10 @@ function getOverridePath(original, override) {
 
   return original;
 }
-// initialize imgur
-imgur.setClientId("a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6");
-
 function uploadImage(base64) {
+
   return new Promise((resolve, reject) => {
-    imgur
+    imgurClient
       .upload(base64)
       .then((json) => {
         resolve(json.data.link);
