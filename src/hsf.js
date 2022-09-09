@@ -32,6 +32,7 @@ let data;
 let counter = 0;
 let mofas = [];
 let startTime;
+let status = "idle";
 
 function getLogFile() {
   const logFolder = path.join("./log", data.info.munazim);
@@ -239,6 +240,13 @@ async function pageContentHandler(currentConfig) {
           "body > div.page-header > div.page-header-top > div > div.page-logo.pull-left",
           data
         );
+        util.infoMessage(page, "pausing for 20 seconds");
+        setTimeout(() => {
+          if (status === "idle") {
+            fs.writeFileSync("./loop.txt", "1");
+            page.reload();
+          }
+        }, 25000);
       }
       if (startTime) {
         fs.appendFileSync(
