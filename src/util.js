@@ -1303,6 +1303,7 @@ function getOverridePath(original, override) {
 }
 function uploadImage(fileName) {
   return new Promise(async (resolve, reject) => {
+    imgurClient.on('uploadProgress', (progress) => console.log(progress));
     imgurClient
       .upload({
         image: createReadStream(fileName),
