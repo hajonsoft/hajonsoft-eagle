@@ -739,16 +739,6 @@ function incrementSelectedTraveler(overrideValue) {
   return nextTraveler;
 }
 
-function incrementSelectedTraveler(overrideValue) {
-  const data = JSON.parse(fs.readFileSync("./data.json", "utf8"));
-  const selectedTraveler = getSelectedTraveler();
-  const nextTraveler = parseInt(selectedTraveler) + 1;
-  const range = getRange();
-  const fileName = "./selectedTraveller" + range + ".txt";
-  fs.writeFileSync(fileName, nextTraveler.toString());
-  return nextTraveler;
-}
-
 function setSelectedTraveller(value) {
   getSelectedTraveler(); // Make sure the file exists
   const range = getRange();

@@ -243,8 +243,9 @@ async function pageContentHandler(currentConfig) {
         util.infoMessage(page, "pausing for 20 seconds");
         setTimeout(() => {
           if (status === "idle") {
-            fs.writeFileSync("./loop.txt", "1");
-            page.reload();
+            const currentIndex = util.getSelectedTraveler();
+            sendPassenger(currentIndex);
+
           }
         }, 25000);
       }
@@ -336,6 +337,7 @@ async function pageContentHandler(currentConfig) {
       } catch {
         // Do nothing
       }
+// Review this logic because hsf doesnt start auromatically
 
       if (fs.existsSync("./loop.txt")) {
         const nextIndex = util.incrementSelectedTraveler()
