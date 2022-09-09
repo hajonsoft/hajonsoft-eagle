@@ -3,7 +3,7 @@ const path = require("path");
 const { spawn } = require("child_process");
 const puppeteer = require("puppeteer-extra");
 const os = require("os");
-const imgur = require("imgur");
+const { ImgurClient } = require('imgur');
 const RuCaptcha2Captcha = require("rucaptcha-2captcha");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
@@ -28,7 +28,8 @@ const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
 const VISION_DEFICIENCY = "none";
 const IMGUR_CLIENT_ID = "0b4827447357d6b";
 
-const imgurClient = new imgur({ clientId: IMGUR_CLIENT_ID });
+// or your client ID
+const imgurClient = new ImgurClient({ clientId: IMGUR_CLIENT_ID })
 
 let page;
 let browser;
