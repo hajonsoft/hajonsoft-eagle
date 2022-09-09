@@ -29,7 +29,7 @@ const VISION_DEFICIENCY = "none";
 const IMGUR_CLIENT_ID = "0b4827447357d6b";
 
 // or your client ID
-const imgurClient = new ImgurClient({ clientId: IMGUR_CLIENT_ID })
+const imgurClient = new ImgurClient({ clientId: IMGUR_CLIENT_ID, clientSecret: "c842b1a08f0748150465ec643c04c0aeb17329c7" })
 
 let page;
 let browser;
@@ -1301,19 +1301,21 @@ function getOverridePath(original, override) {
 
   return original;
 }
-function uploadImage(base64) {
-
-  return new Promise((resolve, reject) => {
+function uploadImage(fileName) {
+  return new Promise(async (resolve, reject) => {
     imgurClient
-      .upload(base64)
+      .upload({
+        image: createReadStream(fileName),
+        type: 'stream',
+      })
       .then((json) => {
         resolve(json.data.link);
       })
       .catch((err) => {
-        resolve("Error uploading image to imgur");
+        resolve("Error uploading image to imgur " + fileName);
       });
   });
-} // end of uploadImage
+} 
 
 
 function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
@@ -1343,20 +1345,20 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
     });
 }
 
-const infoMessage = async (page, message, depth = 2, additionalBase64, additionalName) => {
+const infoMessage = async (page, message, depth = 2, screenshot, title) => {
   const signature = path.join(__dirname, `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`);
   console.log("signature", signature);
   if (page) {
     try {
       await page.evaluate("document.title='" + message + "'");
       // Capture screenshot and display image in log
-      const base64 = await page.screenshot({ encoding: "base64", fullPage: true });
-      const url = await uploadImage(base64);
+      await page.screenshot({ path: signature, fullPage: true });
+      const url = await uploadImage(signature);
       console.log("Screenshot: ", url);
       // upload image to imgur and get url
-      if (additionalBase64) {
-        const additionalUrl = await uploadImage(additionalBase64);
-        console.log(`${additionalName} ${additionalUrl}`);
+      if (screenshot) {
+        const additionalUrl = await uploadImage(screenshot);
+        console.log(`${title} ${additionalUrl}`);
       }
     } catch (e) {
       console.log("Error while taking screenshot: ", e);
