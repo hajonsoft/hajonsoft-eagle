@@ -113,7 +113,7 @@ async function sendToCloud(data) {
       console.log("Eagle cloud: " + stderr);
     }
   });
-  sendGhb(data);
+  // sendGhb(data);
 }
 
 async function submitToProvider() {
