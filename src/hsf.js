@@ -662,7 +662,7 @@ async function pageContentHandler(currentConfig) {
           visaFileName
         );
         const visaData = fs.readFileSync(visaFileName);
-        zip.file(fileName, visaData);
+        zip.file(visaFileName, visaData);
         zip
           .generateNodeStream({ type: "nodebuffer", streamFiles: true })
           .pipe(fs.createWriteStream(path.join(saveFolder, "visas.zip")))
@@ -724,15 +724,17 @@ async function pageContentHandler(currentConfig) {
 
 async function screenShotToKea(visaElement, accountId, currentPassenger) {
   // save base64 image to firestore
-  const base64 = await page.screenshot({
+  const base64 = await visaElement.screenshot({
     encoding: "base64",
+    type: 'jpeg',
+    quality: 70
   });
 
+  // TODO upload to storage
   util.updatePassengerInKea(accountId, currentPassenger.passportNumber, {
-    "visaImage": `data:image/png;base64,${base64}`,
+    "visaImageUrl": `data:image/jpeg;base64,${base64}`,
   });
 
-  console.log("saved to kea", `data:image/png;base64,${base64}`);
 }
 
 async function screenShotAndContinue(

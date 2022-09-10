@@ -1384,7 +1384,11 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
 }
 
 const infoMessage = async (page, message, depth = 2, visaShot, takeScreenShot = false) => {
-  const screenshotFileName = getPath(
+  const screenshotsDir = getPath("screenshots");
+  if(!fs.existsSync(screenshotsDir)) {
+    fs.mkdirSync(screenshotsDir)
+  }
+  const screenshotFileName = path.join(screenshotsDir,
     `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`
   );
   const isCloudRun = true;
