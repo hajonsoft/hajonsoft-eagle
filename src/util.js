@@ -1341,8 +1341,6 @@ function getOverridePath(original, override) {
   return original;
 }
 function uploadImage(fileName) {
-  if (!fileName) return;
-  try {
     if (fs.existsSync(fileName)) {
       imgurClient
         .upload({
@@ -1351,11 +1349,11 @@ function uploadImage(fileName) {
         })
         .then((result) => {
           console.log("uploaded image: ", result.data);
+        }).catch((err) => {
+          console.log("error uploading image: ", err);
         });
     }
-  } catch (e) {
-    console.log(e);
-  }
+
 }
 
 function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
@@ -1385,7 +1383,7 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
     });
 }
 
-const infoMessage = async (page, message, depth = 2, visaShot, title) => {
+const infoMessage = async (page, message, depth = 2, visaShot, takeScreenShot = false) => {
   const screenshotFileName = getPath(
     `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`
   );
@@ -1395,7 +1393,7 @@ const infoMessage = async (page, message, depth = 2, visaShot, title) => {
       await page.evaluate("document.title='" + message + "'");
       // Capture screenshot and display image in log
       await page.screenshot({ path: screenshotFileName, fullPage: true });
-      if (isCloudRun) {
+      if (isCloudRun && takeScreenShot) {
         uploadImage(screenshotFileName);
         if (visaShot) {
           uploadImage(visaShot);

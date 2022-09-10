@@ -310,6 +310,10 @@ async function sendPassenger(passenger) {
     );
   }
 
+  if (passenger.gender === "Female") {
+    await page.select("#tl00_ContentHolder_LstSponsorRelationship", "15")
+  }
+
   // commit "#ctl00_ContentHolder_LstAddressCountry" from system.country.telCode
   await util.commit(
     page,
