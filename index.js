@@ -287,6 +287,12 @@ async function getDataFileName() {
 
     const outputDir = dataFileName.replace('data.json','')
     await unzipFile(fileName, outputDir);
+
+    // Delete selectedTraveller file so that index is back to zero
+    if (fs.existsSync(getPath("selectedTraveller.txt"))) {
+      fs.unlinkSync(getPath("selectedTraveller.txt"))
+    }
+    
     console.log(
       "\x1b[7m",
       `Success: ${fileName} => ${outputDir}/data.json`,
