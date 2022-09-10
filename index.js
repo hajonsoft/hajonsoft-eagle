@@ -285,33 +285,22 @@ async function getDataFileName() {
       process.exit(1);
     }
 
-    const targetFolder = dataFileName.replace('data.json','')
-    console.log('%cMyProject%cline:288%ctargetFolder', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(130, 57, 53);padding:3px;border-radius:2px', targetFolder)
-    console.log('%cMyProject%cline:288%cdataFileName', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(17, 63, 61);padding:3px;border-radius:2px', dataFileName)
-    await unzipFile(fileName, targetFolder);
-    fs.copyFileSync(path.join(targetFolder, "data.json"), path.join(__dirname, "./data.json"));
+    const outputDir = dataFileName.replace("data.json", "");
+    await unzipFile(fileName, outputDir);
     console.log(
       "\x1b[7m",
-      `Success: ${fileName} => ${targetFolder}/data.json`,
+      `Success: ${fileName} => ${outputDir}/data.json`,
       "\x1b[0m"
     );
   }
 
   if (!fs.existsSync(dataFileName)) {
-    if (process.argv.includes("-d")) {
-      fs.writeFileSync(
-        dataFileName,
-        JSON.stringify({
-          system: {
-            name: "wtu",
-          },
-        })
-      );
-      return dataFileName;
+    if (fs.existsSync(path.join(__dirname, "./data.json"))) {
+      fs.copyFileSync(path.join(__dirname, "./data.json"), dataFileName);
+      dataFileName;
     }
-    console.log(
-      `Passenger file missing. I looked in ${dataFileName}\nuse -d to generate and use empty data.json.`
-    );
+
+    console.log(`Passenger file missing. I looked in ${dataFileName}`);
     process.exit(1);
   }
   return dataFileName;
