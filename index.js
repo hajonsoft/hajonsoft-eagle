@@ -558,6 +558,9 @@ function readDataFile() {
   if (fs.existsSync(getPath("data.json"))) {
     return JSON.parse(fs.readFileSync(getPath("data.json"), "utf-8"));
   }
+  if (fs.existsSync(path.join(__dirname, "data.json"))) {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, "data.json"), "utf-8"));
+  }
   console.error("NO data.json found");
 }
 
