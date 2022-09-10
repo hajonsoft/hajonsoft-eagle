@@ -285,11 +285,12 @@ async function getDataFileName() {
       process.exit(1);
     }
 
-    const outputDir = dataFileName.replace('data.json','')
-    await unzipFile(fileName, outputDir);
+    const targetFolder = dataFileName.replace('data.json','')
+    await unzipFile(fileName, targetFolder);
+    fs.copyFileSync(path.join(targetFolder, "data.json"), path.join(__dirname, "./data.json"));
     console.log(
       "\x1b[7m",
-      `Success: ${fileName} => ${outputDir}/data.json`,
+      `Success: ${fileName} => ${targetFolder}/data.json`,
       "\x1b[0m"
     );
   }
