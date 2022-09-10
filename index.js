@@ -297,7 +297,7 @@ async function getDataFileName() {
   if (!fs.existsSync(dataFileName)) {
     if (fs.existsSync(path.join(__dirname, "./data.json"))) {
       fs.copyFileSync(path.join(__dirname, "./data.json"), dataFileName);
-      dataFileName;
+      return dataFileName;
     }
 
     console.log(`Passenger file missing. I looked in ${dataFileName}`);
