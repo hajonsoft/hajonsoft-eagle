@@ -26,11 +26,12 @@ const passportsFolder = path.join(homedir, "hajonsoft", "passports");
 const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
 const VISION_DEFICIENCY = "none";
 const IMGUR_CLIENT_ID = "0b4827447357d6b";
+const IMGUR_CLIENT_SECRET = "c842b1a08f0748150465ec643c04c0aeb17329c7";
 
 // or your client ID
 const imgurClient = new ImgurClient({
   clientId: IMGUR_CLIENT_ID,
-  clientSecret: "c842b1a08f0748150465ec643c04c0aeb17329c7",
+  clientSecret: IMGUR_CLIENT_SECRET,
 });
 
 let page;
@@ -45,7 +46,7 @@ function getTmpDir() {
 }
 
 function isCloudRun() {
-  return Boolean(process.argv.find((c) => c.startsWith("-cloud")))
+  return Boolean(process.argv.find((c) => c.startsWith("-cloud")));
 }
 
 function getPath(filename) {
@@ -54,7 +55,7 @@ function getPath(filename) {
       let dataFileName = path.join(getTmpDir(), "data.json");
       // Fallback to current working dir (used by eagle cloud)
       if (isCloudRun()) {
-        dataFileName = path.join(__dirname,"..","data.json");
+        dataFileName = path.join(__dirname, "..", "data.json");
       }
       return dataFileName;
     default:
@@ -749,7 +750,7 @@ function getSelectedTraveler() {
   const data = JSON.parse(fs.readFileSync(getPath("data.json"), "utf8"));
   const range = getRange();
   const fileName = getPath("selectedTraveller" + range + ".txt");
-  console.log("counter file name", fileName);
+  console.log("counter: => ", fileName);
   if (fs.existsSync(fileName)) {
     const lastIndex = fs.readFileSync(fileName, "utf8");
     if (
@@ -757,7 +758,12 @@ function getSelectedTraveler() {
       (range &&
         parseInt(lastIndex) >= parseInt(range.split("=")[1].split("-")[1]))
     ) {
-      process.exit(0);
+      // Force reset the counter and avoid looping
+      fs.writeFileSync(fileName, "0");
+      console.log("counter reset, 30 seconds to finish up and exit");
+      setTimeout(() => {
+        process.exit(17000);
+      }, 30000);
     }
     if (range && lastIndex < parseInt(range.split("=")[1].split("-")[0])) {
       return range.split("=")[1].split("-")[0];
@@ -1334,21 +1340,22 @@ function getOverridePath(original, override) {
 
   return original;
 }
-async function uploadImage(fileName) {
-  return new Promise(async (resolve, reject) => {
-    imgurClient.on("uploadProgress", (progress) => console.log(progress));
-    imgurClient
-      .upload({
-        image: fs.createReadStream(fileName),
-        type: "stream",
-      })
-      .then((json) => {
-        resolve(json.data.link);
-      })
-      .catch((err) => {
-        resolve("Error uploading image to imgur " + fileName);
-      });
-  });
+function uploadImage(fileName) {
+  if (!fileName) return;
+  try {
+    if (fs.existsSync(fileName)) {
+      imgurClient
+        .upload({
+          image: fs.createReadStream(fileName),
+          type: "stream",
+        })
+        .then((result) => {
+          console.log("uploaded image: ", result.data);
+        });
+    }
+  } catch (e) {
+    console.log(e);
+  }
 }
 
 function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
@@ -1378,24 +1385,21 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
     });
 }
 
-const infoMessage = async (page, message, depth = 2, screenshot, title) => {
-  const screenshotsDir = getPath("screenshots");
-  if(!fs.existsSync(screenshotsDir)) {
-    fs.mkdirSync(screenshotsDir)
-  }
-  const signature = path.join(screenshotsDir,`${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`);
-  console.log("signature", signature);
+const infoMessage = async (page, message, depth = 2, visaShot, title) => {
+  const screenshotFileName = getPath(
+    `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`
+  );
+  const isCloudRun = true;
   if (page) {
     try {
       await page.evaluate("document.title='" + message + "'");
       // Capture screenshot and display image in log
-      await page.screenshot({ path: signature, fullPage: true });
-      const url = await uploadImage(signature);
-      console.log("Screenshot: ", url);
-      // upload image to imgur and get url
-      if (screenshot) {
-        const additionalUrl = await uploadImage(screenshot);
-        console.log(`${title} ${additionalUrl}`);
+      await page.screenshot({ path: screenshotFileName, fullPage: true });
+      if (isCloudRun) {
+        uploadImage(screenshotFileName);
+        if (visaShot) {
+          uploadImage(visaShot);
+        }
       }
     } catch (e) {
       console.log("Error while taking screenshot: ", e);
@@ -1446,5 +1450,5 @@ module.exports = {
   setSelectedTraveller,
   updatePassengerInKea,
   infoMessage,
-  isCloudRun
+  isCloudRun,
 };
