@@ -275,7 +275,7 @@ async function getDataFileName() {
     if (!fileName.endsWith(".zip")) {
       fileName = fileName + ".zip";
     }
-    if (!fileParam.includes("/")) {
+    if (!fileParam.includes("/") && !fileParam.includes("\\")) {
       //Only file name was provided: Assume default download folder
       fileName = path.join(getDownloadFolder(), fileName);
       console.log("FILE NAME: ", fileName);
