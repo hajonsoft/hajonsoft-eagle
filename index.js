@@ -286,6 +286,8 @@ async function getDataFileName() {
     }
 
     const targetFolder = dataFileName.replace('data.json','')
+    console.log('%cMyProject%cline:288%ctargetFolder', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(130, 57, 53);padding:3px;border-radius:2px', targetFolder)
+    console.log('%cMyProject%cline:288%cdataFileName', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(17, 63, 61);padding:3px;border-radius:2px', dataFileName)
     await unzipFile(fileName, targetFolder);
     fs.copyFileSync(path.join(targetFolder, "data.json"), path.join(__dirname, "./data.json"));
     console.log(
