@@ -310,6 +310,13 @@ async function sendPassenger(passenger) {
     );
   }
 
+  if (passenger.gender === "Female") {
+    try {
+      await page.waitForSelector("#ctl00_ContentHolder_LstSponsorRelationship");
+      await page.select("#ctl00_ContentHolder_LstSponsorRelationship", "15");
+    } catch {}
+  }
+
   // commit "#ctl00_ContentHolder_LstAddressCountry" from system.country.telCode
   await util.commit(
     page,
@@ -385,21 +392,30 @@ async function sendPassenger(passenger) {
     "#ctl00_ContentHolder_rdCap_CaptchaTextBox",
     5
   );
-  util.incrementSelectedTraveler();
-
+  util.infoMessage(
+    page,
+    `🧟 passenger ${passenger.slug} done, waiting to save`
+  );
   await page.waitForTimeout(10000);
-  await page.waitForSelector("#ctl00_ContentHolder_BtnEdit");
-  await page.click("#ctl00_ContentHolder_BtnEdit");
-  await page.waitForTimeout(5000);
-  try {
-    const errorMessage = await page.$eval(
-      "#ctl00_ContentHolder_divErrorsList > div > ul > li",
-      (el) => el.textContent || el.innerText
-    );
-    if (errorMessage) {
-      util.infoMessage(page, `🛑 Error: ${errorMessage}`);
-    }
-  } catch {}
+  const saveBtn = await page.$("#ctl00_ContentHolder_BtnEdit");
+  if (saveBtn) {
+    await page.click("#ctl00_ContentHolder_BtnEdit");
+    await page.waitForTimeout(5000);
+    util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
+    try {
+      const errorMessage = await page.$eval(
+        "#ctl00_ContentHolder_divErrorsList > div > ul > li",
+        (el) => el.textContent || el.innerText
+      );
+      if (errorMessage) {
+        util.infoMessage(page, `🖐 🖐 🖐 🖐 🖐 Error: ${errorMessage}`);
+      }
+    } catch {}
+  } else {
+    util.infoMessage(page, `Error 🖐 🖐 🖐 🖐 passenger ${passenger.slug} skipped. Save button unavailable`);
+
+  }
+  util.incrementSelectedTraveler();
 }
 
 module.exports = { send, config, SERVER_NUMBER };

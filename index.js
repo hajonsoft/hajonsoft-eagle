@@ -113,7 +113,7 @@ async function sendToCloud(data) {
       console.log("Eagle cloud: " + stderr);
     }
   });
-  sendGhb(data);
+  // sendGhb(data);
 }
 
 async function submitToProvider() {
@@ -285,7 +285,7 @@ async function getDataFileName() {
       process.exit(1);
     }
 
-    const outputDir = dataFileName.replace('data.json','')
+    const outputDir = dataFileName.replace("data.json", "");
     await unzipFile(fileName, outputDir);
 
     // Delete selectedTraveller file so that index is back to zero. 
@@ -302,20 +302,12 @@ async function getDataFileName() {
   }
 
   if (!fs.existsSync(dataFileName)) {
-    if (process.argv.includes("-d")) {
-      fs.writeFileSync(
-        dataFileName,
-        JSON.stringify({
-          system: {
-            name: "wtu",
-          },
-        })
-      );
+    if (fs.existsSync(path.join(__dirname, "./data.json"))) {
+      fs.copyFileSync(path.join(__dirname, "./data.json"), dataFileName);
       return dataFileName;
     }
-    console.log(
-      `Passenger file missing. I looked in ${dataFileName}\nuse -d to generate and use empty data.json.`
-    );
+
+    console.log(`Passenger file missing. I looked in ${dataFileName}`);
     process.exit(1);
   }
   return dataFileName;
@@ -572,6 +564,9 @@ async function downloadImages() {
 function readDataFile() {
   if (fs.existsSync(getPath("data.json"))) {
     return JSON.parse(fs.readFileSync(getPath("data.json"), "utf-8"));
+  }
+  if (fs.existsSync(path.join(__dirname, "data.json"))) {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, "data.json"), "utf-8"));
   }
   console.error("NO data.json found");
 }
