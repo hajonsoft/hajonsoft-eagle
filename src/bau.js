@@ -311,7 +311,10 @@ async function sendPassenger(passenger) {
   }
 
   if (passenger.gender === "Female") {
-    await page.select("#tl00_ContentHolder_LstSponsorRelationship", "15")
+    try {
+      await page.waitForSelector("#ctl00_ContentHolder_LstSponsorRelationship")
+      await page.select("#ctl00_ContentHolder_LstSponsorRelationship", "15")
+    } catch {}
   }
 
   // commit "#ctl00_ContentHolder_LstAddressCountry" from system.country.telCode
