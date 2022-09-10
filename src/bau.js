@@ -394,8 +394,8 @@ async function sendPassenger(passenger) {
   );
   util.incrementSelectedTraveler();
 
-  util.infoMessage(page, `🧟 passenger ${passenger.slug} pasted, waiting`);
-  // await page.waitForTimeout(10000);
+  util.infoMessage(page, `🧟 passenger ${passenger.slug} done, waiting to save`);
+  await page.waitForTimeout(10000);
   await page.waitForSelector("#ctl00_ContentHolder_BtnEdit");
   //#ctl00_ContentHolder_BtnEdit
   await page.click("#ctl00_ContentHolder_BtnEdit");
