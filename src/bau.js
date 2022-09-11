@@ -25,10 +25,17 @@ const config = [
       { selector: "#txtUserName", value: (system) => system.username },
       { selector: "#txtPassword", value: (system) => system.password },
     ],
+    commit: true,
+    supportSelector: "#form1 > div:nth-child(14) > div",
+    success:
+    {
+      name: "main",
+    },
   },
   {
     name: "main",
     regex: `https?://app${SERVER_NUMBER}.babalumra.com/Security/MainPage.aspx`,
+    redirect: `https://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx?gMode=1`,
   },
   {
     name: "search-group",
@@ -43,8 +50,7 @@ const config = [
         value: (row) =>
           row.info.caravan.replace(/ /g, "-").substring(0, 20) +
           "-" +
-          `${os.hostname().substring(0, 8)}${moment().format("mmss")}_${
-            row.info.run
+          `${os.hostname().substring(0, 8)}${moment().format("mmss")}_${row.info.run
           }`,
       },
       {
@@ -105,22 +111,13 @@ async function runPageConfiguration(currentConfig) {
         "#form1 > div:nth-child(14) > div",
         data
       );
-      await page.waitForSelector("#rdCap_CaptchaTextBox");
-      await page.focus("#rdCap_CaptchaTextBox");
       await util.commitCaptchaToken(
         page,
         "rdCap_CaptchaImage",
         "#rdCap_CaptchaTextBox",
         5
       );
-      await page.waitForTimeout(5000);
-      try {
-        await page.waitForFunction(
-          "document.querySelector('#rdCap_CaptchaTextBox').value.length === 5"
-        );
-        await page.click("#lnkLogin");
-      } catch {}
-
+      await page.click("#lnkLogin");
       break;
     case "main":
       await page.goto(
@@ -147,11 +144,10 @@ async function runPageConfiguration(currentConfig) {
       await util.commit(page, currentConfig.details, data);
       util.infoMessage(
         page,
-        `Creating group ${
-          groupName ||
-          `${data.info.caravan.replace(/ /g, "-").substring(0, 20)}-${os
-            .hostname()
-            .substring(0, 8)}`
+        `Creating group ${groupName ||
+        `${data.info.caravan.replace(/ /g, "-").substring(0, 20)}-${os
+          .hostname()
+          .substring(0, 8)}`
         }`
       );
       await page.evaluate(() => {
@@ -168,7 +164,7 @@ async function runPageConfiguration(currentConfig) {
           timeout: 5000,
         });
         await page.click("#ctl00_ContentHolder_btnCreate");
-      } catch {}
+      } catch { }
       break;
     case "create-mutamer":
       await util.controller(page, currentConfig, data.travellers);
@@ -280,7 +276,7 @@ async function sendPassenger(passenger) {
         selector: "#ctl00_ContentHolder_LstType",
         value: (row) =>
           row.codeline?.replace(/\n/g, "")?.substring(2, 5) !=
-          row.codeline?.replace(/\n/g, "")?.substring(54, 57)
+            row.codeline?.replace(/\n/g, "")?.substring(54, 57)
             ? "3"
             : "1",
       },
@@ -314,7 +310,7 @@ async function sendPassenger(passenger) {
     try {
       await page.waitForSelector("#ctl00_ContentHolder_LstSponsorRelationship");
       await page.select("#ctl00_ContentHolder_LstSponsorRelationship", "15");
-    } catch {}
+    } catch { }
   }
 
   // commit "#ctl00_ContentHolder_LstAddressCountry" from system.country.telCode
@@ -410,7 +406,7 @@ async function sendPassenger(passenger) {
       if (errorMessage) {
         util.infoMessage(page, `🖐 🖐 🖐 🖐 🖐 Error: ${errorMessage}`);
       }
-    } catch {}
+    } catch { }
   } else {
     util.infoMessage(page, `Error 🖐 🖐 🖐 🖐 passenger ${passenger.slug} skipped. Save button unavailable`);
 

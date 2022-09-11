@@ -1209,8 +1209,12 @@ async function commitCaptchaToken(
   textFieldSelector,
   captchaLength = 6
 ) {
-  await page.waitForTimeout(3000);
   infoMessage(page, "🔓 Captcha thinking...");
+  await page.waitForTimeout(3000);
+
+  await page.waitForSelector(textFieldSelector);
+  await page.focus(textFieldSelector);
+  await page.hover(textFieldSelector);
 
   try {
     const base64 = await page.evaluate((selector) => {
