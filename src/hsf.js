@@ -636,13 +636,11 @@ async function pageContentHandler(currentConfig) {
 
         const currentPassenger =
           data.travellers[parseInt(util.getSelectedTraveler())];
-        
+
         // Save base64 image to kea
         try {
-          screenShotToKea(visaElement, data.system.accountId, currentPassenger)
-        } catch (error) {
-          
-        }
+          screenShotToKea(visaElement, data.system.accountId, currentPassenger);
+        } catch (error) {}
 
         // Save image to file
         const visaFileName =
@@ -726,15 +724,14 @@ async function screenShotToKea(visaElement, accountId, currentPassenger) {
   // save base64 image to firestore
   const base64 = await visaElement.screenshot({
     encoding: "base64",
-    type: 'jpeg',
-    quality: 70
+    type: "jpeg",
+    quality: 70,
   });
 
-  // TODO upload to storage
+  // Send base64 encoded string to kea
   util.updatePassengerInKea(accountId, currentPassenger.passportNumber, {
-    "visaImageUrl": `data:image/jpeg;base64,${base64}`,
+    visaImage: base64,
   });
-
 }
 
 async function screenShotAndContinue(
