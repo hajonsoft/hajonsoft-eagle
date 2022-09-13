@@ -275,7 +275,7 @@ async function getDataFileName() {
     if (!fileName.endsWith(".zip")) {
       fileName = fileName + ".zip";
     }
-    if (!fileParam.includes("/")) {
+    if (!fileParam.includes("/") && !fileParam.includes("\\")) {
       //Only file name was provided: Assume default download folder
       fileName = path.join(getDownloadFolder(), fileName);
       console.log("FILE NAME: ", fileName);
@@ -287,6 +287,13 @@ async function getDataFileName() {
 
     const outputDir = dataFileName.replace("data.json", "");
     await unzipFile(fileName, outputDir);
+
+    // Delete selectedTraveller file so that index is back to zero. 
+    // AA: Commented because this will prevent the script from continuing from where it left off.
+    // if (fs.existsSync(getPath("selectedTraveller.txt"))) {
+    //   fs.unlinkSync(getPath("selectedTraveller.txt"))
+    // }
+    
     console.log(
       "\x1b[7m",
       `Success: ${fileName} => ${outputDir}/data.json`,
