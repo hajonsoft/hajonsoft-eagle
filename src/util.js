@@ -45,17 +45,13 @@ function getTmpDir() {
   return tmpDir;
 }
 
-function isCloudRun() {
-  // Volatile, but works for now
-  return Boolean(process.argv.find((c) => c.startsWith("-cloud")));
-}
-
 function getPath(filename) {
+  const isCloudRun = Boolean(process.argv.find((c) => c.startsWith("-cloud")));
   switch (filename) {
     case "data.json":
       let dataFileName = path.join(getTmpDir(), "data.json");
       // Fallback to current working dir (used by eagle cloud)
-      if (isCloudRun()) {
+      if (isCloudRun) {
         dataFileName = path.join(__dirname, "..", "data.json");
       }
       return dataFileName;
@@ -141,14 +137,19 @@ async function initPage(config, onContentLoaded, data) {
   if (!process.argv.find((c) => c.startsWith("range=")) && !isWindowed) {
     args.push("--start-fullscreen");
   }
+
+  const isHeadless = Boolean(
+    process.argv.find((c) => c.startsWith("-headless"))
+  );
+
   const launchOptions = {
-    headless: isCloudRun,
+    headless: isCloudRun || isHeadless,
     ignoreHTTPSErrors: true,
     defaultViewport: null,
     args,
   };
 
-  if (!isCloudRun) {
+  if (!isCloudRun && !isHeadless) {
     launchOptions.executablePath = getChromePath();
   }
   browser = await puppeteer.launch(launchOptions);
@@ -1345,19 +1346,19 @@ function getOverridePath(original, override) {
   return original;
 }
 function uploadImage(fileName) {
-    if (fs.existsSync(fileName)) {
-      imgurClient
-        .upload({
-          image: fs.createReadStream(fileName),
-          type: "stream",
-        })
-        .then((result) => {
-          console.log("uploaded image: ", result.data);
-        }).catch((err) => {
-          console.log("error uploading image: ", err);
-        });
-    }
-
+  if (fs.existsSync(fileName)) {
+    imgurClient
+      .upload({
+        image: fs.createReadStream(fileName),
+        type: "stream",
+      })
+      .then((result) => {
+        console.log("uploaded image: ", result.data);
+      })
+      .catch((err) => {
+        console.log("error uploading image: ", err);
+      });
+  }
 }
 
 function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
@@ -1387,8 +1388,19 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
     });
 }
 
-const infoMessage = async (page, message, depth = 2, visaShot, takeScreenShot = false) => {
-  const screenshotFileName = getPath(
+const infoMessage = async (
+  page,
+  message,
+  depth = 2,
+  visaShot,
+  takeScreenShot = false
+) => {
+  const screenshotsDir = getPath("screenshots");
+  if (!fs.existsSync(screenshotsDir)) {
+    fs.mkdirSync(screenshotsDir);
+  }
+  const screenshotFileName = path.join(
+    screenshotsDir,
     `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`
   );
   const isCloudRun = true;
@@ -1465,6 +1477,5 @@ module.exports = {
   setSelectedTraveller,
   updatePassengerInKea,
   infoMessage,
-  isCloudRun,
-  getLogFile,
+  getLogFile
 };
