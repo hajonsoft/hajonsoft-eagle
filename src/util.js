@@ -46,6 +46,7 @@ function getTmpDir() {
 }
 
 function isCloudRun() {
+  // Volatile, but works for now
   return Boolean(process.argv.find((c) => c.startsWith("-cloud")));
 }
 
@@ -750,7 +751,6 @@ function getSelectedTraveler() {
   const data = JSON.parse(fs.readFileSync(getPath("data.json"), "utf8"));
   const range = getRange();
   const fileName = getPath("selectedTraveller" + range + ".txt");
-  console.log("counter: => ", fileName);
   if (fs.existsSync(fileName)) {
     const lastIndex = fs.readFileSync(fileName, "utf8");
     if (
@@ -1411,6 +1411,19 @@ const infoMessage = async (page, message, depth = 2, visaShot, takeScreenShot = 
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
 };
 
+function getLogFile(eagleData) {
+  if (!eagleData) {
+    const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
+    eagleData = JSON.parse(rawData);
+  }
+  const logFolder = path.join(getPath("log"), eagleData.info.munazim);
+  if (!fs.existsSync(logFolder)) {
+    fs.mkdirSync(logFolder, { recursive: true });
+  }
+  const logFile = path.join(logFolder, eagleData.info.caravan + "_" + eagleData.system.name + ".txt");
+  return logFile;
+}
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1453,4 +1466,5 @@ module.exports = {
   updatePassengerInKea,
   infoMessage,
   isCloudRun,
+  getLogFile,
 };
