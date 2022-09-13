@@ -731,6 +731,7 @@ async function screenShotToKea(visaElement, accountId, currentPassenger) {
   // Send base64 encoded string to kea
   util.updatePassengerInKea(accountId, currentPassenger.passportNumber, {
     visaImage: base64,
+    "submissionData.hsf.status": "Submitted",
   });
 }
 
