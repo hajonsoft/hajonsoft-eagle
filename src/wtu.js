@@ -387,9 +387,10 @@ async function sendPassenger(passenger) {
     page,
     config.find((c) => c.name == "create-mutamer")?.details
   );
+  const isCloudJob = data.info?.caravan?.startsWith("CLOUD_");
+  if (isCloudJob) {
   // This is assumed. fix starting from here. Because passports can succeed from the first time - check if this is a new page refresh?
   // TODO: Wait for success message before advancing the counter
-  return ;
   try {
     await page.waitForSelector("#btnsave");
     await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
@@ -439,6 +440,7 @@ async function sendPassenger(passenger) {
 
     await errorButton.click();
   }
+}
 
   // Use fake passport image
   const blankPassportPath = getPath(`${passenger.passportNumber}_mrz.jpg`);
