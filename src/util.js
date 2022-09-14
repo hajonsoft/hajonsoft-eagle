@@ -761,7 +761,7 @@ function getSelectedTraveler() {
     ) {
       // Force reset the counter and avoid looping
       fs.writeFileSync(fileName, "0");
-      console.log("counter reset, 30 seconds to finish up and exit");
+      console.log("Last passenger reached!!. Existing in 30 seconds...");
       setTimeout(() => {
         process.exit(17000);
       }, 30000);
