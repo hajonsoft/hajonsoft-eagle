@@ -28,22 +28,20 @@ const {
   initialize: initializeBAUImport,
 } = require("./mofa_import/bau");
 const { SERVER_NUMBER } = require("./bau");
+const { hsf_nationalities } = require("./data/nationalities");
 const homedir = require("os").homedir();
 let page;
 let data;
 let counter = 0;
 let mofas = [];
 let startTime;
-let status = "idle";
 
-function getLogFile() {
-  const logFolder = path.join(getPath("log"), data.info.munazim);
-  if (!fs.existsSync(logFolder)) {
-    fs.mkdirSync(logFolder, { recursive: true });
-  }
-  const logFile = path.join(logFolder, data.info.caravan + "_hsf.txt");
-  return logFile;
-}
+let wtuPage;
+let gmaPage;
+let bauPage;
+let twfPage;
+
+let status = "idle";
 
 const zip = new JSZip();
 
@@ -225,19 +223,117 @@ async function onContentLoaded(res) {
     console.log(err);
   }
 }
-let wtuPage;
-let gmaPage;
-let bauPage;
-let twfPage;
-async function pageContentHandler(currentConfig) {
-  let lastIndex = util.useCounter();
-  if (lastIndex >= data.travellers.length) {
-    lastIndex = 0;
+
+const isValidPassenger = (row) => {
+  if (row.mofaNumber && row.passportNumber && row.nationality.code) {
+    return true;
   }
-  const passenger = data.travellers[lastIndex];
+
+  return false;
+};
+
+const getValidPassenger = () => {
+  for (let i = parseInt(util.getSelectedTraveler()) ; i < data.travellers.length; i++) {
+    if (isValidPassenger(data.travellers[i])) {
+      util.setSelectedTraveler(i);
+      return data.travellers[i];
+    }
+  }
+  
+  return null;
+}
+
+async function showController() {
+  await util.controller(
+    page,
+    {
+      controller: {
+        selector: "#content > div > div > h4",
+        mokhaa: true,
+        action: async () => {
+          const selectedTraveller = await page.$eval(
+            "#hajonsoft_select",
+            (el) => el.value
+          );
+          util.setSelectedTraveller(selectedTraveller);
+          await sendPassenger(selectedTraveller);
+        },
+        wtuAction: async () => {
+          wtuPage = await util.newPage(onWTUPageLoad, () => { });
+          initializeWTUImport(wtuPage, data);
+          wtuPage.on("response", injectWTUEagleButton);
+          await wtuPage.goto(
+            "https://www.waytoumrah.com/prj_umrah/eng/eng_frmlogin.aspx",
+            {
+              waitUntil: "domcontentloaded",
+            }
+          );
+        },
+        gmaAction: async () => {
+          gmaPage = await util.newPage(onGMAPageLoad, () => { });
+          gmaPage.on("response", injectGMAEagleButton);
+          const gmaBrowser = await gmaPage.browser();
+          gmaBrowser.on("targetcreated", handleGMATargetCreated);
+          await gmaPage.goto("https://eumra.com/login.aspx", {
+            waitUntil: "domcontentloaded",
+          });
+        },
+        bauAction: async () => {
+          bauPage = await util.newPage(onBAUPageLoad, () => { });
+          initializeBAUImport(bauPage, data);
+          // bauPage.on("response", injectBAUEagleButton);
+          await bauPage.goto(
+            `http://app${SERVER_NUMBER}.babalumra.com/Security/login.aspx`,
+            {
+              waitUntil: "domcontentloaded",
+            }
+          );
+        },
+        twfAction: async () => {
+          twfPage = await util.newPage(onTWFPageLoad, () => { });
+          initializeTWFImport(twfPage, data);
+          twfPage.on("response", injectTWFEagleButton);
+          await twfPage.goto(
+            `https://www.etawaf.com/tawaf${util.hijriYear}/index.html`,
+            {
+              waitUntil: "domcontentloaded",
+            }
+          );
+        },
+      },
+    },
+    data.travellers
+  );
+}
+
+
+
+async function pageContentHandler(currentConfig) {
+  let passenger = getValidPassenger();    
   switch (currentConfig.name) {
     case "login":
-      util.getSelectedTraveler();
+      showController();
+      startAutomation();
+      if (!passenger) {
+        // No valid passenger found
+      }
+      // Login page Algorithm
+      // 1. Get the current passenger and fill the form
+      // 2. Click on the submit button
+      // 3. Wait for the next page to load
+      // 4. Repeat the process until all passengers are done
+
+      // 1. Get the current passenger and fill the form
+      // 1.a Validate data
+      // 1.b if data is valid, fill the form
+      // 1.c if data is invalid, throw an error and move to next passenger
+      // 1.d if all passengers are done, return
+      // 1.e if all passengers are not done, repeat the process
+
+      // 1.a Validate data
+
+
+      // If not looping, start looping after timeout if this is the first time
       if (!fs.existsSync(getPath("loop.txt"))) {
         await util.premiumSupportAlert(
           page,
@@ -254,76 +350,16 @@ async function pageContentHandler(currentConfig) {
       }
       if (startTime) {
         fs.appendFileSync(
-          getLogFile(),
+          util.getLogFile(),
           `${moment().diff(startTime, "seconds")} seconds`
         );
       }
       startTime = moment().format("YYYY-MM-DD HH:mm:ss");
       fs.appendFileSync(
-        getLogFile(),
+        util.getLogFile(),
         `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger?.codeline}\n`
       );
 
-      await util.controller(
-        page,
-        {
-          controller: {
-            selector: "#content > div > div > h4",
-            mokhaa: true,
-            action: async () => {
-              const selectedTraveller = await page.$eval(
-                "#hajonsoft_select",
-                (el) => el.value
-              );
-              util.setSelectedTraveller(selectedTraveller);
-              await sendPassenger(selectedTraveller);
-            },
-            wtuAction: async () => {
-              wtuPage = await util.newPage(onWTUPageLoad, () => {});
-              initializeWTUImport(wtuPage, data);
-              wtuPage.on("response", injectWTUEagleButton);
-              await wtuPage.goto(
-                "https://www.waytoumrah.com/prj_umrah/eng/eng_frmlogin.aspx",
-                {
-                  waitUntil: "domcontentloaded",
-                }
-              );
-            },
-            gmaAction: async () => {
-              gmaPage = await util.newPage(onGMAPageLoad, () => {});
-              gmaPage.on("response", injectGMAEagleButton);
-              const gmaBrowser = await gmaPage.browser();
-              gmaBrowser.on("targetcreated", handleGMATargetCreated);
-              await gmaPage.goto("https://eumra.com/login.aspx", {
-                waitUntil: "domcontentloaded",
-              });
-            },
-            bauAction: async () => {
-              bauPage = await util.newPage(onBAUPageLoad, () => {});
-              initializeBAUImport(bauPage, data);
-              // bauPage.on("response", injectBAUEagleButton);
-              await bauPage.goto(
-                `http://app${SERVER_NUMBER}.babalumra.com/Security/login.aspx`,
-                {
-                  waitUntil: "domcontentloaded",
-                }
-              );
-            },
-            twfAction: async () => {
-              twfPage = await util.newPage(onTWFPageLoad, () => {});
-              initializeTWFImport(twfPage, data);
-              twfPage.on("response", injectTWFEagleButton);
-              await twfPage.goto(
-                `https://www.etawaf.com/tawaf${util.hijriYear}/index.html`,
-                {
-                  waitUntil: "domcontentloaded",
-                }
-              );
-            },
-          },
-        },
-        data.travellers
-      );
       await page.waitForTimeout(1000);
       try {
         const isDialog = await page.$(
@@ -593,7 +629,7 @@ async function pageContentHandler(currentConfig) {
           (el) => el.innerText
         );
         if (visaStatusMessage) {
-          fs.appendFileSync(getLogFile(), visaStatusMessage + "\n");
+          fs.appendFileSync(util.getLogFile(), visaStatusMessage + "\n");
         }
       }
       const printButtonSelector =
@@ -640,17 +676,17 @@ async function pageContentHandler(currentConfig) {
         // Save base64 image to kea
         try {
           screenShotToKea(visaElement, data.system.accountId, currentPassenger);
-        } catch (error) {}
+        } catch (error) { }
 
         // Save image to file
         const visaFileName =
           path.join(
             saveFolder,
             currentPassenger?.passportNumber +
-              "_" +
-              currentPassenger?.name?.full.replace(/ /, "_") +
-              "_" +
-              moment().format("YYYY-MM-DD_HH-mm-ss")
+            "_" +
+            currentPassenger?.name?.full.replace(/ /, "_") +
+            "_" +
+            moment().format("YYYY-MM-DD_HH-mm-ss")
           ) + ".png";
 
         await screenShotAndContinue(
@@ -962,9 +998,8 @@ async function handleImportGMAMofa() {
     const eagleButton = document.querySelector(
       "#frm_menue > center > table > tbody > tr > div > button"
     );
-    eagleButton.textContent = `Done... [${passportsArrayFromNode[0]}-${
-      passportsArrayFromNode[passportsArrayFromNode.length - 1]
-    }]`;
+    eagleButton.textContent = `Done... [${passportsArrayFromNode[0]}-${passportsArrayFromNode[passportsArrayFromNode.length - 1]
+      }]`;
   }, passports);
 }
 
@@ -1035,7 +1070,7 @@ async function injectGMAEagleButton() {
       await gmaPage.$eval(
         tdSelector,
         (el) =>
-          (el.innerHTML = `
+        (el.innerHTML = `
       <div style="display: flex; width: 100%; align-items: center; justify-content: center; gap: 16px; background-color: #CCCCCC; border: 2px solid black; border-radius: 16px; padding: 0.5rem; margin: 32px;">
       <img style='width: 32px; height: 32px; border-radius: 8px; margin-right: 0.5rem'  src='data:image/jpeg;base64,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'> </img> 
       <div>HAJOnSoft</div>
@@ -1046,13 +1081,6 @@ async function injectGMAEagleButton() {
     } catch (err) {
       console.log("Eagle error: Wrapped", err);
     }
-  }
-}
-
-async function onWTOClosed(res) {
-  const url = await wtuPage.url();
-  if (!url) {
-    return;
   }
 }
 
@@ -1091,258 +1119,6 @@ async function setHSFDate(dateSelector, year, month, day) {
 
 module.exports = { send };
 
-const nationalities = [
-  { value: "9", name: "Afghanistan" },
-  { value: "12", name: "Albania" },
-  { value: "69", name: "Algeria" },
-  { value: "17", name: "American Samoa" },
-  { value: "13", name: "Andorra" },
-  { value: "10", name: "Angola" },
-  { value: "11", name: "Anguilla" },
-  { value: "18", name: "Antarctic" },
-  { value: "20", name: "Antigua And Barbuda" },
-  { value: "15", name: "Argentina" },
-  { value: "16", name: "Armenia" },
-  { value: "8", name: "Aruba" },
-  { value: "22", name: "Australia" },
-  { value: "23", name: "Austria" },
-  { value: "24", name: "Azerbaijan" },
-  { value: "32", name: "Bahamas" },
-  { value: "31", name: "Bahrain" },
-  { value: "29", name: "Bangladesh" },
-  { value: "39", name: "Barbados" },
-  { value: "34", name: "Belarus" },
-  { value: "26", name: "Belgium" },
-  { value: "35", name: "Belize" },
-  { value: "27", name: "Benin" },
-  { value: "36", name: "Bermuda" },
-  { value: "41", name: "Bhutan" },
-  { value: "37", name: "Bolivia" },
-  { value: "33", name: "Bosnia" },
-  { value: "43", name: "Botswana" },
-  { value: "42", name: "Bouvet Island" },
-  { value: "38", name: "Brazil" },
-  { value: "108", name: "British Indian Ocean Territory" },
-  { value: "40", name: "Brunei Darussalam" },
-  { value: "30", name: "Bulgaria" },
-  { value: "28", name: "Burkina Faso" },
-  { value: "25", name: "Burundi" },
-  { value: "120", name: "Cambodia" },
-  { value: "51", name: "Cameroon" },
-  { value: "45", name: "Canada" },
-  { value: "57", name: "Cape Verde" },
-  { value: "61", name: "Cayman Island" },
-  { value: "44", name: "Central African Republic" },
-  { value: "213", name: "Chad" },
-  { value: "48", name: "Chile" },
-  { value: "49", name: "China" },
-  { value: "60", name: "Christmas Island" },
-  { value: "46", name: "Cocos Island" },
-  { value: "55", name: "Colombia" },
-  { value: "56", name: "Comoros" },
-  { value: "53", name: "Congo" },
-  { value: "54", name: "Cook Island" },
-  { value: "58", name: "Costa Rica" },
-  { value: "50", name: "Cote Divoire" },
-  { value: "103", name: "Croatia" },
-  { value: "59", name: "Cuba" },
-  { value: "62", name: "Cyprus" },
-  { value: "63", name: "Czech Republic" },
-  { value: "253", name: "Democratic Republic of the Congo" },
-  { value: "67", name: "Denmark" },
-  { value: "65", name: "Djibouti" },
-  { value: "66", name: "Dominica" },
-  { value: "68", name: "Dominican Republic" },
-  { value: "70", name: "Ecuador" },
-  { value: "71", name: "Egypt" },
-  { value: "200", name: "El Salvador" },
-  { value: "92", name: "Equatorial  Guinea" },
-  { value: "72", name: "Eritrea" },
-  { value: "74", name: "Estonia" },
-  { value: "75", name: "Ethiopia" },
-  { value: "78", name: "Falkland Islands" },
-  { value: "80", name: "Faroe Islands" },
-  { value: "77", name: "Fiji" },
-  { value: "76", name: "Finland" },
-  { value: "79", name: "France" },
-  { value: "82", name: "France, Meteropolitan" },
-  { value: "97", name: "French Guiana" },
-  { value: "184", name: "French Polynesia" },
-  { value: "19", name: "French Southern and Antarctic" },
-  { value: "83", name: "Gabon" },
-  { value: "90", name: "Gambia" },
-  { value: "85", name: "Georgia" },
-  { value: "64", name: "Germany" },
-  { value: "86", name: "Ghana" },
-  { value: "87", name: "Gibraltar" },
-  { value: "93", name: "Greece" },
-  { value: "95", name: "Greenland" },
-  { value: "94", name: "Grenada" },
-  { value: "89", name: "Guadeloupe" },
-  { value: "98", name: "Guam" },
-  { value: "96", name: "Guatemala" },
-  { value: "88", name: "Guinea" },
-  { value: "91", name: "Guinea-Bissau" },
-  { value: "99", name: "Guyana" },
-  { value: "104", name: "Haiti" },
-  { value: "101", name: "Heard Island and Mcdonald Island" },
-  { value: "233", name: "Holy See(Vatican City State)" },
-  { value: "102", name: "Honduras" },
-  { value: "100", name: "Hong Kong China" },
-  { value: "105", name: "Hungary" },
-  { value: "112", name: "Iceland" },
-  { value: "107", name: "India" },
-  { value: "106", name: "Indonesia" },
-  { value: "110", name: "Iran" },
-  { value: "111", name: "Iraq" },
-  { value: "109", name: "Ireland" },
-  { value: "113", name: "Italy" },
-  { value: "114", name: "Jamaica" },
-  { value: "116", name: "Japan" },
-  { value: "115", name: "Jordan" },
-  { value: "117", name: "Kazakhstan" },
-  { value: "118", name: "Kenya" },
-  { value: "190", name: "Kingdom Saudi Arabia" },
-  { value: "121", name: "Kiribati" },
-  { value: "123", name: "Korea , Republic of" },
-  { value: "180", name: "Korea, Democratic People's Republic of" },
-  { value: "252", name: "Kosova" },
-  { value: "124", name: "Kuwait" },
-  { value: "119", name: "Kyrgyzstan" },
-  { value: "125", name: "Lao People's Democratic Republic" },
-  { value: "135", name: "Latvia" },
-  { value: "126", name: "Lebanon" },
-  { value: "132", name: "Lesotho" },
-  { value: "127", name: "Liberia" },
-  { value: "128", name: "Libya Arab Jamahiriya" },
-  { value: "130", name: "Liechtenstein" },
-  { value: "133", name: "Lithuania" },
-  { value: "134", name: "Luxembourg" },
-  { value: "136", name: "Macau China" },
-  { value: "140", name: "Madagascar" },
-  { value: "155", name: "Malawi" },
-  { value: "156", name: "Malaysia" },
-  { value: "141", name: "Maldives" },
-  { value: "145", name: "Mali" },
-  { value: "146", name: "Malta" },
-  { value: "143", name: "Marshall Islands" },
-  { value: "153", name: "Martinique" },
-  { value: "151", name: "Mauritania" },
-  { value: "154", name: "Mauritius" },
-  { value: "157", name: "Mayotte" },
-  { value: "142", name: "Mexico" },
-  { value: "81", name: "Micronesia , Federated Stat" },
-  { value: "139", name: "Moldova, Republic of" },
-  { value: "138", name: "Monaco" },
-  { value: "148", name: "Mongolia" },
-  { value: "255", name: "MONTENEGRO" },
-  { value: "152", name: "Montserrat" },
-  { value: "137", name: "Morcco" },
-  { value: "150", name: "Mozambique" },
-  { value: "147", name: "Myanmar" },
-  { value: "158", name: "Namibia" },
-  { value: "168", name: "Nauru" },
-  { value: "167", name: "Nepal" },
-  { value: "165", name: "Netherlands" },
-  { value: "21", name: "Netherlands Antilles" },
-  { value: "159", name: "New Caledonia" },
-  { value: "169", name: "New Zealand" },
-  { value: "163", name: "Nicaragua" },
-  { value: "160", name: "Niger" },
-  { value: "162", name: "Nigeria" },
-  { value: "164", name: "Niue" },
-  { value: "248", name: "Non-Bahraini" },
-  { value: "250", name: "Non-Emirati" },
-  { value: "247", name: "Non-Kuwaiti" },
-  { value: "251", name: "Non-Omani" },
-  { value: "249", name: "Non-Qatari" },
-  { value: "161", name: "Norfolk Island" },
-  { value: "144", name: "North Macedonia" },
-  { value: "149", name: "Northern Mariana Islands" },
-  { value: "166", name: "Norway" },
-  { value: "170", name: "Oman" },
-  { value: "171", name: "Pakistan" },
-  { value: "176", name: "Palau" },
-  { value: "183", name: "Palestinian Territory, Occupied" },
-  { value: "172", name: "Panama" },
-  { value: "177", name: "Papua New Guinea" },
-  { value: "182", name: "Paraguay" },
-  { value: "174", name: "Peru" },
-  { value: "175", name: "Philippines" },
-  { value: "173", name: "Pitcairn Islands" },
-  { value: "178", name: "Poland" },
-  { value: "181", name: "Portugal" },
-  { value: "179", name: "Puerto Rico" },
-  { value: "185", name: "Qatar" },
-  { value: "256", name: "Republic of South Sudan" },
-  { value: "186", name: "Reunion" },
-  { value: "187", name: "Romania" },
-  { value: "188", name: "Russian Federation" },
-  { value: "189", name: "Rwanda" },
-  { value: "122", name: "Saint Kitts and Nevis" },
-  { value: "129", name: "Saint Lucia" },
-  { value: "203", name: "Saint pierre and Miquelon" },
-  { value: "234", name: "Saint Vincent and  the Grenadines" },
-  { value: "241", name: "Samoa" },
-  { value: "201", name: "San Marino" },
-  { value: "204", name: "Sao Tome And Principe" },
-  { value: "193", name: "Senegal" },
-  { value: "254", name: "SERBIA" },
-  { value: "191", name: "Serbia and Montenegro" },
-  { value: "210", name: "Seychelles" },
-  { value: "199", name: "Sierra Leone" },
-  { value: "194", name: "Singapore" },
-  { value: "206", name: "Slovak Republic" },
-  { value: "207", name: "Slovenia" },
-  { value: "198", name: "Solomon Islands" },
-  { value: "202", name: "Somalia" },
-  { value: "244", name: "South Africa" },
-  { value: "195", name: "South Georgia and The South Sandwich Islands" },
-  { value: "73", name: "Spain" },
-  { value: "131", name: "Sri Lanka" },
-  { value: "196", name: "ST. Helena" },
-  { value: "192", name: "Sudan" },
-  { value: "205", name: "Suriname" },
-  { value: "197", name: "Svalbard And Jan Mayen Islands" },
-  { value: "209", name: "Swaziland" },
-  { value: "208", name: "Sweden" },
-  { value: "47", name: "Switzerland" },
-  { value: "211", name: "Syrian Arab Republic" },
-  { value: "225", name: "Taiwan China" },
-  { value: "216", name: "Tajikistan" },
-  { value: "226", name: "Tanzania, United Republic of" },
-  { value: "215", name: "Thailand" },
-  { value: "219", name: "Timor-Leste" },
-  { value: "214", name: "Togo" },
-  { value: "217", name: "Tokelau" },
-  { value: "220", name: "Tonga" },
-  { value: "221", name: "Trinidad and tobago" },
-  { value: "222", name: "Tunisia" },
-  { value: "223", name: "Turkey" },
-  { value: "218", name: "Turkmenistan" },
-  { value: "212", name: "Turks and Caicos Islands" },
-  { value: "224", name: "Tuvalu" },
-  { value: "227", name: "Uganda" },
-  { value: "228", name: "Ukraine" },
-  { value: "14", name: "United Arab Emirates" },
-  { value: "84", name: "United Kingdom" },
-  { value: "231", name: "United States" },
-  { value: "229", name: "United States Minor Outlying Islands" },
-  { value: "230", name: "Uruguay" },
-  { value: "232", name: "Uzbekistan" },
-  { value: "239", name: "Vanuatu" },
-  { value: "235", name: "Venezuela" },
-  { value: "238", name: "Vietnam" },
-  { value: "236", name: "Virgin Islands(British)" },
-  { value: "237", name: "Virgin Islands(U.S.)" },
-  { value: "240", name: "Wallis and Futuna Islands" },
-  { value: "242", name: "Yemen" },
-  { value: "243", name: "Yugoslavia" },
-  { value: "52", name: "Zaire" },
-  { value: "245", name: "Zambia" },
-  { value: "246", name: "Zimbabwe" },
-];
-
 function getNationalityCode(name) {
-  return nationalities.find((n) => n.name === name)?.value;
+  return hsf_nationalities.find((n) => n.name === name)?.value;
 }

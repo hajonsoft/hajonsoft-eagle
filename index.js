@@ -11,32 +11,26 @@ const { send: sendHsf } = require("./src/hsf");
 const { send: sendSbr } = require("./src/sbr");
 const { send: sendMtf } = require("./src/mtf");
 const { send: sendGhb } = require("./src/ghb");
-const {
-  send: sendVsn,
-  createCodelineFile,
-  createImagePhoto,
-  createImageVis,
-  createEagleJson,
-} = require("./src/vsn");
 
 const util = require("./src/util");
 const { getPath } = util;
 const path = require("path");
-const mrz = require("mrz");
 const Cryptr = require("cryptr");
 const fs = require("fs");
 const axios = require("axios");
 const extract = require("extract-zip");
 const { homedir } = require("os");
 const moment = require("moment");
-const version = "0.1.1";
 const budgie = require("./src/budgie");
 const kea = require("./src/lib/kea");
 const inquirer = require("inquirer");
 const defaultSMSAPIKeyMustOverride = "88fd2e1A3f4d327740A9408c12872A39";
 
+const version = "0.1.1";
+
 let userInput;
 let data = readDataFile();
+
 async function main() {
   // Authenticate firebase
   kea.init();
@@ -46,6 +40,7 @@ async function main() {
     process.exit(0);
   }
 
+  // Cleanups
   const addModeFile = getPath("add.json");
   if (fs.existsSync(addModeFile)) {
     fs.unlinkSync(addModeFile);
@@ -58,11 +53,6 @@ async function main() {
 
   if (process.argv.includes("-i")) {
     return runInteractive();
-  }
-
-  if (process.argv.includes("-download")) {
-    await getDataFileName();
-    await downloadImages();
   }
 
   if (process.argv.includes("budgie")) {
@@ -177,65 +167,11 @@ async function submitToProvider() {
     case "enj":
       return sendEnj(data);
     case "hsf":
-      if (process.argv.includes("-t")) {
-        if (fs.existsSync(getPath("t"))) {
-          const eagleForks = fs.readdirSync(path.join(__dirname, "t"));
-          if (fs.existsSync(getPath("run.bat"))) {
-            fs.unlinkSync(getPath("run.bat"));
-          }
-
-          const allTextFiles = fs.readdirSync("./");
-
-          const threadLength = data.travellers.length / eagleForks.length;
-          for (let i = 0; i < eagleForks.length; i++) {
-            fs.writeFileSync(
-              getPath(path.join("t", eagleForks[i], "selectedTraveller.txt")),
-              "0"
-            );
-            fs.writeFileSync(
-              getPath(path.join("t", eagleForks[i], "loop.txt"), "")
-            );
-            const trv = data.travellers.slice(
-              i * threadLength,
-              (i + 1) * threadLength
-            );
-            const dataForThread = {
-              system: { ...data.system },
-              info: { ...data.info, pax: trv.length },
-              travellers: trv,
-            };
-            fs.writeFileSync(
-              getPath(path.join("t", eagleForks[i], "data.json")),
-              JSON.stringify(dataForThread)
-            );
-            for (const textFile of allTextFiles.filter((file) =>
-              file.endsWith(".txt")
-            )) {
-              fs.copyFileSync(
-                textFile,
-                getPath(path.join("t", eagleForks[i], textFile))
-              );
-            }
-            fs.appendFileSync(
-              getPath("run.bat"),
-              `
-            cd t/${eagleForks[i]}
-            node . &
-            cd ../..
-            `
-            );
-          }
-          console.log(". ./run.bat");
-        }
-        return;
-      }
       return sendHsf(data);
     case "sbr":
       return sendSbr(data);
     case "mtf":
       return sendMtf(data);
-    case "vsn":
-      return sendVsn(data);
     default:
       console.log("unknown system");
   }
@@ -316,254 +252,6 @@ async function getDataFileName() {
     process.exit(1);
   }
   return dataFileName;
-}
-
-async function runGetSMSNumber() {
-  let api_key = "";
-  if (fs.existsSync("./api_key")) {
-    api_key = fs.readFileSync("./api_key", "utf-8");
-  } else {
-    api_key = defaultSMSAPIKeyMustOverride;
-  }
-
-  const incomingApiKey = await inquirer.prompt({
-    type: "input",
-    message: `do you want to override api_Key:${api_key}? new api_key: [Enter for default]:`,
-    name: "api_key",
-  });
-
-  if (incomingApiKey.api_key && incomingApiKey.api_key.length > 0) {
-    api_key = incomingApiKey.api_key;
-    fs.writeFileSync("./api_key", incomingApiKey.api_key);
-  }
-
-  let balance = "";
-  const balanceInquiry = await axios.get(
-    `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getBalance`
-  );
-  if (balanceInquiry.status === 200) {
-    balance = balanceInquiry.data;
-    console.log(balanceInquiry.data);
-  }
-  let activation = "";
-  if (fs.existsSync(getPath("activation"))) {
-    activation = fs.readFileSync(getPath("activation"), "utf-8");
-  }
-  if (activation) {
-    const activationInquiry = axios.get(
-      `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getStatus&id=${activation}`
-    );
-    if (activationInquiry.status === 200) {
-      console.log(activationInquiry.data);
-    }
-  }
-  if (activation) {
-    if (activation === "NO_NUMBERS") {
-      fs.unlinkSync(getPath("activation"));
-      return console.log(balance, activation);
-    }
-    console.log(
-      `existing activation ${activation} must be used first, can not request new number`
-    );
-    const incomingActivationChoice = await inquirer.prompt([
-      {
-        type: "list",
-        message: `Existing activation ${activation}?`,
-        name: "activationAction",
-        choices: [`1- cancel`, `2- code sent`, `3- status`],
-      },
-    ]);
-    const activationId = activation.split(":")[1];
-    if (incomingActivationChoice.activationAction) {
-      if (incomingActivationChoice.activationAction.startsWith("1-")) {
-        const cancelInquiry = await axios.get(
-          `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=setStatus&status=8&id=${activationId}`
-        );
-        if (cancelInquiry.status === 200) {
-          console.log(balance, cancelInquiry.data);
-          return fs.unlinkSync(getPath("activation"));
-        }
-      }
-      if (incomingActivationChoice.activationAction.startsWith("2-")) {
-        const codeInquiry = await axios.get(
-          `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=setStatus&status=1&id=${activationId}`
-        );
-        if (codeInquiry.status === 200) {
-          console.log(balance, codeInquiry.data);
-        }
-      }
-      if (incomingActivationChoice.activationAction.startsWith("3-")) {
-        const activationId = activation.split(":")[1];
-        const statusInquiry = await axios.get(
-          `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getStatus&id=${activationId}`
-        );
-        if (statusInquiry.status === 200) {
-          console.log(statusInquiry.data);
-          if (statusInquiry.data.startsWith("STATUS_OK")) {
-            // Mark activation complete
-            const completeInquiry = await axios.get(
-              `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=setStatus&status=6&id=${activationId}`
-            );
-            if (completeInquiry.status === 200) {
-              console.log(balance, completeInquiry.data);
-              return fs.unlinkSync(getPath("activation"));
-            }
-          }
-        }
-      }
-    }
-    return;
-  }
-  let country = "";
-  if (fs.existsSync(getPath("country"))) {
-    country = fs.readFileSync(getPath("country"), "utf-8");
-  }
-  const countriesInquiry = await axios.get(
-    `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getCountries`
-  );
-  if (countriesInquiry.status === 200) {
-    const incomingCountry = await inquirer.prompt([
-      {
-        type: "list",
-        name: "country",
-        message: `change country: ${country}`,
-        choices: [
-          `${country}`,
-          ...Object.values(countriesInquiry.data)
-            .filter((country) => country.visible)
-            .map((country) => `${country.id}:${country.eng}`),
-        ],
-      },
-    ]);
-    console.log(incomingCountry.country);
-    country = incomingCountry.country.split(":")[0] | "2"; // kazakhestan by default
-    fs.writeFileSync(getPath("country"), incomingCountry.country.split(":")[0]);
-  }
-
-  const numberInquiry = await axios.get(
-    `https://api.sms-activate.org/stubs/handler_api.php?api_key=${api_key}&action=getNumber&service=dp&country=${country}&freePrice=true&maxPrice=1`
-  );
-  if (numberInquiry.status === 200) {
-    console.log(numberInquiry.data);
-    fs.writeFileSync(getPath("activation"), numberInquiry.data);
-  }
-}
-
-const visionFolder = getPath(path.join(__dirname, "scan", "output", "vision"));
-const inputFolder = getPath(path.join(__dirname, "scan", "input"));
-const folder3M = getPath(path.join(__dirname, "scan", "output", "3M"));
-const logFolder = getPath(path.join(__dirname, "scan", "output", "log"));
-
-function createSandBox() {
-  if (!fs.existsSync(folder3M)) {
-    fs.mkdirSync(folder3M, { recursive: true });
-  }
-  if (!fs.existsSync(logFolder)) {
-    fs.mkdirSync(logFolder, { recursive: true });
-  }
-}
-
-async function generateFour3MFiles(file, json) {
-  const uniqueNumber = moment().valueOf();
-  const isProcessed = fs.existsSync(
-    path.join(logFolder, file.replace(".jpg", ""))
-  );
-  if (isProcessed) {
-    return true;
-  }
-
-  const isCodelineDone = await createCodelineFile(
-    folder3M,
-    json,
-    uniqueNumber,
-    path.join(inputFolder, file.replace(".json", ""))
-  );
-  if (!isCodelineDone) {
-    console.warn("codeline failed");
-    return false;
-  }
-
-  const isPhotoDone = await createImagePhoto(
-    path.join(visionFolder, file.replace(".json", ".jpg")),
-    path.join(inputFolder, file.replace(".json", "")),
-    folder3M,
-    uniqueNumber
-  );
-  if (!isPhotoDone) {
-    console.warn("photo failed");
-    return false;
-  }
-
-  const isImageVisDone = createImageVis(
-    path.join(inputFolder, file.replace(".json", "")),
-    folder3M,
-    uniqueNumber
-  );
-  if (!isImageVisDone) {
-    console.warn(
-      "image vis not done because passport image is not found. Ok for testing"
-    );
-    return false;
-  }
-
-  const isJSONDone = createEagleJson(folder3M, json, uniqueNumber);
-  if (!isJSONDone) {
-    console.warn("json failed");
-    return false;
-  }
-
-  fs.writeFileSync(path.join(logFolder, file.replace(".jpg", "")), "hajonsoft");
-  // TODO: Write to firebase
-  const config = {
-    headers: { Authorization: `Bearer ${data.info.accessToken}` },
-  };
-  const url = `${data.info.databaseURL}/customer/${data.info.caravan}-data/.json`;
-  const mrzData = mrz.parse(`P<DZABEN<KHADA<<FATIHA<<<<<<<<<<<<<<<<<<<<<<
-  1663192019DZA7502064F2602084X158<<<<<<<<52`);
-  const body = {
-    name: mrzData.firstName + " " + mrzData.lastName,
-    passPlaceOfIssue: mrzData.issuingState,
-    passportNumber: mrzData.documentNumber,
-    nationality: mrzData.nationality, //TODO: Translate to humming bird
-    birthDate: mrzData.dateOfBirth, //TODO: //format YYYY-MM-DD
-    gender: mrzData.sex, //Translate
-    passExpireDt: mrzData.dateOfExpiry, //translate
-    passIssueDt: "2020-01-01", //Read from json
-  };
-  try {
-    await axios.post(url, body, config);
-  } catch (err) {
-    console.log(err.message);
-  }
-
-  return true;
-}
-
-async function downloadImages() {
-  const data = readDataFile();
-  for (const passenger of data.travellers) {
-    for (const [imageType, url] of Object.entries(passenger?.images)) {
-      if (
-        url.includes(".placeholder.com") ||
-        imageType.includes("vaccine") ||
-        imageType.includes("id")
-      )
-        continue;
-      const image = await axios.get(url, {
-        responseType: "arraybuffer",
-      });
-      const fileName = path.join(
-        inputFolder,
-        imageType,
-        `${passenger.name.full}.jpg`
-      );
-      if (!fs.existsSync(path.join(inputFolder, imageType))) {
-        fs.mkdirSync(path.join(inputFolder, imageType), { recursive: true });
-      }
-      fs.writeFileSync(fileName, Buffer.from(image.data, "binary"));
-      console.log(fileName);
-    }
-  }
 }
 
 function readDataFile() {
