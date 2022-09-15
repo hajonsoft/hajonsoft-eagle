@@ -387,8 +387,7 @@ async function sendPassenger(passenger) {
     page,
     config.find((c) => c.name == "create-mutamer")?.details
   );
-  const isCloudJob = data.info?.caravan?.startsWith("CLOUD_");
-  if (isCloudJob) {
+
   // This is assumed. fix starting from here. Because passports can succeed from the first time - check if this is a new page refresh?
   // TODO: Wait for success message before advancing the counter
   try {
@@ -405,42 +404,43 @@ async function sendPassenger(passenger) {
     util.updatePassengerInKea(data.system.accountId, passenger.passportNumber, {
       "submissionData.wtu.status": "Submitted",
     });
-  } catch {}
+  } catch {
+    console.log(`Passport ${passenger.passportNumber} failed. Plan B`);
+  }
 
   // If there is a passport number still that means it is the same page
   await page.waitForTimeout(2000);
   await page.waitForSelector("#txtppno");
-  const pn = await page.$eval("#txtppno", (e) => e.value);
-  if (!pn) {
+  const isSamePassenger = await page.$eval("#txtppno", (e) => e.value);
+  if (!isSamePassenger) {
+    util.infoMessage(page, "👍 Mutamer saved successfully", 4);
     util.incrementSelectedTraveler();
     return page.goto(
       "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
     );
-  }
+  } 
 
-  // If there is a passport number still that means it is the same page
-
-  // Passenger rejected
-  const errorMessageSelector =
+  // Passenger rejected check if there is a reason and store it in kea. Then continue to Plan B
+  const errorSelector =
     "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span";
-  const isError = await page.$(errorMessageSelector);
-
+  const isError = await page.$(errorSelector);
   // Store error reason in kea
   if (isError) {
     util.updatePassengerInKea(data.system.accountId, passenger.passportNumber, {
       "submissionData.wtu.status": "Rejected",
       "submissionData.wtu.rejectionReason": await page.$eval(
-        errorMessageSelector,
+        errorSelector,
         (el) => el.textContent
       ),
     });
+    // dismiss the error
     const errorButton = await page.waitForSelector(
       "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-footer.text-center > button"
     );
 
     await errorButton.click();
   }
-}
+
 
   // Use fake passport image
   const blankPassportPath = getPath(`${passenger.passportNumber}_mrz.jpg`);

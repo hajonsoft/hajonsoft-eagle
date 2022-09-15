@@ -1,5 +1,4 @@
 const puppeteer = require("puppeteer-extra");
-// Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const fs = require("fs");
@@ -14,7 +13,6 @@ const { default: axios } = require("axios");
 const SERVER_NUMBER = 1;
 let page;
 let data;
-let counter = 0;
 let configs = [];
 
 const config = [
@@ -92,10 +90,25 @@ async function send(sendData) {
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
+async function commonTasks(currentConfig) {
+  if (currentConfig.supportSelector) {
+    await util.premiumSupportAlert(
+      page,
+      currentConfig.supportSelector,
+      data
+    );
+    return;
+  }
+  if (currentConfig.controller) {
+    await util.controller(page, currentConfig, data.travellers);
+  }
+}
+
 async function onContentLoaded(res) {
   const currentConfig = util.findConfig(await page.url(), config);
   configs.push(currentConfig);
   try {
+    await commonTasks(currentConfig);
     await runPageConfiguration(currentConfig);
   } catch (err) {
     console.log(err);
@@ -106,18 +119,16 @@ async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      await util.premiumSupportAlert(
-        page,
-        "#form1 > div:nth-child(14) > div",
-        data
-      );
       await util.commitCaptchaToken(
         page,
         "rdCap_CaptchaImage",
         "#rdCap_CaptchaTextBox",
         5
       );
-      await page.click("#lnkLogin");
+      if (currentConfig.name === "login") {
+        await page.click("#lnkLogin");
+      }
+
       break;
     case "main":
       await page.goto(
@@ -141,11 +152,12 @@ async function runPageConfiguration(currentConfig) {
       if (groupName) {
         return;
       }
+
       await util.commit(page, currentConfig.details, data);
       util.infoMessage(
         page,
-        `Creating group ${groupName ||
-        `${data.info.caravan.replace(/ /g, "-").substring(0, 20)}-${os
+        `🏘 create group => ${groupName ||
+        `${data.info?.caravan.replace(/ /g, "-").substring(0, 20)}-${os
           .hostname()
           .substring(0, 8)}`
         }`
@@ -158,7 +170,10 @@ async function runPageConfiguration(currentConfig) {
         consulateOptions[1].selected = true;
       });
 
-      await page.waitForTimeout(10000);
+      if (!data.info?.caravan.startsWith("CLOUD_")) {
+        await page.waitForTimeout(10000);
+      }
+
       try {
         await page.waitForSelector("#ctl00_ContentHolder_LstConsulate", {
           timeout: 5000,
@@ -167,14 +182,15 @@ async function runPageConfiguration(currentConfig) {
       } catch { }
       break;
     case "create-mutamer":
-      await util.controller(page, currentConfig, data.travellers);
       if (fs.existsSync(getPath("loop.txt"))) {
         const currentIndex = util.getSelectedTraveler();
         const passenger = data.travellers[parseInt(currentIndex)];
         sendPassenger(passenger);
       } else {
-        util.infoMessage(page, `pausing for 10 seconds`);
-        await page.waitForTimeout(10000);
+        if (!data.info.caravan.startsWith("CLOUD_")) {
+          util.infoMessage(page, `pausing for 10 seconds`);
+          await page.waitForTimeout(10000);
+        }
         fs.writeFileSync(getPath("loop.txt"), "loop");
         await page.reload();
       }
