@@ -95,6 +95,10 @@ const config = [
     url: "https://eumra.com/homepage.aspx?P=downloads",
   },
   {
+    name: "uploader",
+    url: "https://eumra.com/homepage.aspx?P=auploader",
+  },
+  {
     name: "main",
     url: "https://eumra.com/homepage.aspx?P=DashboardClassic",
   },
@@ -261,12 +265,18 @@ async function runPageConfiguration(currentConfig) {
       break;
     case "main":
     case "download":
+    case "uploader":
       await page.goto("https://eumra.com/auploader.aspx#/tab1_1", {
         waitUntil: "networkidle2",
       });
       break;
     case "create-group-or-mutamer":
       await util.commit(page, currentConfig.details, data.travellers[0]);
+
+      await page.waitForTimeout(3000);
+      await page.click("#btnUpdateGroup");
+      await page.waitForTimeout(3000);
+      await page.click("#li1_1 > a");
 
       await page.waitFor("#txt_PassportNumber", { visible: true });
       await util.controller(page, currentConfig, data.travellers);
