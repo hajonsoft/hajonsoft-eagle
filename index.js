@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+require("dotenv").config();
 const { send: sendEhj } = require("./src/ehj");
 const { send: sendBau } = require("./src/bau");
 const { send: sendWtu } = require("./src/wtu");
@@ -30,12 +31,16 @@ const { homedir } = require("os");
 const moment = require("moment");
 const version = "0.1.1";
 const budgie = require("./src/budgie");
+const kea = require("./src/lib/kea");
 const inquirer = require("inquirer");
 const defaultSMSAPIKeyMustOverride = "88fd2e1A3f4d327740A9408c12872A39";
 
 let userInput;
 let data = readDataFile();
 async function main() {
+  // Authenticate firebase
+  kea.init();
+
   if (process.argv.includes("-v")) {
     console.log("version: " + version);
     process.exit(0);
@@ -288,12 +293,12 @@ async function getDataFileName() {
     const outputDir = dataFileName.replace("data.json", "");
     await unzipFile(fileName, outputDir);
 
-    // Delete selectedTraveller file so that index is back to zero. 
+    // Delete selectedTraveller file so that index is back to zero.
     // AA: Commented because this will prevent the script from continuing from where it left off.
     // if (fs.existsSync(getPath("selectedTraveller.txt"))) {
     //   fs.unlinkSync(getPath("selectedTraveller.txt"))
     // }
-    
+
     console.log(
       "\x1b[7m",
       `Success: ${fileName} => ${outputDir}/data.json`,
@@ -566,7 +571,9 @@ function readDataFile() {
     return JSON.parse(fs.readFileSync(getPath("data.json"), "utf-8"));
   }
   if (fs.existsSync(path.join(__dirname, "data.json"))) {
-    return JSON.parse(fs.readFileSync(path.join(__dirname, "data.json"), "utf-8"));
+    return JSON.parse(
+      fs.readFileSync(path.join(__dirname, "data.json"), "utf-8")
+    );
   }
   console.error("NO data.json found");
 }
