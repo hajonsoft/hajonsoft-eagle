@@ -441,7 +441,6 @@ async function sendPassenger(passenger) {
     await errorButton.click();
   }
 
-
   // Use fake passport image
   const blankPassportPath = getPath(`${passenger.passportNumber}_mrz.jpg`);
   // Generate fake passport image using the browser canvas api
