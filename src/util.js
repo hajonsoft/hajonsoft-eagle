@@ -1345,7 +1345,7 @@ function uploadImage(fileName) {
         console.log("uploaded image: ", result.data);
       })
       .catch((err) => {
-        console.log("error uploading image: ", err);
+        // console.log("error uploading image: ", err);
       });
   }
 }
