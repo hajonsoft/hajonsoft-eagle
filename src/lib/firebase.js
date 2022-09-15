@@ -18,7 +18,7 @@ const config = {
   functionURL: process.env.VITE_FIREBASE_FUNCTIONSURL,
 };
 
-console.log("firebase config", config);
+console.log("firebase config:", config);
 
 const app = initializeApp(config);
 const auth = getAuth(app);
@@ -54,32 +54,12 @@ const logInWithRefreshToken = async (refreshToken, apiKey) => {
       auth,
       authTokenResult.token
     );
+    console.log(`AUTH: logged in with ${userCredential.user.email}`);
     return userCredential.user;
   } catch (e) {
     console.error(`Error: ${e.message}`);
   }
   return null;
-};
-
-const login = async () => {
-  const tokenArg = process.argv.find((arg) => arg.startsWith("token="));
-
-  const apiKeyArg = process.argv.find((arg) => arg.startsWith("apiKey="));
-  let refreshToken = tokenArg ? tokenArg.substring(6) : null;
-  let apiKey = apiKeyArg ? apiKeyArg.substring(7) : null;
-
-  if (!refreshToken) {
-    console.error("No token provided");
-    return;
-  }
-  if (!apiKey) {
-    console.error("No apiKey provided");
-    return;
-  }
-
-  global.user = await logInWithRefreshToken(refreshToken, apiKey);
-  console.log(`AUTH: logged in with ${global.user.email}`);
-  return global.user;
 };
 
 module.exports = {
@@ -89,5 +69,5 @@ module.exports = {
   database,
   storage,
   functions,
-  login,
+  logInWithRefreshToken,
 };

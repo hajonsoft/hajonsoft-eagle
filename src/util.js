@@ -139,7 +139,7 @@ async function initPage(config, onContentLoaded, data) {
   }
 
   const isHeadless = Boolean(
-    process.argv.find((c) => c.startsWith("-headless"))
+    process.argv.find((c) => c.startsWith("--headless"))
   );
 
   const launchOptions = {
@@ -1310,15 +1310,17 @@ const premiumSupportAlert = async (page, selector, data) => {
   if (!adNode) {
     return;
   }
-  const htmlFileName = path.join(__dirname, "assets" ,  "premium-support.html");
-  const html = fs.readFileSync(htmlFileName, "utf8")
+  const htmlFileName = path.join(__dirname, "assets", "premium-support.html");
+  const html = fs.readFileSync(htmlFileName, "utf8");
   await page.$eval(
     selector,
     (el, params) => {
       const json = params[0];
       const html = params[1];
       let htmlContent = html;
-      htmlContent = html.replace(/{price}/g, json.travellers.length * 1.5).replace(/{pax}/g, json.travellers.length);
+      htmlContent = html
+        .replace(/{price}/g, json.travellers.length * 1.5)
+        .replace(/{pax}/g, json.travellers.length);
 
       el.outerHTML = htmlContent;
     },
@@ -1421,7 +1423,10 @@ function getLogFile(eagleData) {
   if (!fs.existsSync(logFolder)) {
     fs.mkdirSync(logFolder, { recursive: true });
   }
-  const logFile = path.join(logFolder, eagleData.info.caravan + "_" + eagleData.system.name + ".txt");
+  const logFile = path.join(
+    logFolder,
+    eagleData.info.caravan + "_" + eagleData.system.name + ".txt"
+  );
   return logFile;
 }
 
@@ -1466,5 +1471,5 @@ module.exports = {
   setSelectedTraveller,
   updatePassengerInKea,
   infoMessage,
-  getLogFile
+  getLogFile,
 };

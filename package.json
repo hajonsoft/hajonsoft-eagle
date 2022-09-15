@@ -33,7 +33,8 @@
     "rucaptcha-2captcha": "^2.2.1",
     "sharp": "0.30.7",
     "short-uuid": "^4.2.0",
-    "totp-generator": "^0.0.13"
+    "totp-generator": "^0.0.13",
+    "yargs": "^17.5.1"
   },
   "bin": {
     "eagle": "./index.js"

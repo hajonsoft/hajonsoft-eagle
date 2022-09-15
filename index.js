@@ -33,7 +33,7 @@ let data = readDataFile();
 
 async function main() {
   // Authenticate firebase
-  kea.init();
+  await kea.init();
 
   if (process.argv.includes("-v")) {
     console.log("version: " + version);
