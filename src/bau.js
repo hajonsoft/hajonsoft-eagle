@@ -1,5 +1,4 @@
 const puppeteer = require("puppeteer-extra");
-// Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const fs = require("fs");
@@ -14,7 +13,6 @@ const { default: axios } = require("axios");
 const SERVER_NUMBER = 1;
 let page;
 let data;
-let counter = 0;
 let configs = [];
 
 const config = [
@@ -25,10 +23,17 @@ const config = [
       { selector: "#txtUserName", value: (system) => system.username },
       { selector: "#txtPassword", value: (system) => system.password },
     ],
+    commit: true,
+    supportSelector: "#form1 > div:nth-child(14) > div",
+    success:
+    {
+      name: "main",
+    },
   },
   {
     name: "main",
     regex: `https?://app${SERVER_NUMBER}.babalumra.com/Security/MainPage.aspx`,
+    redirect: `https://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx?gMode=1`,
   },
   {
     name: "search-group",
@@ -43,8 +48,7 @@ const config = [
         value: (row) =>
           row.info.caravan.replace(/ /g, "-").substring(0, 20) +
           "-" +
-          `${os.hostname().substring(0, 8)}${moment().format("mmss")}_${
-            row.info.run
+          `${os.hostname().substring(0, 8)}${moment().format("mmss")}_${row.info.run
           }`,
       },
       {
@@ -86,10 +90,25 @@ async function send(sendData) {
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
+async function commonTasks(currentConfig) {
+  if (currentConfig.supportSelector) {
+    await util.premiumSupportAlert(
+      page,
+      currentConfig.supportSelector,
+      data
+    );
+    return;
+  }
+  if (currentConfig.controller) {
+    await util.controller(page, currentConfig, data.travellers);
+  }
+}
+
 async function onContentLoaded(res) {
   const currentConfig = util.findConfig(await page.url(), config);
   configs.push(currentConfig);
   try {
+    await commonTasks(currentConfig);
     await runPageConfiguration(currentConfig);
   } catch (err) {
     console.log(err);
@@ -100,26 +119,15 @@ async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      await util.premiumSupportAlert(
-        page,
-        "#form1 > div:nth-child(14) > div",
-        data
-      );
-      await page.waitForSelector("#rdCap_CaptchaTextBox");
-      await page.focus("#rdCap_CaptchaTextBox");
       await util.commitCaptchaToken(
         page,
         "rdCap_CaptchaImage",
         "#rdCap_CaptchaTextBox",
         5
       );
-      await page.waitForTimeout(5000);
-      try {
-        await page.waitForFunction(
-          "document.querySelector('#rdCap_CaptchaTextBox').value.length === 5"
-        );
+      if (currentConfig.name === "login") {
         await page.click("#lnkLogin");
-      } catch {}
+      }
 
       break;
     case "main":
@@ -144,14 +152,14 @@ async function runPageConfiguration(currentConfig) {
       if (groupName) {
         return;
       }
+
       await util.commit(page, currentConfig.details, data);
       util.infoMessage(
         page,
-        `Creating group ${
-          groupName ||
-          `${data.info.caravan.replace(/ /g, "-").substring(0, 20)}-${os
-            .hostname()
-            .substring(0, 8)}`
+        `🏘 create group => ${groupName ||
+        `${data.info?.caravan.replace(/ /g, "-").substring(0, 20)}-${os
+          .hostname()
+          .substring(0, 8)}`
         }`
       );
       await page.evaluate(() => {
@@ -162,23 +170,27 @@ async function runPageConfiguration(currentConfig) {
         consulateOptions[1].selected = true;
       });
 
-      await page.waitForTimeout(10000);
+      if (!data.info?.caravan.startsWith("CLOUD_")) {
+        await page.waitForTimeout(10000);
+      }
+
       try {
         await page.waitForSelector("#ctl00_ContentHolder_LstConsulate", {
           timeout: 5000,
         });
         await page.click("#ctl00_ContentHolder_btnCreate");
-      } catch {}
+      } catch { }
       break;
     case "create-mutamer":
-      await util.controller(page, currentConfig, data.travellers);
       if (fs.existsSync(getPath("loop.txt"))) {
         const currentIndex = util.getSelectedTraveler();
         const passenger = data.travellers[parseInt(currentIndex)];
         sendPassenger(passenger);
       } else {
-        util.infoMessage(page, `pausing for 10 seconds`);
-        await page.waitForTimeout(10000);
+        if (!data.info.caravan.startsWith("CLOUD_")) {
+          util.infoMessage(page, `pausing for 10 seconds`);
+          await page.waitForTimeout(10000);
+        }
         fs.writeFileSync(getPath("loop.txt"), "loop");
         await page.reload();
       }
@@ -280,7 +292,7 @@ async function sendPassenger(passenger) {
         selector: "#ctl00_ContentHolder_LstType",
         value: (row) =>
           row.codeline?.replace(/\n/g, "")?.substring(2, 5) !=
-          row.codeline?.replace(/\n/g, "")?.substring(54, 57)
+            row.codeline?.replace(/\n/g, "")?.substring(54, 57)
             ? "3"
             : "1",
       },
@@ -314,7 +326,7 @@ async function sendPassenger(passenger) {
     try {
       await page.waitForSelector("#ctl00_ContentHolder_LstSponsorRelationship");
       await page.select("#ctl00_ContentHolder_LstSponsorRelationship", "15");
-    } catch {}
+    } catch { }
   }
 
   // commit "#ctl00_ContentHolder_LstAddressCountry" from system.country.telCode
@@ -410,7 +422,7 @@ async function sendPassenger(passenger) {
       if (errorMessage) {
         util.infoMessage(page, `🖐 🖐 🖐 🖐 🖐 Error: ${errorMessage}`);
       }
-    } catch {}
+    } catch { }
   } else {
     util.infoMessage(page, `Error 🖐 🖐 🖐 🖐 passenger ${passenger.slug} skipped. Save button unavailable`);
 
