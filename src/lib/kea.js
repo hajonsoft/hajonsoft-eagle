@@ -7,7 +7,6 @@ const db = require("./db");
 
 const init = async () => {
   const { submissionId, accountId, token, apiKey } = argv;
-  console.log(argv);
 
   if (!token) {
     console.error("No token provided");
@@ -28,7 +27,7 @@ const init = async () => {
 
 const updateSubmissionStatus = async (status) => {
   console.log(
-    `Updating submission status to ${status} [id: ${global.submissionId}]`
+    `KEA: Updating submission status to ${status} [id: ${global.submissionId}]`
   );
   return updateDoc(db.submission(global.submissionId), { status });
 };

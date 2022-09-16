@@ -18,8 +18,6 @@ const config = {
   functionURL: process.env.VITE_FIREBASE_FUNCTIONSURL,
 };
 
-console.log("firebase config:", config);
-
 const app = initializeApp(config);
 const auth = getAuth(app);
 
