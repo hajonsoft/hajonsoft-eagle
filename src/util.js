@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-const { spawn } = require("child_process");
 const puppeteer = require("puppeteer-extra");
 const os = require("os");
 const { ImgurClient } = require("imgur");
@@ -27,6 +26,7 @@ const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
 const VISION_DEFICIENCY = "none";
 const IMGUR_CLIENT_ID = "0b4827447357d6b";
 const IMGUR_CLIENT_SECRET = "c842b1a08f0748150465ec643c04c0aeb17329c7";
+const kea = require("./lib/kea");
 
 // or your client ID
 const imgurClient = new ImgurClient({
@@ -750,52 +750,29 @@ const getRange = () => {
 };
 function getSelectedTraveler() {
   const data = JSON.parse(fs.readFileSync(getPath("data.json"), "utf8"));
-  const range = getRange();
-  const fileName = getPath("selectedTraveller" + range + ".txt");
-  if (fs.existsSync(fileName)) {
-    const lastIndex = fs.readFileSync(fileName, "utf8");
-    if (
-      parseInt(lastIndex) >= data.travellers.length ||
-      (range &&
-        parseInt(lastIndex) >= parseInt(range.split("=")[1].split("-")[1]))
-    ) {
-      // Force reset the counter and avoid looping
-      fs.writeFileSync(fileName, "0");
-      console.log("Last passenger reached!!. Existing in 30 seconds...");
-      setTimeout(() => {
-        process.exit(17000);
-      }, 30000);
-    }
-    if (range && lastIndex < parseInt(range.split("=")[1].split("-")[0])) {
-      return range.split("=")[1].split("-")[0];
-    }
-    return lastIndex;
-  } else {
-    if (range) {
-      fs.writeFileSync(fileName, range.split("=")?.[1]?.split("-")?.[0]);
-      return range.split("=")?.[1]?.split("-")?.[0];
-    }
-    fs.writeFileSync(fileName, "0");
-    return "0";
+  const value = global.run.selectedTraveller;
+  if (parseInt(value) >= data.travellers.length) {
+    // Force reset the counter and avoid looping
+    console.log("Last passenger reached!!. Exiting in 10 seconds...");
+    setTimeout(() => {
+      process.exit(17000);
+    }, 10000);
   }
+  return value;
 }
 
 function incrementSelectedTraveler(overrideValue) {
   const selectedTraveler = getSelectedTraveler();
   const nextTraveler = parseInt(selectedTraveler) + 1;
-  const range = getRange();
-  const fileName = getPath("selectedTraveller" + range + ".txt");
-  fs.writeFileSync(fileName, nextTraveler.toString());
+  setSelectedTraveller(nextTraveler);
   return nextTraveler;
 }
 
 function setSelectedTraveller(value) {
+  console.log("setSelectedTraveller", value);
   getSelectedTraveler(); // Make sure the file exists
-  const range = getRange();
-  const fileName = getPath("selectedTraveller" + range + ".txt");
-  if (fs.existsSync(fileName)) {
-    return fs.writeFileSync(fileName, value.toString());
-  }
+  kea.updateSelectedTraveller(value);
+  return value;
 }
 
 function useCounter(currentCounter) {
