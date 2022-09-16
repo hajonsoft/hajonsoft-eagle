@@ -7,11 +7,9 @@ const argv = yargs(hideBin(process.argv)).argv;
 const { logInWithRefreshToken } = require("./firebase");
 const {
   updateDoc,
-  onSnapshot,
   getDocs,
   where,
   getDoc,
-  limit,
 } = require("firebase/firestore");
 const db = require("./db");
 const { toData } = require("./factory");
@@ -50,42 +48,29 @@ const init = async () => {
 
   global.user = await logInWithRefreshToken(token, apiKey);
 
-  await watchSubmission(submissionId);
-  await watchRun(submissionId, runId);
+  await getSubmission(submissionId);
+  await getRun(submissionId, runId);
   await writeData();
 };
 
-const watchSubmission = (submissionId) => {
-  return new Promise((resolve, reject) => {
-    console.log(`KEA: Watching submission [id: ${submissionId}]`);
-    return onSnapshot(db.submission(submissionId), (snapshot) => {
-      const data = snapshot.data();
-      if (!data) {
-        reject(`Submission not found [id:${submissionId}]`);
-      }
-      console.log("submission snapshot");
-      global.submission = data;
-      resolve(data);
-    });
-  });
+const getSubmission = async (submissionId) => {
+  const snap = await getDoc(db.submission(submissionId));
+  const data = snap.data();
+  if(!data) {
+    throw new Error(`Submission not found [id: ${submissionId}]`)
+  }
+  global.submission = data;
+  return data;
 };
 
-const watchRun = (submissionId, runId) => {
-  return new Promise((resolve, reject) => {
-    console.log(`KEA: Watching run [id: ${runId}]`);
-    return onSnapshot(db.submissionRun(submissionId, runId), (snapshot) => {
-      const data = snapshot.data();
-      if (!data) {
-        reject(`Run not found [id:${runId}]`);
-      }
-      console.log("run snapshot:", {
-        selectedTraveller: data.selectedTraveller,
-        status: data.status,
-      });
-      global.run = data;
-      resolve(data);
-    });
-  });
+const getRun = async (submissionId, runId) => {
+  const snap = await getDoc(db.submissionRun(submissionId, runId));
+  const data = snap.data();
+  if(!data) {
+    throw new Error(`Run not found [id: ${submissionId}]`)
+  }
+  global.run = data;
+  return data;
 };
 
 const fetchPassengers = async (passengerIds) => {
