@@ -71,7 +71,7 @@ const watchRun = (submissionId, runId) => {
     return onSnapshot(db.submissionRun(submissionId, runId), (snapshot) => {
       const data = snapshot.data();
       console.log("run snapshot:", {
-        status: data.status,
+        status: data?.status,
       });
       if(!data || data.status === "Killed") {
         console.log('Kill code received')
