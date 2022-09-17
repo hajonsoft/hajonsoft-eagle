@@ -179,9 +179,7 @@ async function runPageConfiguration(currentConfig) {
       } catch {}
       break;
     case "create-mutamer":
-      console.log("=========== create-mutamer ===========");
       if (fs.existsSync(getPath("loop.txt"))) {
-        console.log("=========== loop file exists ===========");
         const currentIndex = util.getSelectedTraveler();
         const passenger = data.travellers[parseInt(currentIndex)];
         sendPassenger(passenger);
@@ -191,9 +189,6 @@ async function runPageConfiguration(currentConfig) {
           await page.waitForTimeout(10000);
         }
         fs.writeFileSync(getPath("loop.txt"), "loop");
-        console.log(
-          "=========== loop file does not exist, reload the page ==========="
-        );
         await page.reload();
       }
       break;
@@ -415,7 +410,7 @@ async function sendPassenger(passenger) {
   if (saveBtn) {
     await page.click("#ctl00_ContentHolder_BtnEdit");
     await page.waitForTimeout(5000);
-    util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
+    util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`,2, false, true);
     try {
       const errorMessage = await page.$eval(
         "#ctl00_ContentHolder_divErrorsList > div > ul > li",

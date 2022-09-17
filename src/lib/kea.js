@@ -10,6 +10,7 @@ const {
   getDocs,
   where,
   getDoc,
+  onSnapshot,
 } = require("firebase/firestore");
 const db = require("./db");
 const { toData } = require("./factory");
@@ -31,6 +32,7 @@ function chunkArray(array, perChunk) {
 
 const init = async () => {
   const { submissionId, runId, token, apiKey, passengerIds } = argv;
+  console.log({argv})
 
   if (!token) {
     throw new Error("No token provided");
@@ -75,8 +77,9 @@ const watchRun = (submissionId, runId) => {
         status: data.status,
       });
       if(data.status === "Killed") {
+        console.log('Kill code received')
         // Run is marked as killed, so do not continue
-        process.exit(0)
+        process.exit(2)
       }
       global.run = data;
       resolve(data);
@@ -109,8 +112,8 @@ const getAccount = async (accountId) => {
 // Get data and write to data.json
 const writeData = async () => {
   const dataFilePath = path.join(os.tmpdir(), "hajonsoft-eagle", "data.json");
-  // TODO get specified passengers
-  const passengers = await fetchPassengers(submission.passengerIds);
+  // Generate specific passengers (if specified), or whole submission
+  const passengers = await fetchPassengers(global.passengerIds ?? submission.passengerIds);
   const integration = submission.integration;
   const account = await getAccount(submission.accountId);
 
