@@ -84,7 +84,7 @@ async function send(sendData) {
   // exist program if no login 10 seconds
   setTimeout(() => {
     if (!configs.find((c) => c.name === "main")) {
-      process.exit(17000);
+      process.exit(1);
     }
   }, 60000);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });

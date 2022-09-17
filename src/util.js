@@ -755,7 +755,7 @@ function getSelectedTraveler() {
     // Force reset the counter and avoid looping
     console.log("Last passenger reached!!. Exiting in 10 seconds...");
     setTimeout(() => {
-      process.exit(17000);
+      process.exit(0);
     }, 10000);
   }
   return value;

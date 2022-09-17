@@ -49,7 +49,7 @@ const init = async () => {
   global.user = await logInWithRefreshToken(token, apiKey);
 
   await getSubmission(submissionId);
-  await getRun(submissionId, runId);
+  await watchRun(submissionId, runId);
   await writeData();
 };
 
@@ -63,14 +63,25 @@ const getSubmission = async (submissionId) => {
   return data;
 };
 
-const getRun = async (submissionId, runId) => {
-  const snap = await getDoc(db.submissionRun(submissionId, runId));
-  const data = snap.data();
-  if(!data) {
-    throw new Error(`Run not found [id: ${submissionId}]`)
-  }
-  global.run = data;
-  return data;
+const watchRun = (submissionId, runId) => {
+  return new Promise((resolve, reject) => {
+    console.log(`KEA: Watching run [id: ${runId}]`);
+    return onSnapshot(db.submissionRun(submissionId, runId), (snapshot) => {
+      const data = snapshot.data();
+      if (!data) {
+        reject(`Run not found [id:${runId}]`);
+      }
+      console.log("run snapshot:", {
+        status: data.status,
+      });
+      if(data.status === "Killed") {
+        // Run is marked as killed, so do not continue
+        process.exit(0)
+      }
+      global.run = data;
+      resolve(data);
+    });
+  });
 };
 
 const fetchPassengers = async (passengerIds) => {

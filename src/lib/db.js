@@ -49,6 +49,23 @@ const db = {
     getTypedCollection(["submissions", submissionId, "runs"]),
   submissionRun: (submissionId, runId) =>
     getTypedDoc(["submissions", submissionId, "runs", runId]),
+  submissionRunLogs: (submissionId, runId) =>
+    getTypedCollection([
+      'submissions',
+      submissionId,
+      'runs',
+      runId,
+      'logs'
+    ]),
+  submissionRunLog: (submissionId, runId, logId) =>
+    getTypedDoc([
+      'submissions',
+      submissionId,
+      'runs',
+      runId,
+      'logs',
+      logId
+    ]),
   // Reports
   reportTemplates: () => getTypedCollection(["reportTemplates"]),
   reportTemplate: (id) => getTypedDoc(["reportTemplates", id]),
