@@ -12,7 +12,9 @@ const sharp = require("sharp");
 let page;
 let data;
 let counter = 0;
+let groupName = "";
 let previousTableInfo = "dummy";
+let status = "idle";
 
 const mutamerConfig = {
   details: [
@@ -42,7 +44,7 @@ const mutamerConfig = {
     { selector: "#ddl_EducationalLevel", value: (row) => "99" },
     {
       selector: "#txt_BirthCity",
-      value: (row) => decodeURI(row.birthPlace),
+      value: (row) => decodeURI(row.birthPlace) || "unknown",
     },
     {
       selector: "#txt_ArabicName1",
@@ -108,8 +110,7 @@ const config = [
     details: [
       {
         selector: "#txt_GroupName",
-        value: (row) =>
-          `${row.name.first}-${row.name.last}-${moment().format("HH:mm:ss")}`,
+        value: (row) => groupName
       },
     ],
     controller: {
@@ -139,6 +140,16 @@ const config = [
 ];
 
 async function sendPassenger(passenger) {
+  status = "sending";
+  // select group if not selected
+  const selectedGroup = await page.$eval("#ddl_EAGroups", (el) => el.value);
+  if (!selectedGroup) {
+    await util.commit(page, [{
+      selector: "#ddl_EAGroups",
+      txt: () => groupName,
+    }]);
+  }
+
   await page.evaluate(
     () => (document.querySelector("#txt_Mrz").disabled = false)
   );
@@ -147,7 +158,7 @@ async function sendPassenger(passenger) {
   const titleMessage = `Eagle: send.. ${
     parseInt(util.getSelectedTraveler()) + 1
   }/${data.travellers.length}-${passenger?.name?.last}`;
-  await page.evaluate("document.title='" + titleMessage + "'");
+  util.infoMessage(page,titleMessage);
 
   await page.waitForTimeout(5000);
   await util.commit(page, mutamerConfig.details, passenger);
@@ -222,7 +233,6 @@ async function sendPassenger(passenger) {
   if (previousTableInfo != tableInfo && fs.existsSync(getPath("loop.txt"))) {
     previousTableInfo = tableInfo;
     const nextTraveller = util.incrementSelectedTraveler();
-
     sendPassenger(data.travellers[nextTraveller]);
   }
 }
@@ -271,6 +281,7 @@ async function runPageConfiguration(currentConfig) {
       });
       break;
     case "create-group-or-mutamer":
+      groupName = `${data.travellers[0].name.first}-${data.travellers[0].name.last}-${moment().format("HH:mm:ss")}`;
       await util.commit(page, currentConfig.details, data.travellers[0]);
 
       await page.waitForTimeout(3000);
@@ -280,6 +291,17 @@ async function runPageConfiguration(currentConfig) {
 
       await page.waitFor("#txt_PassportNumber", { visible: true });
       await util.controller(page, currentConfig, data.travellers);
+
+      if (!fs.existsSync(getPath("loop.txt"))) {
+        util.infoMessage(page, "Eagle: pause 10 seconds");
+        await page.waitForTimeout(10000);
+        if (status === "idle" ) {
+          fs.writeFileSync(getPath("loop.txt"), "loop");
+          const nextTraveller = util.getSelectedTraveler();
+          sendPassenger(data.travellers[nextTraveller]);
+        }
+        return ;
+      }
 
       break;
     case "create-mutamer":

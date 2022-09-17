@@ -430,7 +430,7 @@ async function selectByValue(selector, txt) {
   await page.waitForSelector(selector);
   const options = await page.$eval(selector, (e) => e.innerHTML);
   const valuePattern = new RegExp(
-    `value="([0-9a-zA-Z/]+)">${txt}</option>`,
+    `value="(.*)".*?>.*?${txt}</option>`,
     "im"
   );
   const found = valuePattern.exec(options.replace(/\n/gim, ""));
