@@ -84,6 +84,7 @@ async function send(sendData) {
   // exist program if no login 10 seconds
   setTimeout(() => {
     if (!configs.find((c) => c.name === "main")) {
+      util.infoMessage(null, "Login timed out", 2, null, true);
       process.exit(1);
     }
   }, 60000);

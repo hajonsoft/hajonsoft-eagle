@@ -70,13 +70,10 @@ const watchRun = (submissionId, runId) => {
     console.log(`KEA: Watching run [id: ${runId}]`);
     return onSnapshot(db.submissionRun(submissionId, runId), (snapshot) => {
       const data = snapshot.data();
-      if (!data) {
-        reject(`Run not found [id:${runId}]`);
-      }
       console.log("run snapshot:", {
         status: data.status,
       });
-      if(data.status === "Killed") {
+      if(!data || data.status === "Killed") {
         console.log('Kill code received')
         // Run is marked as killed, so do not continue
         process.exit(2)
