@@ -313,27 +313,11 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       showController();
-      startAutomation();
+      //startAutomation();
       if (!passenger) {
         // No valid passenger found
+        return;
       }
-      // Login page Algorithm
-      // 1. Get the current passenger and fill the form
-      // 2. Click on the submit button
-      // 3. Wait for the next page to load
-      // 4. Repeat the process until all passengers are done
-
-      // 1. Get the current passenger and fill the form
-      // 1.a Validate data
-      // 1.b if data is valid, fill the form
-      // 1.c if data is invalid, throw an error and move to next passenger
-      // 1.d if all passengers are done, return
-      // 1.e if all passengers are not done, repeat the process
-
-      // 1.a Validate data
-
-
-      // If not looping, start looping after timeout if this is the first time
       if (!fs.existsSync(getPath("loop.txt"))) {
         await util.premiumSupportAlert(
           page,
