@@ -133,7 +133,7 @@ const updateSelectedTraveller = async (value) => {
   );
   // optimistic update
   global.run.selectedTraveller = value;
-  return updateDoc(db.submissionRun(global.submission.id, global.run.id), {
+  return updateDoc(db.run(global.run.id), {
     selectedTraveller: value,
   });
 };
