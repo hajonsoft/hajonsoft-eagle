@@ -376,7 +376,6 @@ async function commit(page, details, row) {
               field.setAttribute("value", "");
             }
           }, detail);
-          await pauseMessage(page, 10);
         }
 
         if (value) {
@@ -436,7 +435,12 @@ async function selectByValue(selector, txt) {
   }
 }
 
-function getMofaImportString(passportNumber) {
+function getMofaImportString(passenger) {
+  const passportNumber = passenger.passportNumber;
+  const mofaNumber = passenger.mofaNumber;
+  if (mofaNumber) {
+    return " - MOFA: " + mofaNumber;
+  }
   try {
     const file = getPath(passportNumber + ".txt");
     if (fs.existsSync(file)) {
@@ -479,7 +483,7 @@ async function controller(page, structure, travellers) {
           } - ${traveller.passportNumber} - ${traveller?.nationality?.name} - ${
             traveller?.gender || "gender"
           } - ${traveller?.dob?.age || "age"} years old${getMofaImportString(
-            traveller.passportNumber
+            traveller
           )}</option>`
       )
       .join(" ");
@@ -1347,7 +1351,7 @@ async function uploadImage(fileName) {
         type: "stream",
       })
       .then((result) => {
-        console.log("uploaded image: ", result.data);
+        console.log("screenshot uploaded 👍", result.data?.link);
       })
       .catch((err) => {
         // console.log("error uploading image: ", err);
@@ -1419,11 +1423,11 @@ const infoMessage = async (
 
 const pauseMessage = async (page, seconds = 3) => {
   if (page) {
-    if (seconds === 0) {
+    if (seconds <= 0) {
       await page.evaluate("document.title=''");
     } else {
       await page.evaluate(
-        "document.title='Eagle: Paused for " + seconds + " seconds'"
+        "document.title='Eagle: pause for " + seconds + " seconds'"
       );
       await page.waitForTimeout(1000);
       await pauseMessage(page, seconds - 1);
