@@ -45,22 +45,18 @@ const db = {
   // Visa Submissions
   submissions: () => getTypedCollection(["submissions"]),
   submission: (id) => getTypedDoc(["submissions", id]),
-  submissionRuns: (submissionId) =>
-    getTypedCollection(["submissions", submissionId, "runs"]),
-  submissionRun: (submissionId, runId) =>
-    getTypedDoc(["submissions", submissionId, "runs", runId]),
-  submissionRunLogs: (submissionId, runId) =>
+  runs: () =>
+    getTypedCollection(["runs"]),
+  run: (runId) =>
+    getTypedDoc(["runs", runId]),
+  runLogs: (runId) =>
     getTypedCollection([
-      'submissions',
-      submissionId,
       'runs',
       runId,
       'logs'
     ]),
-  submissionRunLog: (submissionId, runId, logId) =>
+  runLog: (runId, logId) =>
     getTypedDoc([
-      'submissions',
-      submissionId,
       'runs',
       runId,
       'logs',

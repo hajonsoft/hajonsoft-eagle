@@ -51,7 +51,7 @@ const init = async () => {
   global.user = await logInWithRefreshToken(token, apiKey);
 
   await getSubmission(submissionId);
-  await watchRun(submissionId, runId);
+  await watchRun(runId);
   await writeData();
 };
 
@@ -65,10 +65,10 @@ const getSubmission = async (submissionId) => {
   return data;
 };
 
-const watchRun = (submissionId, runId) => {
+const watchRun = (runId) => {
   return new Promise((resolve, reject) => {
     console.log(`KEA: Watching run [id: ${runId}]`);
-    return onSnapshot(db.submissionRun(submissionId, runId), (snapshot) => {
+    return onSnapshot(db.run(runId), (snapshot) => {
       const data = snapshot.data();
       console.log("run snapshot:", {
         status: data?.status,
