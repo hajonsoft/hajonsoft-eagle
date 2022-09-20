@@ -39,6 +39,7 @@ let browser;
 
 function getTmpDir() {
   const tmpDir = path.join(os.tmpdir(), "hajonsoft-eagle");
+  // console.log("TMP DIR: " + tmpDir);
   if (!fs.existsSync(tmpDir)) {
     fs.mkdirSync(tmpDir, { recursive: true });
   }
