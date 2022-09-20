@@ -458,6 +458,7 @@ async function pageContentHandler(currentConfig) {
       await util.commit(page, currentConfig.details, passenger);
       await page.click("#HaveRejectedAppNo");
       await page.click("#HaveReleativesCurrentlyResidentKsaNo");
+      await page.waitForSelector("#QuestionModelList_4__AnswerNo" )
       await page.click("#QuestionModelList_4__AnswerNo");
       await page.click("#QuestionModelList_5__AnswerNo");
       await page.click("#QuestionModelList_6__AnswerNo");
@@ -677,6 +678,7 @@ async function pageContentHandler(currentConfig) {
               moment().format("YYYY-MM-DD_HH-mm-ss")
           ) + ".png";
 
+        console.log("Saving visa to file: ", visaFileName);
         await screenShotAndContinue(
           visaElement,
           saveFolder,
