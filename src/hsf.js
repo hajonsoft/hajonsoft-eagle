@@ -354,8 +354,9 @@ async function pageContentHandler(currentConfig) {
         // Start automation after 25 seconds of inactivity
         await util.pauseMessage(page, 25);
         if (status === "idle") {
-          if (data.travellers.every(isValidPassenger)) {
-            sendPassenger(util.getSelectedTraveler());
+          if (data.travellers.every(isValidPassenger)) {  
+            const index = util.getSelectedTraveler();
+            sendPassenger(index);
             return;
           }
           await startImport(page, data);
@@ -682,21 +683,6 @@ async function pageContentHandler(currentConfig) {
           currentPassenger,
           visaFileName
         );
-        const visaData = fs.readFileSync(visaFileName);
-        zip.file(visaFileName, visaData);
-        zip
-          .generateNodeStream({ type: "nodebuffer", streamFiles: true })
-          .pipe(fs.createWriteStream(path.join(saveFolder, "visas.zip")))
-          .on("finish", function () {
-            console.log(path.join(saveFolder, "visas.zip"));
-            util.infoMessage(
-              page,
-              "Visas are zipped successfully",
-              2,
-              path.join(saveFolder, "visas.zip"),
-              "visas.zip"
-            );
-          });
         return;
       }
       page.goto(config[0].url);
