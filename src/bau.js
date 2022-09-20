@@ -81,13 +81,13 @@ const config = [
 async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
-  // exist program if no login 10 seconds
+  // exit program if no login 2 mins
   setTimeout(() => {
     if (!configs.find((c) => c.name === "main")) {
       util.infoMessage(null, "Login timed out", 2, null, true);
       process.exit(1);
     }
-  }, 60000);
+  }, 1200000);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
@@ -411,7 +411,13 @@ async function sendPassenger(passenger) {
   if (saveBtn) {
     await page.click("#ctl00_ContentHolder_BtnEdit");
     await page.waitForTimeout(5000);
-    util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`,2, false, true);
+    util.infoMessage(
+      page,
+      `🧟 passenger ${passenger.slug} saved`,
+      2,
+      false,
+      true
+    );
     try {
       const errorMessage = await page.$eval(
         "#ctl00_ContentHolder_divErrorsList > div > ul > li",

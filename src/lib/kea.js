@@ -11,10 +11,12 @@ const {
   where,
   getDoc,
   onSnapshot,
+  setDoc,
 } = require("firebase/firestore");
 const db = require("./db");
 const { toData } = require("./factory");
 const { query } = require("firebase/database");
+const short = require("short-uuid");
 
 function chunkArray(array, perChunk) {
   return array.reduce((accumulator, item, index) => {
@@ -32,7 +34,7 @@ function chunkArray(array, perChunk) {
 
 const init = async () => {
   const { submissionId, runId, token, apiKey, passengerIds } = argv;
-  console.log({argv})
+  let newRun = {};
 
   if (!token) {
     throw new Error("No token provided");
@@ -40,10 +42,9 @@ const init = async () => {
   if (!apiKey) {
     throw new Error("No apiKey provided");
   }
-  if (!runId) {
-    throw new Error("No runId provided");
+  if (!submissionId) {
+    throw new Error("No submissionId provided");
   }
-
   if (passengerIds) {
     global.passengerIds = passengerIds.split(",");
   }
@@ -51,18 +52,47 @@ const init = async () => {
   global.user = await logInWithRefreshToken(token, apiKey);
 
   await getSubmission(submissionId);
-  await watchRun(runId);
+
+  if (!runId) {
+    // Create run
+    console.log("No runId supplied, creating new run");
+    newRun = await createRun(global.submission);
+    console.log("Created run", newRun.id);
+  }
+
+  await watchRun(runId ?? newRun.id);
   await writeData();
 };
 
 const getSubmission = async (submissionId) => {
   const snap = await getDoc(db.submission(submissionId));
   const data = snap.data();
-  if(!data) {
-    throw new Error(`Submission not found [id: ${submissionId}]`)
+  if (!data) {
+    throw new Error(`Submission not found [id: ${submissionId}]`);
   }
   global.submission = data;
   return data;
+};
+
+const createRun = async (submission) => {
+  const id = short.generate();
+  const ids = global.passengerIds ?? submission.passengerIds;
+  const payload = {
+    id,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    label: `1 - ${ids.length} of ${ids.length} Pax`,
+    attempts: 1,
+    status: "Running",
+    selectedTraveller: 0,
+    submissionId: submission.id,
+    submissionName: submission.name,
+    accountId: submission.accountId,
+    source: "Cli",
+    numPassengers: ids.length,
+  };
+  await setDoc(db.run(id), payload);
+  return payload;
 };
 
 const watchRun = (runId) => {
@@ -73,10 +103,10 @@ const watchRun = (runId) => {
       console.log("run snapshot:", {
         status: data?.status,
       });
-      if(!data || data.status === "Killed") {
-        console.log('Kill code received')
+      if (!data || data.status === "Killed") {
+        console.log("Kill code received");
         // Run is marked as killed, so do not continue
-        process.exit(2)
+        process.exit(2);
       }
       global.run = data;
       resolve(data);
@@ -110,7 +140,9 @@ const getAccount = async (accountId) => {
 const writeData = async () => {
   const dataFilePath = path.join(os.tmpdir(), "hajonsoft-eagle", "data.json");
   // Generate specific passengers (if specified), or whole submission
-  const passengers = await fetchPassengers(global.passengerIds ?? submission.passengerIds);
+  const passengers = await fetchPassengers(
+    global.passengerIds ?? submission.passengerIds
+  );
   const integration = submission.integration;
   const account = await getAccount(submission.accountId);
 
