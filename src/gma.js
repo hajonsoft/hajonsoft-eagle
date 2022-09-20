@@ -12,7 +12,9 @@ const sharp = require("sharp");
 let page;
 let data;
 let counter = 0;
+let groupName = "";
 let previousTableInfo = "dummy";
+let status = "idle";
 
 const mutamerConfig = {
   details: [
@@ -42,7 +44,7 @@ const mutamerConfig = {
     { selector: "#ddl_EducationalLevel", value: (row) => "99" },
     {
       selector: "#txt_BirthCity",
-      value: (row) => decodeURI(row.birthPlace),
+      value: (row) => decodeURI(row.birthPlace) || "unknown",
     },
     {
       selector: "#txt_ArabicName1",
@@ -95,19 +97,16 @@ const config = [
     url: "https://eumra.com/homepage.aspx?P=downloads",
   },
   {
+    name: "uploader",
+    url: "https://eumra.com/homepage.aspx?P=auploader",
+  },
+  {
     name: "main",
     url: "https://eumra.com/homepage.aspx?P=DashboardClassic",
   },
   {
     name: "create-group-or-mutamer",
     url: "https://eumra.com/auploader.aspx#/tab1_1",
-    details: [
-      {
-        selector: "#txt_GroupName",
-        value: (row) =>
-          `${row.name.first}-${row.name.last}-${moment().format("HH:mm:ss")}`,
-      },
-    ],
     controller: {
       selector: "#li1_2",
       action: async () => {
@@ -135,6 +134,19 @@ const config = [
 ];
 
 async function sendPassenger(passenger) {
+  status = "sending";
+  // select group if not selected
+  const groupSelector = "#ddl_EAGroups";
+  const selectedGroup = await page.$eval(groupSelector, (el) => el.value);
+  if (!selectedGroup || selectedGroup == "0") {
+    const options = await page.$eval(groupSelector, (e) => e.innerHTML);
+    const valuePattern = new RegExp(`value="(.*)".*?>.*?${groupName}</option>`, "im");
+    const found = valuePattern.exec(options.replace(/\n/gim, ""));
+    if (found && found.length >= 2) {
+      await page.select(groupSelector, `${found?.[1]?.split("=")[1].replace(/["']/gim, "")}`);
+    }
+  }
+
   await page.evaluate(
     () => (document.querySelector("#txt_Mrz").disabled = false)
   );
@@ -143,9 +155,8 @@ async function sendPassenger(passenger) {
   const titleMessage = `Eagle: send.. ${
     parseInt(util.getSelectedTraveler()) + 1
   }/${data.travellers.length}-${passenger?.name?.last}`;
-  await page.evaluate("document.title='" + titleMessage + "'");
-
-  await page.waitForTimeout(5000);
+  util.infoMessage(page, titleMessage);
+  util.pauseMessage(page, 5);
   await util.commit(page, mutamerConfig.details, passenger);
   for (const field of mutamerConfig.details) {
     await page.$eval(field.selector, (e) => {
@@ -202,24 +213,31 @@ async function sendPassenger(passenger) {
     "#CodeNumberTextBox",
     5
   );
-  await page.waitForTimeout(3000);
-
+  util.pauseMessage(page);
   if (token) {
     await page.click(
       "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success"
     );
   }
-  await page.waitForTimeout(10000);
-
-  const tableInfo = await page.$eval(
-    "#tableGroupMutamers_info",
-    (el) => el.innerText
-  );
+  await util.pauseMessage(page, 10);
+  const isTableExist = await page.$("#tableGroupMutamers_info");
+  let tableInfo;
+  if (isTableExist) {
+    tableInfo = await page.$eval(
+      "#tableGroupMutamers_info",
+      (el) => el.innerText
+    );
+  }
   if (previousTableInfo != tableInfo && fs.existsSync(getPath("loop.txt"))) {
     previousTableInfo = tableInfo;
     const nextTraveller = util.incrementSelectedTraveler();
-
-    sendPassenger(data.travellers[nextTraveller]);
+    const nextPassenger = data.travellers[nextTraveller];
+    if (nextPassenger) {
+      sendPassenger(nextPassenger);
+    } else {
+      console.log("done");
+      process.exit(0);
+    }
   }
 }
 
@@ -253,7 +271,8 @@ async function runPageConfiguration(currentConfig) {
         "#CodeNumberTextBox",
         5
       );
-      await page.waitForTimeout(3000);
+        await util.pauseMessage(page);
+
       if (token) {
         await page.click("#btn_Login");
       }
@@ -261,15 +280,61 @@ async function runPageConfiguration(currentConfig) {
       break;
     case "main":
     case "download":
+    case "uploader":
       await page.goto("https://eumra.com/auploader.aspx#/tab1_1", {
         waitUntil: "networkidle2",
       });
       break;
     case "create-group-or-mutamer":
-      await util.commit(page, currentConfig.details, data.travellers[0]);
+      groupName = util.suggestGroupName(data);
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#txt_GroupName",
+            value: () => groupName,
+          },
+        ],
+        null
+      );
+
+      // select embassy here
+  // #ddl_Consulates
+  if (data.system.embassy) {
+    const embassySelector = "#ddl_Consulates";
+      const optionsEmbassy = await page.$eval(
+        embassySelector,
+        (e) => e.innerHTML
+      );
+      const valuePatternEmbassy = new RegExp(
+        `value="(.*)">${data.system.embassy}.*?</option>`,
+        "im"
+      );
+      const foundEmbassy = valuePatternEmbassy.exec(
+        optionsEmbassy.replace(/\n/gim, "")
+      );
+      if (foundEmbassy && foundEmbassy.length >= 2) {
+        await page.select(embassySelector, foundEmbassy[1]);
+      }
+  }
+
+      await util.pauseMessage(page);
+      await page.click("#btnUpdateGroup");
+      await util.pauseMessage(page);
+      await page.click("#li1_1 > a");
 
       await page.waitFor("#txt_PassportNumber", { visible: true });
       await util.controller(page, currentConfig, data.travellers);
+
+      if (!fs.existsSync(getPath("loop.txt"))) {
+        util.pauseMessage(page, 10);
+        if (status === "idle") {
+          fs.writeFileSync(getPath("loop.txt"), "loop");
+          const nextTraveller = util.getSelectedTraveler();
+          sendPassenger(data.travellers[nextTraveller]);
+        }
+        return;
+      }
 
       break;
     case "create-mutamer":

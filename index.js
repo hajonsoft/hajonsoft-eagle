@@ -98,7 +98,7 @@ async function sendToCloud(data) {
     process.argv
       .find((arg) => arg.toLowerCase().startsWith("range"))
       ?.replace(",", "-") ?? ""
-  }" && git push origin $(git branch --show-current):job --force`;
+  }" && git push origin main:job --force`;
   const childProcess = require("child_process");
 
   childProcess.exec(command, function (error, stdout, stderr) {

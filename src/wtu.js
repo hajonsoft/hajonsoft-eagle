@@ -39,13 +39,7 @@ const config = [
     details: [
       {
         selector: "#txtGrpdesc",
-        value: (row) =>
-          `${row.travellers?.[0].name?.first?.substring(
-            0,
-            10
-          )}-${row.travellers?.[0].name?.last?.substring(0, 10)}-${os
-            .hostname()
-            .substring(0, 8)}${moment().format("mmss")}_${row.info.run}`,
+        value: (data) => util.suggestGroupName(data),
       },
     ],
   },
