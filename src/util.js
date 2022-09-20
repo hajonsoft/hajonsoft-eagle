@@ -39,6 +39,7 @@ let browser;
 
 function getTmpDir() {
   const tmpDir = path.join(os.tmpdir(), "hajonsoft-eagle");
+  // console.log("TMP DIR: " + tmpDir);
   if (!fs.existsSync(tmpDir)) {
     fs.mkdirSync(tmpDir, { recursive: true });
   }
@@ -159,7 +160,7 @@ async function initPage(config, onContentLoaded, data) {
   page.on("domcontentloaded", onContentLoaded);
 
   page.on("dialog", async (dialog) => {
-    await page.waitForTimeout(5000);
+    await pauseMessage(page, 5);
     try {
       await dialog.accept();
     } catch {}
@@ -298,7 +299,7 @@ function findConfig(url, config) {
     infoMessage(
       page,
       `✈️ Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex}`,
-      9
+      2
     );
     return urlConfig;
   }
@@ -376,7 +377,6 @@ async function commit(page, details, row) {
               field.setAttribute("value", "");
             }
           }, detail);
-          await page.waitForTimeout(10);
         }
 
         if (value) {
@@ -429,17 +429,19 @@ async function commit(page, details, row) {
 async function selectByValue(selector, txt) {
   await page.waitForSelector(selector);
   const options = await page.$eval(selector, (e) => e.innerHTML);
-  const valuePattern = new RegExp(
-    `value="([0-9a-zA-Z/]+)">${txt}</option>`,
-    "im"
-  );
+  const valuePattern = new RegExp(`value="(.*)".*?>.*?${txt}</option>`, "im");
   const found = valuePattern.exec(options.replace(/\n/gim, ""));
   if (found && found.length >= 2) {
     await page.select(selector, found[1]);
   }
 }
 
-function getMofaImportString(passportNumber) {
+function getMofaImportString(passenger) {
+  const passportNumber = passenger.passportNumber;
+  const mofaNumber = passenger.mofaNumber;
+  if (mofaNumber) {
+    return " - MOFA: " + mofaNumber;
+  }
   try {
     const file = getPath(passportNumber + ".txt");
     if (fs.existsSync(file)) {
@@ -482,7 +484,7 @@ async function controller(page, structure, travellers) {
           } - ${traveller.passportNumber} - ${traveller?.nationality?.name} - ${
             traveller?.gender || "gender"
           } - ${traveller?.dob?.age || "age"} years old${getMofaImportString(
-            traveller.passportNumber
+            traveller
           )}</option>`
       )
       .join(" ");
@@ -1188,7 +1190,7 @@ async function commitCaptchaToken(
   captchaLength = 6
 ) {
   infoMessage(page, "🔓 Captcha thinking...");
-  await page.waitForTimeout(3000);
+  await pauseMessage(page, 3);
 
   await page.waitForSelector(textFieldSelector);
   await page.focus(textFieldSelector);
@@ -1313,7 +1315,13 @@ function getOverridePath(original, override) {
 
   return original;
 }
-function uploadImage(fileName) {
+async function uploadImage(fileName) {
+  const image = await sharp(fileName);
+  const metadata = await image.metadata();
+  if (metadata.width < 10) {
+    return;
+  }
+
   if (fs.existsSync(fileName)) {
     imgurClient
       .upload({
@@ -1321,10 +1329,10 @@ function uploadImage(fileName) {
         type: "stream",
       })
       .then((result) => {
-        console.log("uploaded image: ", result.data);
+        console.log("screenshot uploaded 👍", result.data?.link);
       })
       .catch((err) => {
-        console.log("error uploading image: ", err);
+        // console.log("error uploading image: ", err);
       });
   }
 }
@@ -1378,17 +1386,31 @@ const infoMessage = async (
       // Capture screenshot and display image in log
       await page.screenshot({ path: screenshotFileName, fullPage: true });
       if (isCloudRun && takeScreenShot) {
-        uploadImage(screenshotFileName);
+        await uploadImage(screenshotFileName);
         if (visaShot) {
-          uploadImage(visaShot);
+          await uploadImage(visaShot);
         }
       }
     } catch (e) {
-      console.log("Error while taking screenshot: ", e);
+      // console.log("Error while taking screenshot: ", e);
     }
   }
 
   console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
+};
+
+const pauseMessage = async (page, seconds = 3) => {
+  if (page) {
+    if (seconds <= 0) {
+      await page.evaluate("document.title=''");
+    } else {
+      await page.evaluate(
+        "document.title='Eagle: pause for " + seconds + " seconds'"
+      );
+      await page.waitForTimeout(1000);
+      await pauseMessage(page, seconds - 1);
+    }
+  }
 };
 
 function getLogFile(eagleData) {
@@ -1406,6 +1428,19 @@ function getLogFile(eagleData) {
   );
   return logFile;
 }
+
+const suggestGroupName = (data) => {
+  const time = moment().format("mmss");
+
+  const suggestedName = `${data.travellers?.[0]?.name?.first.substring(
+    0,
+    10
+  )}_${data.travellers?.[0]?.name?.last.substring(0, 10)}$_${os
+    .hostname()
+    .substring(0, 8)}${time}_${data.info.run}`;
+
+  return suggestedName.replace(/[^a-zA-Z0-9_]/g, "");
+};
 
 const hijriYear = 44;
 
@@ -1448,5 +1483,7 @@ module.exports = {
   setSelectedTraveller,
   updatePassengerInKea,
   infoMessage,
+  pauseMessage,
   getLogFile,
+  suggestGroupName,
 };

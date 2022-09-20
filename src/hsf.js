@@ -224,24 +224,14 @@ async function onContentLoaded(res) {
   }
 }
 
-const isValidPassenger = (row) => {
-  if (row.mofaNumber && row.passportNumber && row.nationality.code) {
-    return true;
+const getPassenger = () => {
+  const index = util.getSelectedTraveler();
+  if (index < data.travellers.length) {
+    return data.travellers[index];
   }
-
-  return false;
-};
-
-const getValidPassenger = () => {
-  for (let i = parseInt(util.getSelectedTraveler()) ; i < data.travellers.length; i++) {
-    if (isValidPassenger(data.travellers[i])) {
-      util.setSelectedTraveler(i);
-      return data.travellers[i];
-    }
-  }
-  
+  // TODO: Exit if no more valid passenger
   return null;
-}
+};
 
 async function showController() {
   await util.controller(
@@ -259,46 +249,16 @@ async function showController() {
           await sendPassenger(selectedTraveller);
         },
         wtuAction: async () => {
-          wtuPage = await util.newPage(onWTUPageLoad, () => { });
-          initializeWTUImport(wtuPage, data);
-          wtuPage.on("response", injectWTUEagleButton);
-          await wtuPage.goto(
-            "https://www.waytoumrah.com/prj_umrah/eng/eng_frmlogin.aspx",
-            {
-              waitUntil: "domcontentloaded",
-            }
-          );
+          await beginWTUImport();
         },
         gmaAction: async () => {
-          gmaPage = await util.newPage(onGMAPageLoad, () => { });
-          gmaPage.on("response", injectGMAEagleButton);
-          const gmaBrowser = await gmaPage.browser();
-          gmaBrowser.on("targetcreated", handleGMATargetCreated);
-          await gmaPage.goto("https://eumra.com/login.aspx", {
-            waitUntil: "domcontentloaded",
-          });
+          await beginGMAImport();
         },
         bauAction: async () => {
-          bauPage = await util.newPage(onBAUPageLoad, () => { });
-          initializeBAUImport(bauPage, data);
-          // bauPage.on("response", injectBAUEagleButton);
-          await bauPage.goto(
-            `http://app${SERVER_NUMBER}.babalumra.com/Security/login.aspx`,
-            {
-              waitUntil: "domcontentloaded",
-            }
-          );
+          await beginBAUImport();
         },
         twfAction: async () => {
-          twfPage = await util.newPage(onTWFPageLoad, () => { });
-          initializeTWFImport(twfPage, data);
-          twfPage.on("response", injectTWFEagleButton);
-          await twfPage.goto(
-            `https://www.etawaf.com/tawaf${util.hijriYear}/index.html`,
-            {
-              waitUntil: "domcontentloaded",
-            }
-          );
+          await beginTWFImport();
         },
       },
     },
@@ -306,48 +266,103 @@ async function showController() {
   );
 }
 
+async function beginTWFImport() {
+  twfPage = await util.newPage(onTWFPageLoad, () => {});
+  initializeTWFImport(twfPage, data);
+  twfPage.on("response", injectTWFEagleButton);
+  await twfPage.goto(
+    `https://www.etawaf.com/tawaf${util.hijriYear}/index.html`,
+    {
+      waitUntil: "domcontentloaded",
+    }
+  );
+}
 
+async function beginBAUImport() {
+  bauPage = await util.newPage(onBAUPageLoad, () => {});
+  initializeBAUImport(bauPage, data);
+  // bauPage.on("response", injectBAUEagleButton);
+  await bauPage.goto(
+    `http://app${SERVER_NUMBER}.babalumra.com/Security/login.aspx`,
+    {
+      waitUntil: "domcontentloaded",
+    }
+  );
+}
+
+async function beginGMAImport() {
+  gmaPage = await util.newPage(onGMAPageLoad, () => {});
+  gmaPage.on("response", injectGMAEagleButton);
+  const gmaBrowser = await gmaPage.browser();
+  gmaBrowser.on("targetcreated", handleGMATargetCreated);
+  await gmaPage.goto("https://eumra.com/login.aspx", {
+    waitUntil: "domcontentloaded",
+  });
+}
+
+async function beginWTUImport() {
+  wtuPage = await util.newPage(onWTUPageLoad, () => {});
+  initializeWTUImport(wtuPage, data);
+  wtuPage.on("response", injectWTUEagleButton);
+  await wtuPage.goto(
+    "https://www.waytoumrah.com/prj_umrah/eng/eng_frmlogin.aspx",
+    {
+      waitUntil: "domcontentloaded",
+    }
+  );
+}
+
+async function isValidPassenger(passenger) {
+  return (
+    passenger.mofaNumber &&
+    passenger.passportNumber &&
+    passenger.nationality.code
+  );
+}
+
+async function startImport(page, data) {
+  util.infoMessage(page, `start import from ${data.system.serviceProvider}`);
+  switch (data.system.serviceProvider) {
+    case "twf":
+      beginTWFImport();
+      break;
+    case "bau":
+      beginBAUImport();
+      break;
+    case "gma":
+      beginGMAImport();
+      break;
+    case "wtu":
+      beginWTUImport();
+      break;
+    default:
+      return;
+  }
+}
 
 async function pageContentHandler(currentConfig) {
-  let passenger = getValidPassenger();    
+  let passenger = getPassenger();
   switch (currentConfig.name) {
     case "login":
       showController();
-      startAutomation();
-      if (!passenger) {
-        // No valid passenger found
-      }
-      // Login page Algorithm
-      // 1. Get the current passenger and fill the form
-      // 2. Click on the submit button
-      // 3. Wait for the next page to load
-      // 4. Repeat the process until all passengers are done
-
-      // 1. Get the current passenger and fill the form
-      // 1.a Validate data
-      // 1.b if data is valid, fill the form
-      // 1.c if data is invalid, throw an error and move to next passenger
-      // 1.d if all passengers are done, return
-      // 1.e if all passengers are not done, repeat the process
-
-      // 1.a Validate data
-
-
-      // If not looping, start looping after timeout if this is the first time
       if (!fs.existsSync(getPath("loop.txt"))) {
         await util.premiumSupportAlert(
           page,
           "body > div.page-header > div.page-header-top > div > div.page-logo.pull-left",
           data
         );
-        util.infoMessage(page, "pausing for 20 seconds");
-        setTimeout(() => {
-          if (status === "idle") {
-            const currentIndex = util.getSelectedTraveler();
-            sendPassenger(currentIndex);
+        // Start automation after 25 seconds of inactivity
+        await util.pauseMessage(page, 25);
+        if (status === "idle") {
+          if (data.travellers.every(isValidPassenger)) {  
+            const index = util.getSelectedTraveler();
+            sendPassenger(index);
+            return;
           }
-        }, 25000);
+          await startImport(page, data);
+        }
       }
+      // Stamp log file
       if (startTime) {
         fs.appendFileSync(
           util.getLogFile(),
@@ -360,6 +375,7 @@ async function pageContentHandler(currentConfig) {
         `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger?.codeline}\n`
       );
 
+      // Handle error popup
       await page.waitForTimeout(1000);
       try {
         const isDialog = await page.$(
@@ -380,34 +396,6 @@ async function pageContentHandler(currentConfig) {
 
       if (fs.existsSync(getPath("loop.txt"))) {
         const nextIndex = util.incrementSelectedTraveler();
-        for (let i = nextIndex; i < data.travellers.length; i++) {
-          const iPassenger = data.travellers[i];
-          const passportNumber = iPassenger.passportNumber;
-          if (fs.existsSync(getPath(passportNumber + ".txt"))) {
-            const importFileContent = fs.readFileSync(
-              getPath(`${passportNumber}.txt`),
-              "utf-8"
-            );
-
-            // TODO: revise for range
-            fs.readFileSync(getPath("loop.txt"), "utf-8")
-              .split("\n")
-              .forEach((keyword) => {
-                if (
-                  keyword &&
-                  keyword != "" &&
-                  importFileContent.includes(keyword)
-                ) {
-                  fs.writeFileSync(
-                    getPath("selectedTraveller.txt"),
-                    i.toString()
-                  );
-                  nextIndex = i;
-                  return;
-                }
-              });
-          }
-        }
         if (nextIndex < data.travellers.length) {
           await sendPassenger(nextIndex.toString());
         }
@@ -470,6 +458,7 @@ async function pageContentHandler(currentConfig) {
       await util.commit(page, currentConfig.details, passenger);
       await page.click("#HaveRejectedAppNo");
       await page.click("#HaveReleativesCurrentlyResidentKsaNo");
+      await page.waitForSelector("#QuestionModelList_4__AnswerNo" )
       await page.click("#QuestionModelList_4__AnswerNo");
       await page.click("#QuestionModelList_5__AnswerNo");
       await page.click("#QuestionModelList_6__AnswerNo");
@@ -676,40 +665,26 @@ async function pageContentHandler(currentConfig) {
         // Save base64 image to kea
         try {
           screenShotToKea(visaElement, data.system.accountId, currentPassenger);
-        } catch (error) { }
+        } catch (error) {}
 
         // Save image to file
         const visaFileName =
           path.join(
             saveFolder,
             currentPassenger?.passportNumber +
-            "_" +
-            currentPassenger?.name?.full.replace(/ /, "_") +
-            "_" +
-            moment().format("YYYY-MM-DD_HH-mm-ss")
+              "_" +
+              currentPassenger?.name?.full.replace(/ /, "_") +
+              "_" +
+              moment().format("YYYY-MM-DD_HH-mm-ss")
           ) + ".png";
 
+        console.log("Saving visa to file: ", visaFileName);
         await screenShotAndContinue(
           visaElement,
           saveFolder,
           currentPassenger,
           visaFileName
         );
-        const visaData = fs.readFileSync(visaFileName);
-        zip.file(visaFileName, visaData);
-        zip
-          .generateNodeStream({ type: "nodebuffer", streamFiles: true })
-          .pipe(fs.createWriteStream(path.join(saveFolder, "visas.zip")))
-          .on("finish", function () {
-            console.log(path.join(saveFolder, "visas.zip"));
-            util.infoMessage(
-              page,
-              "Visas are zipped successfully",
-              2,
-              path.join(saveFolder, "visas.zip"),
-              "visas.zip"
-            );
-          });
         return;
       }
       page.goto(config[0].url);
@@ -871,39 +846,38 @@ async function sendNewApplication(selectedTraveller) {
   }
 }
 
-async function sendPassenger(selectedTraveller) {
-  if (selectedTraveller) {
+async function sendPassenger(index) {
+  if (index) {
     try {
       // await page.emulateVisionDeficiency("blurredVision");
       const data = fs.readFileSync(getPath("data.json"), "utf-8");
       var passengersData = JSON.parse(data);
-      var passenger = passengersData.travellers[selectedTraveller];
+      var passenger = passengersData.travellers[index];
       util.infoMessage(page, `Sending ${passenger.slug}`);
-      if (!passenger.mofaNumber) {
-        const found = mofas.find(
-          (mofa) => mofa.passportNumber === passenger.passportNumber
+      const found = mofas?.find(
+        (mofa) => mofa.passportNumber === passenger.passportNumber
+      );
+      if (found) {
+        passenger.mofaNumber = found.mofaNumber;
+      } else if (fs.existsSync(getPath(passenger.passportNumber + ".txt"))) {
+        const data = fs.readFileSync(
+          getPath(passenger.passportNumber + ".txt"),
+          "utf-8"
         );
-        if (found) {
-          passenger.mofaNumber = found.mofaNumber;
-        } else if (fs.existsSync(getPath(passenger.passportNumber + ".txt"))) {
-          const data = fs.readFileSync(
-            getPath(passenger.passportNumber + ".txt"),
-            "utf-8"
-          );
-          passenger.mofaNumber = JSON.parse(data)?.mofaNumber;
-        }
+        passenger.mofaNumber = JSON.parse(data)?.mofaNumber;
       }
+
       await util.commit(
         page,
         config.find((con) => con.name === "login").details,
         passenger
       );
+      if (!passenger.mofaNumber) {
+        return;
+      }
       const actionSelector = "#btnSubmit";
-      const captchaSelector = "#imgCaptcha";
-      await page.waitForSelector(captchaSelector);
-      await page.focus(captchaSelector);
       // Wait for image to load.
-      await page.waitForTimeout(3000);
+      await util.pauseMessage(page, 3);
       const base64 = await page.evaluate(() => {
         const image = document.getElementById("imgCaptcha");
         const canvas = document.createElement("canvas");
@@ -931,21 +905,9 @@ async function sendPassenger(selectedTraveller) {
 
       if (token) {
         await page.type("#Captcha", token);
-        // Check that mofa field is filled in and passport field is at least 8 characters before clicking submit
-        const isMofaFilled = await page.$eval(
-          "#Id",
-          (el) => el.value.length > 6
-        );
-        const isPassportFilled = await page.$eval(
-          "#PassportNumber",
-          (el) => el.value.length > 7
-        );
-        if (isMofaFilled && isPassportFilled) {
-          await page.waitForSelector(actionSelector);
-          await page.click(actionSelector);
-        }
+        await page.waitForSelector(actionSelector);
+        await page.click(actionSelector);
       }
-      // await page.emulateVisionDeficiency("none");
     } catch (err) {
       console.log(err.message);
     }
@@ -998,8 +960,9 @@ async function handleImportGMAMofa() {
     const eagleButton = document.querySelector(
       "#frm_menue > center > table > tbody > tr > div > button"
     );
-    eagleButton.textContent = `Done... [${passportsArrayFromNode[0]}-${passportsArrayFromNode[passportsArrayFromNode.length - 1]
-      }]`;
+    eagleButton.textContent = `Done... [${passportsArrayFromNode[0]}-${
+      passportsArrayFromNode[passportsArrayFromNode.length - 1]
+    }]`;
   }, passports);
 }
 
@@ -1070,7 +1033,7 @@ async function injectGMAEagleButton() {
       await gmaPage.$eval(
         tdSelector,
         (el) =>
-        (el.innerHTML = `
+          (el.innerHTML = `
       <div style="display: flex; width: 100%; align-items: center; justify-content: center; gap: 16px; background-color: #CCCCCC; border: 2px solid black; border-radius: 16px; padding: 0.5rem; margin: 32px;">
       <img style='width: 32px; height: 32px; border-radius: 8px; margin-right: 0.5rem'  src='data:image/jpeg;base64,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'> </img> 
       <div>HAJOnSoft</div>
