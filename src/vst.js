@@ -274,6 +274,23 @@ const config = [
     ],
   },
   {
+    name: "print-visa",
+    url: "https://visa.mofa.gov.sa/visaservices/searchvisa",
+    controller: {
+      selector: "#content > div > div.page-head > div",
+      action: async () => {
+        const selectedTraveller = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
+        if (selectedTraveller) {
+          util.setSelectedTraveller(selectedTraveller);
+          sendPassengerToPrint(selectedTraveller);
+        }
+      },
+    },
+  },
+  {
     name: "otp",
     url: "https://visa.visitsaudi.com/Login/OTPAuth",
   },
@@ -337,7 +354,7 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveller) {
-          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveller);
+          util.setSelectedTraveller();
           await page.goto(await page.url());
         }
       },
@@ -397,6 +414,46 @@ async function onContentLoaded(res) {
   }
 }
 
+async function sendPassengerToPrint(index) {
+  const passenger = data.travellers[index];
+  // paste passport number and first name
+
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#ddlFirstValue",
+        value: (row) => "PassPortNo",
+      },
+      {
+        selector: "#ddlSecondValue",
+        value: (row) => "fName",
+      },
+      {
+        selector: "#tbFirstValue",
+        value: (row) => row.passportNumber,
+      },
+      {
+        selector: "#tbSecondValue",
+        value: (row) => row.name.first,
+      },
+      {
+        selector: "#NationalityId",
+        value: (row) => row.nationality.code
+      }
+    ],
+    passenger
+  );
+
+  await util.commitCaptchaToken(
+    page,
+    "imgCaptcha",
+    "#Captcha",
+    5
+  );
+
+}
+
 async function runPageConfiguration(currentConfig) {
   const passenger = data.travellers[counter];
   switch (currentConfig.name) {
@@ -419,7 +476,18 @@ async function runPageConfiguration(currentConfig) {
       await page.click("#btnAdd");
       break;
     case "login":
-      await util.premiumSupportAlert(page, "#app > div > nav", data);
+      await util.commander(page, {
+        controller: {
+          selector: "#app > div > nav",
+          title: "Print Visa",
+          arabicTitle: "طباعة الفيزا",
+          name: "printVisa",
+          action: async () => {
+            await page.goto("https://visa.mofa.gov.sa/visaservices/searchvisa");
+          },
+        },
+      });
+
       await page.waitForTimeout(3000);
       await util.commit(page, currentConfig.details, data.system);
       await page.waitForSelector("#CaptchaCode");
@@ -561,6 +629,9 @@ async function runPageConfiguration(currentConfig) {
         await page.waitForSelector("#btnAddMoreToGroup");
         await page.click("#btnAddMoreToGroup");
       }
+      break;
+    case "print-visa":
+      await util.controller(page, currentConfig, data.travellers);
       break;
     default:
       break;
