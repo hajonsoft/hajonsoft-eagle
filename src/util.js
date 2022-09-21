@@ -1339,33 +1339,6 @@ async function uploadImage(fileName) {
   }
 }
 
-function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
-  axios
-    .post(
-      "https://us-central1-hajonsoft-kea.cloudfunctions.net/https-putPassenger",
-      {
-        accountId,
-        passportNumber,
-        ...params,
-      }
-    )
-    .then((result) => {
-      // Log post call
-      if (!logFile) return;
-      fs.appendFileSync(
-        logFile,
-        `Writing to kea: ${JSON.stringify(params)} (status: ${result.status})\n`
-      );
-    })
-    .catch((err) => {
-      if (!logFile) return;
-      fs.appendFileSync(
-        logFile,
-        `Writing to kea: ${JSON.stringify(params)} (status: ${err.status})\n`
-      );
-    });
-}
-
 const infoMessage = async (
   page,
   message,
@@ -1483,7 +1456,6 @@ module.exports = {
   getSelectedTraveler,
   incrementSelectedTraveler,
   setSelectedTraveller,
-  updatePassengerInKea,
   infoMessage,
   pauseMessage,
   getLogFile,

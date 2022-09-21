@@ -2,13 +2,11 @@ const puppeteer = require("puppeteer-extra");
 // Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
-const _ = require("lodash");
 const fs = require("fs");
 const path = require("path");
+const kea = require("./lib/kea");
 const util = require("./util");
 const { getPath } = util;
-const moment = require("moment");
-const sharp = require("sharp");
 const budgie = require("./budgie");
 const os = require("os");
 
@@ -395,7 +393,7 @@ async function sendPassenger(passenger) {
       }
     );
     // Store submitted reason in kea
-    util.updatePassengerInKea(data.system.accountId, passenger.passportNumber, {
+    kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
       "submissionData.wtu.status": "Submitted",
     });
   } catch {
@@ -412,7 +410,7 @@ async function sendPassenger(passenger) {
     return page.goto(
       "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
     );
-  } 
+  }
 
   // Passenger rejected check if there is a reason and store it in kea. Then continue to Plan B
   const errorSelector =
@@ -420,7 +418,7 @@ async function sendPassenger(passenger) {
   const isError = await page.$(errorSelector);
   // Store error reason in kea
   if (isError) {
-    util.updatePassengerInKea(data.system.accountId, passenger.passportNumber, {
+    kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
       "submissionData.wtu.status": "Rejected",
       "submissionData.wtu.rejectionReason": await page.$eval(
         errorSelector,
@@ -495,7 +493,7 @@ async function sendPassenger(passenger) {
       5
     );
     await page.click("#btnsave");
-    util.updatePassengerInKea(data.system.accountId, passenger.passportNumber, {
+    kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
       "submissionData.wtu.status": "Submitted",
     });
     // allow 10 seconds to save

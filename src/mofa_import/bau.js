@@ -1,8 +1,8 @@
 const { config, SERVER_NUMBER } = require("../bau");
 const util = require("../util");
+const kea = require("../lib/kea");
 const { getPath } = util;
 const fs = require("fs");
-const { homedir } = require("os");
 const cheerio = require("cheerio");
 
 let page;
@@ -183,6 +183,11 @@ async function importFrameContent() {
           JSON.stringify({ passportNumber, mofaNumber })
         );
         passports.push(passportNumber);
+
+        // Write to Kea
+        kea.updatePassenger(data.system.accountId, passportNumber, {
+          mofaNumber: mofaNumber || "waiting",
+        });
       }
     });
   }
@@ -230,6 +235,11 @@ async function importFromTableText(text) {
             JSON.stringify(mofaRow)
           );
           passports.push(mofaRow.passportNumber);
+
+          // Write to Kea
+          kea.updatePassenger(data.system.accountId, mofaRow.passportNumber, {
+            mofaNumber: mofaRow.mofaNumber || "waiting",
+          });
         }
         break;
       default:

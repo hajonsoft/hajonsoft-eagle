@@ -1,18 +1,13 @@
-const { config } = require("../wtu");
 const util = require("../util");
+const kea = require("../lib/kea");
 const { getPath } = util;
 const fs = require("fs");
-const path = require("path");
-const { homedir } = require("os");
-const { default: axios } = require("axios");
-const logFile = getPath(path.join("log", "wtu.log"));
 let page;
 let data;
 let mofas = [];
 async function initialize(pg, dta) {
   page = pg;
   data = dta;
-  fs.writeFileSync(logFile, "");
 }
 
 async function injectWTUEagleButton() {
@@ -129,12 +124,7 @@ async function handleImportWTUMofa() {
       const params = {
         mofaNumber: mofaNumber || "waiting",
       };
-      util.updatePassengerInKea(
-        data.system.accountId,
-        passportNumber,
-        params,
-        logFile
-      );
+      kea.updatePassenger(data.system.accountId, passportNumber, params);
     }
   }
   await page.evaluate((passportsArrayFromNode) => {

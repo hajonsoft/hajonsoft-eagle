@@ -16,7 +16,10 @@ const {
 const db = require("./db");
 const { toData } = require("./factory");
 const { query } = require("firebase/database");
+const { storage } = require("./firebase");
 const short = require("short-uuid");
+const sharp = require("sharp");
+const { ref, uploadString, getDownloadURL } = require("firebase/storage");
 
 function chunkArray(array, perChunk) {
   return array.reduce((accumulator, item, index) => {
@@ -77,6 +80,8 @@ const getSubmission = async (submissionId) => {
 const createRun = async (submission) => {
   const id = short.generate();
   const ids = global.passengerIds ?? submission.passengerIds;
+  const isWholeSubmission = ids.length === submission.passengerIds.length;
+
   const payload = {
     id,
     createdAt: new Date().toISOString(),
@@ -89,6 +94,7 @@ const createRun = async (submission) => {
     submissionName: submission.name,
     accountId: submission.accountId,
     source: "Cli",
+    passengerIds: isWholeSubmission ? undefined : ids,
     numPassengers: ids.length,
   };
   await setDoc(db.run(id), payload);
@@ -152,13 +158,6 @@ const writeData = async () => {
   fs.writeFileSync(dataFilePath, JSON.stringify(jsonData));
 };
 
-const updateSubmissionStatus = async (status) => {
-  console.log(
-    `KEA: Updating submission status to ${status} [id: ${global.submissionId}]`
-  );
-  return updateDoc(db.submission(global.submission.id), { status });
-};
-
 const updateSelectedTraveller = async (value) => {
   console.log(
     `KEA: Updating selectedTraveller to ${value} [id: ${global.run.id}]`
@@ -170,8 +169,31 @@ const updateSelectedTraveller = async (value) => {
   });
 };
 
+const updatePassenger = async (accountId, passportNumber, payload) => {
+  const snaps = await getDocs(
+    query(
+      db.passengers(),
+      where("accountId", "==", accountId),
+      where("passportNumber", "==", passportNumber)
+    )
+  );
+  const promises = [];
+  snaps.docs.forEach(async (doc) => {
+    console.log(`KEA: Updating passenger [id: ${doc.id}]`, { payload });
+    promises.push(updateDoc(doc.ref, payload));
+  });
+  await Promise.all(promises);
+};
+
+const uploadImageToStorage = async (base64, destination) => {
+  const imageRef = ref(storage, destination);
+  const snapshot = await uploadString(imageRef, base64, "base64");
+  return await getDownloadURL(snapshot.ref);
+};
+
 module.exports = {
   init,
-  updateSubmissionStatus,
   updateSelectedTraveller,
+  uploadImageToStorage,
+  updatePassenger,
 };
