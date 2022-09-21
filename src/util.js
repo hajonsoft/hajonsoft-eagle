@@ -18,7 +18,6 @@ const moment = require("moment");
 const _ = require("lodash");
 const beautify = require("beautify");
 const homedir = require("os").homedir();
-console.log("HOME: " + homedir);
 const photosFolder = path.join(homedir, "hajonsoft", "photos");
 const idFolder = path.join(homedir, "hajonsoft", "id");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
@@ -1405,6 +1404,10 @@ function getLogFile(eagleData) {
 }
 
 const suggestGroupName = (data) => {
+  if (global.submission) {
+    return `${new Date().getTime()}_${global.submission.name}`.substring(0, 50);
+  }
+
   const time = moment().format("mmss");
 
   const suggestedName = `${data.travellers?.[0]?.name?.first.substring(

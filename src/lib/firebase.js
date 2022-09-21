@@ -33,7 +33,7 @@ const logInWithRefreshToken = async (refreshToken, apiKey) => {
   // https://stackoverflow.com/questions/38233687/how-to-use-the-firebase-refreshtoken-to-reauthenticate
   // Get api key from here: https://console.cloud.google.com/customer-identity/providers?authuser=1&project=hajonsoft-kea
   try {
-    console.log("AUTH: getting access token");
+    console.log("Logging in...");
     const { data: tokenResult } = await axios.post(
       `https://securetoken.googleapis.com/v1/token?key=${apiKey}`,
       {
@@ -41,13 +41,11 @@ const logInWithRefreshToken = async (refreshToken, apiKey) => {
         refresh_token: refreshToken,
       }
     );
-    console.log("AUTH: getting auth token");
     const code = short.generate();
     const { data: authTokenResult } = await axios.get(
       `${config.functionURL}/https-createAuthToken?ot-auth-code=${code}&id-token=${tokenResult.access_token}`
     );
 
-    console.log("AUTH: logging in");
     const userCredential = await signInWithCustomToken(
       auth,
       authTokenResult.token

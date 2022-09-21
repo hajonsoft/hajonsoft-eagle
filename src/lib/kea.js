@@ -106,9 +106,7 @@ const watchRun = (runId) => {
     console.log(`KEA: Watching run [id: ${runId}]`);
     return onSnapshot(db.run(runId), (snapshot) => {
       const data = snapshot.data();
-      console.log("run snapshot:", {
-        status: data?.status,
-      });
+      console.log("run snapshot:", data);
       if (!data || data.status === "Killed") {
         console.log("Kill code received");
         // Run is marked as killed, so do not continue
@@ -121,7 +119,6 @@ const watchRun = (runId) => {
 };
 
 const fetchPassengers = async (passengerIds) => {
-  console.log(`KEA: Fetching ${passengerIds.length} passengers...`);
   const chunkSize = 10;
   const chunks = chunkArray(passengerIds, chunkSize);
   let data = [];
