@@ -114,7 +114,7 @@ const config = [
       },
       {
         selector: "#ddlppissmm",
-        txt: (row) => row.passIssueDt.mmm,
+        txt: (row) => row.passIssueDt.mmm.startsWith("0") ? row.passIssueDt.mmm.substring(1) : row.passIssueDt.mmm,
       },
       {
         selector: "#txtppissyy",
