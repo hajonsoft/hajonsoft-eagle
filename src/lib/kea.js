@@ -106,11 +106,19 @@ const watchRun = (runId) => {
     console.log(`KEA: Watching run [id: ${runId}]`);
     return onSnapshot(db.run(runId), (snapshot) => {
       const data = snapshot.data();
-      console.log("run snapshot:", data);
       if (!data || data.status === "Killed") {
         console.log("Kill code received");
         // Run is marked as killed, so do not continue
         process.exit(2);
+      }
+      if (global.run) {
+        // Log diff
+        const diff = Object.keys(data)
+          .filter((key) => data[key] !== global.run[key])
+          .map((key) => `${key}: ${global.run[key]} -> ${data[key]}`);
+        if (diff.length) {
+          console.log("Run updated:", diff);
+        }
       }
       global.run = data;
       resolve(data);
