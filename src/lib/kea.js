@@ -1,5 +1,6 @@
 const fs = require("fs-extra");
 const os = require("os");
+const _ = require("lodash");
 const path = require("path");
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
@@ -114,7 +115,7 @@ const watchRun = (runId) => {
       if (global.run) {
         // Log diff
         const diff = Object.keys(data)
-          .filter((key) => data[key] !== global.run[key])
+          .filter((key) => _.isEqual(data[key], global.run[key]))
           .map((key) => `${key}: ${global.run[key]} -> ${data[key]}`);
         if (diff.length) {
           console.log("Run updated:", diff);
