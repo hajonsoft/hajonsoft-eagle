@@ -206,7 +206,7 @@ async function pageContentHandler(currentConfig) {
 
       await page.focus("#BtnSave");
       await page.hover("#BtnSave");
-      util.infoMessage(page, "Redirect in 15 seconds");
+      util.pauseMessage(page, 15);
       setTimeout(async () => {
         const url = await page.url();
         const createGroupRegex = config.find(

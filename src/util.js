@@ -19,7 +19,7 @@ const moment = require("moment");
 const _ = require("lodash");
 const beautify = require("beautify");
 const homedir = require("os").homedir();
-console.log("HOME: " + homedir);
+console.log("HOME: " , getPath(""));
 const photosFolder = path.join(homedir, "hajonsoft", "photos");
 const idFolder = path.join(homedir, "hajonsoft", "id");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
@@ -144,7 +144,7 @@ async function initPage(config, onContentLoaded, data) {
   );
 
   const launchOptions = {
-    headless: isCloudRun || isHeadless,
+    headless: false,
     ignoreHTTPSErrors: true,
     defaultViewport: null,
     args,
@@ -1389,6 +1389,17 @@ function updatePassengerInKea(accountId, passportNumber, params = {}, logFile) {
     });
 }
 
+function getSubmission(submissionId, token) {
+  // Call to get the data
+  const submission = {};
+
+  // Convert to data.json
+  const data = {
+  };
+
+  return data;
+}
+
 const infoMessage = async (
   page,
   message,
@@ -1511,4 +1522,5 @@ module.exports = {
   pauseMessage,
   getLogFile,
   suggestGroupName,
+  getSubmission,
 };

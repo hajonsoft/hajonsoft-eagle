@@ -198,6 +198,10 @@ async function getDataFileName() {
     arg.toLowerCase().startsWith("file")
   );
 
+  const submissionParam = process.argv.find((arg) =>
+  arg.toLowerCase().startsWith("--submissionid")
+);
+
   let dataFileName = getPath("data.json");
 
   if (fileParam) {
@@ -235,6 +239,22 @@ async function getDataFileName() {
       `Success: ${fileName} => ${outputDir}/data.json`,
       "\x1b[0m"
     );
+  }
+
+  if (submissionParam) {
+    const submissionId = submissionParam.split("=")[1];
+    const data = await util.getSubmission(submissionId);
+    if (data) {
+      fs.writeFileSync(dataFileName, JSON.stringify(data, null, 2));
+      console.log(
+        "\x1b[7m",
+        `Success: ${submissionId} => ${dataFileName}`,
+        "\x1b[0m"
+      );
+    } else {
+      console.log(`Submission not found ${submissionId}`);
+      process.exit(1);
+    }
   }
 
   if (!fs.existsSync(dataFileName)) {
