@@ -25,8 +25,7 @@ const config = [
     ],
     commit: true,
     supportSelector: "#form1 > div:nth-child(14) > div",
-    success:
-    {
+    success: {
       name: "main",
     },
   },
@@ -77,22 +76,19 @@ const config = [
 async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
-  // exist program if no login 10 seconds
+  // exit program if no login 2 mins
   setTimeout(() => {
     if (!configs.find((c) => c.name === "main")) {
-      process.exit(17000);
+      util.infoMessage(null, "Login timed out", 2, null, true);
+      process.exit(1);
     }
-  }, 60000);
+  }, 1200000);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
 async function commonTasks(currentConfig) {
   if (currentConfig.supportSelector) {
-    await util.premiumSupportAlert(
-      page,
-      currentConfig.supportSelector,
-      data
-    );
+    await util.premiumSupportAlert(page, currentConfig.supportSelector, data);
     return;
   }
   if (currentConfig.controller) {
@@ -152,10 +148,11 @@ async function runPageConfiguration(currentConfig) {
       await util.commit(page, currentConfig.details, data);
       util.infoMessage(
         page,
-        `🏘 create group => ${groupName ||
-        `${data.info?.caravan.replace(/ /g, "-").substring(0, 20)}-${os
-          .hostname()
-          .substring(0, 8)}`
+        `🏘 create group => ${
+          groupName ||
+          `${data.info?.caravan.replace(/ /g, "-").substring(0, 20)}-${os
+            .hostname()
+            .substring(0, 8)}`
         }`
       );
       await page.evaluate(() => {
@@ -175,7 +172,7 @@ async function runPageConfiguration(currentConfig) {
           timeout: 5000,
         });
         await page.click("#ctl00_ContentHolder_btnCreate");
-      } catch { }
+      } catch {}
       break;
     case "create-mutamer":
       if (fs.existsSync(getPath("loop.txt"))) {
@@ -222,7 +219,7 @@ async function sendPassenger(passenger) {
     delay: 0,
   });
   // Wait for the input field to receieve the value
-  await page.waitForTimeout(4000);
+  await page.waitForTimeout(10000);
   await util.commit(
     page,
     [
@@ -288,7 +285,7 @@ async function sendPassenger(passenger) {
         selector: "#ctl00_ContentHolder_LstType",
         value: (row) =>
           row.codeline?.replace(/\n/g, "")?.substring(2, 5) !=
-            row.codeline?.replace(/\n/g, "")?.substring(54, 57)
+          row.codeline?.replace(/\n/g, "")?.substring(54, 57)
             ? "3"
             : "1",
       },
@@ -322,7 +319,7 @@ async function sendPassenger(passenger) {
     try {
       await page.waitForSelector("#ctl00_ContentHolder_LstSponsorRelationship");
       await page.select("#ctl00_ContentHolder_LstSponsorRelationship", "15");
-    } catch { }
+    } catch {}
   }
 
   // commit "#ctl00_ContentHolder_LstAddressCountry" from system.country.telCode
@@ -409,7 +406,13 @@ async function sendPassenger(passenger) {
   if (saveBtn) {
     await page.click("#ctl00_ContentHolder_BtnEdit");
     await page.waitForTimeout(5000);
-    util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
+    util.infoMessage(
+      page,
+      `🧟 passenger ${passenger.slug} saved`,
+      2,
+      false,
+      true
+    );
     try {
       const errorMessage = await page.$eval(
         "#ctl00_ContentHolder_divErrorsList > div > ul > li",
@@ -418,10 +421,12 @@ async function sendPassenger(passenger) {
       if (errorMessage) {
         util.infoMessage(page, `🖐 🖐 🖐 🖐 🖐 Error: ${errorMessage}`);
       }
-    } catch { }
+    } catch {}
   } else {
-    util.infoMessage(page, `Error 🖐 🖐 🖐 🖐 passenger ${passenger.slug} skipped. Save button unavailable`);
-
+    util.infoMessage(
+      page,
+      `Error 🖐 🖐 🖐 🖐 passenger ${passenger.slug} skipped. Save button unavailable`
+    );
   }
   util.incrementSelectedTraveler();
 }

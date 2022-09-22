@@ -8,7 +8,7 @@ const path = require("path");
 const util = require("./util");
 const { getPath } = util;
 const moment = require("moment");
-const sharp = require("sharp");
+const kea = require("./lib/kea");
 const { default: axios } = require("axios");
 const JSZip = require("jszip");
 
@@ -354,7 +354,7 @@ async function pageContentHandler(currentConfig) {
         // Start automation after 25 seconds of inactivity
         await util.pauseMessage(page, 25);
         if (status === "idle") {
-          if (data.travellers.every(isValidPassenger)) {  
+          if (data.travellers.every(isValidPassenger)) {
             const index = util.getSelectedTraveler();
             sendPassenger(index);
             return;
@@ -458,7 +458,7 @@ async function pageContentHandler(currentConfig) {
       await util.commit(page, currentConfig.details, passenger);
       await page.click("#HaveRejectedAppNo");
       await page.click("#HaveReleativesCurrentlyResidentKsaNo");
-      await page.waitForSelector("#QuestionModelList_4__AnswerNo" )
+      await page.waitForSelector("#QuestionModelList_4__AnswerNo");
       await page.click("#QuestionModelList_4__AnswerNo");
       await page.click("#QuestionModelList_5__AnswerNo");
       await page.click("#QuestionModelList_6__AnswerNo");
@@ -739,9 +739,13 @@ async function screenShotToKea(visaElement, accountId, currentPassenger) {
     quality: 70,
   });
 
+  const filename = `visa_${currentPassenger.passportNumber}.jpeg`;
+  const destination = `${accountId}/visaImageUrl/${filename}`;
+  const visaImageUrl = await kea.uploadImageToStorage(base64, destination);
+
   // Send base64 encoded string to kea
-  util.updatePassengerInKea(accountId, currentPassenger.passportNumber, {
-    visaImage: base64,
+  kea.updatePassenger(accountId, currentPassenger.passportNumber, {
+    visaImageUrl,
     "submissionData.hsf.status": "Submitted",
   });
 }

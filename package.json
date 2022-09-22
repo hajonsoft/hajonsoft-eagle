@@ -1,10 +1,11 @@
 {
   "name": "hajonsoft-eagle",
-  "version": "1.2.6",
+  "version": "2.2.8",
   "description": "HAJonSoft node app to submit passengers to visa systems",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "release": "npm version patch && git push --follow-tags && npm publish --access public"
   },
   "keywords": [],
   "author": "Ayman A",
@@ -15,9 +16,13 @@
     "beautify": "^0.0.8",
     "cheerio": "^1.0.0-rc.12",
     "cryptr": "^6.0.2",
+    "date-fns": "^2.29.3",
+    "dotenv": "^16.0.2",
     "downloads-folder": "^3.0.1",
     "extract-zip": "^2.0.1",
+    "firebase": "^9.9.4",
     "form-data": "^4.0.0",
+    "fs-extra": "^10.1.0",
     "imgur": "^2.2.0",
     "inquirer": "^8.2.0",
     "jszip": "^3.10.1",
@@ -30,7 +35,9 @@
     "puppeteer-extra-plugin-stealth": "2.9.0",
     "rucaptcha-2captcha": "^2.2.1",
     "sharp": "0.30.7",
-    "totp-generator": "^0.0.13"
+    "short-uuid": "^4.2.0",
+    "totp-generator": "^0.0.13",
+    "yargs": "^17.5.1"
   },
   "bin": {
     "eagle": "./index.js"
