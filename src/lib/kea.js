@@ -1,5 +1,6 @@
 const fs = require("fs-extra");
 const os = require("os");
+const _ = require("lodash");
 const path = require("path");
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
@@ -106,11 +107,19 @@ const watchRun = (runId) => {
     console.log(`KEA: Watching run [id: ${runId}]`);
     return onSnapshot(db.run(runId), (snapshot) => {
       const data = snapshot.data();
-      console.log("run snapshot:", data);
       if (!data || data.status === "Killed") {
         console.log("Kill code received");
         // Run is marked as killed, so do not continue
         process.exit(2);
+      }
+      if (global.run) {
+        // Log diff
+        const diff = Object.keys(data)
+          .filter((key) => !_.isEqual(data[key], global.run[key]))
+          .map((key) => `${key}: ${global.run[key]} -> ${data[key]}`);
+        if (diff.length) {
+          console.log("Run updated:", diff);
+        }
       }
       global.run = data;
       resolve(data);
