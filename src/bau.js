@@ -9,6 +9,7 @@ const moment = require("moment");
 const sharp = require("sharp");
 const os = require("os");
 const { default: axios } = require("axios");
+const kea = require("./lib/kea");
 
 const SERVER_NUMBER = 1;
 let page;
@@ -76,6 +77,27 @@ const config = [
 async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
+
+  // Accept the confirmation dialog, to prevent script hanging
+  page.on("dialog", async (dialog) => {
+    console.log("dialog message: ", dialog.message());
+    if (dialog.message().match(/Record has been saved Successfully/i)) {
+      // Store status in kea
+      // the selectedTraveller index would have already incremented, so get the prev passenger
+      const prevIndex = Math.max(util.getSelectedTraveler() - 1, 0);
+      const savedPassenger = data.travellers[parseInt(prevIndex)];
+      console.log("update savedPassenger", savedPassenger.slug);
+      kea.updatePassenger(
+        data.system.accountId,
+        savedPassenger.passportNumber,
+        {
+          "submissionData.bau.status": "Submitted",
+        }
+      );
+    }
+    await dialog.accept();
+  });
+
   // exit program if no login 2 mins
   setTimeout(() => {
     if (!configs.find((c) => c.name === "main")) {
@@ -420,6 +442,10 @@ async function sendPassenger(passenger) {
       );
       if (errorMessage) {
         util.infoMessage(page, `🖐 🖐 🖐 🖐 🖐 Error: ${errorMessage}`);
+        // Store status in kea
+        kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          "submissionData.bau.status": "Rejected",
+        });
       }
     } catch {}
   } else {
