@@ -683,7 +683,7 @@ async function commander(page, structure, travellers) {
       await page.exposeFunction("closeBrowser", closeBrowser);
     }
   } catch (err) {
-    // console.log(err);
+    console.log(err);
   }
 }
 
@@ -1420,6 +1420,19 @@ const suggestGroupName = (data) => {
   return suggestedName.replace(/[^a-zA-Z0-9_]/g, "");
 };
 
+async function screenShotAndContinue(
+  page,
+  visaElement,
+  visaFileName,
+  url
+) {
+  await visaElement.screenshot({
+    path: visaFileName,
+    type: "png",
+  });
+  await page.goto(url);
+}
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1463,4 +1476,5 @@ module.exports = {
   pauseMessage,
   getLogFile,
   suggestGroupName,
+  screenShotAndContinue,
 };
