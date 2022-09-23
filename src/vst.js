@@ -287,7 +287,7 @@ const config = [
         );
         if (selectedTraveller) {
           util.setSelectedTraveller(selectedTraveller);
-          sendPassengerToPrint(selectedTraveller);
+          await sendPassengerToPrint(selectedTraveller);
           return;
         }
       },
@@ -409,6 +409,9 @@ const config = [
 async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
+  page.on("dialog", async (dialog) => {
+    await dialog.dismiss();
+  });
   await page.goto(config[0].url, { waitUntil: "networkidle0" });
 }
 
@@ -422,11 +425,13 @@ async function onContentLoaded(res) {
 }
 
 async function sendPassengerToPrint(index) {
+  status = "sending";
   let currentIndex = index;
   if (!currentIndex) {
     currentIndex = util.getSelectedTraveler();
   }
   const passenger = data.travellers[currentIndex];
+
   // paste passport number and first name
   await util.commit(
     page,
@@ -441,41 +446,33 @@ async function sendPassengerToPrint(index) {
       },
       {
         selector: "#tbFirstValue",
-        value: (row) => row.passportNumber,
+        value: (row) => row?.passportNumber,
       },
       {
         selector: "#tbSecondValue",
-        value: (row) => row.name.first,
+        value: (row) => row?.name?.first,
       },
       {
         selector: "#NationalityId",
-        value: (row) => row.nationality.code,
+        value: (row) => row?.nationality?.code,
       },
     ],
     passenger
   );
 
-  const isCaptcha = await page.$("#imgCaptcha");
-  if (isCaptcha.visible) {
-    await util.commitCaptchaToken(page, "imgCaptcha", "#Captcha", 5);
+  const captchaImg = await page.$("#imgCaptcha");
+  const captchaTxt = await page.$("#Captcha");
+
+  if (captchaImg && captchaTxt) {
+    await util.commitCaptchaToken(page, "imgCaptcha", "#Captcha", 6);
   }
-  await util.pauseMessage(page, 10);
+  await page.click("#btnSubmit");
+  util.infoMessage(page, "Sending passenger to print");
+  await page.waitForTimeout(20000);
   const url = await page.url();
-  if (url == config.find((c) => c.name === "print-visa").url) {
-    await page.click("#btnSubmit");
-    await util.pauseMessage(page, 10);
-    // Make sure the button is visible before clicking
-    const isError = await page.$(
-      "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
-    , { visible: true });
-    if (isError) {
-      await page.click(
-        "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
-      );
-      util.pauseMessage(page, 10);
-      util.incrementSelectedTraveler();
-      await sendPassengerToPrint();
-    }
+  if (url === config.find((c) => c.name === "print-visa").url) {
+    util.incrementSelectedTraveler();
+    await page.goto(config.find((c) => c.name === "print-visa").url);
   }
 }
 
@@ -502,22 +499,25 @@ async function runPageConfiguration(currentConfig) {
       await page.click("#btnAdd");
       break;
     case "login":
-      // await util.commander(page, {
-      //   controller: {
-      //     selector: "#app > div > nav",
-      //     title: "Print Visa",
-      //     arabicTitle: "طباعة الفيزا",
-      //     name: "hajonsoft_printVisa",
-      //     action: () => {
-      //       sendPassengerToPrint(counter);
-      //     },
-      //   },
-      // });
-      await util.pauseMessage(page, 15);
+      util.commander(page, {
+        controller: {
+          selector: "#app > div > nav",
+          title: "Print Visa",
+          arabicTitle: "طباعة الفيزا",
+          name: "hajonsoft_printVisa",
+          action: async () => {
+            util.infoMessage(page, "Go to print visa...");
+            await page.goto(config.find((c) => c.name === "print-visa").url, {
+              waitUntil: "networkidle0",
+            });
+          },
+        },
+      });
+      await util.infoMessage(page, "Printing in 20 seconds");
+      await page.waitForTimeout(20000);
       if (status === "idle") {
         await page.goto(config.find((c) => c.name === "print-visa").url);
       }
-
       break;
     case "otp":
       if (await page.$("#resendOtp")) {
@@ -654,19 +654,18 @@ async function runPageConfiguration(currentConfig) {
       status = "print-visa";
       await util.controller(page, currentConfig, data.travellers);
       if (fs.existsSync(getPath("loop.txt"))) {
-        const index = util.getSelectedTraveler();
-        sendPassengerToPrint(index);
+        await sendPassengerToPrint();
         return;
       }
 
       await util.pauseMessage(page, 15);
       if (status === "print-visa") {
         fs.writeFileSync(getPath("loop.txt"), "loop");
-        const index = util.getSelectedTraveler();
-        sendPassengerToPrint(index);
+        await sendPassengerToPrint();
       }
       break;
     case "screenshot":
+      util.pauseMessage(page, 3);
       // take screen shot for the visa element and then go back
       const visaFolder = path.join(homedir, "hajonsoft", "visa");
       const visaElement = await page.$("body > form > page");

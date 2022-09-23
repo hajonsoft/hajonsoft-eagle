@@ -1193,11 +1193,10 @@ async function commitCaptchaToken(
   infoMessage(page, "🔓 Captcha thinking...");
   await pauseMessage(page, 3);
 
-  await page.waitForSelector(textFieldSelector);
-  await page.focus(textFieldSelector);
-  await page.hover(textFieldSelector);
-
   try {
+    await page.waitForSelector(textFieldSelector);
+    await page.focus(textFieldSelector);
+    await page.hover(textFieldSelector);
     const base64 = await page.evaluate((selector) => {
       const image = document.getElementById(selector);
       const canvas = document.createElement("canvas");
@@ -1209,6 +1208,7 @@ async function commitCaptchaToken(
     }, imgId);
 
     if (!base64) {
+      console.log("captcha: No base64");
       return;
     }
 
@@ -1374,16 +1374,21 @@ const infoMessage = async (
 };
 
 const pauseMessage = async (page, seconds = 3) => {
-  if (page) {
-    if (seconds <= 0) {
-      await page.evaluate("document.title=''");
-    } else {
-      await page.evaluate(
-        "document.title='Eagle: pause for " + seconds + " seconds'"
-      );
-      await page.waitForTimeout(1000);
-      await pauseMessage(page, seconds - 1);
+  try {
+    if (page) {
+      if (seconds <= 0) {
+        await page.evaluate("document.title=''");
+      } else {
+        await page.evaluate(
+          "document.title='Eagle: pause for " + seconds + " seconds'"
+        );
+        await page.waitForTimeout(1000);
+        await pauseMessage(page, seconds - 1);
+      }
     }
+  } catch (err) {
+    // Uncomment to debug
+    // console.log("Error while pausing: ", err);
   }
 };
 
