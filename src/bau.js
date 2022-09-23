@@ -64,6 +64,7 @@ const config = [
           "#hajonsoft_select",
           (el) => el.value
         );
+
         if (selectedTraveller) {
           util.setSelectedTraveller(selectedTraveller);
           const passenger = data.travellers[selectedTraveller];
@@ -145,9 +146,16 @@ async function runPageConfiguration(currentConfig) {
 
       break;
     case "main":
-      await page.goto(
-        `https://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx?gMode=1`
-      );
+      if (global.submission.targetGroupId) {
+        // If a group already created for this submission, go directly to that page
+        await page.goto(
+          `https://app${SERVER_NUMBER}.babalumra.com/Groups/EditMutamerNew.aspx?GroupId=${global.submission.targetGroupId}`
+        );
+      } else {
+        await page.goto(
+          `https://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx?gMode=1`
+        );
+      }
       break;
     case "search-group":
       // remove target _blank from all links
@@ -170,12 +178,7 @@ async function runPageConfiguration(currentConfig) {
       await util.commit(page, currentConfig.details, data);
       util.infoMessage(
         page,
-        `🏘 create group => ${
-          groupName ||
-          `${data.info?.caravan.replace(/ /g, "-").substring(0, 20)}-${os
-            .hostname()
-            .substring(0, 8)}`
-        }`
+        `🏘 create group => ${groupName || util.suggestGroupName(data)}`
       );
       await page.evaluate(() => {
         const consulate = document.querySelector(
@@ -197,6 +200,16 @@ async function runPageConfiguration(currentConfig) {
       } catch {}
       break;
     case "create-mutamer":
+      // Update the submission with current group id
+      if (!global.submission.targetGroupId) {
+        const groupId = page.url().match(/GroupId=(\d+)/)?.[1];
+        if (groupId) {
+          global.submission.targetGroupId = groupId;
+          kea.updateSubmission({
+            targetGroupId: groupId,
+          });
+        }
+      }
       if (fs.existsSync(getPath("loop.txt"))) {
         const currentIndex = util.getSelectedTraveler();
         const passenger = data.travellers[parseInt(currentIndex)];

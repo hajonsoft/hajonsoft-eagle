@@ -190,6 +190,13 @@ const updatePassenger = async (accountId, passportNumber, payload) => {
   });
   await Promise.all(promises);
 };
+const updateSubmission = async (payload) => {
+  console.log(
+    `KEA: Updating submission [id: ${global.submission.id}]`,
+    payload
+  );
+  await updateDoc(db.submission(global.submission.id), payload);
+};
 
 const uploadImageToStorage = async (base64, destination) => {
   const imageRef = ref(storage, destination);
@@ -202,4 +209,5 @@ module.exports = {
   updateSelectedTraveller,
   uploadImageToStorage,
   updatePassenger,
+  updateSubmission,
 };
