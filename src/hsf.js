@@ -679,11 +679,11 @@ async function pageContentHandler(currentConfig) {
           ) + ".png";
 
         console.log("Saving visa to file: ", visaFileName);
-        await screenShotAndContinue(
+        await util.screenShotAndContinue(
+          page,
           visaElement,
-          saveFolder,
-          currentPassenger,
-          visaFileName
+          visaFileName,
+          config[0].url
         );
         return;
       }
@@ -748,19 +748,6 @@ async function screenShotToKea(visaElement, accountId, currentPassenger) {
     visaImageUrl,
     "submissionData.hsf.status": "Submitted",
   });
-}
-
-async function screenShotAndContinue(
-  visaElement,
-  saveFolder,
-  currentPassenger,
-  visaFileName
-) {
-  await visaElement.screenshot({
-    path: visaFileName,
-    type: "png",
-  });
-  await page.goto(config[0].url);
 }
 
 async function sendNewApplication(selectedTraveller) {

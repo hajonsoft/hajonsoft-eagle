@@ -8,10 +8,12 @@ const util = require("./util");
 const { getPath } = util;
 const moment = require("moment");
 const sharp = require("sharp");
+const homedir = require("os").homedir();
 
 let page;
 let email;
 let data;
+let status = "idle";
 
 let counter = 0;
 
@@ -286,6 +288,7 @@ const config = [
         if (selectedTraveller) {
           util.setSelectedTraveller(selectedTraveller);
           sendPassengerToPrint(selectedTraveller);
+          return;
         }
       },
     },
@@ -397,6 +400,10 @@ const config = [
     url: "https://visa.visitsaudi.com/Visa/Review",
     regex: "https://visa.visitsaudi.com/Visa/Review/[A-Za-z0-9]",
   },
+  {
+    name: "screenshot",
+    url: "https://visa.mofa.gov.sa/Home/PrintEventVisa",
+  },
 ];
 
 async function send(sendData) {
@@ -415,9 +422,12 @@ async function onContentLoaded(res) {
 }
 
 async function sendPassengerToPrint(index) {
-  const passenger = data.travellers[index];
+  let currentIndex = index;
+  if (!currentIndex) {
+    currentIndex = util.getSelectedTraveler();
+  }
+  const passenger = data.travellers[currentIndex];
   // paste passport number and first name
-
   await util.commit(
     page,
     [
@@ -439,22 +449,38 @@ async function sendPassengerToPrint(index) {
       },
       {
         selector: "#NationalityId",
-        value: (row) => row.nationality.code
-      }
+        value: (row) => row.nationality.code,
+      },
     ],
     passenger
   );
 
-  await util.commitCaptchaToken(
-    page,
-    "imgCaptcha",
-    "#Captcha",
-    5
-  );
-
+  const isCaptcha = await page.$("#imgCaptcha");
+  if (isCaptcha.visible) {
+    await util.commitCaptchaToken(page, "imgCaptcha", "#Captcha", 5);
+  }
+  await util.pauseMessage(page, 10);
+  const url = await page.url();
+  if (url == config.find((c) => c.name === "print-visa").url) {
+    await page.click("#btnSubmit");
+    await util.pauseMessage(page, 10);
+    // Make sure the button is visible before clicking
+    const isError = await page.$(
+      "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
+    , { visible: true });
+    if (isError) {
+      await page.click(
+        "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
+      );
+      util.pauseMessage(page, 10);
+      util.incrementSelectedTraveler();
+      await sendPassengerToPrint();
+    }
+  }
 }
 
 async function runPageConfiguration(currentConfig) {
+  counter = util.getSelectedTraveler();
   const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "main":
@@ -476,28 +502,22 @@ async function runPageConfiguration(currentConfig) {
       await page.click("#btnAdd");
       break;
     case "login":
-      await util.commander(page, {
-        controller: {
-          selector: "#app > div > nav",
-          title: "Print Visa",
-          arabicTitle: "طباعة الفيزا",
-          name: "printVisa",
-          action: async () => {
-            await page.goto("https://visa.mofa.gov.sa/visaservices/searchvisa");
-          },
-        },
-      });
+      // await util.commander(page, {
+      //   controller: {
+      //     selector: "#app > div > nav",
+      //     title: "Print Visa",
+      //     arabicTitle: "طباعة الفيزا",
+      //     name: "hajonsoft_printVisa",
+      //     action: () => {
+      //       sendPassengerToPrint(counter);
+      //     },
+      //   },
+      // });
+      await util.pauseMessage(page, 15);
+      if (status === "idle") {
+        await page.goto(config.find((c) => c.name === "print-visa").url);
+      }
 
-      await page.waitForTimeout(3000);
-      await util.commit(page, currentConfig.details, data.system);
-      await page.waitForSelector("#CaptchaCode");
-      await page.focus("#CaptchaCode");
-      await util.commitCaptchaToken(page, "imgCaptcha", "#CaptchaCode", 5);
-      await page.waitForTimeout(5000);
-      await page.waitForFunction(
-        "document.querySelector('#CaptchaCode').value.length === 5"
-      );
-      // await page.click("#btnSignIn");
       break;
     case "otp":
       if (await page.$("#resendOtp")) {
@@ -631,7 +651,61 @@ async function runPageConfiguration(currentConfig) {
       }
       break;
     case "print-visa":
+      status = "print-visa";
       await util.controller(page, currentConfig, data.travellers);
+      if (fs.existsSync(getPath("loop.txt"))) {
+        const index = util.getSelectedTraveler();
+        sendPassengerToPrint(index);
+        return;
+      }
+
+      await util.pauseMessage(page, 15);
+      if (status === "print-visa") {
+        fs.writeFileSync(getPath("loop.txt"), "loop");
+        const index = util.getSelectedTraveler();
+        sendPassengerToPrint(index);
+      }
+      break;
+    case "screenshot":
+      // take screen shot for the visa element and then go back
+      const visaFolder = path.join(homedir, "hajonsoft", "visa");
+      const visaElement = await page.$("body > form > page");
+      const caravanName = data.info?.caravan?.replace(/[^A-Z0-9]/g, "");
+      let saveFolder = visaFolder;
+      if (caravanName) {
+        saveFolder = path.join(visaFolder, caravanName);
+      }
+      if (!fs.existsSync(saveFolder)) {
+        fs.mkdirSync(saveFolder, { recursive: true });
+      }
+
+      const currentPassenger =
+        data.travellers[parseInt(util.getSelectedTraveler())];
+
+      // Save base64 image to kea
+      try {
+        screenShotToKea(visaElement, data.system.accountId, currentPassenger);
+      } catch (error) {}
+
+      // Save image to file
+      const visaFileName =
+        path.join(
+          saveFolder,
+          currentPassenger?.passportNumber +
+            "_" +
+            currentPassenger?.name?.full.replace(/ /, "_") +
+            "_" +
+            moment().format("YYYY-MM-DD_HH-mm-ss")
+        ) + ".png";
+
+      await util.screenShotAndContinue(
+        page,
+        visaElement,
+        visaFileName,
+        "https://visa.mofa.gov.sa/visaservices/searchvisa"
+      );
+      util.infoMessage(page, "Visa saved to Kea and " + visaFileName);
+      util.incrementSelectedTraveler();
       break;
     default:
       break;
