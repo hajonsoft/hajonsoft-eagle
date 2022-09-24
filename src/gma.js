@@ -207,6 +207,12 @@ async function sendPassenger(passenger) {
   }
   await page.emulateVisionDeficiency("none");
 
+  util.infoMessage(page, "Ready to save passenger", 2, false, true)
+  await captchaAndSave(page)
+}
+
+async function captchaAndSave(page) {
+  const passenger = data.travellers[util.getSelectedTraveler()];
   const token = await util.commitCaptchaToken(
     page,
     "imgCaptcha",
@@ -214,7 +220,6 @@ async function sendPassenger(passenger) {
     5
   );
   util.pauseMessage(page);
-  util.infoMessage(page, "Ready to save passenger", 2, false, true)
   // TODO reattempt captcha on incorrect captcha
   if (token) {
     await page.click(
@@ -245,8 +250,10 @@ async function sendPassenger(passenger) {
     if (nextPassenger) {
       sendPassenger(nextPassenger);
     } else {
-      console.log("done");
-      process.exit(0);
+      console.log("Exiting in 5 seconds...");
+      setTimeout(() => {
+        process.exit(0);
+      }, 5000)
     }
   }
 }
@@ -275,6 +282,16 @@ async function send(sendData) {
       })
     }
   })
+
+  // Dsimiss invalid captch message
+  page.on("dialog", async (dialog) => {
+    console.log("dialog message: ", dialog.message());
+    if (dialog.message().match(/invalid captcha/i)) {
+      await dialog.accept();
+      captchaAndSave(page)
+    }
+  });
+    
 }
 
 async function onContentLoaded(res) {
