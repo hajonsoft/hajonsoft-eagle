@@ -382,7 +382,7 @@ async function commit(page, details, row) {
           if (detail.selector) {
             await page.type(detail.selector, (value || "").toString());
             if(detail.setValueDirectly) {
-              await page.$eval(detail.selector, el => el.value = (value || "").toString());
+              await page.$eval(detail.selector, (el,value) => el.value = (value || "").toString(), value);
             }
           }
           if (detail.xPath) {
