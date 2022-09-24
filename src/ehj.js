@@ -539,7 +539,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "list-pilgrims":
     case "list-pilgrims-mission":
-      await page.emulateVisionDeficiency("none");
+      await util.toggleBlur(page,false);
       const ehajNumbers = [];
       await util.commander(page, {
         controller: {
@@ -719,7 +719,7 @@ async function pageContentHandler(currentConfig) {
         fs.appendFileSync(getLogFile(), confirmationMessage + "\n");
       }
 
-      await page.emulateVisionDeficiency("none");
+      await util.toggleBlur(page,false);
       await util.controller(page, currentConfig, data.travellers);
       if (
         fs.existsSync(getPath("loop.txt")) &&
@@ -822,7 +822,7 @@ async function pageContentHandler(currentConfig) {
         );
       }
 
-      await page.emulateVisionDeficiency("blurredVision");
+      await util.toggleBlur(page);
       passports.push(passenger.passportNumber);
       await util.commander(page, {
         controller: {
@@ -999,7 +999,7 @@ async function pageContentHandler(currentConfig) {
       await page.waitForTimeout(500);
       await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
-      await page.emulateVisionDeficiency("none");
+      await util.toggleBlur(page,false);
       await page.waitForTimeout(500);
 
       if (passports.filter((x) => x == passenger.passportNumber).length > 3) {

@@ -381,6 +381,9 @@ async function commit(page, details, row) {
         if (value) {
           if (detail.selector) {
             await page.type(detail.selector, (value || "").toString());
+            if(detail.setValueDirectly) {
+              await page.$eval(detail.selector, el => el.value = (value || "").toString());
+            }
           }
           if (detail.xPath) {
             const xElements = await page.$x(detail.xPath);
@@ -1444,6 +1447,17 @@ async function screenShotAndContinue(
   await page.goto(url);
 }
 
+async function toggleBlur(page, blur = true) {
+  if(global.headless) {
+    return;
+  }
+  if(blur) {
+    await page.emulateVisionDeficiency("blurredVision");
+  } else {
+    await page.emulateVisionDeficiency("none")
+  }
+}
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1489,4 +1503,5 @@ module.exports = {
   getLogFile,
   suggestGroupName,
   screenShotAndContinue,
+  toggleBlur
 };

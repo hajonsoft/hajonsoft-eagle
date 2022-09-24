@@ -239,7 +239,7 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "create-mutamer":
-      await page.emulateVisionDeficiency("none");
+      await util.toggleBlur(page,false);
       await util.controller(page, currentConfig, data.travellers);
       if (fs.existsSync(getPath("loop.txt"))) {
         return sendPassenger(passenger);
@@ -263,8 +263,8 @@ async function pageContentHandler(currentConfig) {
 
 async function sendPassenger(passenger) {
   status = "sending";
-  await page.emulateVisionDeficiency("none");
-  // await page.emulateVisionDeficiency("blurredVision");
+  await util.toggleBlur(page,false);
+  // await util.toggleBlur(page);
   const titleMessage = `🧟 ${parseInt(util.getSelectedTraveler()) + 1}/${
     data.travellers.length
   }-${passenger?.slug}`;
@@ -311,7 +311,7 @@ async function sendPassenger(passenger) {
   await page.type("#divshowmsg", passenger.codeline, {
     delay: 0,
   });
-  await page.emulateVisionDeficiency("none");
+  await util.toggleBlur(page,false);
 
   await page.waitForTimeout(5000);
   await util.commit(

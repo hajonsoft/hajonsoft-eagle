@@ -200,7 +200,7 @@ async function onMofaContentClosed(res) {
   await page.bringToFront();
   const mofaData = util.getMofaData();
   await pasteMofaData(mofaData);
-  await page.emulateVisionDeficiency("none"); // Just in case
+  await util.toggleBlur(page,false); // Just in case
   await util.waitForCaptcha("#Captcha", 6);
   await util.sniff(page, [
     {
@@ -392,7 +392,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "create-passenger":
       // counter = util.useCounter(counter);
-      await page.emulateVisionDeficiency(util.VISION_DEFICIENCY);
+      await util.toggleBlur(page,false);
       const passenger = data.travellers[counter];
       await util.controller(page, currentConfig, data.travellers);
       await page.waitForSelector("#PASSPORTnumber");
@@ -444,7 +444,7 @@ async function pageContentHandler(currentConfig) {
         travelDateDefault.format("MM"),
         travelDateDefault.format("DD")
       );
-      await page.emulateVisionDeficiency("none");
+      await util.toggleBlur(page,false);
       await page.click("#HaveTraveledToOtherCountriesNo");
       mofaPage = await util.newPage(onMofaContentLoaded, onMofaContentClosed);
       await mofaPage.goto("https://visa.mofa.gov.sa", {

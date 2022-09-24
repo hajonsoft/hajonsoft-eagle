@@ -64,16 +64,19 @@ const mutamerConfig = {
     },
     {
       selector: "#txt_IssueDate",
+      setValueDirectly: true,
       value: (row) =>
         `${row.passIssueDt.yyyy}/${row.passIssueDt.mm}/${row.passIssueDt.dd}`,
     },
     {
       selector: "#txt_ExpiryDate",
+      setValueDirectly: true,
       value: (row) =>
         `${row.passExpireDt.yyyy}/${row.passExpireDt.mm}/${row.passExpireDt.dd}`,
     },
     {
       selector: "#txt_BirthDate",
+      setValueDirectly: true,
       value: (row) => `${row.dob.yyyy}/${row.dob.mm}/${row.dob.dd}`,
     },
     {
@@ -151,12 +154,12 @@ async function sendPassenger(passenger) {
     () => (document.querySelector("#txt_Mrz").disabled = false)
   );
   await page.type("#txt_Mrz", passenger.codeline || "codeline missing");
-  await page.emulateVisionDeficiency("blurredVision");
+  await util.toggleBlur(page);
   const titleMessage = `Eagle: send.. ${
     parseInt(util.getSelectedTraveler()) + 1
   }/${data.travellers.length}-${passenger?.name?.last}`;
   util.infoMessage(page, titleMessage);
-  await util.pauseMessage(page, 5);
+  await page.waitForTimeout(5000)
   await util.commit(page, mutamerConfig.details, passenger);
   for (const field of mutamerConfig.details) {
     await page.$eval(field.selector, (e) => {
@@ -205,7 +208,7 @@ async function sendPassenger(passenger) {
   if (!process.argv.includes("noimage")) {
     await util.commitFile("#img_MutamerPP", resizedPassportFile);
   }
-  await page.emulateVisionDeficiency("none");
+  await util.toggleBlur(page,false);
 
   await captchaAndSave(page)
 }
@@ -227,7 +230,7 @@ async function captchaAndSave(page) {
     await page.waitForTimeout(2000)
     util.infoMessage(page, "Save clicked", 2, false, true)
   }
-  await util.pauseMessage(page, 10);
+  await util.pauseForInteraction(page, 10000);
   const isTableExist = await page.$("#tableGroupMutamers_info");
   let tableInfo;
   if (isTableExist) {
