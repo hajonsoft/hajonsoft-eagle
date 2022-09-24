@@ -37,7 +37,7 @@ function chunkArray(array, perChunk) {
 }
 
 const init = async () => {
-  const { submissionId, runId, token, apiKey, passengerIds } = argv;
+  const { submissionId, runId, token, apiKey, passengerIds, headless } = argv;
   let newRun = {};
 
   if (!token) {
@@ -51,6 +51,9 @@ const init = async () => {
   }
   if (passengerIds) {
     global.passengerIds = passengerIds.split(",");
+  }
+  if (headless) {
+    global.headless = true
   }
 
   global.user = await logInWithRefreshToken(token, apiKey);
@@ -112,6 +115,10 @@ const watchRun = (runId) => {
         // Run is marked as killed, so do not continue
         process.exit(2);
       }
+      if(data.status === "Error") {
+        // Mark as error, re-attempt immediately
+        process.exit(1)
+      }
       if (global.run) {
         // Log diff
         const diff = Object.keys(data)
@@ -151,6 +158,7 @@ const getAccount = async (accountId) => {
 // Get data and write to data.json
 const writeData = async () => {
   const dataFilePath = path.join(os.tmpdir(), "hajonsoft-eagle", "data.json");
+  console.log(`Wrote data file to ${dataFilePath}`)
   // Generate specific passengers (if specified), or whole submission
   const passengers = await fetchPassengers(
     global.passengerIds ?? submission.passengerIds
@@ -190,6 +198,13 @@ const updatePassenger = async (accountId, passportNumber, payload) => {
   });
   await Promise.all(promises);
 };
+const updateSubmission = async (payload) => {
+  console.log(
+    `KEA: Updating submission [id: ${global.submission.id}]`,
+    payload
+  );
+  await updateDoc(db.submission(global.submission.id), payload);
+};
 
 const uploadImageToStorage = async (base64, destination) => {
   const imageRef = ref(storage, destination);
@@ -202,4 +217,5 @@ module.exports = {
   updateSelectedTraveller,
   uploadImageToStorage,
   updatePassenger,
+  updateSubmission,
 };

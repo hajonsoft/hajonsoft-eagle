@@ -6,8 +6,8 @@ const fs = require("fs");
 const path = require("path");
 const util = require("./util");
 const { getPath } = util;
-const moment = require("moment");
 const sharp = require("sharp");
+const kea = require("./lib/kea");
 
 let page;
 let data;
@@ -64,16 +64,19 @@ const mutamerConfig = {
     },
     {
       selector: "#txt_IssueDate",
+      setValueDirectly: true,
       value: (row) =>
         `${row.passIssueDt.yyyy}/${row.passIssueDt.mm}/${row.passIssueDt.dd}`,
     },
     {
       selector: "#txt_ExpiryDate",
+      setValueDirectly: true,
       value: (row) =>
         `${row.passExpireDt.yyyy}/${row.passExpireDt.mm}/${row.passExpireDt.dd}`,
     },
     {
       selector: "#txt_BirthDate",
+      setValueDirectly: true,
       value: (row) => `${row.dob.yyyy}/${row.dob.mm}/${row.dob.dd}`,
     },
     {
@@ -151,12 +154,12 @@ async function sendPassenger(passenger) {
     () => (document.querySelector("#txt_Mrz").disabled = false)
   );
   await page.type("#txt_Mrz", passenger.codeline || "codeline missing");
-  await page.emulateVisionDeficiency("blurredVision");
+  await util.toggleBlur(page);
   const titleMessage = `Eagle: send.. ${
     parseInt(util.getSelectedTraveler()) + 1
   }/${data.travellers.length}-${passenger?.name?.last}`;
   util.infoMessage(page, titleMessage);
-  util.pauseMessage(page, 5);
+  await page.waitForTimeout(5000)
   await util.commit(page, mutamerConfig.details, passenger);
   for (const field of mutamerConfig.details) {
     await page.$eval(field.selector, (e) => {
@@ -205,21 +208,29 @@ async function sendPassenger(passenger) {
   if (!process.argv.includes("noimage")) {
     await util.commitFile("#img_MutamerPP", resizedPassportFile);
   }
-  await page.emulateVisionDeficiency("none");
+  await util.toggleBlur(page,false);
 
+  await captchaAndSave(page)
+}
+
+async function captchaAndSave(page) {
+  const passenger = data.travellers[util.getSelectedTraveler()];
   const token = await util.commitCaptchaToken(
     page,
     "imgCaptcha",
     "#CodeNumberTextBox",
     5
   );
-  util.pauseMessage(page);
+  await util.pauseMessage(page);
   if (token) {
+    console.log({token})
     await page.click(
       "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success"
     );
+    await page.waitForTimeout(2000)
+    util.infoMessage(page, "Save clicked", 2, false, true)
   }
-  await util.pauseMessage(page, 10);
+  await util.pauseForInteraction(page, 10000);
   const isTableExist = await page.$("#tableGroupMutamers_info");
   let tableInfo;
   if (isTableExist) {
@@ -228,15 +239,27 @@ async function sendPassenger(passenger) {
       (el) => el.innerText
     );
   }
+  console.log({previousTableInfo, tableInfo}, 'loop.txt', fs.existsSync(getPath("loop.txt")))
   if (previousTableInfo != tableInfo && fs.existsSync(getPath("loop.txt"))) {
     previousTableInfo = tableInfo;
+    // Update kea status
+    kea.updatePassenger(
+      data.system.accountId,
+      passenger.passportNumber,
+      {
+        "submissionData.gma.status": "Submitted",
+      }
+    );
     const nextTraveller = util.incrementSelectedTraveler();
     const nextPassenger = data.travellers[nextTraveller];
+    console.log({nextTraveller, nextPassenger: nextPassenger.slug})
     if (nextPassenger) {
       sendPassenger(nextPassenger);
     } else {
-      console.log("done");
-      process.exit(0);
+      console.log("Exiting in 5 seconds...");
+      setTimeout(() => {
+        process.exit(0);
+      }, 5000)
     }
   }
 }
@@ -245,6 +268,36 @@ async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
+
+  // Read save group response for id
+  page.on('response', response => {
+    if(response.url() === "https://eumra.com/auploader.aspx/SaveGroup") {
+      response.text().then(body => {
+        // eg. {"d":[{"Errcode":0,"Key":27675,"ErrDescription":"KEY=27675"},{"Errcode":0,"Key":27675,"ErrDescription":"Success"}]}
+        const data = JSON.parse(body);
+        const [res1, res2] = data.d
+        if(res2.ErrDescription === "Success") {
+          // Write group id to submission
+          const targetGroupId = parseInt(res2.Key,10)
+          global.submission.targetGroupId = targetGroupId;
+          kea.updateSubmission({
+            targetGroupId,
+          });
+
+        }
+      })
+    }
+  })
+
+  // Dsimiss invalid captch message
+  page.on("dialog", async (dialog) => {
+    console.log("dialog message: ", dialog.message());
+    if (dialog.message().match(/invalid captcha/i)) {
+      await dialog.accept();
+      captchaAndSave(page)
+    }
+  });
+    
 }
 
 async function onContentLoaded(res) {
@@ -286,40 +339,73 @@ async function runPageConfiguration(currentConfig) {
       });
       break;
     case "create-group-or-mutamer":
-      groupName = util.suggestGroupName(data);
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#txt_GroupName",
-            value: () => groupName,
-          },
-        ],
-        null
-      );
+      
+      let editGroupRowIndex = null;
+      const targetGroupId = global.submission.targetGroupId
+      if(targetGroupId) {
+          // If submission has group id, go to that group
+          // Get more groups in table
+          await page.select("select[name='table_Groups_length']", "100")
+          await page.waitForTimeout(5000)
+          
+          editGroupRowIndex = await page.$$eval("#table_Groups tbody tr", (rows, targetGroupId) => {
+            console.log(`found ${rows.length} rows`)
+            for(let i = 0; i < rows.length; i += 1) {
+              const tr = rows[i];
+              const td = tr.querySelector('td:nth-child(3)');
+              const groupId = td.innerHTML
+              if(parseInt(groupId,10) === parseInt(targetGroupId,10)) {
+                return i
+              }
+            }
+            return null;
+          }, targetGroupId)
+        }
+        
+      if(editGroupRowIndex !== null) {
+        // Group already exists
+        console.log(`Edit existing group ${targetGroupId}`)
+        await page.click(`#table_Groups tbody tr:nth-child(${editGroupRowIndex + 1}) td:nth-child(13) > a:last-child`);
+      } else {
+        // Create group
+        groupName = util.suggestGroupName(data);
+        console.log(`Creating new group ${groupName}`)
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#txt_GroupName",
+              value: () => groupName,
+            },
+          ],
+          null
+        );
 
-      // select embassy here
-  // #ddl_Consulates
-  if (data.system.embassy) {
-    const embassySelector = "#ddl_Consulates";
-      const optionsEmbassy = await page.$eval(
-        embassySelector,
-        (e) => e.innerHTML
-      );
-      const valuePatternEmbassy = new RegExp(
-        `value="(.*)">${data.system.embassy}.*?</option>`,
-        "im"
-      );
-      const foundEmbassy = valuePatternEmbassy.exec(
-        optionsEmbassy.replace(/\n/gim, "")
-      );
-      if (foundEmbassy && foundEmbassy.length >= 2) {
-        await page.select(embassySelector, foundEmbassy[1]);
+        // select embassy here
+        // #ddl_Consulates
+        if (data.system.embassy) {
+          const embassySelector = "#ddl_Consulates";
+            const optionsEmbassy = await page.$eval(
+              embassySelector,
+              (e) => e.innerHTML
+            );
+            const valuePatternEmbassy = new RegExp(
+              `value="(.*)">${data.system.embassy}.*?</option>`,
+              "im"
+            );
+            const foundEmbassy = valuePatternEmbassy.exec(
+              optionsEmbassy.replace(/\n/gim, "")
+            );
+            if (foundEmbassy && foundEmbassy.length >= 2) {
+              await page.select(embassySelector, foundEmbassy[1]);
+            }
+        }
+
+        await util.pauseMessage(page);
+        await page.click("#btnUpdateGroup");
       }
-  }
 
-      await util.pauseMessage(page);
-      await page.click("#btnUpdateGroup");
+      // Submit passenger
       await util.pauseMessage(page);
       await page.click("#li1_1 > a");
 
@@ -327,7 +413,7 @@ async function runPageConfiguration(currentConfig) {
       await util.controller(page, currentConfig, data.travellers);
 
       if (!fs.existsSync(getPath("loop.txt"))) {
-        util.pauseMessage(page, 10);
+        await util.pauseMessage(page, 5);
         if (status === "idle") {
           fs.writeFileSync(getPath("loop.txt"), "loop");
           const nextTraveller = util.getSelectedTraveler();
