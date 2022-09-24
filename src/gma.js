@@ -208,7 +208,7 @@ async function sendPassenger(passenger) {
   await page.emulateVisionDeficiency("none");
 
   util.infoMessage(page, "Ready to save passenger", 2, false, true)
-  await captchaAndSave(page)
+  // await captchaAndSave(page)
 }
 
 async function captchaAndSave(page) {
@@ -220,8 +220,8 @@ async function captchaAndSave(page) {
     5
   );
   util.pauseMessage(page);
-  // TODO reattempt captcha on incorrect captcha
   if (token) {
+    console.log({token})
     await page.click(
       "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success"
     );
@@ -229,12 +229,14 @@ async function captchaAndSave(page) {
   await util.pauseMessage(page, 10);
   const isTableExist = await page.$("#tableGroupMutamers_info");
   let tableInfo;
+  console({isTableExist})
   if (isTableExist) {
     tableInfo = await page.$eval(
       "#tableGroupMutamers_info",
       (el) => el.innerText
     );
   }
+  console.log({previousTableInfo, tableInfo}, 'loop.txt', fs.existsSync(getPath("loop.txt")))
   if (previousTableInfo != tableInfo && fs.existsSync(getPath("loop.txt"))) {
     previousTableInfo = tableInfo;
     // Update kea status
@@ -247,6 +249,7 @@ async function captchaAndSave(page) {
     );
     const nextTraveller = util.incrementSelectedTraveler();
     const nextPassenger = data.travellers[nextTraveller];
+    console.log({nextTraveller, nextPassenger})
     if (nextPassenger) {
       sendPassenger(nextPassenger);
     } else {
