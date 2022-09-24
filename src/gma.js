@@ -156,7 +156,7 @@ async function sendPassenger(passenger) {
     parseInt(util.getSelectedTraveler()) + 1
   }/${data.travellers.length}-${passenger?.name?.last}`;
   util.infoMessage(page, titleMessage);
-  util.pauseMessage(page, 5);
+  await util.pauseMessage(page, 5);
   await util.commit(page, mutamerConfig.details, passenger);
   for (const field of mutamerConfig.details) {
     await page.$eval(field.selector, (e) => {
@@ -218,7 +218,7 @@ async function captchaAndSave(page) {
     "#CodeNumberTextBox",
     5
   );
-  util.pauseMessage(page);
+  await util.pauseMessage(page);
   if (token) {
     console.log({token})
     await page.click(
@@ -410,7 +410,7 @@ async function runPageConfiguration(currentConfig) {
       await util.controller(page, currentConfig, data.travellers);
 
       if (!fs.existsSync(getPath("loop.txt"))) {
-        util.pauseMessage(page, 10);
+        await util.pauseMessage(page, 5);
         if (status === "idle") {
           fs.writeFileSync(getPath("loop.txt"), "loop");
           const nextTraveller = util.getSelectedTraveler();

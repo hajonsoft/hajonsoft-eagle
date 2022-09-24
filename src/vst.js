@@ -472,7 +472,7 @@ async function sendPassengerToPrint(index) {
       await page.click(
         "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
       );
-      util.pauseMessage(page, 10);
+      await util.pauseMessage(page, 10);
       util.incrementSelectedTraveler();
       await sendPassengerToPrint();
     }
