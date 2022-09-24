@@ -33,9 +33,7 @@ let userInput;
 let data = readDataFile();
 
 async function main() {
-  console.log(`====================`);
   console.log(`=== Eagle v${version} ===`);
-  console.log(`====================`);
   // Authenticate firebase
   try {
     await kea.init();

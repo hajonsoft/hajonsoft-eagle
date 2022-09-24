@@ -1342,7 +1342,7 @@ const infoMessage = async (
   page,
   message,
   depth = 2,
-  visaShot,
+  visaShot = false,
   takeScreenShot = false
 ) => {
   const screenshotsDir = getPath("screenshots");
@@ -1386,6 +1386,13 @@ const pauseMessage = async (page, seconds = 3) => {
     }
   }
 };
+
+const pauseForInteraction = async(page, ms) => {
+  if(global.headless) {
+    return
+  }
+  await page.waitForTimeout(ms)
+}
 
 function getLogFile(eagleData) {
   if (!eagleData) {
@@ -1474,6 +1481,7 @@ module.exports = {
   setSelectedTraveller,
   infoMessage,
   pauseMessage,
+  pauseForInteraction,
   getLogFile,
   suggestGroupName,
   screenShotAndContinue,
