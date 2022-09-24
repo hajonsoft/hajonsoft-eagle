@@ -214,6 +214,8 @@ async function sendPassenger(passenger) {
     5
   );
   util.pauseMessage(page);
+  util.infoMessage(page, "Ready to save passenger", 2, false, true)
+  // TODO reattempt captcha on incorrect captcha
   if (token) {
     await page.click(
       "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success"

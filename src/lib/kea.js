@@ -112,6 +112,10 @@ const watchRun = (runId) => {
         // Run is marked as killed, so do not continue
         process.exit(2);
       }
+      if(data.status === "Error") {
+        // Mark as error, re-attempt immediately
+        process.exit(1)
+      }
       if (global.run) {
         // Log diff
         const diff = Object.keys(data)
