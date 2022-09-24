@@ -227,11 +227,12 @@ async function runPageConfiguration(currentConfig) {
         } catch {}
 
         if (errorMessage) {
-          await util.infoMessage(page, `🖐 🖐 🖐 🖐 🖐 Error: ${errorMessage}`);
+          util.infoMessage(page, `🖐 🖐 🖐 🖐 🖐 Error: ${errorMessage}`);
+          const isAlreadySubmitted = errorMessage.match(/Passport Number Exists/i)
           // Store status in kea
           kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
             "submissionData.bau.rejectionReason": errorMessage,
-            "submissionData.bau.status": "Rejected",
+            "submissionData.bau.status": isAlreadySubmitted ? "Submitted" : "Rejected",
           });
           
           // Proceed to next pax
