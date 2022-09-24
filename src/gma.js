@@ -229,7 +229,7 @@ async function captchaAndSave(page) {
   await util.pauseMessage(page, 10);
   const isTableExist = await page.$("#tableGroupMutamers_info");
   let tableInfo;
-  console({isTableExist})
+  console.log({isTableExist})
   if (isTableExist) {
     tableInfo = await page.$eval(
       "#tableGroupMutamers_info",
