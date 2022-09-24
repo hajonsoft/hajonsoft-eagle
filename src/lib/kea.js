@@ -151,6 +151,7 @@ const getAccount = async (accountId) => {
 // Get data and write to data.json
 const writeData = async () => {
   const dataFilePath = path.join(os.tmpdir(), "hajonsoft-eagle", "data.json");
+  console.log(`Wrote data file to ${dataFilePath}`)
   // Generate specific passengers (if specified), or whole submission
   const passengers = await fetchPassengers(
     global.passengerIds ?? submission.passengerIds
