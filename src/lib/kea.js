@@ -37,7 +37,7 @@ function chunkArray(array, perChunk) {
 }
 
 const init = async () => {
-  const { submissionId, runId, token, apiKey, passengerIds } = argv;
+  const { submissionId, runId, token, apiKey, passengerIds, headless } = argv;
   let newRun = {};
 
   if (!token) {
@@ -51,6 +51,9 @@ const init = async () => {
   }
   if (passengerIds) {
     global.passengerIds = passengerIds.split(",");
+  }
+  if (headless) {
+    global.headless = true
   }
 
   global.user = await logInWithRefreshToken(token, apiKey);
