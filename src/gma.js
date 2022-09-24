@@ -208,7 +208,7 @@ async function sendPassenger(passenger) {
   await page.emulateVisionDeficiency("none");
 
   util.infoMessage(page, "Ready to save passenger", 2, false, true)
-  // await captchaAndSave(page)
+  await captchaAndSave(page)
 }
 
 async function captchaAndSave(page) {
