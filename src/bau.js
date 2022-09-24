@@ -230,6 +230,7 @@ async function runPageConfiguration(currentConfig) {
           await util.infoMessage(page, `🖐 🖐 🖐 🖐 🖐 Error: ${errorMessage}`);
           // Store status in kea
           kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+            "submissionData.bau.rejectionReason": errorMessage,
             "submissionData.bau.status": "Rejected",
           });
           
@@ -463,12 +464,17 @@ async function sendPassenger(passenger) {
   );
   util.infoMessage(
     page,
-    `🧟 passenger ${passenger.slug} done, waiting to save`
+    `🧟 passenger ${passenger.slug} done, waiting to save`,
+    2, false, true
   );
   await util.pauseForInteraction(page, 10000)
   const saveBtn = await page.$("#ctl00_ContentHolder_BtnEdit");
   if (saveBtn) {
     await page.click("#ctl00_ContentHolder_BtnEdit");
+    util.infoMessage(
+      page,
+      `Save button clicked`
+    );
   } else {
     util.infoMessage(
       page,

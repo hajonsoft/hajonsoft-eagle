@@ -1345,6 +1345,7 @@ const infoMessage = async (
   visaShot = false,
   takeScreenShot = false
 ) => {
+  console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
   const screenshotsDir = getPath("screenshots");
   if (!fs.existsSync(screenshotsDir)) {
     fs.mkdirSync(screenshotsDir);
@@ -1369,8 +1370,6 @@ const infoMessage = async (
       // console.log("Error while taking screenshot: ", e);
     }
   }
-
-  console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
 };
 
 const pauseMessage = async (page, seconds = 3) => {
