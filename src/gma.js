@@ -207,7 +207,6 @@ async function sendPassenger(passenger) {
   }
   await page.emulateVisionDeficiency("none");
 
-  util.infoMessage(page, "Ready to save passenger", 2, false, true)
   await captchaAndSave(page)
 }
 
@@ -225,11 +224,12 @@ async function captchaAndSave(page) {
     await page.click(
       "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success"
     );
+    await page.waitForTimeout(2000)
+    util.infoMessage(page, "Save clicked", 2, false, true)
   }
   await util.pauseMessage(page, 10);
   const isTableExist = await page.$("#tableGroupMutamers_info");
   let tableInfo;
-  console.log({isTableExist})
   if (isTableExist) {
     tableInfo = await page.$eval(
       "#tableGroupMutamers_info",
@@ -249,7 +249,7 @@ async function captchaAndSave(page) {
     );
     const nextTraveller = util.incrementSelectedTraveler();
     const nextPassenger = data.travellers[nextTraveller];
-    console.log({nextTraveller, nextPassenger})
+    console.log({nextTraveller, nextPassenger: nextPassenger.slug})
     if (nextPassenger) {
       sendPassenger(nextPassenger);
     } else {
