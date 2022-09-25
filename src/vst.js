@@ -466,13 +466,23 @@ async function sendPassengerToPrint(index) {
   if (captchaImg && captchaTxt) {
     await util.commitCaptchaToken(page, "imgCaptcha", "#Captcha", 6);
   }
-  await page.click("#btnSubmit");
-  util.infoMessage(page, "Sending passenger to print");
-  await page.waitForTimeout(20000);
+  await util.pauseMessage(page, 10);
   const url = await page.url();
-  if (url === config.find((c) => c.name === "print-visa").url) {
-    util.incrementSelectedTraveler();
-    await page.goto(config.find((c) => c.name === "print-visa").url);
+  if (url == config.find((c) => c.name === "print-visa").url) {
+    await page.click("#btnSubmit");
+    await util.pauseMessage(page, 10);
+    // Make sure the button is visible before clicking
+    const isError = await page.$(
+      "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
+    , { visible: true });
+    if (isError) {
+      await page.click(
+        "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
+      );
+      await util.pauseMessage(page, 10);
+      util.incrementSelectedTraveler();
+      await sendPassengerToPrint();
+    }
   }
 }
 

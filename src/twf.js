@@ -224,7 +224,7 @@ async function pageContentHandler(currentConfig) {
                       passenger
                     );
                   }
-                  await page.emulateVisionDeficiency("blurredVision");
+                  await util.toggleBlur(page);
                   let portraitImage = await util.downloadAndResizeImage(
                     passenger,
                     200,
@@ -243,7 +243,7 @@ async function pageContentHandler(currentConfig) {
                     portraitImage
                   );
                   // await util.commitFile("#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(7) > td > table > tbody > tr:nth-child(1) > td > table > tbody > tr:nth-child(12) > td:nth-child(3) > table > tbody > tr:nth-child(2) > td > div > table > tbody > tr > td:nth-child(1) > form > div > input", vaccineImage);
-                  await page.emulateVisionDeficiency("none");
+                  await util.toggleBlur(page,false);
                   await page.evaluate(() => {
                     const uplodPassportBtn = document.querySelector(
                       "#wrapper > div.gwt-DialogBox > div > table > tbody > tr.dialogMiddle > td.dialogMiddleCenter > div > div > div > table > tbody > tr:nth-child(4) > td > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td:nth-child(2) > table > tbody > tr > td > table > tbody > tr:nth-child(3) > td > button"

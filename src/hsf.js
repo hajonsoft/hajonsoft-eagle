@@ -840,7 +840,7 @@ async function sendNewApplication(selectedTraveller) {
 async function sendPassenger(index) {
   if (index) {
     try {
-      // await page.emulateVisionDeficiency("blurredVision");
+      // await util.toggleBlur(page);
       const data = fs.readFileSync(getPath("data.json"), "utf-8");
       var passengersData = JSON.parse(data);
       var passenger = passengersData.travellers[index];
@@ -890,9 +890,9 @@ async function sendPassenger(index) {
         max_len: 6,
         min_len: 6,
       });
-      await page.emulateVisionDeficiency("blurredVision");
+      await util.toggleBlur(page);
       const token = await captchaSolver.get(id);
-      await page.emulateVisionDeficiency("none");
+      await util.toggleBlur(page,false);
 
       if (token) {
         await page.type("#Captcha", token);

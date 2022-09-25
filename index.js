@@ -33,9 +33,7 @@ let userInput;
 let data = readDataFile();
 
 async function main() {
-  console.log(`====================`);
   console.log(`=== Eagle v${version} ===`);
-  console.log(`====================`);
   // Authenticate firebase
   try {
     await kea.init();
@@ -128,17 +126,17 @@ async function submitToProvider() {
   }
   data.info.run += 1;
   fs.writeFileSync(dataFileName, JSON.stringify(data, null, 2));
-  if (data?.info?.munazim) {
-    const cryptr = new Cryptr(data?.info?.munazim);
-    if (data.system.username && data.system.username.length > 30) {
-      data.system.username = cryptr.decrypt(data.system.username);
-      // console.log(data.system.username);
-    }
-    if (data.system.password && data.system.password.length > 30) {
-      data.system.password = cryptr.decrypt(data.system.password);
-      // console.log(data.system.password);
-    }
-  }
+  // if (data?.info?.munazim) {
+  //   const cryptr = new Cryptr(data?.info?.munazim);
+  //   if (data.system.username && data.system.username.length > 30) {
+  //     data.system.username = cryptr.decrypt(data.system.username);
+  //     // console.log(data.system.username);
+  //   }
+  //   if (data.system.password && data.system.password.length > 30) {
+  //     data.system.password = cryptr.decrypt(data.system.password);
+  //     // console.log(data.system.password);
+  //   }
+  // }
   console.log(
     "\x1b[32m",
     `starting process ...[${data.system.name} ${

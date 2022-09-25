@@ -381,6 +381,9 @@ async function commit(page, details, row) {
         if (value) {
           if (detail.selector) {
             await page.type(detail.selector, (value || "").toString());
+            if(detail.setValueDirectly) {
+              await page.$eval(detail.selector, (el,value) => el.value = (value || "").toString(), value);
+            }
           }
           if (detail.xPath) {
             const xElements = await page.$x(detail.xPath);
@@ -756,10 +759,15 @@ function getSelectedTraveler() {
   const value = global.run.selectedTraveller;
   if (parseInt(value) >= data.travellers.length) {
     // Force reset the counter and avoid looping
-    console.log("Last passenger reached!!. Exiting in 10 seconds...");
-    setTimeout(() => {
+    if(global.headless) {
+      console.log("Last passenger reached!!. Exiting now...");
       process.exit(0);
-    }, 10000);
+    } else {
+      console.log("Last passenger reached!!. Exiting in 10 seconds...");
+      setTimeout(() => {
+        process.exit(0);
+      }, 10000);
+    }
   }
   return value;
 }
@@ -1342,9 +1350,10 @@ const infoMessage = async (
   page,
   message,
   depth = 2,
-  visaShot,
+  visaShot = false,
   takeScreenShot = false
 ) => {
+  console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
   const screenshotsDir = getPath("screenshots");
   if (!fs.existsSync(screenshotsDir)) {
     fs.mkdirSync(screenshotsDir);
@@ -1369,8 +1378,6 @@ const infoMessage = async (
       // console.log("Error while taking screenshot: ", e);
     }
   }
-
-  console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
 };
 
 const pauseMessage = async (page, seconds = 3) => {
@@ -1391,6 +1398,13 @@ const pauseMessage = async (page, seconds = 3) => {
     // console.log("Error while pausing: ", err);
   }
 };
+
+const pauseForInteraction = async(page, ms) => {
+  if(global.headless) {
+    return
+  }
+  await page.waitForTimeout(ms)
+}
 
 function getLogFile(eagleData) {
   if (!eagleData) {
@@ -1438,6 +1452,17 @@ async function screenShotAndContinue(
   await page.goto(url);
 }
 
+async function toggleBlur(page, blur = true) {
+  if(global.headless) {
+    return;
+  }
+  if(blur) {
+    await page.emulateVisionDeficiency("blurredVision");
+  } else {
+    await page.emulateVisionDeficiency("none")
+  }
+}
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1479,7 +1504,9 @@ module.exports = {
   setSelectedTraveller,
   infoMessage,
   pauseMessage,
+  pauseForInteraction,
   getLogFile,
   suggestGroupName,
   screenShotAndContinue,
+  toggleBlur
 };

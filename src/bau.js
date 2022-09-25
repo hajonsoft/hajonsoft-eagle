@@ -64,6 +64,7 @@ const config = [
           "#hajonsoft_select",
           (el) => el.value
         );
+
         if (selectedTraveller) {
           util.setSelectedTraveller(selectedTraveller);
           const passenger = data.travellers[selectedTraveller];
@@ -84,16 +85,16 @@ async function send(sendData) {
     if (dialog.message().match(/Record has been saved Successfully/i)) {
       // Store status in kea
       // the selectedTraveller index would have already incremented, so get the prev passenger
-      const prevIndex = Math.max(util.getSelectedTraveler() - 1, 0);
-      const savedPassenger = data.travellers[parseInt(prevIndex)];
-      console.log("update savedPassenger", savedPassenger.slug);
+      const passenger = data.travellers[util.getSelectedTraveler()];
+      util.infoMessage(page,`🧟 passenger ${passenger.slug} saved`);
       kea.updatePassenger(
         data.system.accountId,
-        savedPassenger.passportNumber,
+        passenger.passportNumber,
         {
           "submissionData.bau.status": "Submitted",
         }
       );
+      util.incrementSelectedTraveler()
     }
     await dialog.accept();
   });
@@ -145,9 +146,16 @@ async function runPageConfiguration(currentConfig) {
 
       break;
     case "main":
-      await page.goto(
-        `https://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx?gMode=1`
-      );
+      if (global.submission.targetGroupId) {
+        // If a group already created for this submission, go directly to that page
+        await page.goto(
+          `https://app${SERVER_NUMBER}.babalumra.com/Groups/EditMutamerNew.aspx?GroupId=${global.submission.targetGroupId}`
+        );
+      } else {
+        await page.goto(
+          `https://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx?gMode=1`
+        );
+      }
       break;
     case "search-group":
       // remove target _blank from all links
@@ -170,12 +178,7 @@ async function runPageConfiguration(currentConfig) {
       await util.commit(page, currentConfig.details, data);
       util.infoMessage(
         page,
-        `🏘 create group => ${
-          groupName ||
-          `${data.info?.caravan.replace(/ /g, "-").substring(0, 20)}-${os
-            .hostname()
-            .substring(0, 8)}`
-        }`
+        `🏘 create group => ${groupName || util.suggestGroupName(data)}`
       );
       await page.evaluate(() => {
         const consulate = document.querySelector(
@@ -197,9 +200,50 @@ async function runPageConfiguration(currentConfig) {
       } catch {}
       break;
     case "create-mutamer":
+      // Update the submission with current group id
+      if (!global.submission.targetGroupId) {
+        const groupId = page.url().match(/GroupId=(\d+)/)?.[1];
+        if (groupId) {
+          global.submission.targetGroupId = groupId;
+          kea.updateSubmission({
+            targetGroupId: groupId,
+          });
+        }
+      }
+
       if (fs.existsSync(getPath("loop.txt"))) {
-        const currentIndex = util.getSelectedTraveler();
-        const passenger = data.travellers[parseInt(currentIndex)];
+        // Pause to allow for confirmation dialog
+        await page.waitForTimeout(5000)
+        
+        let passenger = data.travellers[parseInt(util.getSelectedTraveler())];
+
+        // Check for errors
+        let errorMessage;
+        try {
+          errorMessage = await page.$eval(
+            "#ctl00_ContentHolder_divErrorsList > div > ul > li",
+            (el) => el.textContent || el.innerText
+          );
+        } catch {}
+
+        if (errorMessage) {
+          util.infoMessage(page, `🖐 🖐 🖐 🖐 🖐 Error: ${errorMessage}`);
+          const isAlreadySubmitted = errorMessage.match(/Passport Number Exists/i)
+          // Store status in kea
+          kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+            "submissionData.bau.rejectionReason": errorMessage,
+            "submissionData.bau.status": isAlreadySubmitted ? "Submitted" : "Rejected",
+          });
+          
+          // Proceed to next pax
+          util.incrementSelectedTraveler()
+          passenger = data.travellers[parseInt(util.getSelectedTraveler())];
+          console.log('navigate to', page.url())
+          await page.goto(page.url())
+          break;
+        }
+
+        // Send next passenger
         sendPassenger(passenger);
       } else {
         if (!data.info.caravan.startsWith("CLOUD_")) {
@@ -421,40 +465,23 @@ async function sendPassenger(passenger) {
   );
   util.infoMessage(
     page,
-    `🧟 passenger ${passenger.slug} done, waiting to save`
+    `🧟 passenger ${passenger.slug} done, waiting to save`,
+    2, false, true
   );
-  await page.waitForTimeout(10000);
+  await util.pauseForInteraction(page, 10000)
   const saveBtn = await page.$("#ctl00_ContentHolder_BtnEdit");
   if (saveBtn) {
     await page.click("#ctl00_ContentHolder_BtnEdit");
-    await page.waitForTimeout(5000);
     util.infoMessage(
       page,
-      `🧟 passenger ${passenger.slug} saved`,
-      2,
-      false,
-      true
+      `Save button clicked`
     );
-    try {
-      const errorMessage = await page.$eval(
-        "#ctl00_ContentHolder_divErrorsList > div > ul > li",
-        (el) => el.textContent || el.innerText
-      );
-      if (errorMessage) {
-        util.infoMessage(page, `🖐 🖐 🖐 🖐 🖐 Error: ${errorMessage}`);
-        // Store status in kea
-        kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-          "submissionData.bau.status": "Rejected",
-        });
-      }
-    } catch {}
   } else {
     util.infoMessage(
       page,
       `Error 🖐 🖐 🖐 🖐 passenger ${passenger.slug} skipped. Save button unavailable`
     );
   }
-  util.incrementSelectedTraveler();
 }
 
 module.exports = { send, config, SERVER_NUMBER };
