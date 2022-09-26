@@ -137,6 +137,40 @@ const config = [
 ];
 
 async function sendPassenger(passenger) {
+  // Check if pax exists by filtering by passport number
+  const searchSelector = "#tableGroupMutamers_filter input[type='search']"
+  await page.focus(searchSelector);
+  await page.type(searchSelector, passenger.passportNumber);
+  await page.waitForTimeout(2000)
+  const filterResults = await page.$eval(
+    "#tableGroupMutamers_info",
+    (el) => el.innerText
+  );
+  console.log({filterResults})
+  const exists = filterResults && filterResults.match(/Showing [1-9]+/);
+
+  // Clear search
+  const input = await page.$(searchSelector);
+  await input.click({ clickCount: 3 })
+  await page.keyboard.press('Backspace')
+  await page.waitForTimeout(2000)
+
+  if(exists) {
+    console.log(`Skipping ${passenger.slug}, already exists.`)
+
+    // Update kea status
+    await await kea.updatePassenger(
+      data.system.accountId,
+      passenger.passportNumber,
+      {
+        "submissionData.gma.status": "Submitted",
+      }
+    );
+
+    await proccedToNextPassenger()
+    return
+  }
+
   status = "sending";
   // select group if not selected
   const groupSelector = "#ddl_EAGroups";
@@ -241,26 +275,29 @@ async function captchaAndSave(page) {
   }
   console.log({previousTableInfo, tableInfo}, 'loop.txt', fs.existsSync(getPath("loop.txt")))
   if (previousTableInfo != tableInfo && fs.existsSync(getPath("loop.txt"))) {
-    previousTableInfo = tableInfo;
     // Update kea status
-    kea.updatePassenger(
+    await kea.updatePassenger(
       data.system.accountId,
       passenger.passportNumber,
       {
         "submissionData.gma.status": "Submitted",
       }
     );
-    const nextTraveller = util.incrementSelectedTraveler();
-    const nextPassenger = data.travellers[nextTraveller];
-    console.log({nextTraveller, nextPassenger: nextPassenger.slug})
-    if (nextPassenger) {
-      sendPassenger(nextPassenger);
-    } else {
-      console.log("Exiting in 5 seconds...");
-      setTimeout(() => {
-        process.exit(0);
-      }, 5000)
-    }
+  }
+  previousTableInfo = tableInfo;
+  await proccedToNextPassenger();
+}
+
+async function proccedToNextPassenger() {
+  const nextTraveller = util.incrementSelectedTraveler();
+  const nextPassenger = data.travellers[nextTraveller];
+  if (nextPassenger) {
+    sendPassenger(nextPassenger);
+  } else {
+    console.log("Exiting in 5 seconds...");
+    setTimeout(() => {
+      process.exit(0);
+    }, 5000)
   }
 }
 
