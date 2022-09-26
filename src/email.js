@@ -21,6 +21,30 @@ async function getNewEmail() {
   return email;
 }
 
+async function getOtpFromEmail(email) {
+  const browser = await puppeteer.launch({
+    headless: false,
+    defaultViewport: null,
+    args: [
+      "--incognito",
+      "--disable-web-security",
+      "--disable-features=IsolateOrigins,site-per-process",
+    ],
+  });
+  const pages = await browser.pages();
+  page = pages[0];
+  await page.goto("https://www.minuteinbox.com/", {
+    waitUntill: "networkidle0",
+  });
+  await page.waitForSelector("#emailInputModal");
+  await page.type("#emailInputModal", email.split("@")[0]);
+  await page.waitForSelector("#emailFormBtn");
+  await page.click("#emailFormBtn");
+
+  // const email = await page.$eval("#email", (el) => el.innerText);
+  // return email;
+}
+
 async function readCode() {
   for (let i = 0; i < 10; i++) {
     const content = await page.content();
@@ -39,4 +63,4 @@ async function readCode() {
   }
 }
 
-module.exports = { getNewEmail, readCode, page };
+module.exports = { getNewEmail, getOtpFromEmail, readCode, page };

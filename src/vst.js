@@ -329,8 +329,8 @@ const config = [
         selector: "#Country",
         value: (row) => getCountryCode(row.nationality.name),
       },
-      { selector: "#CityOfBirth", value: (row) => row.birthPlace },
-      { selector: "#Profession", value: (row) => row.profession },
+      { selector: "#CityOfBirth", value: (row) => row.birthPlace || "city" },
+      { selector: "#Profession", value: (row) => row.profession || "unknown" },
       {
         selector: "#City",
         value: (row) => row.address,
@@ -473,8 +473,9 @@ async function sendPassengerToPrint(index) {
     await util.pauseMessage(page, 10);
     // Make sure the button is visible before clicking
     const isError = await page.$(
-      "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
-    , { visible: true });
+      "#dlgMessage > div.modal-dialog > div > div.modal-footer > button",
+      { visible: true }
+    );
     if (isError) {
       await page.click(
         "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
@@ -523,8 +524,19 @@ async function runPageConfiguration(currentConfig) {
           },
         },
       });
-      await util.infoMessage(page, "Printing in 20 seconds");
-      await page.waitForTimeout(20000);
+      if (data.system.username && data.system.password) {
+        await util.commit(page, currentConfig.details, data.system);
+        // Solve captcha
+        await util.commitCaptchaToken(page, "imgCaptcha", "#CaptchaCode", 5);
+        if ((await page.url()) === config.find((c) => c.name === "login").url) {
+          await page.click("#btnSignIn");
+        }
+        return;
+      }
+
+      // If no username and password provided, then go to print visa
+      await util.infoMessage(page, "Printing in 90 seconds");
+      await page.waitForTimeout(90000);
       if (status === "idle") {
         await page.goto(config.find((c) => c.name === "print-visa").url);
       }
@@ -532,7 +544,8 @@ async function runPageConfiguration(currentConfig) {
     case "otp":
       if (await page.$("#resendOtp")) {
         await page.waitForSelector("#resendOtp");
-        await page.click("#resendOtp");
+        await page.click("#resendOtp");        
+        return;
       }
       break;
     case "group":
@@ -551,6 +564,10 @@ async function runPageConfiguration(currentConfig) {
       await page.click("#btnCreateGroup");
       break;
     case "personal":
+      if (!passenger) {
+        await util.infoMessage(page, "No more passengers to send");
+        return;
+      }
       await util.controller(page, currentConfig, data.travellers);
       await page.waitForSelector("#ApplyingVisaForSomeoneElseYes");
       await page.click("#ApplyingVisaForSomeoneElseYes");
