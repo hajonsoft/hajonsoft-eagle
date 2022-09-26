@@ -136,7 +136,51 @@ const config = [
   },
 ];
 
+async function passengerExists(passenger) {
+  try {
+    // Check if pax exists by filtering by passport number
+    const searchSelector = "#tableGroupMutamers_filter input[type='search']"
+    await page.focus(searchSelector);
+    await page.type(searchSelector, passenger.passportNumber);
+    await page.waitForTimeout(2000)
+    const filterResults = await page.$eval(
+      "#tableGroupMutamers_info",
+      (el) => el.innerText
+    );
+    const exists = filterResults && filterResults.match(/Showing [1-9]+/);
+
+    // Clear search
+    const input = await page.$(searchSelector);
+    await input.click({ clickCount: 3 })
+    await page.keyboard.press('Backspace')
+    await page.waitForTimeout(2000)
+
+    return Boolean(exists)
+  } catch {
+    return false
+  }
+}
+
 async function sendPassenger(passenger) {
+  
+  const exists = await passengerExists(passenger)
+  
+  if(exists) {
+    console.log(`--- Skipping ${passenger.slug}, already exists.`)
+
+    // Update kea status
+    await await kea.updatePassenger(
+      data.system.accountId,
+      passenger.passportNumber,
+      {
+        "submissionData.gma.status": "Submitted",
+      }
+    );
+
+    await proccedToNextPassenger()
+    return
+  }
+
   status = "sending";
   // select group if not selected
   const groupSelector = "#ddl_EAGroups";
@@ -223,44 +267,41 @@ async function captchaAndSave(page) {
   );
   await util.pauseMessage(page);
   if (token) {
-    console.log({token})
     await page.click(
       "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success"
     );
     await page.waitForTimeout(2000)
     util.infoMessage(page, "Save clicked", 2, false, true)
   }
-  await util.pauseForInteraction(page, 10000);
-  const isTableExist = await page.$("#tableGroupMutamers_info");
-  let tableInfo;
-  if (isTableExist) {
-    tableInfo = await page.$eval(
-      "#tableGroupMutamers_info",
-      (el) => el.innerText
-    );
-  }
-  console.log({previousTableInfo, tableInfo}, 'loop.txt', fs.existsSync(getPath("loop.txt")))
-  if (previousTableInfo != tableInfo && fs.existsSync(getPath("loop.txt"))) {
-    previousTableInfo = tableInfo;
+  await page.waitForTimeout(5000)
+
+  const hasSaved = await passengerExists(passenger)
+  
+  console.log({hasSaved}, passenger.slug)
+  if (hasSaved && fs.existsSync(getPath("loop.txt"))) {
     // Update kea status
-    kea.updatePassenger(
+    await kea.updatePassenger(
       data.system.accountId,
       passenger.passportNumber,
       {
         "submissionData.gma.status": "Submitted",
       }
     );
-    const nextTraveller = util.incrementSelectedTraveler();
-    const nextPassenger = data.travellers[nextTraveller];
-    console.log({nextTraveller, nextPassenger: nextPassenger.slug})
-    if (nextPassenger) {
-      sendPassenger(nextPassenger);
-    } else {
-      console.log("Exiting in 5 seconds...");
-      setTimeout(() => {
-        process.exit(0);
-      }, 5000)
-    }
+  }
+
+  await proccedToNextPassenger();
+}
+
+async function proccedToNextPassenger() {
+  const nextTraveller = util.incrementSelectedTraveler();
+  const nextPassenger = data.travellers[nextTraveller];
+  if (nextPassenger) {
+    sendPassenger(nextPassenger);
+  } else {
+    console.log("Exiting in 5 seconds...");
+    setTimeout(() => {
+      process.exit(0);
+    }, 5000)
   }
 }
 
@@ -385,9 +426,10 @@ async function runPageConfiguration(currentConfig) {
         // #ddl_Consulates
         if (data.system.embassy) {
           const embassySelector = "#ddl_Consulates";
-            const optionsEmbassy = await page.$eval(
-              embassySelector,
-              (e) => e.innerHTML
+          await page.waitForTimeout(5000);
+          const optionsEmbassy = await page.$eval(
+            embassySelector,
+            (e) => e.innerHTML
             );
             const valuePatternEmbassy = new RegExp(
               `value="(.*)">${data.system.embassy}.*?</option>`,

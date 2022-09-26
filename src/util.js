@@ -760,8 +760,10 @@ function getSelectedTraveler() {
   if (parseInt(value) >= data.travellers.length) {
     // Force reset the counter and avoid looping
     if(global.headless) {
-      console.log("Last passenger reached!!. Exiting now...");
-      process.exit(0);
+      console.log("Last passenger reached!!. Exiting in 2 seconds...");
+      setTimeout(() => {
+        process.exit(0);
+      }, 2000);
     } else {
       console.log("Last passenger reached!!. Exiting in 10 seconds...");
       setTimeout(() => {
