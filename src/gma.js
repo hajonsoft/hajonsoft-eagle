@@ -137,39 +137,40 @@ const config = [
 ];
 
 async function sendPassenger(passenger) {
-  // Check if pax exists by filtering by passport number
-  const searchSelector = "#tableGroupMutamers_filter input[type='search']"
-  await page.focus(searchSelector);
-  await page.type(searchSelector, passenger.passportNumber);
-  await page.waitForTimeout(2000)
-  const filterResults = await page.$eval(
-    "#tableGroupMutamers_info",
-    (el) => el.innerText
-  );
-  console.log({filterResults})
-  const exists = filterResults && filterResults.match(/Showing [1-9]+/);
-
-  // Clear search
-  const input = await page.$(searchSelector);
-  await input.click({ clickCount: 3 })
-  await page.keyboard.press('Backspace')
-  await page.waitForTimeout(2000)
-
-  if(exists) {
-    console.log(`Skipping ${passenger.slug}, already exists.`)
-
-    // Update kea status
-    await await kea.updatePassenger(
-      data.system.accountId,
-      passenger.passportNumber,
-      {
-        "submissionData.gma.status": "Submitted",
-      }
+  try {
+    // Check if pax exists by filtering by passport number
+    const searchSelector = "#tableGroupMutamers_filter input[type='search']"
+    await page.focus(searchSelector);
+    await page.type(searchSelector, passenger.passportNumber);
+    await page.waitForTimeout(2000)
+    const filterResults = await page.$eval(
+      "#tableGroupMutamers_info",
+      (el) => el.innerText
     );
+    const exists = filterResults && filterResults.match(/Showing [1-9]+/);
 
-    await proccedToNextPassenger()
-    return
-  }
+    // Clear search
+    const input = await page.$(searchSelector);
+    await input.click({ clickCount: 3 })
+    await page.keyboard.press('Backspace')
+    await page.waitForTimeout(2000)
+
+    if(exists) {
+      console.log(`Skipping ${passenger.slug}, already exists.`)
+
+      // Update kea status
+      await await kea.updatePassenger(
+        data.system.accountId,
+        passenger.passportNumber,
+        {
+          "submissionData.gma.status": "Submitted",
+        }
+      );
+
+      await proccedToNextPassenger()
+      return
+    }
+  } catch {}
 
   status = "sending";
   // select group if not selected
@@ -257,7 +258,6 @@ async function captchaAndSave(page) {
   );
   await util.pauseMessage(page);
   if (token) {
-    console.log({token})
     await page.click(
       "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success"
     );
@@ -422,9 +422,10 @@ async function runPageConfiguration(currentConfig) {
         // #ddl_Consulates
         if (data.system.embassy) {
           const embassySelector = "#ddl_Consulates";
-            const optionsEmbassy = await page.$eval(
-              embassySelector,
-              (e) => e.innerHTML
+          await page.waitForTimeout(5000);
+          const optionsEmbassy = await page.$eval(
+            embassySelector,
+            (e) => e.innerHTML
             );
             const valuePatternEmbassy = new RegExp(
               `value="(.*)">${data.system.embassy}.*?</option>`,
