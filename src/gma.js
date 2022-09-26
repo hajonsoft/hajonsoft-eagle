@@ -136,7 +136,7 @@ const config = [
   },
 ];
 
-async function sendPassenger(passenger) {
+async function passengerExists(passenger) {
   try {
     // Check if pax exists by filtering by passport number
     const searchSelector = "#tableGroupMutamers_filter input[type='search']"
@@ -155,22 +155,31 @@ async function sendPassenger(passenger) {
     await page.keyboard.press('Backspace')
     await page.waitForTimeout(2000)
 
-    if(exists) {
-      console.log(`Skipping ${passenger.slug}, already exists.`)
+    return Boolean(exists)
+  } catch {
+    return false
+  }
+}
 
-      // Update kea status
-      await await kea.updatePassenger(
-        data.system.accountId,
-        passenger.passportNumber,
-        {
-          "submissionData.gma.status": "Submitted",
-        }
-      );
+async function sendPassenger(passenger) {
+  
+  const exists = await passengerExists(passenger)
+  
+  if(exists) {
+    console.log(`--- Skipping ${passenger.slug}, already exists.`)
 
-      await proccedToNextPassenger()
-      return
-    }
-  } catch {}
+    // Update kea status
+    await await kea.updatePassenger(
+      data.system.accountId,
+      passenger.passportNumber,
+      {
+        "submissionData.gma.status": "Submitted",
+      }
+    );
+
+    await proccedToNextPassenger()
+    return
+  }
 
   status = "sending";
   // select group if not selected
@@ -264,17 +273,12 @@ async function captchaAndSave(page) {
     await page.waitForTimeout(2000)
     util.infoMessage(page, "Save clicked", 2, false, true)
   }
-  await util.pauseForInteraction(page, 10000);
-  const isTableExist = await page.$("#tableGroupMutamers_info");
-  let tableInfo;
-  if (isTableExist) {
-    tableInfo = await page.$eval(
-      "#tableGroupMutamers_info",
-      (el) => el.innerText
-    );
-  }
-  console.log({previousTableInfo, tableInfo}, 'loop.txt', fs.existsSync(getPath("loop.txt")))
-  if (previousTableInfo != tableInfo && fs.existsSync(getPath("loop.txt"))) {
+  await page.waitForTimeout(5000)
+
+  const hasSaved = await passengerExists(passenger)
+  
+  console.log({hasSaved}, passenger.slug)
+  if (hasSaved && fs.existsSync(getPath("loop.txt"))) {
     // Update kea status
     await kea.updatePassenger(
       data.system.accountId,
@@ -284,7 +288,7 @@ async function captchaAndSave(page) {
       }
     );
   }
-  previousTableInfo = tableInfo;
+
   await proccedToNextPassenger();
 }
 
