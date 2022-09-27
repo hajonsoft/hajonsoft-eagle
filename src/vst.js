@@ -16,6 +16,7 @@ let data;
 let status = "idle";
 
 let counter = 0;
+let loginsAttempted = 0;
 
 const countryCodes = {
   afghanistan: "2",
@@ -524,12 +525,13 @@ async function runPageConfiguration(currentConfig) {
           },
         },
       });
-      if (data.system.username && data.system.password) {
+      if (data.system.username && data.system.password && loginsAttempted < 2) {
         await util.commit(page, currentConfig.details, data.system);
         // Solve captcha
         await util.commitCaptchaToken(page, "imgCaptcha", "#CaptchaCode", 5);
         if ((await page.url()) === config.find((c) => c.name === "login").url) {
           await page.click("#btnSignIn");
+          loginsAttempted += 1
         }
         return;
       }
