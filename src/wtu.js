@@ -111,10 +111,6 @@ const config = [
         value: (row) => row.passIssueDt.dd,
       },
       {
-        selector: "#ddlppissmm",
-        txt: (row) => row.passIssueDt.mmm.startsWith("0") ? row.passIssueDt.mmm.substring(1) : row.passIssueDt.mmm,
-      },
-      {
         selector: "#txtppissyy",
         value: (row) => row.passIssueDt.yyyy,
       },
@@ -319,6 +315,15 @@ async function sendPassenger(passenger) {
     config.find((c) => c.name === "create-mutamer").details,
     passenger
   );
+  
+  await page.waitForTimeout(5000);
+  await page.waitForSelector("#ddlppissmm");
+  if (passenger.passIssueDt.mm.startsWith("0")) {
+  await page.select("#ddlppissmm", `${passenger.passIssueDt.mm.substring(1)}`);
+  } else {
+  await page.select("#ddlppissmm", `${passenger.passIssueDt?.mm}`);
+  }
+
   if (passenger.gender == "Female") {
     try {
       await page.waitForSelector("#ddlrelation");
