@@ -887,8 +887,7 @@ async function downloadAndResizeImage(
   }
   await sharp(imagePath)
     .resize(width, height, {
-      fit: sharp.fit.inside,
-      withoutEnlargement: true,
+      fit: sharp.fit.fill,
     })
     .toFile(resizedPath);
   let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
@@ -897,8 +896,7 @@ async function downloadAndResizeImage(
       // TODO: handle this better. May be increase image size on desk by stuffing strings in the image
       await sharp(imagePath)
         .resize(width * i, height * i, {
-          fit: sharp.fit.inside,
-          withoutEnlargement: true,
+          fit: sharp.fit.fill,
         })
         .toFile(resizedPath);
       sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
