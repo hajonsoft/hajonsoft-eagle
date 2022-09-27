@@ -546,7 +546,7 @@ async function runPageConfiguration(currentConfig) {
     case "otp":
       if (await page.$("#resendOtp")) {
         await page.waitForSelector("#resendOtp");
-        await page.click("#resendOtp");        
+        await page.click("#resendOtp");
         return;
       }
       break;
@@ -587,10 +587,12 @@ async function runPageConfiguration(currentConfig) {
         `${passenger.passportNumber}.jpg`
       );
       await util.downloadImage(passenger.images.photo, photoPath);
-      const resizedPhotoPath = path.join(
+      let resizedPhotoPath = path.join(
         util.photosFolder,
         `${passenger.passportNumber}_200x200.jpg`
       );
+
+
       const sharpImage = await sharp(photoPath);
       const sharpImageMetadata = await sharpImage.metadata();
       if (
@@ -602,25 +604,20 @@ async function runPageConfiguration(currentConfig) {
           .jpeg({ quality: 100 })
           .toFile(resizedPhotoPath);
       } else {
-        await sharpImage
-          .resize(250, 300, {
-            fit: sharp.fit.inside,
-            withoutEnlargement: true,
-          })
-          .toFile(resizedPhotoPath);
+        resizedPhotoPath= await util.downloadAndResizeImage(
+          passenger,
+          200,
+          200,
+          "photo",
+          7,
+          100
+        );
+        
       }
+      console.log(resizedPhotoPath);
       await util.commitFile("#AttachmentPersonalPicture", resizedPhotoPath);
-      await page.waitForSelector(
-        "#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result"
-      );
-      const cropSelector = await page.$(
-        "#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result"
-      );
-      await page.click(
-        "#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result"
-      );
-
-      //#btnNext
+      
+      await page.waitForTimeout(3000)
       break;
     case "passport":
       await util.commit(page, currentConfig.details, passenger);
@@ -673,11 +670,10 @@ async function runPageConfiguration(currentConfig) {
       await page.click("#btnNext");
       break;
     case "review":
-      if (data.travellers.length > counter + 1) {
-        counter = counter + 1;
+        util.incrementSelectedTraveler();
         await page.waitForSelector("#btnAddMoreToGroup");
         await page.click("#btnAddMoreToGroup");
-      }
+      
       break;
     case "print-visa":
       status = "print-visa";
