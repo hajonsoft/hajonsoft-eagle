@@ -1,6 +1,6 @@
 {
   "name": "hajonsoft-eagle",
-  "version": "2.2.28",
+  "version": "2.2.29",
   "description": "HAJonSoft node app to submit passengers to visa systems",
   "main": "index.js",
   "scripts": {
