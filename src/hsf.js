@@ -345,61 +345,21 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       showController();
-      if (!fs.existsSync(getPath("loop.txt"))) {
-        await util.premiumSupportAlert(
-          page,
-          "body > div.page-header > div.page-header-top > div > div.page-logo.pull-left",
-          data
-        );
-        // Start automation after 25 seconds of inactivity
-        await util.pauseMessage(page, 25);
-        if (status === "idle") {
-          if (data.travellers.every(isValidPassenger)) {
-            const index = util.getSelectedTraveler();
-            sendPassenger(index);
-            return;
-          }
-          await startImport(page, data);
-        }
-      }
-      // Stamp log file
-      if (startTime) {
-        fs.appendFileSync(
-          util.getLogFile(),
-          `${moment().diff(startTime, "seconds")} seconds`
-        );
-      }
-      startTime = moment().format("YYYY-MM-DD HH:mm:ss");
-      fs.appendFileSync(
-        util.getLogFile(),
-        `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger?.codeline}\n`
-      );
-
-      // Handle error popup
-      await page.waitForTimeout(1000);
-      try {
-        const isDialog = await page.$(
-          "#dlgMessage > div.modal-dialog > div > div.modal-footer > button",
-          {
-            visible: true,
-          }
-        );
-        if (isDialog) {
-          await page.click(
-            "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
-          );
-        }
-      } catch {
-        // Do nothing
-      }
-      // Review this logic because hsf doesnt start auromatically
-
       if (fs.existsSync(getPath("loop.txt"))) {
-        const nextIndex = util.incrementSelectedTraveler();
+        const nextIndex = util.getSelectedTraveler();
         if (nextIndex < data.travellers.length) {
           await sendPassenger(nextIndex.toString());
         }
+      } else {
+        await util.pauseMessage(page, 25);
+        if (status === "idle") {
+          // Start automation after 25 seconds of inactivity
+          fs.writeFileSync(getPath("loop.txt"), "loop");
+          await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
+          return;
+        }
       }
+
       break;
     case "agreement":
       await page.waitForSelector(
@@ -838,6 +798,23 @@ async function sendNewApplication(selectedTraveller) {
 }
 
 async function sendPassenger(index) {
+  // Handle error popup
+  try {
+    const isDialog = await page.$(
+      "#dlgMessage > div.modal-dialog > div > div.modal-footer > button",
+      {
+        visible: true,
+      }
+    );
+    if (isDialog) {
+      await page.click(
+        "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
+      );
+    }
+  } catch {
+    // Do nothing
+  }
+
   if (index) {
     try {
       // await util.toggleBlur(page);
@@ -892,11 +869,12 @@ async function sendPassenger(index) {
       });
       await util.toggleBlur(page);
       const token = await captchaSolver.get(id);
-      await util.toggleBlur(page,false);
+      await util.toggleBlur(page, false);
 
       if (token) {
         await page.type("#Captcha", token);
         await page.waitForSelector(actionSelector);
+        util.incrementSelectedTraveler();
         await page.click(actionSelector);
       }
     } catch (err) {
