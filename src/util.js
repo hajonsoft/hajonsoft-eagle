@@ -470,8 +470,8 @@ function getOptionNode(passenger, cursor) {
         ? passenger?.nameArabic?.given + " " + passenger.nameArabic.last
         : passenger.name.full
     } - ${passenger.passportNumber} - ${passenger?.nationality?.name} - ${
-        passenger?.gender || "gender"
-      } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(passenger)}
+    passenger?.gender || "gender"
+  } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(passenger)}
     </div>
   </div>
   `;
@@ -725,7 +725,7 @@ function getSelectedTraveler() {
   const value = global.run.selectedTraveller;
   if (parseInt(value) >= data.travellers.length) {
     // Force reset the counter and avoid looping
-    if(global.headless) {
+    if (global.headless) {
       console.log("Last passenger reached!!. Exiting in 2 seconds...");
       setTimeout(() => {
         process.exit(0);
@@ -1197,15 +1197,23 @@ async function commitCaptchaToken(
       min_len: captchaLength,
     });
 
+    global.currentCaptchaId = id;
+
     const token = await captchaSolver.get(id);
     infoMessage(page, `🔓 Captcha solved! ${token}`);
 
-    await commit(
-      page,
-      [{ selector: textFieldSelector, value: () => token }],
-      {}
-    );
-    return token;
+    // Prevent an stale capthca from being used
+    if (id === global.currentCaptchaId) {
+      await commit(
+        page,
+        [{ selector: textFieldSelector, value: () => token }],
+        {}
+      );
+      return token;
+    } else {
+      infoMessage(page, `🔓 Discarding stale captcha ${token}`);
+      return null;
+    }
   } catch (err) {
     infoMessage(page, `🔓 Captcha error!!!`);
   }
@@ -1367,6 +1375,7 @@ const pauseMessage = async (page, seconds = 3) => {
 
 const pauseForInteraction = async (page, ms) => {
   if (global.headless) {
+    await page.waitForTimeout(1000);
     return;
   }
   await page.waitForTimeout(ms);
