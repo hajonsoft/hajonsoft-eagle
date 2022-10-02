@@ -9,6 +9,7 @@ const { getPath } = util;
 const moment = require("moment");
 const sharp = require("sharp");
 const homedir = require("os").homedir();
+const gmail = require("./lib/gmail");
 
 let page;
 let email;
@@ -531,7 +532,7 @@ async function runPageConfiguration(currentConfig) {
         await util.commitCaptchaToken(page, "imgCaptcha", "#CaptchaCode", 5);
         if ((await page.url()) === config.find((c) => c.name === "login").url) {
           await page.click("#btnSignIn");
-          loginsAttempted += 1
+          loginsAttempted += 1;
         }
         return;
       }
@@ -544,28 +545,43 @@ async function runPageConfiguration(currentConfig) {
       }
       break;
     case "otp":
+      await page.waitForSelector(
+        "#formOTPAuth > div.form-fields > div.w-100 > div > div > h3"
+      );
+      // Ask user to forward otp to hajonsoft.owl@gmail.com
+      // write the message on the DOM
+      await page.$eval("#formOTPAuth > div.form-fields > div.w-100 > div > div > h3", (el) => {
+        el.innerHTML =
+          "Please forward the OTP to <a href='mailto:hajonsoft.owl@gmail.com'>hajonsoft.owl@gmail.com<a>";
+      });
+
       if (await page.$("#resendOtp")) {
         await page.waitForSelector("#resendOtp");
         await page.click("#resendOtp");
-        return;
+        try {
+          // wait at least 30 seconds
+          await util.pauseMessage(page, 30);
+          const code = await gmail.getVisitVisaCodeByEmail(
+            data.system.username
+          );
+          await page.waitForSelector("#Otp");
+          await page.type("#Otp", code);
+          await page.waitForSelector("#btnSubmit");
+          await page.click("#btnSubmit");
+        } catch {
+          console.log("error in otp");
+        }
       }
       break;
     case "group":
       await page.waitForSelector("#btnApplyGroupVisa");
       await page.click("#btnApplyGroupVisa");
       await page.waitForSelector("#txtGroupName");
-      await page.type(
-        "#txtGroupName",
-        (
-          data.travellers[counter].name.full +
-          data.travellers[counter].nationality.name +
-          data.travellers[counter].mobileNumber +
-          moment().format("mmssa")
-        ).replace(/ /g, "")
-      );
+      await page.type("#txtGroupName", util.suggestGroupName(data.travellers));
       await page.click("#btnCreateGroup");
       break;
     case "personal":
+      status = "personal";
       if (!passenger) {
         await util.infoMessage(page, "No more passengers to send");
         return;
@@ -592,7 +608,6 @@ async function runPageConfiguration(currentConfig) {
         `${passenger.passportNumber}_200x200.jpg`
       );
 
-
       const sharpImage = await sharp(photoPath);
       const sharpImageMetadata = await sharpImage.metadata();
       if (
@@ -604,7 +619,7 @@ async function runPageConfiguration(currentConfig) {
           .jpeg({ quality: 100 })
           .toFile(resizedPhotoPath);
       } else {
-        resizedPhotoPath= await util.downloadAndResizeImage(
+        resizedPhotoPath = await util.downloadAndResizeImage(
           passenger,
           200,
           200,
@@ -612,14 +627,23 @@ async function runPageConfiguration(currentConfig) {
           7,
           100
         );
-        
       }
       console.log(resizedPhotoPath);
       await util.commitFile("#AttachmentPersonalPicture", resizedPhotoPath);
-      
-      await page.waitForTimeout(3000)
+
+      // check for crop pop up and close it
+      if (await page.$("#btnCrop")) {
+        await page.click("#btnCrop");
+      }
+
+      //TODO: If cloud click next without waiting
+      await util.pauseMessage(page, 30);
+      if (status === "personal") {
+        await page.click("#btnNext");
+      }
       break;
     case "passport":
+      status = "passport";
       await util.commit(page, currentConfig.details, passenger);
       await page.click("#chk_4");
       await page.waitForSelector("#PassportIssueDate");
@@ -658,8 +682,15 @@ async function runPageConfiguration(currentConfig) {
         moment().add(31, "days").format("DD/MM/YYYY")
       );
       await page.click("#chkSelectDeselectAll");
+
+      // click next if waiting for more than 30 seconds
+      await util.pauseMessage(page, 30);
+      if (status === "passport") {
+        await page.click("#btnNext");
+      }
       break;
     case "insurance":
+      status = "insurance";
       await page.waitForSelector("#chkInsurance");
       await page.click("#chkInsurance");
       await page.click("#btnNext");
@@ -670,10 +701,10 @@ async function runPageConfiguration(currentConfig) {
       await page.click("#btnNext");
       break;
     case "review":
-        util.incrementSelectedTraveler();
-        await page.waitForSelector("#btnAddMoreToGroup");
-        await page.click("#btnAddMoreToGroup");
-      
+      util.incrementSelectedTraveler();
+      await page.waitForSelector("#btnAddMoreToGroup");
+      await page.click("#btnAddMoreToGroup");
+
       break;
     case "print-visa":
       status = "print-visa";
