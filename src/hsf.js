@@ -43,6 +43,8 @@ let twfPage;
 
 let status = "idle";
 
+let retries = 0;
+
 const zip = new JSZip();
 
 const config = [
@@ -211,8 +213,8 @@ const config = [
 
 async function send(sendData) {
   data = sendData;
-  page = await util.initPage(config, onContentLoaded);
-  page.goto(config[0].url, { waitUntil: "domcontentloaded" });
+  page = await util.initPage(config, onContentLoaded, data);
+  await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
 async function onContentLoaded(res) {
@@ -312,7 +314,7 @@ async function beginWTUImport() {
   );
 }
 
-async function isValidPassenger(passenger) {
+function isValidPassenger(passenger) {
   return (
     passenger.mofaNumber &&
     passenger.passportNumber &&
@@ -344,6 +346,15 @@ async function pageContentHandler(currentConfig) {
   let passenger = getPassenger();
   switch (currentConfig.name) {
     case "login":
+      // Check if page is REALLY loaded, since domcontentloaded is fired twice
+      try {
+        await page.waitForSelector(".page-header", {
+          visible: true,
+          timeout: 1000,
+        });
+      } catch {
+        return;
+      }
       showController();
       if (fs.existsSync(getPath("loop.txt"))) {
         const nextIndex = util.getSelectedTraveler();
@@ -351,9 +362,9 @@ async function pageContentHandler(currentConfig) {
           await sendPassenger(nextIndex.toString());
         }
       } else {
-        await util.pauseMessage(page, 25);
+        await util.pauseForInteraction(page, 15000);
         if (status === "idle") {
-          // Start automation after 25 seconds of inactivity
+          // Start automation after 15 seconds of inactivity
           fs.writeFileSync(getPath("loop.txt"), "loop");
           await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
           return;
@@ -589,22 +600,22 @@ async function pageContentHandler(currentConfig) {
       if (isPrintButton) {
         const href = await page.$eval(printButtonSelector, (el) => el.href);
         await page.goto(href, { waitUntil: "domcontentloaded" });
-        const visaFolder = path.join(homedir, "hajonsoft", "visa");
-        if (!fs.existsSync(visaFolder)) {
-          fs.mkdirSync(visaFolder, { recursive: true });
-        }
+        // const visaFolder = path.join(homedir, "hajonsoft", "visa");
+        // if (!fs.existsSync(visaFolder)) {
+        //   fs.mkdirSync(visaFolder, { recursive: true });
+        // }
         await page.waitForSelector(
           "body > form > page > div > div > div > div.evisa-header > div > div.evisa-col-12"
         );
         const visaElement = await page.$("body > form > page > div");
-        const caravanName = data.info?.caravan?.replace(/[^A-Z0-9]/g, "");
-        let saveFolder = visaFolder;
-        if (caravanName) {
-          saveFolder = path.join(visaFolder, caravanName);
-        }
-        if (!fs.existsSync(saveFolder)) {
-          fs.mkdirSync(saveFolder, { recursive: true });
-        }
+        // const caravanName = data.info?.caravan?.replace(/[^A-Z0-9]/g, "");
+        // let saveFolder = visaFolder;
+        // if (caravanName) {
+        //   saveFolder = path.join(visaFolder, caravanName);
+        // }
+        // if (!fs.existsSync(saveFolder)) {
+        //   fs.mkdirSync(saveFolder, { recursive: true });
+        // }
 
         await page.waitForTimeout(7000);
         await page.waitForSelector("#btnPrevious");
@@ -624,30 +635,36 @@ async function pageContentHandler(currentConfig) {
 
         // Save base64 image to kea
         try {
-          screenShotToKea(visaElement, data.system.accountId, currentPassenger);
+          await screenShotToKea(
+            visaElement,
+            data.system.accountId,
+            currentPassenger
+          );
         } catch (error) {}
+        util.incrementSelectedTraveler();
+        await page.goto(config[0].url);
 
         // Save image to file
-        const visaFileName =
-          path.join(
-            saveFolder,
-            currentPassenger?.passportNumber +
-              "_" +
-              currentPassenger?.name?.full.replace(/ /, "_") +
-              "_" +
-              moment().format("YYYY-MM-DD_HH-mm-ss")
-          ) + ".png";
+        // const visaFileName =
+        //   path.join(
+        //     saveFolder,
+        //     currentPassenger?.passportNumber +
+        //       "_" +
+        //       currentPassenger?.name?.full.replace(/ /, "_") +
+        //       "_" +
+        //       moment().format("YYYY-MM-DD_HH-mm-ss")
+        //   ) + ".png";
 
-        console.log("Saving visa to file: ", visaFileName);
-        await util.screenShotAndContinue(
-          page,
-          visaElement,
-          visaFileName,
-          config[0].url
-        );
+        // console.log("Saving visa to file: ", visaFileName);
+        // await util.screenShotAndContinue(
+        //   page,
+        //   visaElement,
+        //   visaFileName,
+        //   config[0].url
+        // );
         return;
       }
-      page.goto(config[0].url);
+      await page.goto(config[0].url);
       break;
     case "add":
       await util.controller(
@@ -704,7 +721,7 @@ async function screenShotToKea(visaElement, accountId, currentPassenger) {
   const visaImageUrl = await kea.uploadImageToStorage(base64, destination);
 
   // Send base64 encoded string to kea
-  kea.updatePassenger(accountId, currentPassenger.passportNumber, {
+  await kea.updatePassenger(accountId, currentPassenger.passportNumber, {
     visaImageUrl,
     "submissionData.hsf.status": "Submitted",
   });
@@ -800,28 +817,86 @@ async function sendNewApplication(selectedTraveller) {
 async function sendPassenger(index) {
   // Handle error popup
   try {
-    const isDialog = await page.$(
+    const isDialog = await page.waitForSelector(
       "#dlgMessage > div.modal-dialog > div > div.modal-footer > button",
       {
         visible: true,
+        timeout: 5000,
       }
     );
     if (isDialog) {
-      await page.click(
-        "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
+      const message = await page.$eval(
+        "#dlgMessage #dlgMessageContent .note",
+        (el) => el.textContent.trim()
       );
+      if (
+        message.match(
+          /The code entered does not match the code displayed on the page/
+        ) ||
+        message.match(/رمز الصورة المدخل غير صحيح/)
+      ) {
+        // Incorrect captcha, try again
+        console.log("Incorrect captcha, try again");
+        await page.click(
+          "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
+        );
+      } else {
+        // Legitimate error, try 3 times, then move on
+        console.log("Error: ", message, "Retry count: ", retries);
+        retries += 1;
+        if (retries > 2) {
+          retries = 0;
+          const passenger = data.travellers[index];
+          await kea.updatePassenger(
+            data.system.accountId,
+            passenger.passportNumber,
+            {
+              "submissionData.hsf.status": "Rejected",
+              "submissionData.hsf.rejectionReason": message,
+            }
+          );
+          util.incrementSelectedTraveler();
+        }
+
+        await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
+        return;
+      }
     }
-  } catch {
+  } catch (e) {
     // Do nothing
   }
+
+  // Dismiss cookies alert
+  try {
+    const isCookies = await page.waitForSelector("button.acceptcookies", {
+      visible: true,
+      timeout: 2000,
+    });
+    if (isCookies) {
+      await page.click("button.acceptcookies");
+      page.waitForTimeout(2000);
+    }
+  } catch {}
 
   if (index) {
     try {
       // await util.toggleBlur(page);
-      const data = fs.readFileSync(getPath("data.json"), "utf-8");
-      var passengersData = JSON.parse(data);
-      var passenger = passengersData.travellers[index];
+      const passenger = data.travellers[index];
       util.infoMessage(page, `Sending ${passenger.slug}`);
+
+      if (!isValidPassenger(passenger)) {
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            "submissionData.hsf.status": "Rejected",
+            "submissionData.hsf.rejectionReason": "Missing Mofa number",
+          }
+        );
+        util.incrementSelectedTraveler();
+        await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
+        return;
+      }
       const found = mofas?.find(
         (mofa) => mofa.passportNumber === passenger.passportNumber
       );
@@ -840,41 +915,18 @@ async function sendPassenger(index) {
         config.find((con) => con.name === "login").details,
         passenger
       );
-      if (!passenger.mofaNumber) {
-        return;
-      }
       const actionSelector = "#btnSubmit";
-      // Wait for image to load.
-      await util.pauseMessage(page, 3);
-      const base64 = await page.evaluate(() => {
-        const image = document.getElementById("imgCaptcha");
-        const canvas = document.createElement("canvas");
-        canvas.width = image.naturalWidth;
-        canvas.height = image.naturalHeight;
-        canvas.getContext("2d").drawImage(image, 0, 0);
-        const dataURL = canvas.toDataURL();
-        return dataURL.replace("data:", "").replace(/^.+,/, "");
-      });
-
-      const captchaSolver = new RuCaptcha2Captcha(
-        "637a1787431d77ad2c1618440a3d7149",
-        2
+      await util.toggleBlur(page);
+      const token = await util.commitCaptchaToken(
+        page,
+        "imgCaptcha",
+        "#Captcha",
+        6
       );
 
-      const id = await captchaSolver.send({
-        method: "base64",
-        body: base64,
-        max_len: 6,
-        min_len: 6,
-      });
-      await util.toggleBlur(page);
-      const token = await captchaSolver.get(id);
       await util.toggleBlur(page, false);
-
       if (token) {
-        await page.type("#Captcha", token);
         await page.waitForSelector(actionSelector);
-        util.incrementSelectedTraveler();
         await page.click(actionSelector);
       }
     } catch (err) {
