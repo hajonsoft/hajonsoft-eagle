@@ -34,7 +34,6 @@ let page;
 let data;
 let counter = 0;
 let mofas = [];
-let startTime;
 
 let wtuPage;
 let gmaPage;
@@ -45,7 +44,6 @@ let status = "idle";
 
 let retries = 0;
 
-const zip = new JSZip();
 
 const config = [
   {
@@ -247,6 +245,7 @@ async function showController() {
             "#hajonsoft_select",
             (el) => el.value
           );
+          status = "sending";
           util.setSelectedTraveller(selectedTraveller);
           await sendPassenger(selectedTraveller);
         },
@@ -269,6 +268,7 @@ async function showController() {
 }
 
 async function beginTWFImport() {
+  status = "twf";
   twfPage = await util.newPage(onTWFPageLoad, () => {});
   initializeTWFImport(twfPage, data);
   twfPage.on("response", injectTWFEagleButton);
@@ -281,6 +281,7 @@ async function beginTWFImport() {
 }
 
 async function beginBAUImport() {
+  status = "bau";
   bauPage = await util.newPage(onBAUPageLoad, () => {});
   initializeBAUImport(bauPage, data);
   // bauPage.on("response", injectBAUEagleButton);
@@ -293,6 +294,7 @@ async function beginBAUImport() {
 }
 
 async function beginGMAImport() {
+  status = "gma";
   gmaPage = await util.newPage(onGMAPageLoad, () => {});
   gmaPage.on("response", injectGMAEagleButton);
   const gmaBrowser = await gmaPage.browser();
@@ -303,6 +305,7 @@ async function beginGMAImport() {
 }
 
 async function beginWTUImport() {
+  status = "wtu";
   wtuPage = await util.newPage(onWTUPageLoad, () => {});
   initializeWTUImport(wtuPage, data);
   wtuPage.on("response", injectWTUEagleButton);
@@ -324,6 +327,7 @@ function isValidPassenger(passenger) {
 
 async function startImport(page, data) {
   util.infoMessage(page, `start import from ${data.system.serviceProvider}`);
+  status = "importing";
   switch (data.system.serviceProvider) {
     case "twf":
       beginTWFImport();
@@ -364,10 +368,8 @@ async function pageContentHandler(currentConfig) {
       } else {
         await util.pauseForInteraction(page, 15000);
         if (status === "idle") {
-          // Start automation after 15 seconds of inactivity
           fs.writeFileSync(getPath("loop.txt"), "loop");
           await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
-          return;
         }
       }
 
@@ -815,6 +817,9 @@ async function sendNewApplication(selectedTraveller) {
 }
 
 async function sendPassenger(index) {
+  if (status === "importing") {
+    return;
+  }
   // Handle error popup
   try {
     const isDialog = await page.waitForSelector(
