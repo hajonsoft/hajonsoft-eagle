@@ -531,7 +531,7 @@ async function runPageConfiguration(currentConfig) {
         await util.commitCaptchaToken(page, "imgCaptcha", "#CaptchaCode", 5);
         if ((await page.url()) === config.find((c) => c.name === "login").url) {
           await page.click("#btnSignIn");
-          loginsAttempted += 1
+          loginsAttempted += 1;
         }
         return;
       }
@@ -592,7 +592,6 @@ async function runPageConfiguration(currentConfig) {
         `${passenger.passportNumber}_200x200.jpg`
       );
 
-
       const sharpImage = await sharp(photoPath);
       const sharpImageMetadata = await sharpImage.metadata();
       if (
@@ -604,7 +603,7 @@ async function runPageConfiguration(currentConfig) {
           .jpeg({ quality: 100 })
           .toFile(resizedPhotoPath);
       } else {
-        resizedPhotoPath= await util.downloadAndResizeImage(
+        resizedPhotoPath = await util.downloadAndResizeImage(
           passenger,
           200,
           200,
@@ -612,12 +611,11 @@ async function runPageConfiguration(currentConfig) {
           7,
           100
         );
-        
       }
       console.log(resizedPhotoPath);
       await util.commitFile("#AttachmentPersonalPicture", resizedPhotoPath);
-      
-      await page.waitForTimeout(3000)
+
+      await page.waitForTimeout(3000);
       break;
     case "passport":
       await util.commit(page, currentConfig.details, passenger);
@@ -670,10 +668,10 @@ async function runPageConfiguration(currentConfig) {
       await page.click("#btnNext");
       break;
     case "review":
-        util.incrementSelectedTraveler();
-        await page.waitForSelector("#btnAddMoreToGroup");
-        await page.click("#btnAddMoreToGroup");
-      
+      util.incrementSelectedTraveler();
+      await page.waitForSelector("#btnAddMoreToGroup");
+      await page.click("#btnAddMoreToGroup");
+
       break;
     case "print-visa":
       status = "print-visa";
@@ -708,7 +706,11 @@ async function runPageConfiguration(currentConfig) {
 
       // Save base64 image to kea
       try {
-        screenShotToKea(visaElement, data.system.accountId, currentPassenger);
+        await screenShotToKea(
+          visaElement,
+          data.system.accountId,
+          currentPassenger
+        );
       } catch (error) {}
 
       // Save image to file
