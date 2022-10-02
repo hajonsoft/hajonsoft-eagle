@@ -120,13 +120,6 @@ async function onBAUPageLoad(res) {
       .toLowerCase()
       .includes("babalumra.com/Groups/SearchGroups.aspx".toLowerCase())
   ) {
-    console.log(
-      "%cMyProject%cline:116%cmofaUrl",
-      "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
-      "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
-      "color:#fff;background:rgb(248, 214, 110);padding:3px;border-radius:2px",
-      mofaUrl
-    );
     try {
       await page.$$eval("a", (els) => {
         els.map((el) => el.removeAttribute("target"));
