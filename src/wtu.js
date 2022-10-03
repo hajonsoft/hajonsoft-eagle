@@ -167,16 +167,22 @@ async function pageContentHandler(currentConfig) {
       break;
     case "main":
       // set document title
-      util.infoMessage(page, "Redirect in 10 seconds");
-      await page.waitForTimeout(10000);
+      await util.pauseMessage(page, 10);
       // Continue only if still on the same page
       if (
         currentConfig.name ===
         (await util.findConfig(await page.url(), config)).name
       ) {
-        await page.goto(
-          "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx?PageId=M"
-        );
+        if (global.submission.targetGroupId) {
+          // Group id exists, go to create mutamer page
+          await page.goto(
+            "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+          );
+        } else {
+          await page.goto(
+            "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx?PageId=M"
+          );
+        }
       }
       break;
     case "create-group":
@@ -200,18 +206,17 @@ async function pageContentHandler(currentConfig) {
 
       await page.focus("#BtnSave");
       await page.hover("#BtnSave");
-      util.infoMessage(page, "Redirect in 15 seconds");
-      setTimeout(async () => {
-        const url = await page.url();
-        const createGroupRegex = config.find(
-          (c) => c.name === "create-group"
-        ).regex;
-        if (new RegExp(createGroupRegex).test(url)) {
-          try {
-            await page.click("#BtnSave");
-          } catch {}
-        }
-      }, 15000);
+
+      await util.pauseMessage(page, 15);
+      const url = await page.url();
+      const createGroupRegex = config.find(
+        (c) => c.name === "create-group"
+      ).regex;
+      if (new RegExp(createGroupRegex).test(url)) {
+        try {
+          await page.click("#BtnSave");
+        } catch {}
+      }
 
       // Wait for this string: Group saved successfully, Group code is 153635
       const groupCreatedSuccessfullyElement =
@@ -228,6 +233,12 @@ async function pageContentHandler(currentConfig) {
       if (numberMatch) {
         groupName = numberMatch[0];
         budgie.save("wtu_group", groupName);
+
+        // Save group id to kea
+        global.submission.targetGroupId = groupName;
+        kea.updateSubmission({
+          targetGroupId: groupName,
+        });
       }
 
       await page.goto(
@@ -235,31 +246,103 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "create-mutamer":
-      await util.toggleBlur(page,false);
+      await util.toggleBlur(page, false);
       await util.controller(page, currentConfig, data.travellers);
       if (fs.existsSync(getPath("loop.txt"))) {
         return sendPassenger(passenger);
       }
 
-      util.infoMessage(page, "Redirect in 10 seconds");
-      await page.waitForTimeout(10000);
+      await util.pauseMessage(page, 10);
 
-      setTimeout(() => {
-        if (status === "") {
-          fs.writeFileSync(getPath("loop.txt"), "1");
-          sendPassenger(passenger);
-        }
-      }, 10000);
+      if (status === "") {
+        fs.writeFileSync(getPath("loop.txt"), "1");
+        sendPassenger(passenger);
+      }
 
       break;
     default:
       break;
   }
 }
+async function checkForServerError(page) {
+  try {
+    const serverError = await page.waitForSelector("body > span > h1");
+    if (serverError) {
+      const serverErrorText = await page.$eval(
+        "body > span > h1",
+        (el) => el.innerText
+      );
+      if (serverErrorText.match(/Server Error/i)) {
+        return page.goto(
+          "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+        );
+      }
+    }
+  } catch (e) {}
+}
+async function checkForError(page, passenger) {
+  console.log("checkForError");
+  await page.waitForTimeout(1000);
+  // Passenger rejected check if there is a reason and store it in kea. Then continue to Plan B
+  const errorSelector =
+    "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span";
+  const isError = await page.$(errorSelector);
+  // Store error reason in kea
+  if (isError) {
+    const errorReason = await page.$eval(errorSelector, (e) => e.textContent);
+    util.infoMessage(page, `Error: ${errorReason}`);
+
+    const passengerExists = errorReason.match(
+      /Passport No. cannot be repeated in the same group/i
+    );
+
+    if (passengerExists) {
+      util.infoMessage(page, "Passenger already exists");
+      await kea.updatePassenger(
+        data.system.accountId,
+        passenger.passportNumber,
+        {
+          "submissionData.wtu.status": "Submitted",
+        }
+      );
+    } else {
+      await kea.updatePassenger(
+        data.system.accountId,
+        passenger.passportNumber,
+        {
+          "submissionData.wtu.status": "Rejected",
+          "submissionData.wtu.rejectionReason": errorReason,
+        }
+      );
+    }
+    // dismiss the error
+    const errorButton = await page.waitForSelector(
+      "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-footer.text-center > button"
+    );
+
+    await errorButton.click();
+
+    const tryAgain = errorReason.match(
+      /Sorry, There is a mismatch between data scanned and passport copy/i
+    );
+    if (!tryAgain) {
+      util.incrementSelectedTraveler();
+      await page.goto(
+        "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+      );
+      return true;
+    }
+    return false;
+  } else {
+    console.log("No error");
+    return false;
+  }
+}
 
 async function sendPassenger(passenger) {
+  await checkForServerError(page);
   status = "sending";
-  await util.toggleBlur(page,false);
+  await util.toggleBlur(page, false);
   // await util.toggleBlur(page);
   const titleMessage = `🧟 ${parseInt(util.getSelectedTraveler()) + 1}/${
     data.travellers.length
@@ -292,7 +375,11 @@ async function sendPassenger(passenger) {
     page,
     `group 👨‍👩‍👦  ${submittionName}[${groupName}]: Attention!!!Embassy-first-option`
   );
-  await page.select("#ddlgroupname", groupName);
+  console.log("Select group: ", global.submission?.targetGroupId);
+  await page.select(
+    "#ddlgroupname",
+    global.submission?.targetGroupId ?? groupName
+  );
   await page.waitForTimeout(3000);
   await page.waitForSelector("#btnppscan");
   await page.evaluate(() => {
@@ -307,7 +394,7 @@ async function sendPassenger(passenger) {
   await page.type("#divshowmsg", passenger.codeline, {
     delay: 0,
   });
-  await util.toggleBlur(page,false);
+  await util.toggleBlur(page, false);
 
   await page.waitForTimeout(5000);
   await util.commit(
@@ -315,13 +402,16 @@ async function sendPassenger(passenger) {
     config.find((c) => c.name === "create-mutamer").details,
     passenger
   );
-  
+
   await page.waitForTimeout(5000);
   await page.waitForSelector("#ddlppissmm");
   if (passenger.passIssueDt.mm.startsWith("0")) {
-  await page.select("#ddlppissmm", `${passenger.passIssueDt.mm.substring(1)}`);
+    await page.select(
+      "#ddlppissmm",
+      `${passenger.passIssueDt.mm.substring(1)}`
+    );
   } else {
-  await page.select("#ddlppissmm", `${passenger.passIssueDt?.mm}`);
+    await page.select("#ddlppissmm", `${passenger.passIssueDt?.mm}`);
   }
 
   if (passenger.gender == "Female") {
@@ -401,6 +491,10 @@ async function sendPassenger(passenger) {
     kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
       "submissionData.wtu.status": "Submitted",
     });
+    util.incrementSelectedTraveler();
+    return page.goto(
+      "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+    );
   } catch {
     console.log(`Passport ${passenger.passportNumber} failed. Plan B`);
   }
@@ -417,25 +511,9 @@ async function sendPassenger(passenger) {
     );
   }
 
-  // Passenger rejected check if there is a reason and store it in kea. Then continue to Plan B
-  const errorSelector =
-    "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span";
-  const isError = await page.$(errorSelector);
-  // Store error reason in kea
-  if (isError) {
-    kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-      "submissionData.wtu.status": "Rejected",
-      "submissionData.wtu.rejectionReason": await page.$eval(
-        errorSelector,
-        (el) => el.textContent
-      ),
-    });
-    // dismiss the error
-    const errorButton = await page.waitForSelector(
-      "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-footer.text-center > button"
-    );
-
-    await errorButton.click();
+  const stop = await checkForError(page, passenger);
+  if (stop) {
+    return;
   }
 
   // Use fake passport image
@@ -498,17 +576,11 @@ async function sendPassenger(passenger) {
       5
     );
     await page.click("#btnsave");
-    kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-      "submissionData.wtu.status": "Submitted",
-    });
     // allow 10 seconds to save
-    util.infoMessage(page, "allow 10 seconds for save", 7);
-    await page.waitForTimeout(10000);
-    util.incrementSelectedTraveler();
-    return page.goto(
-      "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
-    );
+    util.infoMessage(page, "Clicked save", 7);
+    await checkForError(page, passenger);
   } catch (err) {
+    console.log(err);
     util.infoMessage(page, "Canvas: dummy-passport-error", 7);
   }
 }
