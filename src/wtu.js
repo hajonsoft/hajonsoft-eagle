@@ -273,7 +273,7 @@ async function checkForServerError(page) {
         (el) => el.innerText
       );
       if (serverErrorText.match(/Server Error/i)) {
-        return page.goto(
+        return await page.goto(
           "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
         );
       }
@@ -330,12 +330,9 @@ async function checkForError(page, passenger) {
       await page.goto(
         "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
       );
-      return true;
     }
-    return false;
   } else {
     console.log("No error");
-    return false;
   }
 }
 
@@ -511,10 +508,7 @@ async function sendPassenger(passenger) {
     );
   }
 
-  const stop = await checkForError(page, passenger);
-  if (stop) {
-    return;
-  }
+  await checkForError(page, passenger);
 
   // Use fake passport image
   const blankPassportPath = getPath(`${passenger.passportNumber}_mrz.jpg`);
