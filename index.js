@@ -25,6 +25,7 @@ const moment = require("moment");
 const budgie = require("./src/budgie");
 const kea = require("./src/lib/kea");
 const inquirer = require("inquirer");
+const { ar } = require("date-fns/locale");
 const defaultSMSAPIKeyMustOverride = "88fd2e1A3f4d327740A9408c12872A39";
 
 const version = pjson.version;
@@ -34,6 +35,7 @@ let data = readDataFile();
 
 async function main() {
   console.log(`=== Eagle v${version} ===`);
+  console.log(`https://hajonsoft-kea.web.app/admin/submissions/${process.argv.find(arg => arg.startsWith("--submissionId"))?.split("=")?.[1]}/edit`)
   // Authenticate firebase
   try {
     await kea.init();
