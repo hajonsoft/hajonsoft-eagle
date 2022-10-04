@@ -524,10 +524,12 @@ async function controller(page, structure, travellers) {
         const handleMethodName = params[2];
         const visaPath = params[3];
         const htmlContent = params[4];
+        const pax = params[5];
         container.outerHTML = `${htmlContent
           .replace(/{handleMethodName}/, handleMethodName)
           .replace(/{options}/, optionsParam)
           .replace(/{visaPath}/, visaPath)
+          .replace(/{pax}/, pax.length)
           .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`;
       },
       [
@@ -536,6 +538,7 @@ async function controller(page, structure, travellers) {
         controllerHandleMethod,
         path.join(homedir, "hajonsoft", "visa"),
         html,
+        travellers,
       ]
     );
     const isExposed = await page.evaluate(

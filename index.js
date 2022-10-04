@@ -34,6 +34,7 @@ let data = readDataFile();
 
 async function main() {
   console.log(`=== Eagle v${version} ===`);
+  console.log(`https://hajonsoft-kea.web.app/admin/submissions/${process.argv.find(arg => arg.startsWith("--submissionId"))?.split("=")?.[1]}/edit`)
   // Authenticate firebase
   try {
     await kea.init();
