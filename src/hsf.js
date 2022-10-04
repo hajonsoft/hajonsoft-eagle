@@ -44,7 +44,6 @@ let status = "idle";
 
 let retries = 0;
 
-
 const config = [
   {
     name: "login",
@@ -366,7 +365,7 @@ async function pageContentHandler(currentConfig) {
           await sendPassenger(nextIndex.toString());
         }
       } else {
-        await util.pauseForInteraction(page, 15000);
+        await util.pauseForInteraction(page, 15);
         if (status === "idle") {
           fs.writeFileSync(getPath("loop.txt"), "loop");
           await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
