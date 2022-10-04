@@ -9,12 +9,33 @@ const util = require("./util");
 const { getPath } = util;
 const budgie = require("./budgie");
 const os = require("os");
-
 let page;
 let data;
 let token;
 let groupName;
 let status = "";
+
+const getUserName = (system) => {
+  const usernames = system.username.split(",");
+  const index = global.run.index ?? 0;
+  const username = usernames[index];
+  if (!username) {
+    console.log(`Could not find username: ${usernames} (index: ${index})`);
+    process.exit(1);
+  }
+  return username;
+};
+
+const getPassword = (system) => {
+  const passwords = system.password.split(",");
+  const index = global.run.index ?? 0;
+  const password = passwords[index];
+  if (!password) {
+    console.log(`Could not find password (index: ${index})`);
+    process.exit(1);
+  }
+  return password;
+};
 
 const config = [
   {
@@ -22,8 +43,8 @@ const config = [
     regex: "https://www.waytoumrah.com/prj_umrah/eng/Eng_frmlogin.aspx",
     url: "https://www.waytoumrah.com/prj_umrah/eng/Eng_frmlogin.aspx",
     details: [
-      { selector: "#txtUserName", value: (system) => system.username },
-      { selector: "#txtPwd", value: (system) => system.password },
+      { selector: "#txtUserName", value: (system) => getUserName(system) },
+      { selector: "#txtPwd", value: (system) => getPassword(system) },
     ],
   },
   {

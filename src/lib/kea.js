@@ -53,7 +53,7 @@ const init = async () => {
     global.passengerIds = passengerIds.split(",");
   }
   if (headless) {
-    global.headless = true
+    global.headless = true;
   }
 
   global.user = await logInWithRefreshToken(token, apiKey);
@@ -88,6 +88,7 @@ const createRun = async (submission) => {
 
   const payload = {
     id,
+    index: 0,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     label: `1 - ${ids.length} of ${ids.length} Pax`,
@@ -115,9 +116,9 @@ const watchRun = (runId) => {
         // Run is marked as killed, so do not continue
         process.exit(2);
       }
-      if(data.status === "Error") {
+      if (data.status === "Error") {
         // Mark as error, re-attempt immediately
-        process.exit(1)
+        process.exit(1);
       }
       if (global.run) {
         // Log diff
@@ -158,7 +159,7 @@ const getAccount = async (accountId) => {
 // Get data and write to data.json
 const writeData = async () => {
   const dataFilePath = path.join(os.tmpdir(), "hajonsoft-eagle", "data.json");
-  console.log(`Wrote data file to ${dataFilePath}`)
+  console.log(`Wrote data file to ${dataFilePath}`);
   // Generate specific passengers (if specified), or whole submission
   const passengers = await fetchPassengers(
     global.passengerIds ?? submission.passengerIds
