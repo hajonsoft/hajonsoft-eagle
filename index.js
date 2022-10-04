@@ -25,7 +25,6 @@ const moment = require("moment");
 const budgie = require("./src/budgie");
 const kea = require("./src/lib/kea");
 const inquirer = require("inquirer");
-const { ar } = require("date-fns/locale");
 const defaultSMSAPIKeyMustOverride = "88fd2e1A3f4d327740A9408c12872A39";
 
 const version = pjson.version;
