@@ -41,13 +41,16 @@ const init = async () => {
   let newRun = {};
 
   if (!token) {
-    throw new Error("No token provided");
+    console.log("No token provided");
+    process.exit(1);
   }
   if (!apiKey) {
-    throw new Error("No apiKey provided");
+    console.log("No apiKey provided");
+    process.exit(1);
   }
   if (!submissionId) {
-    throw new Error("No submissionId provided");
+    console.log("No submissionId provided");
+    process.exit(1);
   }
   if (passengerIds) {
     global.passengerIds = passengerIds.split(",");
@@ -75,7 +78,8 @@ const getSubmission = async (submissionId) => {
   const snap = await getDoc(db.submission(submissionId));
   const data = snap.data();
   if (!data) {
-    throw new Error(`Submission not found [id: ${submissionId}]`);
+    console.log(`Submission not found [id: ${submissionId}]`);
+    process.exit(1);
   }
   global.submission = data;
   return data;
