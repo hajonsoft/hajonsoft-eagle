@@ -621,7 +621,7 @@ async function sendPassenger(passenger) {
   // }
 
   // Check if we need a dummy passport
-  await page.waitForTimeout(10000); // wait for page to load
+  await page.waitForTimeout(15000); // wait for page to load
   if (await checkForError(page, passenger, true, 5000)) {
     return;
   }
@@ -689,7 +689,7 @@ async function sendPassenger(passenger) {
     await page.select("#ddlgroupname", global.submission.targetGroupId);
     await page.click("#btnsave");
     util.infoMessage(page, "Clicked save", 7);
-    await page.waitForTimeout(10000); // wait for page to load
+    await page.waitForTimeout(15000); // wait for page to load
     await checkForError(page, passenger, false, 5000);
   } catch (err) {
     util.infoMessage(page, "Canvas: dummy-passport-error", 7);
