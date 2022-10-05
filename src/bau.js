@@ -84,7 +84,6 @@ async function send(sendData) {
     console.log("dialog message: ", dialog.message());
     if (dialog.message().match(/Record has been saved Successfully/i)) {
       // Store status in kea
-      // the selectedTraveller index would have already incremented, so get the prev passenger
       const passenger = data.travellers[util.getSelectedTraveler()];
       util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
       kea.updatePassenger(data.system.accountId, passenger.passportNumber, {

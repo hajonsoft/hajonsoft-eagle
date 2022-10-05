@@ -148,8 +148,27 @@ async function send(sendData) {
 
   page.on("dialog", async (dialog) => {
     // Accept the confirmation dialog, to prevent script hanging
-    console.log("dialog message: ", dialog.message());
-    await dialog.accept();
+    const message = dialog.message();
+    console.log("dialog message: ", message);
+    if (message.match(/Check points process failed for this passport/i)) {
+      const passenger = data.travellers[util.getSelectedTraveler()];
+      await kea.updatePassenger(
+        data.system.accountId,
+        passenger.passportNumber,
+        {
+          "submissionData.wtu.status": "Rejected",
+          "submissionData.wtu.rejectionReason": message,
+        }
+      );
+      util.incrementSelectedTraveler();
+      status = "stopped";
+      await dialog.accept();
+      await page.goto(
+        "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+      );
+    } else {
+      await dialog.accept();
+    }
   });
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
@@ -303,6 +322,7 @@ async function checkForServerError(page) {
     );
     if (serverErrorText.match(/Server Error/i)) {
       console.log("checkForServerError: found error");
+      await page.waitForTimeout(10000); // Wait for other timeouts to finish
       await page.goto(
         "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
       );
@@ -437,7 +457,6 @@ async function sendPassenger(passenger) {
   if (await checkForSuccess(page, passenger)) {
     return;
   }
-  status = "sending";
 
   // Handle reload while sending
   await page.waitForSelector("#txtppno");
@@ -451,6 +470,7 @@ async function sendPassenger(passenger) {
     return;
   }
 
+  status = "sending";
   // Prevent infinite looping, max retries to 4
   if (util.isCodelineLooping(passenger, 4)) {
     util.infoMessage(page, "Tried passenger 5 times, moving on");
@@ -480,14 +500,19 @@ async function sendPassenger(passenger) {
     }
   });
 
-  await page.waitForSelector("#divshowmsg");
+  await page.waitForSelector("#divshowmsg", { timeout: 5000 });
   util.infoMessage(page, `Passport ${passenger.passportNumber} scanned 👍`);
   await page.type("#divshowmsg", passenger.codeline, {
     delay: 0,
   });
   await util.toggleBlur(page, false);
-
   await page.waitForTimeout(5000);
+
+  // Detect if there was any async errors with mrz scan
+  if (status !== "sending") {
+    return;
+  }
+
   await util.commit(
     page,
     config.find((c) => c.name === "create-mutamer").details,
