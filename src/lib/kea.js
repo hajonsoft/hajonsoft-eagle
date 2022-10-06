@@ -41,19 +41,22 @@ const init = async () => {
   let newRun = {};
 
   if (!token) {
-    throw new Error("No token provided");
+    console.log("No token provided");
+    process.exit(1);
   }
   if (!apiKey) {
-    throw new Error("No apiKey provided");
+    console.log("No apiKey provided");
+    process.exit(1);
   }
   if (!submissionId) {
-    throw new Error("No submissionId provided");
+    console.log("No submissionId provided");
+    process.exit(1);
   }
   if (passengerIds) {
     global.passengerIds = passengerIds.split(",");
   }
   if (headless) {
-    global.headless = true
+    global.headless = true;
   }
 
   global.user = await logInWithRefreshToken(token, apiKey);
@@ -75,7 +78,8 @@ const getSubmission = async (submissionId) => {
   const snap = await getDoc(db.submission(submissionId));
   const data = snap.data();
   if (!data) {
-    throw new Error(`Submission not found [id: ${submissionId}]`);
+    console.log(`Submission not found [id: ${submissionId}]`);
+    process.exit(1);
   }
   global.submission = data;
   return data;
@@ -88,6 +92,7 @@ const createRun = async (submission) => {
 
   const payload = {
     id,
+    index: 0,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     label: `1 - ${ids.length} of ${ids.length} Pax`,
@@ -115,9 +120,9 @@ const watchRun = (runId) => {
         // Run is marked as killed, so do not continue
         process.exit(2);
       }
-      if(data.status === "Error") {
+      if (data.status === "Error") {
         // Mark as error, re-attempt immediately
-        process.exit(1)
+        process.exit(1);
       }
       if (global.run) {
         // Log diff
@@ -158,7 +163,7 @@ const getAccount = async (accountId) => {
 // Get data and write to data.json
 const writeData = async () => {
   const dataFilePath = path.join(os.tmpdir(), "hajonsoft-eagle", "data.json");
-  console.log(`Wrote data file to ${dataFilePath}`)
+  console.log(`Wrote data file to ${dataFilePath}`);
   // Generate specific passengers (if specified), or whole submission
   const passengers = await fetchPassengers(
     global.passengerIds ?? submission.passengerIds

@@ -9,12 +9,33 @@ const util = require("./util");
 const { getPath } = util;
 const budgie = require("./budgie");
 const os = require("os");
-
 let page;
 let data;
 let token;
 let groupName;
 let status = "";
+
+const getUserName = (system) => {
+  const usernames = system.username.split(",");
+  const index = global.run.index ?? 0;
+  const username = usernames[index];
+  if (!username) {
+    console.log(`Could not find username: ${usernames} (index: ${index})`);
+    process.exit(1);
+  }
+  return username;
+};
+
+const getPassword = (system) => {
+  const passwords = system.password.split(",");
+  const index = global.run.index ?? 0;
+  const password = passwords[index];
+  if (!password) {
+    console.log(`Could not find password (index: ${index})`);
+    process.exit(1);
+  }
+  return password;
+};
 
 const config = [
   {
@@ -22,8 +43,8 @@ const config = [
     regex: "https://www.waytoumrah.com/prj_umrah/eng/Eng_frmlogin.aspx",
     url: "https://www.waytoumrah.com/prj_umrah/eng/Eng_frmlogin.aspx",
     details: [
-      { selector: "#txtUserName", value: (system) => system.username },
-      { selector: "#txtPwd", value: (system) => system.password },
+      { selector: "#txtUserName", value: (system) => getUserName(system) },
+      { selector: "#txtPwd", value: (system) => getPassword(system) },
     ],
   },
   {
@@ -61,8 +82,7 @@ const config = [
     details: [
       {
         selector: "#ddlgroupname",
-        value: (row) => groupName,
-        autocomplete: "wtu_group",
+        value: (row) => global.submission.targetGroupId,
       },
       { selector: "#ddltitle", value: (row) => "99" },
       { selector: "#ddlpptype", value: (row) => "1" },
@@ -125,6 +145,31 @@ const config = [
 async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded, data);
+
+  page.on("dialog", async (dialog) => {
+    // Accept the confirmation dialog, to prevent script hanging
+    const message = dialog.message();
+    console.log("dialog message: ", message);
+    if (message.match(/Check points process failed for this passport/i)) {
+      const passenger = data.travellers[util.getSelectedTraveler()];
+      await kea.updatePassenger(
+        data.system.accountId,
+        passenger.passportNumber,
+        {
+          "submissionData.wtu.status": "Rejected",
+          "submissionData.wtu.rejectionReason": message,
+        }
+      );
+      util.incrementSelectedTraveler();
+      status = "stopped";
+      await dialog.accept();
+      await page.goto(
+        "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+      );
+    } else {
+      await dialog.accept();
+    }
+  });
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
@@ -140,6 +185,9 @@ async function onContentLoaded(res) {
 async function pageContentHandler(currentConfig) {
   const lastIndex = util.getSelectedTraveler();
   const passenger = data?.travellers?.[parseInt(lastIndex)];
+  if (!passenger) {
+    return;
+  }
   switch (currentConfig.name) {
     case "login":
       util.infoMessage(page, "Captcha thinking");
@@ -167,16 +215,22 @@ async function pageContentHandler(currentConfig) {
       break;
     case "main":
       // set document title
-      util.infoMessage(page, "Redirect in 10 seconds");
-      await page.waitForTimeout(10000);
+      await util.pauseMessage(page, 10);
       // Continue only if still on the same page
       if (
         currentConfig.name ===
         (await util.findConfig(await page.url(), config)).name
       ) {
-        await page.goto(
-          "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx?PageId=M"
-        );
+        if (global.submission.targetGroupId) {
+          // Group id exists, go to create mutamer page
+          await page.goto(
+            "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+          );
+        } else {
+          await page.goto(
+            "https://www.waytoumrah.com/prj_umrah/Eng/Eng_frmGroup.aspx?PageId=M"
+          );
+        }
       }
       break;
     case "create-group":
@@ -200,18 +254,17 @@ async function pageContentHandler(currentConfig) {
 
       await page.focus("#BtnSave");
       await page.hover("#BtnSave");
-      util.infoMessage(page, "Redirect in 15 seconds");
-      setTimeout(async () => {
-        const url = await page.url();
-        const createGroupRegex = config.find(
-          (c) => c.name === "create-group"
-        ).regex;
-        if (new RegExp(createGroupRegex).test(url)) {
-          try {
-            await page.click("#BtnSave");
-          } catch {}
-        }
-      }, 15000);
+
+      await util.pauseMessage(page, 15);
+      const url = await page.url();
+      const createGroupRegex = config.find(
+        (c) => c.name === "create-group"
+      ).regex;
+      if (new RegExp(createGroupRegex).test(url)) {
+        try {
+          await page.click("#BtnSave");
+        } catch {}
+      }
 
       // Wait for this string: Group saved successfully, Group code is 153635
       const groupCreatedSuccessfullyElement =
@@ -227,7 +280,12 @@ async function pageContentHandler(currentConfig) {
       const numberMatch = groupCreatedSuccessfullyElementText.match(/\d+/g);
       if (numberMatch) {
         groupName = numberMatch[0];
-        budgie.save("wtu_group", groupName);
+
+        // Save group id to kea
+        global.submission.targetGroupId = groupName;
+        kea.updateSubmission({
+          targetGroupId: groupName,
+        });
       }
 
       await page.goto(
@@ -235,64 +293,204 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "create-mutamer":
-      await util.toggleBlur(page,false);
+      await util.toggleBlur(page, false);
       await util.controller(page, currentConfig, data.travellers);
       if (fs.existsSync(getPath("loop.txt"))) {
         return sendPassenger(passenger);
       }
 
-      util.infoMessage(page, "Redirect in 10 seconds");
-      await page.waitForTimeout(10000);
+      await util.pauseForInteraction(page, 10);
 
-      setTimeout(() => {
-        if (status === "") {
-          fs.writeFileSync(getPath("loop.txt"), "1");
-          sendPassenger(passenger);
-        }
-      }, 10000);
+      if (status === "") {
+        fs.writeFileSync(getPath("loop.txt"), "1");
+        sendPassenger(passenger);
+      }
 
       break;
     default:
       break;
   }
 }
+async function checkForServerError(page) {
+  try {
+    await page.waitForSelector("body > span > h1", {
+      timeout: 1000,
+    });
+    const serverErrorText = await page.$eval(
+      "body > span > h1",
+      (el) => el.innerText
+    );
+    if (serverErrorText.match(/Server Error/i)) {
+      console.log("checkForServerError: found error");
+      await page.waitForTimeout(10000); // Wait for other timeouts to finish
+      await page.goto(
+        "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+      );
+      return true;
+    }
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+async function checkForError(
+  page,
+  passenger,
+  keepGoingOnMismatchError = true,
+  timeout = 1000
+) {
+  try {
+    const errorSelector =
+      "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span";
+    await page.waitForSelector(errorSelector, {
+      timeout,
+    });
+    const errorReason = await page.$eval(errorSelector, (e) => e.textContent);
+    // await page.waitForTimeout(10000);
+    util.infoMessage(page, `Error: ${errorReason}`);
+
+    // Check for captcha error, Reload and try again
+    const isCaptchaError = errorReason.match(
+      /(Please Enter Image Text)|(Sorry, mismatch images text)/i
+    );
+
+    if (isCaptchaError) {
+      console.log("Captcha error, reload page to trying again in 10 seconds");
+      await page.waitForTimeout(10000); // Wait for other timeouts to finish
+      await page.goto(
+        "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+      );
+      return true;
+    }
+
+    // Check for passenger exists error, assume submitted already
+    const passengerExists = errorReason.match(
+      /Passport No. cannot be repeated in the same group/i
+    );
+
+    if (passengerExists) {
+      await kea.updatePassenger(
+        data.system.accountId,
+        passenger.passportNumber,
+        {
+          "submissionData.wtu.status": "Submitted",
+        }
+      );
+
+      console.log("checkForError: Exists, next passenger in 10 seconds");
+      await page.waitForTimeout(10000); // Wait for other timeouts to finish
+      util.incrementSelectedTraveler();
+      await page.goto(
+        "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+      );
+      return true;
+    }
+
+    // ALl other errors
+    await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+      "submissionData.wtu.status": "Rejected",
+      "submissionData.wtu.rejectionReason": errorReason,
+    });
+
+    // dismiss the error
+    const errorButton = await page.waitForSelector(
+      "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-footer.text-center > button"
+    );
+
+    await errorButton.click();
+
+    // Try with dummy passport
+    const keepGoing = errorReason.match(
+      /Sorry, There is a mismatch between data scanned and passport copy/i
+    );
+    if (keepGoing && keepGoingOnMismatchError) {
+      console.log("checkForError: keep going");
+      // No error
+      return false;
+    } else {
+      console.log(
+        `checkForError: ${errorReason}, next passenger in 10 seconds`
+      );
+      await page.waitForTimeout(10000); // Wait for other timeouts to finish
+      util.incrementSelectedTraveler();
+      await page.goto(
+        "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+      );
+      return true;
+    }
+  } catch (e) {
+    return false;
+  }
+}
+
+async function checkForSuccess(page, passenger) {
+  try {
+    await page.waitForSelector(
+      "body > div.lobibox-notify-wrapper > div.lobibox-notify.lobibox-notify-success",
+      {
+        timeout: 1000,
+      }
+    );
+    // Store submitted reason in kea
+    await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+      "submissionData.wtu.status": "Submitted",
+    });
+    console.log(
+      "checkForSuccess: Detected success, next passenger in 10 seconds"
+    );
+    await page.waitForTimeout(10000); // Wait for other timeouts to finish
+    util.incrementSelectedTraveler();
+    page.goto("https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx");
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 async function sendPassenger(passenger) {
-  status = "sending";
-  await util.toggleBlur(page,false);
-  // await util.toggleBlur(page);
-  const titleMessage = `🧟 ${parseInt(util.getSelectedTraveler()) + 1}/${
-    data.travellers.length
-  }-${passenger?.slug}`;
-  await util.infoMessage(page, titleMessage);
+  // Check if finished
 
+  if (await checkForServerError(page)) {
+    return;
+  }
+  // Check for success, move on if true
+  if (await checkForSuccess(page, passenger)) {
+    return;
+  }
+
+  // Handle reload while sending
   await page.waitForSelector("#txtppno");
   if (await page.$("#txtppno")) {
     const passportNumber = await page.$eval("#txtppno", (e) => e.value);
     // Do not continue if the passport number field is not empty - This could be a manual page refresh
-    if (passportNumber || util.isCodelineLooping(passenger)) {
+    if (passportNumber) {
       return;
     }
   } else {
     return;
   }
-  await page.waitForSelector("#ddlgroupname");
-  if (!groupName) {
-    groupName = budgie.get("wtu_group");
+
+  status = "sending";
+  // Prevent infinite looping, max retries to 4
+  if (util.isCodelineLooping(passenger, 4)) {
+    util.infoMessage(page, "Tried passenger 5 times, moving on");
+    util.incrementSelectedTraveler();
+    return page.goto(
+      "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+    );
   }
 
-  const submittionName = `${data.travellers?.[0].name?.first?.substring(
-    0,
-    10
-  )}-${data.travellers?.[0].name?.last?.substring(0, 10)}-${os
-    .hostname()
-    .substring(0, 8)}`;
+  await util.toggleBlur(page, false);
+  // await util.toggleBlur(page);
+  const titleMessage = `🧟 ${parseInt(util.getSelectedTraveler()) + 1}/${
+    data.travellers.length
+  }-${passenger?.slug}`;
+  util.infoMessage(page, titleMessage);
 
-  util.infoMessage(
-    page,
-    `group 👨‍👩‍👦  ${submittionName}[${groupName}]: Attention!!!Embassy-first-option`
-  );
-  await page.select("#ddlgroupname", groupName);
+  await page.waitForSelector("#ddlgroupname");
+  await page.select("#ddlgroupname", global.submission.targetGroupId);
+  const groupName = util.suggestGroupName(data);
+  util.infoMessage(page, `👨‍👩‍👦  ${groupName}: Attention!!!Embassy-first-option`);
   await page.waitForTimeout(3000);
   await page.waitForSelector("#btnppscan");
   await page.evaluate(() => {
@@ -302,26 +500,34 @@ async function sendPassenger(passenger) {
     }
   });
 
-  await page.waitForSelector("#divshowmsg");
+  await page.waitForSelector("#divshowmsg", { timeout: 5000 });
   util.infoMessage(page, `Passport ${passenger.passportNumber} scanned 👍`);
   await page.type("#divshowmsg", passenger.codeline, {
     delay: 0,
   });
-  await util.toggleBlur(page,false);
-
+  await util.toggleBlur(page, false);
   await page.waitForTimeout(5000);
+
+  // Detect if there was any async errors with mrz scan
+  if (status !== "sending") {
+    return;
+  }
+
   await util.commit(
     page,
     config.find((c) => c.name === "create-mutamer").details,
     passenger
   );
-  
+
   await page.waitForTimeout(5000);
   await page.waitForSelector("#ddlppissmm");
   if (passenger.passIssueDt.mm.startsWith("0")) {
-  await page.select("#ddlppissmm", `${passenger.passIssueDt.mm.substring(1)}`);
+    await page.select(
+      "#ddlppissmm",
+      `${passenger.passIssueDt.mm.substring(1)}`
+    );
   } else {
-  await page.select("#ddlppissmm", `${passenger.passIssueDt?.mm}`);
+    await page.select("#ddlppissmm", `${passenger.passIssueDt?.mm}`);
   }
 
   if (passenger.gender == "Female") {
@@ -364,7 +570,11 @@ async function sendPassenger(passenger) {
     }
     await page.waitForNavigation();
   } catch (err) {
-    console.log("Canvas: dummy-passport-exception");
+    console.log("Canvas: dummy-passport-exception", err.message);
+  }
+
+  if (await checkForServerError(page)) {
+    return;
   }
 
   // Upload the passport image
@@ -388,54 +598,32 @@ async function sendPassenger(passenger) {
   // This is assumed. fix starting from here. Because passports can succeed from the first time - check if this is a new page refresh?
   // TODO: Wait for success message before advancing the counter
   try {
+    await page.select("#ddlgroupname", global.submission.targetGroupId);
     await page.waitForSelector("#btnsave");
-    await page.click("#btnsave"); // TODO: Make sure this is not a full page refresh
-    // Wait for this string: Mutamer saved successfully
-    await page.waitForSelector(
-      "body > div.lobibox-notify-wrapper > div.lobibox-notify.lobibox-notify-success",
-      {
-        timeout: 10000,
-      }
-    );
-    // Store submitted reason in kea
-    kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-      "submissionData.wtu.status": "Submitted",
+    await page.click("#btnsave");
+  } catch (e) {
+    console.log(`Passport ${passenger.passportNumber} failed. Plan B`, {
+      error: e.message,
     });
-  } catch {
-    console.log(`Passport ${passenger.passportNumber} failed. Plan B`);
   }
 
   // If there is a passport number still that means it is the same page
-  await page.waitForTimeout(2000);
-  await page.waitForSelector("#txtppno");
-  const isSamePassenger = await page.$eval("#txtppno", (e) => e.value);
-  if (!isSamePassenger) {
-    util.infoMessage(page, "👍 Mutamer saved successfully", 4);
-    util.incrementSelectedTraveler();
-    return page.goto(
-      "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
-    );
-  }
+  // await page.waitForNavigation();
+  // await page.waitForTimeout(2000);
+  // await page.waitForSelector("#txtppno");
+  // const isSamePassenger = await page.$eval("#txtppno", (e) => e.value);
+  // if (!isSamePassenger) {
+  //   util.infoMessage(page, "👍 Mutamer saved successfully", 4);
+  //   util.incrementSelectedTraveler();
+  //   return page.goto(
+  //     "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
+  //   );
+  // }
 
-  // Passenger rejected check if there is a reason and store it in kea. Then continue to Plan B
-  const errorSelector =
-    "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-body > div.lobibox-body-text-wrapper > span";
-  const isError = await page.$(errorSelector);
-  // Store error reason in kea
-  if (isError) {
-    kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-      "submissionData.wtu.status": "Rejected",
-      "submissionData.wtu.rejectionReason": await page.$eval(
-        errorSelector,
-        (el) => el.textContent
-      ),
-    });
-    // dismiss the error
-    const errorButton = await page.waitForSelector(
-      "body > div.lobibox.lobibox-error.animated-super-fast.zoomIn > div.lobibox-footer.text-center > button"
-    );
-
-    await errorButton.click();
+  // Check if we need a dummy passport
+  await page.waitForTimeout(15000); // wait for page to load
+  if (await checkForError(page, passenger, true, 5000)) {
+    return;
   }
 
   // Use fake passport image
@@ -497,17 +685,12 @@ async function sendPassenger(passenger) {
       "#txtImagetext",
       5
     );
+
+    await page.select("#ddlgroupname", global.submission.targetGroupId);
     await page.click("#btnsave");
-    kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-      "submissionData.wtu.status": "Submitted",
-    });
-    // allow 10 seconds to save
-    util.infoMessage(page, "allow 10 seconds for save", 7);
-    await page.waitForTimeout(10000);
-    util.incrementSelectedTraveler();
-    return page.goto(
-      "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx"
-    );
+    util.infoMessage(page, "Clicked save", 7);
+    await page.waitForTimeout(15000); // wait for page to load
+    await checkForError(page, passenger, false, 5000);
   } catch (err) {
     util.infoMessage(page, "Canvas: dummy-passport-error", 7);
   }

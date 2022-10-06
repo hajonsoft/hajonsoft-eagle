@@ -84,17 +84,12 @@ async function send(sendData) {
     console.log("dialog message: ", dialog.message());
     if (dialog.message().match(/Record has been saved Successfully/i)) {
       // Store status in kea
-      // the selectedTraveller index would have already incremented, so get the prev passenger
       const passenger = data.travellers[util.getSelectedTraveler()];
-      util.infoMessage(page,`🧟 passenger ${passenger.slug} saved`);
-      kea.updatePassenger(
-        data.system.accountId,
-        passenger.passportNumber,
-        {
-          "submissionData.bau.status": "Submitted",
-        }
-      );
-      util.incrementSelectedTraveler()
+      util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
+      kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+        "submissionData.bau.status": "Submitted",
+      });
+      util.incrementSelectedTraveler();
     }
     await dialog.accept();
   });
@@ -213,8 +208,8 @@ async function runPageConfiguration(currentConfig) {
 
       if (fs.existsSync(getPath("loop.txt"))) {
         // Pause to allow for confirmation dialog
-        await page.waitForTimeout(5000)
-        
+        await page.waitForTimeout(5000);
+
         let passenger = data.travellers[parseInt(util.getSelectedTraveler())];
 
         // Check for errors
@@ -228,18 +223,22 @@ async function runPageConfiguration(currentConfig) {
 
         if (errorMessage) {
           util.infoMessage(page, `🖐 🖐 🖐 🖐 🖐 Error: ${errorMessage}`);
-          const isAlreadySubmitted = errorMessage.match(/Passport Number Exists/i)
+          const isAlreadySubmitted = errorMessage.match(
+            /Passport Number Exists/i
+          );
           // Store status in kea
           kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
             "submissionData.bau.rejectionReason": errorMessage,
-            "submissionData.bau.status": isAlreadySubmitted ? "Submitted" : "Rejected",
+            "submissionData.bau.status": isAlreadySubmitted
+              ? "Submitted"
+              : "Rejected",
           });
-          
+
           // Proceed to next pax
-          util.incrementSelectedTraveler()
+          util.incrementSelectedTraveler();
           passenger = data.travellers[parseInt(util.getSelectedTraveler())];
-          console.log('navigate to', page.url())
-          await page.goto(page.url())
+          console.log("navigate to", page.url());
+          await page.goto(page.url());
           break;
         }
 
@@ -466,16 +465,15 @@ async function sendPassenger(passenger) {
   util.infoMessage(
     page,
     `🧟 passenger ${passenger.slug} done, waiting to save`,
-    2, false, true
+    2,
+    false,
+    true
   );
-  await util.pauseForInteraction(page, 10000)
+  await util.pauseForInteraction(page, 10);
   const saveBtn = await page.$("#ctl00_ContentHolder_BtnEdit");
   if (saveBtn) {
     await page.click("#ctl00_ContentHolder_BtnEdit");
-    util.infoMessage(
-      page,
-      `Save button clicked`
-    );
+    util.infoMessage(page, `Save button clicked`);
   } else {
     util.infoMessage(
       page,

@@ -1256,14 +1256,22 @@ async function commitCaptchaTokenWithSelector(
       min_len: captchaLength,
     });
 
+    global.currentCaptchaId = id;
+
     const token = await captchaSolver.get(id);
-    await commit(
-      page,
-      [{ selector: textFieldSelector, value: () => token.toString() }],
-      {}
-    );
-    infoMessage(page, "🔓 Captcha solved! " + token);
-    return token;
+
+    if (id === global.currentCaptchaId) {
+      await commit(
+        page,
+        [{ selector: textFieldSelector, value: () => token.toString() }],
+        {}
+      );
+      infoMessage(page, "🔓 Captcha solved! " + token);
+      return token;
+    } else {
+      infoMessage(page, `🔓 Discarding stale captcha ${token}`);
+      return null;
+    }
   } catch (err) {
     infoMessage(page, "🔓 Captcha error!");
   }
@@ -1376,12 +1384,12 @@ const pauseMessage = async (page, seconds = 3) => {
   }
 };
 
-const pauseForInteraction = async (page, ms) => {
+const pauseForInteraction = async (page, seconds) => {
   if (global.headless) {
     await page.waitForTimeout(1000);
     return;
   }
-  await page.waitForTimeout(ms);
+  await pauseMessage(page, seconds);
 };
 
 function getLogFile(eagleData) {

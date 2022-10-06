@@ -34,17 +34,24 @@ let data = readDataFile();
 
 async function main() {
   console.log(`=== Eagle v${version} ===`);
-  console.log(`https://hajonsoft-kea.web.app/admin/submissions/${process.argv.find(arg => arg.startsWith("--submissionId"))?.split("=")?.[1]}/edit`)
+  console.log(
+    `https://hajonsoft-kea.web.app/admin/submissions/${
+      process.argv
+        .find((arg) => arg.startsWith("--submissionId"))
+        ?.split("=")?.[1]
+    }/edit`
+  );
+
+  if (process.argv.includes("-v")) {
+    console.log("version: " + version);
+    process.exit(0);
+  }
+
   // Authenticate firebase
   try {
     await kea.init();
   } catch (error) {
     console.error("Error: " + error);
-  }
-
-  if (process.argv.includes("-v")) {
-    console.log("version: " + version);
-    process.exit(0);
   }
 
   // Cleanups
