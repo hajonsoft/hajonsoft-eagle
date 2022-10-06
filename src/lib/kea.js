@@ -122,6 +122,7 @@ const watchRun = (runId) => {
       }
       if (data.status === "Error") {
         // Mark as error, re-attempt immediately
+        console.log("Error code received");
         process.exit(1);
       }
       if (global.run) {
