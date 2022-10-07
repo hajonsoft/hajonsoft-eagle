@@ -21,7 +21,7 @@
     "dotenv": "^16.0.2",
     "downloads-folder": "^3.0.1",
     "extract-zip": "^2.0.1",
-    "firebase": "^9.9.4",
+    "firebase": "9.9.4",
     "form-data": "^4.0.0",
     "fs-extra": "^10.1.0",
     "googleapis": "^105.0.0",
