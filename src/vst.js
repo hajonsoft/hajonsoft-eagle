@@ -598,6 +598,7 @@ async function runPageConfiguration(currentConfig) {
       await page.waitForSelector("#ApplyingVisaForSomeoneElseYes");
       await page.click("#ApplyingVisaForSomeoneElseYes");
       await util.commit(page, currentConfig.details, passenger);
+      console.log('%cMyProject%cline:600%ccurrentConfig.details', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(229, 187, 129);padding:3px;border-radius:2px', currentConfig.details)
       await page.waitForSelector("#DateOfBirth");
       await page.$eval("#DateOfBirth", (e) => {
         e.removeAttribute("readonly");
