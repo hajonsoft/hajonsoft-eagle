@@ -582,6 +582,14 @@ async function runPageConfiguration(currentConfig) {
       break;
     case "personal":
       status = "personal";
+      // If there is an error message, then skip this passenger
+      const isError = await page.$("#divFailureMsg");
+      if (isError) {
+        util.incrementSelectedTraveler();
+        await page.goto(config.find((c) => c.name === "personal").url);
+        return;
+
+      }
       if (!passenger) {
         await util.infoMessage(page, "No more passengers to send");
         return;
@@ -631,14 +639,37 @@ async function runPageConfiguration(currentConfig) {
       console.log(resizedPhotoPath);
       await util.commitFile("#AttachmentPersonalPicture", resizedPhotoPath);
 
+      await page.$eval("#formPersonalInfo > div.form-fields > div.upload-image-block > p", (el, photoPath) => {
+        el.innerHTML = photoPath;
+      }, resizedPhotoPath);
+
+      await util.pauseMessage(page, 10);
       // check for crop pop up and close it
-      if (await page.$("#btnCrop")) {
+      const isCropSelector = await page.$("#btnCrop")
+      console.log('%cMyProject%cline:640%cisCropSelector', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(56, 13, 49);padding:3px;border-radius:2px', isCropSelector)
+      if (isCropSelector) {
         await page.click("#btnCrop");
       }
-
       //TODO: If cloud click next without waiting
-      await util.pauseMessage(page, 30);
-      if (status === "personal") {
+      await util.pauseMessage(page, 10);
+      // Before clicking next check if Muhram is required. Muhram select is
+      await page.waitForTimeout(1000);
+      const isGurdianRequired = await page.$("#GuardianList");
+      const isGurdianRelationRequired = await page.$("#GuardianRelation");
+      if (isGurdianRequired && isGurdianRelationRequired) {
+        await page.$eval("#GuardianList", (el) => {
+          el.options[1].selected = true;
+        });
+        await page.waitForTimeout(1000);
+
+        await page.$eval("#GuardianRelation", (el) => {
+          el.options[1].selected = true;
+        });
+        await page.waitForTimeout(1000);
+      }
+
+      const isNext = await page.$("#btnNext")
+      if (status === "personal" && isNext) {
         await page.click("#btnNext");
       }
       break;
@@ -650,6 +681,7 @@ async function runPageConfiguration(currentConfig) {
       await page.$eval("#PassportIssueDate", (e) => {
         e.removeAttribute("readonly");
         e.removeAttribute("disabled");
+        e.setAttribute("value", "");
       });
       await page.type("#PassportIssueDate", passenger.passIssueDt.dmy);
 
@@ -657,6 +689,7 @@ async function runPageConfiguration(currentConfig) {
       await page.$eval("#PassportExpiryDate", (e) => {
         e.removeAttribute("readonly");
         e.removeAttribute("disabled");
+        e.setAttribute("value", "");
       });
       await page.type("#PassportExpiryDate", passenger.passExpireDt.dmy);
 
