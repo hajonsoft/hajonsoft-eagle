@@ -3297,6 +3297,10 @@ const objNationalities = {
     name: "Stateless XXA",
     code: "XXA",
   },
+  XXC: {
+    name: "Stateless XXC",
+    code: "XXC",
+  },
   LIE: {
     name: "Liechtenstein",
     arabicName: "ليختنشتاين",

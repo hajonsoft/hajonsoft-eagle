@@ -85,9 +85,9 @@ const config = [
         value: (row) => global.submission.targetGroupId,
       },
       { selector: "#ddltitle", value: (row) => "99" },
-      { selector: "#ddlpptype", value: (row) => "1" },
-      { selector: "#ddlbirthcountry", value: (row) => row.nationality.telCode },
-      { selector: "#ddladdcountry", value: (row) => row.nationality.telCode },
+      { selector: "#ddlpptype", value: (row) =>  util.isTravelDocument(row) ? "3" :  "1" },
+      { selector: "#ddlbirthcountry", value: (row) => row.nationality?.telCode },
+      { selector: "#ddladdcountry", value: (row) => row.nationality?.telCode },
       { selector: "#ddlhealth", value: (row) => "0" },
       {
         selector: "#txtprofession",
