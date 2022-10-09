@@ -1410,7 +1410,7 @@ const nationalities = JSON.parse(
       {
         "name": "Stateless Other XXC",
         "code": "XXC"
-      }
+      },
       {
           "name": "Stateless undetermined XXX",
           "code": "XXX"
