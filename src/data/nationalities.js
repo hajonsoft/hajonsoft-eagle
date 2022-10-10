@@ -1404,11 +1404,15 @@ const nationalities = JSON.parse(
           "code": "DMA"
       },
       {
-          "name": "Stateless XXB",
+          "name": "Stateless Convention XXB",
           "code": "XXB"
       },
       {
-          "name": "Stateless XXX",
+        "name": "Stateless Other XXC",
+        "code": "XXC"
+      },
+      {
+          "name": "Stateless undetermined XXX",
           "code": "XXX"
       },
       {
@@ -3292,6 +3296,10 @@ const objNationalities = {
   XXA: {
     name: "Stateless XXA",
     code: "XXA",
+  },
+  XXC: {
+    name: "Stateless XXC",
+    code: "XXC",
   },
   LIE: {
     name: "Liechtenstein",

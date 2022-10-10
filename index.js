@@ -352,7 +352,7 @@ process.on("uncaughtException", function (error) {
 });
 
 process.on("unhandledRejection", function (reason, p) {
-  util.infoMessage(null, "unhandledRejection: " + reason);
+  util.infoMessage(null, "unhandledRejection: " + reason, p);
 });
 
 main();

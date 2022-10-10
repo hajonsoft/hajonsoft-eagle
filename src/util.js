@@ -1228,7 +1228,7 @@ async function commitCaptchaTokenWithSelector(
   textFieldSelector,
   captchaLength = 6
 ) {
-  infoMessage(page, "🔓 Captcha is being solved...");
+  infoMessage(page, "🔓 Captcha thinking...");
   try {
     const base64 = await page.evaluate((selector) => {
       const image = document.querySelector(selector);
@@ -1444,6 +1444,19 @@ async function toggleBlur(page, blur = true) {
   }
 }
 
+function isTravelDocument(passenger) {
+  // if nationality code is XXA, XXB, XXC or XXX then it is a travel document
+  if (["XXX", "XXA", "XXB", "XXC"].includes(passenger.nationality.code)) {
+    return true;
+  }
+
+  // if the issuing country is not the same as nationality then it is a travel document
+  if (passenger.codeline.substring(2, 5) !== passenger.nationality.code) {
+    return true;
+  }
+  return false;
+}
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1490,4 +1503,5 @@ module.exports = {
   suggestGroupName,
   screenShotAndContinue,
   toggleBlur,
+  isTravelDocument
 };
