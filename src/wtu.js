@@ -193,6 +193,8 @@ async function pageContentHandler(currentConfig) {
   const lastIndex = util.getSelectedTraveler();
   passenger = data?.travellers?.[parseInt(lastIndex)];
   if (!passenger) {
+    // Reached the end, print sendLog
+    console.log("Send log", sendLog)
     return;
   }
   switch (currentConfig.name) {
@@ -425,9 +427,8 @@ async function determineCurrentAction() {
         /Sorry, There is a mismatch between data scanned and passport copy/i
       )
     ) {
-      console.log(sendLog[passenger.id],(sendLog[passenger.id] ?? []).includes('commit-dummy-passport-image'))
       // Check if we've already tried a dummy passport
-      if ((sendLog[passenger.id] ?? []).includes('commit-dummy-passport-image')) {
+      if ((sendLog[passenger.passportNumber] ?? []).includes('commit-dummy-passport-image')) {
         rejectionReason = `Dummy passport was also rejected (${error})`
         return "reject"
       }
@@ -455,8 +456,8 @@ async function restart() {
 
 function logAction(passenger, action) {
   util.infoMessage(page, `🔨 ${currentAction.toUpperCase()} (pageLoadToken: ${pageLoadToken})`, 4);
-  sendLog[passenger.id] = sendLog[passenger.id] ?? []
-  sendLog[passenger.id].push(action);
+  sendLog[passenger.passportNumber] = sendLog[passenger.passportNumber] ?? []
+  sendLog[passenger.passportNumber].push(action);
 }
 
 async function sendPassenger(passenger) {
@@ -710,7 +711,7 @@ async function sendPassenger(passenger) {
       break;
     case "restart":
       // Reset sendLog for this passenger
-      sendLog[passenger.id] = []
+      sendLog[passenger.passportNumber] = []
       // Restart with current passenger
       await restart();
       break;
