@@ -546,7 +546,7 @@ async function sendPassenger(passenger) {
       try {
         // If photo is wrong size, a dialog will appear to resize the photo
         // We then need to click #btnProceedtoUpload
-        await page.waitForSelector("#btnProceedtoUpload", {timeout: 2000});
+        await page.waitForSelector("#btnProceedtoUpload", {timeout: 10000});
         await page.click("#btnProceedtoUpload");
       } catch {
         // If it doesn't appear, the page has already been reloaded
