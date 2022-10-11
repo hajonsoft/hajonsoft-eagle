@@ -1,8 +1,6 @@
 const { format, isAfter, parseISO, differenceInYears } = require("date-fns");
 const { objNationalities: nationalities } = require("../data/nationalities");
 
-const isAdult = (p) => getAge(p) ?? 0 >= 18;
-
 const humanize = (name) => (name ? name.replace(/-/g, " ") : "invalid");
 
 const getAge = (p) =>
@@ -158,12 +156,18 @@ function toCodeLine(passenger) {
 }
 
 function getPassengersByGender(passengers, gender, adultsOnly = true) {
-  return passengers
-    .filter((traveler) =>
-      (gender ? traveler.gender === gender : true) && adultsOnly
-        ? isAdult(traveler)
-        : !isAdult
-    )
+  let result = passengers;
+  if (gender) {
+    result = passengers.filter((p) => p.gender === gender)
+  }
+
+  if (adultsOnly) {
+    result = result.filter((p) => getAge(p) >= 18);
+  } else {
+    result = result.filter((p) => getAge(p) < 18);
+  }
+
+  return result
     .sort((a, b) => {
       if (!a.birthDate || !b.birthDate) {
         return -1;
@@ -175,6 +179,7 @@ function getPassengersByGender(passengers, gender, adultsOnly = true) {
       return -1;
     });
 }
+
 function toPassengers(passengers) {
   // create sorted list of passengers
   const males = getPassengersByGender(passengers, "Male");
@@ -186,7 +191,7 @@ function toPassengers(passengers) {
 
   // start kea to eagle translation
   const eagleTravellers = [];
-  for (const passenger of passengers) {
+  for (const passenger of sortedTravelers) {
     const codeLine = passenger.mrz?.trim() ?? toCodeLine(passenger);
     const fullName = `${passenger.givenNames} ${passenger.surname}`;
     if (!codeLine) {
