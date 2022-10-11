@@ -218,6 +218,10 @@ async function pageContentHandler(currentConfig) {
       if (isIDo) {
         await page.click('aria/button[name="Yes, I DO"]');
       }
+      const error = await getErrorIfExists();
+      if(error) {
+        process.exit(1)
+      }
       break;
     case "main":
       // set document title
