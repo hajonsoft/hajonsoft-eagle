@@ -23,6 +23,7 @@ let pageLoadToken;
  let currentAction = "init";
  let nextAction;
  let rejectionReason;
+ const sendLog = {}
 
 const getUserName = (system) => {
   const usernames = system.username.split(",");
@@ -424,6 +425,13 @@ async function determineCurrentAction() {
         /Sorry, There is a mismatch between data scanned and passport copy/i
       )
     ) {
+      console.log(sendLog[passenger.id],(sendLog[passenger.id] ?? []).includes('commit-dummy-passport-image'))
+      // Check if we've already tried a dummy passport
+      if ((sendLog[passenger.id] ?? []).includes('commit-dummy-passport-image')) {
+        rejectionReason = `Dummy passport was also rejected (${error})`
+        return "reject"
+      }
+      // We haven't tried dummy pasport yet, try now
       return "commit-dummy-passport-image";
     }
 
@@ -446,12 +454,18 @@ async function restart() {
   await page.goto(url);
 }
 
+function logAction(passenger, action) {
+  util.infoMessage(page, `🔨 ${currentAction.toUpperCase()} (pageLoadToken: ${pageLoadToken})`, 4);
+  sendLog[passenger.id] = sendLog[passenger.id] ?? []
+  sendLog[passenger.id].push(action);
+}
+
 async function sendPassenger(passenger) {
   // Determine the acton to perform for the current page load
   currentAction = await determineCurrentAction();
 
   // Log the action
-  util.infoMessage(page, `🔨 currentAction: ${currentAction}, pageLoadToken: ${pageLoadToken}`, 4);
+  logAction(passenger, currentAction)
 
   // Perform the action
   switch (currentAction) {
