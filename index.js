@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 require("dotenv").config();
 const pjson = require("./package.json");
+
+const version = pjson.version;
+console.log(`=== Eagle v${version} ===`);
+
 const { send: sendEhj } = require("./src/ehj");
 const { send: sendBau } = require("./src/bau");
 const { send: sendWtu } = require("./src/wtu");
@@ -27,13 +31,10 @@ const kea = require("./src/lib/kea");
 const inquirer = require("inquirer");
 const defaultSMSAPIKeyMustOverride = "88fd2e1A3f4d327740A9408c12872A39";
 
-const version = pjson.version;
-
 let userInput;
 let data = readDataFile();
 
 async function main() {
-  console.log(`=== Eagle v${version} ===`);
   console.log(
     `https://hajonsoft-kea.web.app/admin/submissions/${
       process.argv
