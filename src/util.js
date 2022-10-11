@@ -298,7 +298,7 @@ function findConfig(url, config) {
   if (urlConfig) {
     infoMessage(
       page,
-      `✈️ Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex}`,
+      `✈️  Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex}`,
       2
     );
     return urlConfig;
@@ -751,7 +751,6 @@ function incrementSelectedTraveler(overrideValue) {
 }
 
 function setSelectedTraveller(value) {
-  console.log("setSelectedTraveller", value);
   getSelectedTraveler(); // Make sure the file exists
   kea.updateSelectedTraveller(value);
   return value;
@@ -1167,7 +1166,7 @@ async function commitCaptchaToken(
   textFieldSelector,
   captchaLength = 6
 ) {
-  infoMessage(page, "🔓 Captcha thinking...");
+  infoMessage(page, "🔓 Captcha thinking...", 5);
   await pauseMessage(page, 3);
 
   try {
@@ -1203,7 +1202,7 @@ async function commitCaptchaToken(
     global.currentCaptchaId = id;
 
     const token = await captchaSolver.get(id);
-    infoMessage(page, `🔓 Captcha solved! ${token}`);
+    infoMessage(page, `🔓 Captcha solved! ${token}`, 5);
 
     // Prevent an stale capthca from being used
     if (id === global.currentCaptchaId) {
@@ -1214,11 +1213,11 @@ async function commitCaptchaToken(
       );
       return token;
     } else {
-      infoMessage(page, `🔓 Discarding stale captcha ${token}`);
+      infoMessage(page, `🔓 Discarding stale captcha ${token}`, 5);
       return null;
     }
   } catch (err) {
-    infoMessage(page, `🔓 Captcha error!!!`);
+    infoMessage(page, `🔓 Captcha error!!!`, 5);
   }
 }
 
@@ -1228,7 +1227,7 @@ async function commitCaptchaTokenWithSelector(
   textFieldSelector,
   captchaLength = 6
 ) {
-  infoMessage(page, "🔓 Captcha thinking...");
+  infoMessage(page, "🔓 Captcha thinking...", 5);
   try {
     const base64 = await page.evaluate((selector) => {
       const image = document.querySelector(selector);
@@ -1266,14 +1265,14 @@ async function commitCaptchaTokenWithSelector(
         [{ selector: textFieldSelector, value: () => token.toString() }],
         {}
       );
-      infoMessage(page, "🔓 Captcha solved! " + token);
+      infoMessage(page, "🔓 Captcha solved! " + token, 5);
       return token;
     } else {
-      infoMessage(page, `🔓 Discarding stale captcha ${token}`);
+      infoMessage(page, `🔓 Discarding stale captcha ${token}`, 5);
       return null;
     }
   } catch (err) {
-    infoMessage(page, "🔓 Captcha error!");
+    infoMessage(page, "🔓 Captcha error!", 5);
   }
 }
 
@@ -1338,7 +1337,7 @@ const infoMessage = async (
   visaShot = false,
   takeScreenShot = false
 ) => {
-  console.log(`🦅 ${getSelectedTraveler()}.${".".repeat(depth)}${message}`);
+  console.log(`🦅 ${getSelectedTraveler()+1}.${".".repeat(depth)}${message}`);
   const screenshotsDir = getPath("screenshots");
   if (!fs.existsSync(screenshotsDir)) {
     fs.mkdirSync(screenshotsDir);

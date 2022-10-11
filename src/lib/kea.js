@@ -112,7 +112,6 @@ const createRun = async (submission) => {
 
 const watchRun = (runId) => {
   return new Promise((resolve, reject) => {
-    console.log(`KEA: Watching run [id: ${runId}]`);
     return onSnapshot(db.run(runId), (snapshot) => {
       const data = snapshot.data();
       if (!data || data.status === "Killed") {
@@ -152,7 +151,7 @@ const fetchPassengers = async (passengerIds) => {
     data = [...data, ...results.docs.map((doc) => doc.data())];
   }
 
-  console.log(`KEA: Fetched ${data.length} passengers`);
+  console.log(`Fetched ${data.length} passengers`);
   return data;
 };
 
@@ -180,7 +179,7 @@ const writeData = async () => {
 
 const updateSelectedTraveller = async (value) => {
   console.log(
-    `KEA: Updating selectedTraveller to ${value} [id: ${global.run.id}]`
+    `🦜 Updating selectedTraveller to ${value}`
   );
   // optimistic update
   global.run.selectedTraveller = value;
@@ -199,14 +198,15 @@ const updatePassenger = async (accountId, passportNumber, payload) => {
   );
   const promises = [];
   snaps.docs.forEach(async (doc) => {
-    console.log(`KEA: Updating passenger [id: ${doc.id}]`, { payload });
+    const data = doc.data();
+    console.log(`🦜 Updating passenger ${data.givenNames.toUpperCase()} ${data.surname.toUpperCase()}`, { payload });
     promises.push(updateDoc(doc.ref, payload));
   });
   await Promise.all(promises);
 };
 const updateSubmission = async (payload) => {
   console.log(
-    `KEA: Updating submission [id: ${global.submission.id}]`,
+    `🦜 Updating submission`,
     payload
   );
   await updateDoc(db.submission(global.submission.id), payload);

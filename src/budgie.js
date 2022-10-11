@@ -38,7 +38,7 @@ function save(key, value) {
   db[key] = value;
   fs.writeFileSync(dbFile, JSON.stringify(db));
   console.log(
-    `Budgie ===> KEY ==> ${key}: {oldValue: ${oldValue}, newValue: ${value}}`
+    `🐤 Budgie ===> KEY ==> ${key}: {oldValue: ${oldValue}, newValue: ${value}}`
   );
 }
 
