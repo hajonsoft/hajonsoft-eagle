@@ -427,6 +427,7 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "step3":
+      console.log("DEBUG: comitting pax data");
       await util.commit(page, currentConfig.details, passenger);
       await page.click("#HaveRejectedAppNo");
       await page.click("#HaveReleativesCurrentlyResidentKsaNo");
@@ -449,10 +450,23 @@ async function pageContentHandler(currentConfig) {
         "#myform > div.form-body.form-horizontal > div:nth-child(2) > div",
         (el) => el.innerText
       );
+      console.log("DEBUG: getENumber", eNumber);
+      // Save eNumber
+      if (eNumber) {
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            eNumber,
+          }
+        );
+      }
+
       if (
         eNumber &&
         fs.existsSync(getPath(passenger.passportNumber + ".txt"))
       ) {
+        console.log("DEBUG: existing passenger");
         const existingPassengerDataString = fs.readFileSync(
           getPath(passenger.passportNumber + ".txt"),
           "utf-8"
@@ -470,6 +484,7 @@ async function pageContentHandler(currentConfig) {
         (el) => el.value
       );
       if (!vaccineNote) {
+        console.log("DEBUG: type vaccine note");
         await page.type(
           "#QuestionModelList_3__Note",
           "anti meningite, anti covid, anti flu"
@@ -488,16 +503,20 @@ async function pageContentHandler(currentConfig) {
         200,
         "vaccine"
       );
+      console.log("DEBUG: resized passport and vaccine");
       const isPassportUploadRequired = await page.$("PassportImageFile");
       if (isPassportUploadRequired) {
+        console.log("DEBUG: commit #PassportImageFile");
         await util.commitFile("#PassportImageFile", resizedPassportPath);
       }
       const isVaccineUploadRequired = await page.$("VaccinationImageFile");
       if (isVaccineUploadRequired) {
+        console.log("DEBUG: commit #VaccinationImageFile");
         await util.commitFile("#VaccinationImageFile", resizedVaccinePath);
       }
       const isMuhramRelationshipRequired = await page.$("#MahramRelationFile");
       if (isMuhramRelationshipRequired) {
+        console.log("DEBUG: commit #MahramRelationFile");
         await util.commitFile("#MahramRelationFile", resizedPassportPath);
       }
 
@@ -514,6 +533,7 @@ async function pageContentHandler(currentConfig) {
               <img src='${passenger.images.passport}' width="50" height="25"/>
               `;
 
+          console.log("DEBUG: innerHTML", { passportContainer });
           const vaccineContainer = document.querySelector(
             "#myform > div.form-body.form-horizontal > div.table-scrollable.table-scrollable-borderless.table-fileupload > table > tbody > tr.warning > td:nth-child(3)"
           );
@@ -521,17 +541,29 @@ async function pageContentHandler(currentConfig) {
                 <img src='${passenger.images.vaccine}' width="50" height="25"/>
                 `;
 
+          console.log("DEBUG: innerHTML", { vaccineContainer });
           const muhramContainer = document.querySelector(
             "#myform > div.form-body.form-horizontal > div.table-scrollable.table-scrollable-borderless.table-fileupload > table > tbody > tr:nth-child(3) > td:nth-child(3)"
           );
           muhramContainer.innerHTML = `
                   <img src='${passenger.images.passport}' width="50" height="25"/>
                   `;
+
+          console.log("DEBUG: innerHTML", { muhramContainer });
         }, passenger);
       }
       await page.waitForSelector(
         "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
       );
+
+      await util.infoMessage(
+        page,
+        "DEBUG: saveButton clicked #myform > div.form-actions.fluid.right > div > div > button:nth-child(3)",
+        4,
+        false,
+        true
+      );
+      page.waitForTimeout(5000);
       await page.click(
         "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
       );
