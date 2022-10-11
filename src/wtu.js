@@ -448,7 +448,6 @@ async function determineCurrentAction() {
 
 async function restart() {
   console.log("Restarting...")
-  await page.waitForTimeout(5000); // Wait for other timeouts to finish
   nextAction = "init"
   const url = config.find((c) => c.name === "create-mutamer").url;
   await page.goto(url);
@@ -710,6 +709,8 @@ async function sendPassenger(passenger) {
       await restart();
       break;
     case "restart":
+      // Reset sendLog for this passenger
+      sendLog[passenger.id] = []
       // Restart with current passenger
       await restart();
       break;
