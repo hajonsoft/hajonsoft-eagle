@@ -946,48 +946,40 @@ async function handleImportGMAMofa() {
     return;
   }
 
-  const tableRows = await gmaPage.$$("#Detail > tbody > tr");
   const passports = [];
-  for (let i = 2; i <= tableRows.length; i++) {
-    const rowPassportNumberSelector = `#Detail > tbody > tr:nth-child(${i}) > td:nth-child(7)`;
-    const passportNumber = await gmaPage.$eval(
-      rowPassportNumberSelector,
-      (el) => el.innerText
-    );
-    console.log(
-      "%c 🍸 passportNumber: ",
-      "font-size:20px;background-color: #F5CE50;color:#fff;",
-      passportNumber
-    );
+  const rows = await gmaPage.$$("#Detail > tbody > tr")
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const cells = await row.$$("td");
+    if (cells.length === 0) {
+      continue;
+    }
+    const passportNumber = await cells[6].evaluate( el => el.innerText.trim());
+    const mofaNumber = await cells[1].evaluate( el => el.innerText.trim());
+    const nationality = await cells[5].evaluate( el => el.innerText.trim());
     passports.push(passportNumber);
 
-    const rowMofaSelector = `#Detail > tbody > tr:nth-child(${i}) > td:nth-child(2)`;
-    const mofaNumber = await gmaPage.$eval(
-      rowMofaSelector,
-      (el) => el.innerText
-    );
-
-    const rowNationalitySelector = `#Detail > tbody > tr:nth-child(${i}) > td:nth-child(6)`;
-    const nationality = await gmaPage.$eval(
-      rowNationalitySelector,
-      (el) => el.innerText
-    );
-
-    if (passportNumber) {
+    if (passportNumber && /[0-9]/.test(passportNumber)) {
       fs.writeFileSync(
         getPath(passportNumber + ".txt"),
-        JSON.stringify({ mofaNumber, nationality, passportNumber })
+        JSON.stringify({
+          mofaNumber,
+          nationality,
+          passportNumber,
+        })
       );
-      // Add this passport to data.json if it is not present. This way you will be able to import from GMA and proceed with HSF even if the traveler is not present in HAJonSoft
+      kea.updatePassenger(data.system.accountId, passportNumber, {mofaNumber: mofaNumber || "waiting"});
     }
   }
   await gmaPage.evaluate((passportsArrayFromNode) => {
     const eagleButton = document.querySelector(
       "#frm_menue > center > table > tbody > tr > div > button"
     );
-    eagleButton.textContent = `Done... [${passportsArrayFromNode[0]}-${
+    const confirmationText = `Done... [${passportsArrayFromNode[0]}-${
       passportsArrayFromNode[passportsArrayFromNode.length - 1]
-    }]`;
+    }] => ${passportsArrayFromNode.length}`;
+
+    eagleButton.textContent = confirmationText;
   }, passports);
 }
 
