@@ -12,6 +12,8 @@ const kea = require("./lib/kea");
 const { default: axios } = require("axios");
 const JSZip = require("jszip");
 
+let screenshotHandler;
+
 const {
   injectTWFEagleButton,
   onTWFPageLoad,
@@ -29,6 +31,7 @@ const {
 } = require("./mofa_import/bau");
 const { SERVER_NUMBER } = require("./bau");
 const { hsf_nationalities } = require("./data/nationalities");
+const { clearInterval } = require("timers");
 const homedir = require("os").homedir();
 let page;
 let data;
@@ -552,6 +555,7 @@ async function pageContentHandler(currentConfig) {
           console.log("DEBUG: innerHTML", { muhramContainer });
         }, passenger);
       }
+
       await page.waitForSelector(
         "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
       );
@@ -563,12 +567,20 @@ async function pageContentHandler(currentConfig) {
         false,
         true
       );
-      page.waitForTimeout(5000);
+
+      // Screenshot what's happening 10 seconds later
+      screenshotHandler = setInterval(async () => {
+        await util.infoMessage(page, "DEBUG: 10 seconds later", 4, false, true);
+      }, 10000);
+
       await page.click(
         "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
       );
       break;
     case "step4":
+      if (screenshotHandler) {
+        clearInterval(screenshotHandler);
+      }
       if (fs.existsSync(getPath("add.json"))) {
         await util.commander(page, {
           controller: {
