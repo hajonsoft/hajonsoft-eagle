@@ -199,7 +199,7 @@ const updatePassenger = async (accountId, passportNumber, payload) => {
   const promises = [];
   snaps.docs.forEach(async (doc) => {
     const data = doc.data();
-    console.log(`🦜 Updating passenger ${data.givenNames.toUpperCase()} ${data.surname.toUpperCase()}`, { payload });
+    console.log(`🦜 Updating passenger ${data.givenNames.toUpperCase()} ${data.surname.toUpperCase()}  in Group: ${data.groupId}`, { payload });
     promises.push(updateDoc(doc.ref, payload));
   });
   await Promise.all(promises);
