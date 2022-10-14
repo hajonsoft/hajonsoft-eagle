@@ -29,6 +29,7 @@ const {
 } = require("./mofa_import/bau");
 const { SERVER_NUMBER } = require("./bau");
 const { hsf_nationalities } = require("./data/nationalities");
+const { clearInterval } = require("timers");
 const homedir = require("os").homedir();
 let page;
 let data;
@@ -449,6 +450,17 @@ async function pageContentHandler(currentConfig) {
         "#myform > div.form-body.form-horizontal > div:nth-child(2) > div",
         (el) => el.innerText
       );
+      // Save eNumber
+      if (eNumber) {
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            eNumber,
+          }
+        );
+      }
+
       if (
         eNumber &&
         fs.existsSync(getPath(passenger.passportNumber + ".txt"))
@@ -474,6 +486,7 @@ async function pageContentHandler(currentConfig) {
           "#QuestionModelList_3__Note",
           "anti meningite, anti covid, anti flu"
         );
+        await page.$eval("#QuestionModelList_3__Note", (el) => el.blur());
       }
 
       const resizedPassportPath = await util.downloadAndResizeImage(
@@ -529,9 +542,12 @@ async function pageContentHandler(currentConfig) {
                   `;
         }, passenger);
       }
+
       await page.waitForSelector(
         "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
       );
+
+      await util.infoMessage(page, "saveButton clicked", 4, false, true);
       await page.click(
         "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
       );

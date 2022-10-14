@@ -1326,10 +1326,11 @@ async function uploadImage(fileName) {
         type: "stream",
       })
       .then((result) => {
-        console.log("screenshot uploaded 👍", result.data?.link);
+        console.log("View screenshot: ", result.data?.link);
       })
       .catch((err) => {
-        // console.log("error uploading image: ", err);
+        console.log("error uploading image: ", err);
+        console.log("local path: ", fileName);
       });
   }
 }
@@ -1341,7 +1342,7 @@ const infoMessage = async (
   visaShot = false,
   takeScreenShot = false
 ) => {
-  console.log(`🦅 ${getSelectedTraveler()+1}.${".".repeat(depth)}${message}`);
+  console.log(`🦅 ${getSelectedTraveler() + 1}.${".".repeat(depth)}${message}`);
   const screenshotsDir = getPath("screenshots");
   if (!fs.existsSync(screenshotsDir)) {
     fs.mkdirSync(screenshotsDir);
@@ -1350,13 +1351,13 @@ const infoMessage = async (
     screenshotsDir,
     `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`
   );
-  const isCloudRun = true;
+  const isCloudRun = Boolean(global.headless);
   if (page) {
     try {
       await page.evaluate("document.title='" + message + "'");
       // Capture screenshot and display image in log
-      await page.screenshot({ path: screenshotFileName, fullPage: true });
       if (isCloudRun && takeScreenShot) {
+        await page.screenshot({ path: screenshotFileName, fullPage: true });
         await uploadImage(screenshotFileName);
         if (visaShot) {
           await uploadImage(visaShot);
@@ -1506,5 +1507,5 @@ module.exports = {
   suggestGroupName,
   screenShotAndContinue,
   toggleBlur,
-  isTravelDocument
+  isTravelDocument,
 };
