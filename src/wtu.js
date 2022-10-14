@@ -199,7 +199,6 @@ async function pageContentHandler(currentConfig) {
   }
   switch (currentConfig.name) {
     case "login":
-      util.infoMessage(page, "Captcha thinking");
       await util.commit(page, currentConfig.details, data.system);
       await page.waitForTimeout(3000);
       token = await util.commitCaptchaTokenWithSelector(
