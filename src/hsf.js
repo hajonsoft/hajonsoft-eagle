@@ -418,7 +418,7 @@ async function pageContentHandler(currentConfig) {
       );
       if (!flightDuration) {
         await page.type("#FlightDataModel\\.ExpectedStayDuration", "");
-        await page.type("#FlightDataModel\\.ExpectedStayDuration", "15");
+        await page.type("#FlightDataModel\\.ExpectedStayDuration", "7");
       }
       await page.waitForSelector(
         "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
