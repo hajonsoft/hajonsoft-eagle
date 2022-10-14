@@ -11,6 +11,8 @@ const sharp = require("sharp");
 const homedir = require("os").homedir();
 const gmail = require("./lib/gmail");
 
+let currentAction = "init";
+
 let page;
 let email;
 let data;
@@ -550,10 +552,13 @@ async function runPageConfiguration(currentConfig) {
       );
       // Ask user to forward otp to hajonsoft.owl@gmail.com
       // write the message on the DOM
-      await page.$eval("#formOTPAuth > div.form-fields > div.w-100 > div > div > h3", (el) => {
-        el.innerHTML =
-          "Please forward the OTP to <a href='mailto:hajonsoft.owl@gmail.com'>hajonsoft.owl@gmail.com<a>";
-      });
+      await page.$eval(
+        "#formOTPAuth > div.form-fields > div.w-100 > div > div > h3",
+        (el) => {
+          el.innerHTML =
+            "Please forward the OTP to <a href='mailto:hajonsoft.owl@gmail.com'>hajonsoft.owl@gmail.com<a>";
+        }
+      );
 
       if (await page.$("#resendOtp")) {
         await page.waitForSelector("#resendOtp");
@@ -587,60 +592,7 @@ async function runPageConfiguration(currentConfig) {
         return;
       }
       await util.controller(page, currentConfig, data.travellers);
-      await page.waitForSelector("#ApplyingVisaForSomeoneElseYes");
-      await page.click("#ApplyingVisaForSomeoneElseYes");
-      await util.commit(page, currentConfig.details, passenger);
-      await page.waitForSelector("#DateOfBirth");
-      await page.$eval("#DateOfBirth", (e) => {
-        e.removeAttribute("readonly");
-        e.removeAttribute("disabled");
-      });
-      await page.type("#DateOfBirth", passenger.dob.dmy);
-      await page.focus("#Address"); //just to close the date of birth calendar
-      await page.click("#Address");
-      let photoPath = path.join(
-        util.photosFolder,
-        `${passenger.passportNumber}.jpg`
-      );
-      await util.downloadImage(passenger.images.photo, photoPath);
-      let resizedPhotoPath = path.join(
-        util.photosFolder,
-        `${passenger.passportNumber}_200x200.jpg`
-      );
-
-      const sharpImage = await sharp(photoPath);
-      const sharpImageMetadata = await sharpImage.metadata();
-      if (
-        sharpImageMetadata.width === 200 &&
-        sharpImageMetadata.height === 200
-      ) {
-        await sharpImage
-          .clone()
-          .jpeg({ quality: 100 })
-          .toFile(resizedPhotoPath);
-      } else {
-        resizedPhotoPath = await util.downloadAndResizeImage(
-          passenger,
-          200,
-          200,
-          "photo",
-          7,
-          100
-        );
-      }
-      console.log(resizedPhotoPath);
-      await util.commitFile("#AttachmentPersonalPicture", resizedPhotoPath);
-
-      // check for crop pop up and close it
-      if (await page.$("#btnCrop")) {
-        await page.click("#btnCrop");
-      }
-
-      //TODO: If cloud click next without waiting
-      await util.pauseMessage(page, 30);
-      if (status === "personal") {
-        await page.click("#btnNext");
-      }
+      await sendPersonal(currentConfig, passenger);
       break;
     case "passport":
       status = "passport";
@@ -704,7 +656,6 @@ async function runPageConfiguration(currentConfig) {
       util.incrementSelectedTraveler();
       await page.waitForSelector("#btnAddMoreToGroup");
       await page.click("#btnAddMoreToGroup");
-
       break;
     case "print-visa":
       status = "print-visa";
@@ -769,6 +720,123 @@ async function runPageConfiguration(currentConfig) {
     default:
       break;
   }
+}
+
+async function sendPersonal(currentConfig, passenger) {
+  currentAction = await determineCurrentAction();
+  await util.infoMessage(page, `${currentConfig.name}-${currentAction}`);
+
+  switch (currentAction) {
+    case "init":
+      await page.waitForSelector("#ApplyingVisaForSomeoneElseYes");
+      await page.click("#ApplyingVisaForSomeoneElseYes");
+      await util.commit(page, currentConfig.details, passenger);
+      await page.waitForSelector("#DateOfBirth");
+      await page.$eval("#DateOfBirth", (e) => {
+        e.removeAttribute("readonly");
+        e.removeAttribute("disabled");
+      });
+      await page.type("#DateOfBirth", passenger.dob.dmy);
+      await page.focus("#Address");
+      await page.click("#Address");
+      let photoPath = path.join(
+        util.photosFolder,
+        `${passenger.passportNumber}.jpg`
+      );
+      await util.downloadImage(passenger.images.photo, photoPath);
+      let resizedPhotoPath = path.join(
+        util.photosFolder,
+        `${passenger.passportNumber}_200x200.jpg`
+      );
+      const sharpImage = await sharp(photoPath);
+      const sharpImageMetadata = await sharpImage.metadata();
+      const sizeOnDesk = Math.round(fs.statSync(photoPath).size / 1024);
+      if (
+        sharpImageMetadata.width === 200 &&
+        sharpImageMetadata.height === 200 &&
+        sizeOnDesk < 100 &&
+        sizeOnDesk > 7
+      ) {
+        await sharpImage
+          .clone()
+          .jpeg({ quality: 100 })
+          .toFile(resizedPhotoPath);
+      } else {
+        resizedPhotoPath = await util.downloadAndResizeImage(
+          passenger,
+          200,
+          200,
+          "photo",
+          7,
+          100
+        );
+      }
+
+      const sharpNewImage = await sharp(resizedPhotoPath);
+      const sharpNewImageMetadata = await sharpNewImage.metadata();
+      const sizeOnDeskNew = Math.round(
+        fs.statSync(resizedPhotoPath).size / 1024
+      );
+
+      console.log(
+        resizedPhotoPath,
+        `original: ${sharpImageMetadata.width}x${sharpImageMetadata.height} ${sizeOnDesk} kb`,
+        `new: ${sharpNewImageMetadata.width}x${sharpNewImageMetadata.height} ${sizeOnDeskNew} kb`
+      );
+      await util.commitFile("#AttachmentPersonalPicture", resizedPhotoPath);
+      await util.pauseMessage(page, 3);
+      try {
+        await page.click(
+          "#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result"
+        );
+      } catch {}
+      await util.pauseMessage(page, 3);
+      await page.click("#btnNext");
+      await util.pauseMessage(page, 5);
+
+      try {
+        await page.waitForSelector("#GuardianList", { timeout: 3000 });
+        const secondOption = await page.$eval(
+          "#GuardianList option:nth-child(2)",
+          (el) => el.value
+        );
+        await page.select("#GuardianList", secondOption);
+
+        await util.pauseMessage(page, 5);
+        await page.waitForSelector("#GuardianRelation");
+        const secondRelationOption = await page.$eval(
+          "#GuardianRelation option:nth-child(2)",
+          (el) => el.value
+        );
+        await page.select("#GuardianRelation", secondRelationOption);
+        await util.commit(page, currentConfig.details, passenger);
+        await util.commitFile("#AttachmentPersonalPicture", resizedPhotoPath);
+        await util.pauseMessage(page, 3);
+        try {
+          await page.click(
+            "#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result"
+          );
+        } catch {}
+        
+      } catch {}
+
+      break;
+    default:
+      break;
+  }
+}
+
+async function determineCurrentAction() {
+  console.log("determine");
+  const firstNamePresent = await page.$eval(
+    "#FirstNameEnglish",
+    (el) => el.value
+  );
+  if (!firstNamePresent) {
+    return "init";
+  }
+
+  return "init";
 }
 
 module.exports = { send };
