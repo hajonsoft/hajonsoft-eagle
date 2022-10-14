@@ -525,12 +525,15 @@ async function controller(page, structure, travellers) {
         const visaPath = params[3];
         const htmlContent = params[4];
         const pax = params[5];
+        const lastTraveler = params[6];
         container.outerHTML = `${htmlContent
           .replace(/{handleMethodName}/, handleMethodName)
           .replace(/{options}/, optionsParam)
           .replace(/{visaPath}/, visaPath)
           .replace(/{pax}/, pax.length)
-          .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`;
+          .replace(/{current}/, lastTraveler + 1)
+          .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`
+          .replace(/{sendall}/, "Send All إرسل الكل");
       },
       [
         structure,
@@ -539,6 +542,7 @@ async function controller(page, structure, travellers) {
         path.join(homedir, "hajonsoft", "visa"),
         html,
         travellers,
+        lastTraveler,
       ]
     );
     const isExposed = await page.evaluate(
@@ -897,7 +901,7 @@ async function downloadAndResizeImage(
     for (let i = 1; i < 20; i++) {
       // TODO: handle this better. May be increase image size on desk by stuffing strings in the image
       await sharp(imagePath)
-        .resize(width * i, height * i, {
+        .resize(width + i, height + i, {
           fit: sharp.fit.fill,
         })
         .toFile(resizedPath);
