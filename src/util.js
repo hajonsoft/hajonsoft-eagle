@@ -531,7 +531,7 @@ async function controller(page, structure, travellers) {
           .replace(/{options}/, optionsParam)
           .replace(/{visaPath}/, visaPath)
           .replace(/{pax}/, pax.length)
-          .replace(/{current}/, lastTraveler)
+          .replace(/{current}/, lastTraveler + 1)
           .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`
           .replace(/{sendall}/, "Send All إرسل الكل");
       },

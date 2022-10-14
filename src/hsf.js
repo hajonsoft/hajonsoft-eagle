@@ -589,8 +589,20 @@ async function pageContentHandler(currentConfig) {
           "#myform > div.form-body.form-horizontal > div.alert.alert-warning.text-center > h3",
           (el) => el.innerText
         );
-        if (visaStatusMessage) {
+
+        if (visaStatusMessage && (visaStatusMessage.includes("جاري") || visaStatusMessage.includes("being"))) {
           fs.appendFileSync(util.getLogFile(), visaStatusMessage + "\n");
+          const pageElement = await page.$("body");
+          // save screenshot to kea
+          try {
+            await screenShotToKea(
+              pageElement,
+              data.system.accountId,
+              passenger
+            );
+          } catch (error) {}
+          util.incrementSelectedTraveler();
+          await page.goto(config[0].url);
         }
       }
       const printButtonSelector =
