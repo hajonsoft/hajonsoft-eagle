@@ -891,29 +891,49 @@ async function downloadAndResizeImage(
     console.log("override found at: ", overridePhoto);
     imagePath = overridePhoto;
   }
+  let quality = 80;
   await sharp(imagePath)
     .resize(width, height, {
       fit: sharp.fit.fill,
     })
+    // Make high quality bump up file size 
+    .jpeg({
+      quality,
+      chromaSubsampling: '4:4:4'
+    })
     .toFile(resizedPath);
+
   let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
-  if (sizeAfter < minKb) {
-    for (let i = 1; i < 20; i++) {
-      // TODO: handle this better. May be increase image size on desk by stuffing strings in the image
-      await sharp(imagePath)
-        .resize(width + i, height + i, {
-          fit: sharp.fit.fill,
-        })
-        .toFile(resizedPath);
-      sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
-      if (sizeAfter > minKb) {
-        return resizedPath;
-      }
-    }
+
+  while (sizeAfter < minKb && quality <= 100) {
+    quality += 5
+    await sharp(imagePath)
+    .resize(width, height, {
+      fit: sharp.fit.fill,
+    })
+    // Make high quality bump up file size 
+    .jpeg({
+      quality,
+      chromaSubsampling: '4:4:4'
+    })
+    .toFile(resizedPath);
+    sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }
 
   // TODO: Test with wtu group 7 pax because the size of the photo is too small
-  if (sizeAfter > maxKb) {
+  while (sizeAfter > maxKb && quality > 0) {
+    quality -= 5
+    await sharp(imagePath)
+    .resize(width, height, {
+      fit: sharp.fit.fill,
+    })
+    // Make high quality bump up file size 
+    .jpeg({
+      quality,
+      chromaSubsampling: '4:4:4'
+    })
+    .toFile(resizedPath);
+    sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }
   return resizedPath;
 }

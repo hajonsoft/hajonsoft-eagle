@@ -759,7 +759,6 @@ async function sendPersonal(currentConfig, passenger) {
       ) {
         await sharpImage
           .clone()
-          .jpeg({ quality: 100 })
           .toFile(resizedPhotoPath);
       } else {
         resizedPhotoPath = await util.downloadAndResizeImage(
