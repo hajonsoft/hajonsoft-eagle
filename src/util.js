@@ -1461,6 +1461,25 @@ function isTravelDocument(passenger) {
   return false;
 }
 
+async function screenShotToKea(visaElement, accountId, currentPassenger) {
+  // save base64 image to firestore
+  const base64 = await visaElement.screenshot({
+    encoding: "base64",
+    type: "jpeg",
+    quality: 70,
+  });
+
+  const filename = `visa_${currentPassenger.passportNumber}.jpeg`;
+  const destination = `${accountId}/visaImageUrl/${filename}`;
+  const visaImageUrl = await kea.uploadImageToStorage(base64, destination);
+
+  // Send base64 encoded string to kea
+  await kea.updatePassenger(accountId, currentPassenger.passportNumber, {
+    visaImageUrl,
+    "submissionData.hsf.status": "Submitted",
+  });
+}
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1508,4 +1527,5 @@ module.exports = {
   screenShotAndContinue,
   toggleBlur,
   isTravelDocument,
+  screenShotToKea,
 };

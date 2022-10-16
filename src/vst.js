@@ -690,12 +690,12 @@ async function runPageConfiguration(currentConfig) {
 
       // Save base64 image to kea
       try {
-        await screenShotToKea(
+        await util.screenShotToKea(
           visaElement,
           data.system.accountId,
           currentPassenger
         );
-      } catch (error) {}
+      } catch {}
 
       // Save image to file
       const visaFileName =
@@ -817,7 +817,6 @@ async function sendPersonal(currentConfig, passenger) {
             "#divPhotoCroper > div > div > div.modal-footer > button.rounded-button.upload-result"
           );
         } catch {}
-        
       } catch {}
 
       break;
