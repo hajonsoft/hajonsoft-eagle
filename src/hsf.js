@@ -44,6 +44,7 @@ let twfPage;
 let status = "idle";
 
 let retries = 0;
+let countEmbassy = 0;
 
 const config = [
   {
@@ -622,6 +623,18 @@ async function pageContentHandler(currentConfig) {
               "Embassy"
             );
           } catch (error) {}
+          // If sent to embassy twice in a row, exit because the website is malfunctioning
+          countEmbassy += 1;
+          if (
+            countEmbassy >= 2 &&
+            // Only for Moulavi account for now
+            data.system.accountId === "saRY4bAqkkjJoACV7i5kaf"
+          ) {
+            console.log(
+              "Sent to embassy twice in a row, exiting. Try again later."
+            );
+            process.exit(1);
+          }
           util.incrementSelectedTraveler();
           await page.goto(config[0].url);
         }
@@ -675,6 +688,7 @@ async function pageContentHandler(currentConfig) {
             currentPassenger
           );
         } catch (error) {}
+        countEmbassy = 0;
         util.incrementSelectedTraveler();
         await page.goto(config[0].url);
 
