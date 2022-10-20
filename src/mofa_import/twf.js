@@ -2,6 +2,7 @@ const { config } = require("../twf");
 const util = require("../util");
 const { getPath } = util;
 const fs = require("fs");
+const kea = require("../lib/kea");
 const { homedir } = require("os");
 const path = require("path");
 
@@ -51,7 +52,7 @@ async function handleImportTWFMofa() {
           !fileName
         ) {
           fileName = path.join(homedir(), "Downloads", filename);
-          setTimeout(async () => {
+          setTimeout(async (dataJson) => {
             const passports = [];
             const data = fs.readFileSync(fileName, "utf8");
             const lines = data.split("\n");
@@ -66,6 +67,15 @@ async function handleImportTWFMofa() {
                   getPath(passportNumber),
                   JSON.stringify({ mofaNumber, nationality })
                 );
+                // Write to Kea
+                const params = {
+                  mofaNumber: mofaNumber || "waiting",
+                };
+                kea.updatePassenger(
+                  dataJson.system.accountId,
+                  passportNumber,
+                  params
+                );
               }
             }
             await page.evaluate((passportsArrayFromNode) => {
@@ -78,7 +88,7 @@ async function handleImportTWFMofa() {
                 passportsArrayFromNode[passportsArrayFromNode.length - 1]
               }] (${passportsArrayFromNode.length} passports)`;
             }, passports);
-          }, 3000);
+          }, 3000, data);
         }
       } catch (err) {
         console.log(
