@@ -532,8 +532,10 @@ async function controller(page, structure, travellers) {
           .replace(/{visaPath}/, visaPath)
           .replace(/{pax}/, pax.length)
           .replace(/{current}/, lastTraveler + 1)
-          .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`
-          .replace(/{sendall}/, "Send All إرسل الكل");
+          .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`.replace(
+          /{sendall}/,
+          "Send All إرسل الكل"
+        );
       },
       [
         structure,
@@ -896,43 +898,43 @@ async function downloadAndResizeImage(
     .resize(width, height, {
       fit: sharp.fit.fill,
     })
-    // Make high quality bump up file size 
+    // Make high quality bump up file size
     .jpeg({
       quality,
-      chromaSubsampling: '4:4:4'
+      chromaSubsampling: "4:4:4",
     })
     .toFile(resizedPath);
 
   let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
 
   while (sizeAfter < minKb && quality <= 100) {
-    quality += 5
+    quality += 5;
     await sharp(imagePath)
-    .resize(width, height, {
-      fit: sharp.fit.fill,
-    })
-    // Make high quality bump up file size 
-    .jpeg({
-      quality,
-      chromaSubsampling: '4:4:4'
-    })
-    .toFile(resizedPath);
+      .resize(width, height, {
+        fit: sharp.fit.fill,
+      })
+      // Make high quality bump up file size
+      .jpeg({
+        quality,
+        chromaSubsampling: "4:4:4",
+      })
+      .toFile(resizedPath);
     sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }
 
   // TODO: Test with wtu group 7 pax because the size of the photo is too small
   while (sizeAfter > maxKb && quality > 0) {
-    quality -= 5
+    quality -= 5;
     await sharp(imagePath)
-    .resize(width, height, {
-      fit: sharp.fit.fill,
-    })
-    // Make high quality bump up file size 
-    .jpeg({
-      quality,
-      chromaSubsampling: '4:4:4'
-    })
-    .toFile(resizedPath);
+      .resize(width, height, {
+        fit: sharp.fit.fill,
+      })
+      // Make high quality bump up file size
+      .jpeg({
+        quality,
+        chromaSubsampling: "4:4:4",
+      })
+      .toFile(resizedPath);
     sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }
   return resizedPath;
@@ -1481,7 +1483,12 @@ function isTravelDocument(passenger) {
   return false;
 }
 
-async function screenShotToKea(visaElement, accountId, currentPassenger) {
+async function screenShotToKea(
+  visaElement,
+  accountId,
+  currentPassenger,
+  status = "Submitted"
+) {
   // save base64 image to firestore
   const base64 = await visaElement.screenshot({
     encoding: "base64",
@@ -1496,7 +1503,7 @@ async function screenShotToKea(visaElement, accountId, currentPassenger) {
   // Send base64 encoded string to kea
   await kea.updatePassenger(accountId, currentPassenger.passportNumber, {
     visaImageUrl,
-    "submissionData.hsf.status": "Submitted",
+    "submissionData.hsf.status": status,
   });
 }
 

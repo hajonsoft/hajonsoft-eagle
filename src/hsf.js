@@ -44,6 +44,7 @@ let twfPage;
 let status = "idle";
 
 let retries = 0;
+let countEmbassy = 0;
 
 const config = [
   {
@@ -606,7 +607,11 @@ async function pageContentHandler(currentConfig) {
           (el) => el.innerText
         );
 
-        if (visaStatusMessage && (visaStatusMessage.includes("جاري") || visaStatusMessage.includes("being"))) {
+        if (
+          visaStatusMessage &&
+          (visaStatusMessage.includes("جاري") ||
+            visaStatusMessage.includes("being"))
+        ) {
           fs.appendFileSync(util.getLogFile(), visaStatusMessage + "\n");
           const pageElement = await page.$("body");
           // save screenshot to kea
@@ -614,9 +619,22 @@ async function pageContentHandler(currentConfig) {
             await util.screenShotToKea(
               pageElement,
               data.system.accountId,
-              passenger
+              passenger,
+              "Embassy"
             );
           } catch (error) {}
+          // If sent to embassy twice in a row, exit because the website is malfunctioning
+          countEmbassy += 1;
+          if (
+            countEmbassy >= 2 &&
+            // Only for Moulavi account for now
+            data.system.accountId === "saRY4bAqkkjJoACV7i5kaf"
+          ) {
+            console.log(
+              "Sent to embassy twice in a row, exiting. Try again later."
+            );
+            process.exit(1);
+          }
           util.incrementSelectedTraveler();
           await page.goto(config[0].url);
         }
@@ -670,6 +688,7 @@ async function pageContentHandler(currentConfig) {
             currentPassenger
           );
         } catch (error) {}
+        countEmbassy = 0;
         util.incrementSelectedTraveler();
         await page.goto(config[0].url);
 
@@ -956,16 +975,16 @@ async function handleImportGMAMofa() {
   }
 
   const passports = [];
-  const rows = await gmaPage.$$("#Detail > tbody > tr")
+  const rows = await gmaPage.$$("#Detail > tbody > tr");
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
     const cells = await row.$$("td");
     if (cells.length === 0) {
       continue;
     }
-    const passportNumber = await cells[6].evaluate( el => el.innerText.trim());
-    const mofaNumber = await cells[1].evaluate( el => el.innerText.trim());
-    const nationality = await cells[5].evaluate( el => el.innerText.trim());
+    const passportNumber = await cells[6].evaluate((el) => el.innerText.trim());
+    const mofaNumber = await cells[1].evaluate((el) => el.innerText.trim());
+    const nationality = await cells[5].evaluate((el) => el.innerText.trim());
     passports.push(passportNumber);
 
     if (passportNumber && /[0-9]/.test(passportNumber)) {
@@ -977,7 +996,9 @@ async function handleImportGMAMofa() {
           passportNumber,
         })
       );
-      kea.updatePassenger(data.system.accountId, passportNumber, {mofaNumber: mofaNumber || "waiting"});
+      kea.updatePassenger(data.system.accountId, passportNumber, {
+        mofaNumber: mofaNumber || "waiting",
+      });
     }
   }
   await gmaPage.evaluate((passportsArrayFromNode) => {
