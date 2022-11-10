@@ -432,7 +432,7 @@ async function runPageConfiguration(currentConfig) {
             (e) => e.innerHTML
             );
             const valuePatternEmbassy = new RegExp(
-              `value="(.*)">${data.system.embassy}.*?</option>`,
+              `value="(.{3,4})">${data.system.embassy}.*?</option>`,
               "im"
             );
             const foundEmbassy = valuePatternEmbassy.exec(
