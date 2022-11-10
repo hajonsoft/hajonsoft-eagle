@@ -1123,10 +1123,9 @@ async function setHSFDate(dateSelector, year, month, day) {
     [monthSelector, `${parseInt(month)}/${year}`]
   );
 
-  // pause for 1 second to allow the month to load
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(2000);
   await page.select(monthSelector, `${parseInt(month)}/${year}`);
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(2000);
   const dayTds = await page.$$("td");
   for (const dayTd of dayTds) {
     const dayAnchor = await dayTd.$("a");
@@ -1135,7 +1134,6 @@ async function setHSFDate(dateSelector, year, month, day) {
       if (anchorContent == parseInt(day)) {
         dayTd.focus();
         dayTd.click();
-        break;
       }
     }
   }
