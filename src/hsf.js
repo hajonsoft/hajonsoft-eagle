@@ -367,11 +367,16 @@ async function pageContentHandler(currentConfig) {
           await sendPassenger(nextIndex.toString());
         }
       } else {
-        await util.pauseForInteraction(page, 15);
-        if (status === "idle") {
-          fs.writeFileSync(getPath("loop.txt"), "loop");
-          await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
-        }
+        setTimeout(async () => {
+          if (status === "idle") {
+            fs.writeFileSync(getPath("loop.txt"), "loop");
+            // await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
+            const nextIndex = util.getSelectedTraveler();
+            if (nextIndex < data.travellers.length) {
+              await sendPassenger(nextIndex.toString());
+            }
+          }
+        }, 20000);
       }
 
       break;
@@ -715,6 +720,7 @@ async function pageContentHandler(currentConfig) {
       await page.goto(config[0].url);
       break;
     case "add":
+      status = "add";
       await util.controller(
         page,
         {
@@ -736,20 +742,19 @@ async function pageContentHandler(currentConfig) {
       await page.waitForSelector("#OrganizationId");
       await page.select("#OrganizationId", "302");
 
-      if (fs.existsSync(getPath("add.json"))) {
-        if (fs.existsSync(getPath("loop.txt"))) {
-          const nextTraveller = incrementSelectedTraveler();
-          sendNewApplication(nextTraveller.toString());
-        }
+      fs.writeFileSync(getPath("add.json"), JSON.stringify(passenger));
+
+        // if (fs.existsSync(getPath("loop.txt"))) {
+        //   const nextTraveller = util.incrementSelectedTraveler();
+        //   sendNewApplication(nextTraveller.toString());
+        // }
         await page.hover(
           "#myform > div.form-actions.fluid.right > div > div > button"
         );
         await page.focus(
           "#myform > div.form-actions.fluid.right > div > div > button"
         );
-      } else {
-        fs.writeFileSync(getPath("add.json"), JSON.stringify(passenger));
-      }
+      
       break;
     default:
       break;
@@ -757,6 +762,11 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function sendNewApplication(selectedTraveller) {
+  // if loop.txt exists delete it
+  if (fs.existsSync(getPath("loop.txt"))) {
+    fs.unlinkSync(getPath("loop.txt"));
+  }
+
   if (selectedTraveller) {
     try {
       const data = fs.readFileSync(getPath("data.json"), "utf-8");
@@ -844,7 +854,7 @@ async function sendNewApplication(selectedTraveller) {
 }
 
 async function sendPassenger(index) {
-  if (status === "importing") {
+  if (status === "importing" || status === "add") {
     return;
   }
   // Handle error popup
@@ -1095,14 +1105,16 @@ async function injectGMAEagleButton() {
 }
 
 async function setHSFDate(dateSelector, year, month, day) {
+  try {
+
   await page.click(dateSelector);
   const yearSelector =
     "body > div.calendars-popup > div > div.calendars-month-row > div > div > select.floatleft.calendars-month-year";
   await page.waitForSelector(yearSelector);
-  await util.selectByValue(yearSelector, `${year}`);
+  await util.selectByValueStrict(yearSelector, `${year}`);
 
   const monthSelector =
-    "body > div.calendars-popup > div > div.calendars-month-row > div > div > select:nth-child(1)";
+    "body > div.calendars-popup > div > div.calendars-month-row > div > div > select:nth-child(1)"
   await page.waitForSelector(monthSelector);
   // TODO AA: Replace with page.waitForXPath(xpath[, options])
   await page.waitForFunction(
@@ -1110,6 +1122,9 @@ async function setHSFDate(dateSelector, year, month, day) {
     {},
     [monthSelector, `${parseInt(month)}/${year}`]
   );
+
+  // pause for 1 second to allow the month to load
+  await page.waitForTimeout(1000);
   await page.select(monthSelector, `${parseInt(month)}/${year}`);
   await page.waitForTimeout(1000);
   const dayTds = await page.$$("td");
@@ -1120,11 +1135,15 @@ async function setHSFDate(dateSelector, year, month, day) {
       if (anchorContent == parseInt(day)) {
         dayTd.focus();
         dayTd.click();
+        break;
       }
     }
   }
 
   await page.waitForTimeout(1000);
+  } catch (err) {
+    console.log("Eagle error: Date select error", err);
+  }
 }
 
 module.exports = { send };
