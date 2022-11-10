@@ -443,6 +443,20 @@ async function selectByValue(selector, txt) {
   }
 }
 
+async function selectByValueStrict(selector, txt) {
+  try {
+  await page.waitForSelector(selector);
+  const options = await page.$eval(selector, (e) => e.innerHTML);
+  const valuePattern = new RegExp(`value="(.{6,7})"( selected="selected")?>${txt}</option>`, "im");
+  const found = valuePattern.exec(options.replace(/\n/gim, ""));
+  if (found && found.length >= 2) {
+    await page.select(selector, found[1]);
+  }
+  } catch (e) {
+    console.log("unable to select by value strict", selector);
+  }
+}
+
 function getMofaImportString(passenger) {
   const passportNumber = passenger.passportNumber;
   const mofaNumber = passenger.mofaNumber;
@@ -1529,6 +1543,7 @@ module.exports = {
   endCase,
   setCounter,
   selectByValue,
+  selectByValueStrict,
   sniff,
   newPage,
   handleMofa,

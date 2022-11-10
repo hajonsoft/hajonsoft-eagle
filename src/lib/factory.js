@@ -65,7 +65,7 @@ function toDate(eventDate) {
     dd: format(parsed, "dd"),
     mm: format(parsed, "MM"),
     mmm: format(parsed, "MMM"),
-    yyyy: format(parsed, "yyyy)"),
+    yyyy: format(parsed, "yyyy"),
   };
 }
 
