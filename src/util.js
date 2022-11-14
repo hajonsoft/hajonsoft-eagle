@@ -445,13 +445,16 @@ async function selectByValue(selector, txt) {
 
 async function selectByValueStrict(selector, txt) {
   try {
-  await page.waitForSelector(selector);
-  const options = await page.$eval(selector, (e) => e.innerHTML);
-  const valuePattern = new RegExp(`value="(.{6,7})"( selected="selected")?>${txt}</option>`, "im");
-  const found = valuePattern.exec(options.replace(/\n/gim, ""));
-  if (found && found.length >= 2) {
-    await page.select(selector, found[1]);
-  }
+    await page.waitForSelector(selector);
+    const options = await page.$eval(selector, (e) => e.innerHTML);
+    const valuePattern = new RegExp(
+      `value="(.{6,7})"( selected="selected")?>${txt}</option>`,
+      "im"
+    );
+    const found = valuePattern.exec(options.replace(/\n/gim, ""));
+    if (found && found.length >= 2) {
+      await page.select(selector, found[1]);
+    }
   } catch (e) {
     console.log("unable to select by value strict", selector);
   }
@@ -1268,7 +1271,9 @@ async function commitCaptchaTokenWithSelector(
   captchaLength = 6
 ) {
   infoMessage(page, "🔓 Captcha thinking...", 5);
+  await pauseMessage(page, 3);
   try {
+    await page.waitForSelector(imageSelector);
     const base64 = await page.evaluate((selector) => {
       const image = document.querySelector(selector);
       const canvas = document.createElement("canvas");

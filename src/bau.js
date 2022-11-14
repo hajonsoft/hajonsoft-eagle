@@ -25,7 +25,7 @@ const config = [
       { selector: "#txtPassword", value: (system) => system.password },
     ],
     commit: true,
-    supportSelector: "#form1 > div:nth-child(14) > div",
+    supportSelector: "#form1 > div:nth-child(13) > div",
     success: {
       name: "main",
     },
@@ -129,9 +129,9 @@ async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      await util.commitCaptchaToken(
+      await util.commitCaptchaTokenWithSelector(
         page,
-        "rdCap_CaptchaImage",
+        "#form1 > div:nth-child(14) > div > div > div > div:nth-child(4) > div > div:nth-child(2) > img",
         "#rdCap_CaptchaTextBox",
         5
       );
