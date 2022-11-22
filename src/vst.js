@@ -596,6 +596,22 @@ async function runPageConfiguration(currentConfig) {
       break;
     case "passport":
       status = "passport";
+      // inject commander to go back to the personal page
+      util.commander(page, {
+        controller: {
+          selector: "#app > div:nth-child(1) > div:nth-child(2) > section > div > div > div.col-md-4.steps-column > div > div > h4",
+          title: "Skip",
+          arabicTitle: "تخطي",
+          name: "hajonsoft_personal",
+          action: async () => {
+            util.infoMessage(page, "Go to personal...");
+            util.incrementSelectedTraveler();
+            await page.goto(config.find((c) => c.name === "personal").url, {
+              waitUntil: "networkidle0",
+            });
+          },
+        },
+      });
       await util.commit(page, currentConfig.details, passenger);
       await page.click("#chk_4");
       await page.waitForSelector("#PassportIssueDate");
