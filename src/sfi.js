@@ -14,7 +14,6 @@ const { default: axios } = require("axios");
 const JSZip = require("jszip");
 
 const { hsf_nationalities } = require("./data/nationalities");
-const { clearInterval } = require("timers");
 const homedir = require("os").homedir();
 let page;
 let data;
@@ -172,8 +171,7 @@ const config = [
       },
       {
         selector: "#TourismEVisaIssuingCountryCode",
-        value: (row) => util.getIssuingCountry(row)?.code
-
+        value: (row) => util.getIssuingCountry(row)?.code,
       },
       { selector: "#RELIGION", value: (row) => "1" },
       { selector: "#SOCIAL_STATUS", value: (row) => "5" },
@@ -409,167 +407,6 @@ async function pageContentHandler(currentConfig) {
         "#myform > div.form-actions.fluid.right > div > div > button:nth-child(3)"
       );
       break;
-    case "step4":
-      if (fs.existsSync(getPath("add.json"))) {
-        await util.commander(page, {
-          controller: {
-            selector: "#tab_wizard",
-            title: "Add New",
-            arabicTitle: "إضافه جديد",
-            action: async () => {
-              page.goto("https://visa.mofa.gov.sa/HajSmartForm/Add");
-            },
-          },
-        });
-
-        const mofaNumber = await page.$eval(
-          "#myform > div.form-body.form-horizontal > div > div:nth-child(1) > div:nth-child(2)",
-          (el) => el.innerText
-        );
-        const eNumber = await page.$eval(
-          "#myform > div.form-body.form-horizontal > div > div:nth-child(2) > div",
-          (el) => el.innerText
-        );
-        if (mofaNumber) {
-          fs.writeFileSync(
-            getPath(`${passenger.passportNumber}.txt`),
-            JSON.stringify({
-              mofaNumber,
-              eNumber,
-              passportNumber: passenger.passportNumber,
-            })
-          );
-        }
-
-        return;
-      }
-
-      const isSendToEmbassy = await page.$(
-        "#myform > div.form-actions.fluid.right > div > div > button"
-      );
-      if (isSendToEmbassy) {
-        await page.click(
-          "#myform > div.form-actions.fluid.right > div > div > button"
-        );
-        return;
-      }
-
-      const visaStatus = await page.$(
-        "#myform > div.form-body.form-horizontal > div.alert.alert-warning.text-center > h3"
-      );
-      if (visaStatus) {
-        const visaStatusMessage = await page.$eval(
-          "#myform > div.form-body.form-horizontal > div.alert.alert-warning.text-center > h3",
-          (el) => el.innerText
-        );
-
-        if (
-          visaStatusMessage &&
-          (visaStatusMessage.includes("جاري") ||
-            visaStatusMessage.includes("being"))
-        ) {
-          fs.appendFileSync(util.getLogFile(), visaStatusMessage + "\n");
-          const pageElement = await page.$("body");
-          // save screenshot to kea
-          try {
-            await util.screenShotToKea(
-              pageElement,
-              data.system.accountId,
-              passenger,
-              "Embassy"
-            );
-          } catch (error) {}
-          // If sent to embassy twice in a row, exit because the website is malfunctioning
-          countEmbassy += 1;
-          if (
-            countEmbassy >= 2 &&
-            // Only for Moulavi account for now
-            data.system.accountId === "saRY4bAqkkjJoACV7i5kaf"
-          ) {
-            console.log(
-              "Sent to embassy twice in a row, exiting. Try again later."
-            );
-            process.exit(1);
-          }
-          util.incrementSelectedTraveler();
-          await page.goto(config[0].url);
-        }
-      }
-      const printButtonSelector =
-        "#myform > div.form-actions.fluid.right > div > div > a.btn.btn-default.green";
-      await page.waitForTimeout(2000);
-
-      const isPrintButton = await page.$(printButtonSelector);
-      if (isPrintButton) {
-        const href = await page.$eval(printButtonSelector, (el) => el.href);
-        await page.goto(href, { waitUntil: "domcontentloaded" });
-        // const visaFolder = path.join(homedir, "hajonsoft", "visa");
-        // if (!fs.existsSync(visaFolder)) {
-        //   fs.mkdirSync(visaFolder, { recursive: true });
-        // }
-        await page.waitForSelector(
-          "body > form > page > div > div > div > div.evisa-header > div > div.evisa-col-12"
-        );
-        const visaElement = await page.$("body > form > page > div");
-        // const caravanName = data.info?.caravan?.replace(/[^A-Z0-9]/g, "");
-        // let saveFolder = visaFolder;
-        // if (caravanName) {
-        //   saveFolder = path.join(visaFolder, caravanName);
-        // }
-        // if (!fs.existsSync(saveFolder)) {
-        //   fs.mkdirSync(saveFolder, { recursive: true });
-        // }
-
-        await page.waitForTimeout(7000);
-        await page.waitForSelector("#btnPrevious");
-        await util.commander(page, {
-          controller: {
-            selector: "#btnPrevious",
-            title: "Continue",
-            arabicTitle: "استمرار",
-            action: async () => {
-              page.goto("https://visa.mofa.gov.sa/Account/HajSmartForm");
-            },
-          },
-        });
-
-        const currentPassenger =
-          data.travellers[parseInt(util.getSelectedTraveler())];
-
-        // Save base64 image to kea
-        try {
-          await util.screenShotToKea(
-            visaElement,
-            data.system.accountId,
-            currentPassenger
-          );
-        } catch (error) {}
-        countEmbassy = 0;
-        util.incrementSelectedTraveler();
-        await page.goto(config[0].url);
-
-        // Save image to file
-        // const visaFileName =
-        //   path.join(
-        //     saveFolder,
-        //     currentPassenger?.passportNumber +
-        //       "_" +
-        //       currentPassenger?.name?.full.replace(/ /, "_") +
-        //       "_" +
-        //       moment().format("YYYY-MM-DD_HH-mm-ss")
-        //   ) + ".png";
-
-        // console.log("Saving visa to file: ", visaFileName);
-        // await util.screenShotAndContinue(
-        //   page,
-        //   visaElement,
-        //   visaFileName,
-        //   config[0].url
-        // );
-        return;
-      }
-      await page.goto(config[0].url);
-      break;
     case "traditional":
       await util.controller(
         page,
@@ -598,21 +435,29 @@ async function pageContentHandler(currentConfig) {
           action: async () => {
             const visaKind = await page.$eval("#VisaKind", (el) => el.value);
             budgie.save("hsfi_visaKind", visaKind);
-            const comingThrough = await page.$eval("#COMING_THROUGH", (el) => el.value);
+            const comingThrough = await page.$eval(
+              "#COMING_THROUGH",
+              (el) => el.value
+            );
             budgie.save("hsfi_COMING_THROUGH", comingThrough);
             // EmbassyCode
-            const embassyCode = await page.$eval("#EmbassyCode", (el) => el.value);
+            const embassyCode = await page.$eval(
+              "#EmbassyCode",
+              (el) => el.value
+            );
             budgie.save("hsfi_embassyCode", embassyCode);
             // #car_number
             const carNumber = await page.$eval("#car_number", (el) => el.value);
             budgie.save("hsfi_carNumber", carNumber);
             // ENTRY_POINT
-            const entryPoint = await page.$eval("#ENTRY_POINT", (el) => el.value);
+            const entryPoint = await page.$eval(
+              "#ENTRY_POINT",
+              (el) => el.value
+            );
             budgie.save("hsfi_ENTRY_POINT", entryPoint);
             // #porpose
             const porpose = await page.$eval("#porpose", (el) => el.value);
             budgie.save("hsfi_purpose", porpose);
-
           },
         },
       });
@@ -654,7 +499,6 @@ async function sendNewApplication(selectedTraveler) {
       if (purpose) {
         await page.type("#porpose", purpose);
       }
-
 
       await util.commit(
         page,
@@ -703,7 +547,7 @@ async function sendNewApplication(selectedTraveler) {
         "#ExpectedEntryDate",
         todayPlusOneWeek.format("YYYY"),
         todayPlusOneWeek.format("MM"),
-        todayPlusOneWeek.format("DD"),
+        todayPlusOneWeek.format("DD")
       );
     } catch (err) {
       console.log(err.message);
@@ -741,7 +585,6 @@ async function sendNewApplication(selectedTraveler) {
     }
   }
 }
-
 
 async function setHSFDate(dateSelector, year, month, day) {
   try {
@@ -785,11 +628,10 @@ async function setHSFDate(dateSelector, year, month, day) {
 }
 
 function getNationalityCode(name) {
-  const found =  hsf_nationalities.find((n) => n.name === name);
+  const found = hsf_nationalities.find((n) => n.name === name);
   if (found) {
     return found.code;
   }
 }
 
 module.exports = { send };
-

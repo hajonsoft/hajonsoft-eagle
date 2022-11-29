@@ -13,7 +13,7 @@ const { send: sendVst } = require("./src/vst");
 const { send: sendEnj } = require("./src/enj");
 const { send: sendTwf } = require("./src/twf");
 const { send: sendHsf } = require("./src/hsf");
-const { send: sendHsfi } = require("./src/hsfi");
+const { send: sendSfi } = require("./src/sfi");
 const { send: sendSbr } = require("./src/sbr");
 const { send: sendMtf } = require("./src/mtf");
 const { send: sendGhb } = require("./src/ghb");
@@ -183,10 +183,9 @@ async function submitToProvider() {
     case "enj":
       return sendEnj(data);
     case "hsf":
-      // TODO: implement hsf individual in kea
-    //   return sendHsf(data);
-    // case "hsfi":
-      return sendHsfi(data);
+      return sendHsf(data);
+    case "sfi":
+      return sendSfi(data);
     case "sbr":
       return sendSbr(data);
     case "mtf":
