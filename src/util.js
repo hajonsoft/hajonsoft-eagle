@@ -1526,6 +1526,18 @@ async function screenShotToKea(
   });
 }
 
+async function remember(page, selector) {
+  const val = await page.$eval(selector, (el) => el.value);
+  budgie.save(selector, val);
+}
+
+async function recall(page, selector) {
+  const val = budgie.get(selector);
+  if (val) {
+    await commit(page, [{ selector, value: () => val }]);
+  }
+}
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1575,4 +1587,6 @@ module.exports = {
   toggleBlur,
   isTravelDocument,
   screenShotToKea,
+  remember,
+  recall
 };
