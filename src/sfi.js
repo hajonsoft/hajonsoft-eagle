@@ -170,8 +170,8 @@ const config = [
         value: (row) => row.nationality.code,
       },
       {
-        selector: "#TourismEVisaIssuingCountryCode",
-        value: (row) => util.getIssuingCountry(row)?.code,
+        selector: "#PASSPORT_ISSUE_PLACE",
+        value: (row) => row.nationality.code,
       },
       { selector: "#RELIGION", value: (row) => "1" },
       { selector: "#SOCIAL_STATUS", value: (row) => "5" },
@@ -433,31 +433,12 @@ async function pageContentHandler(currentConfig) {
           title: "Remember",
           arabicTitle: "تذكر",
           action: async () => {
-            const visaKind = await page.$eval("#VisaKind", (el) => el.value);
-            budgie.save("hsfi_visaKind", visaKind);
-            const comingThrough = await page.$eval(
-              "#COMING_THROUGH",
-              (el) => el.value
-            );
-            budgie.save("hsfi_COMING_THROUGH", comingThrough);
-            // EmbassyCode
-            const embassyCode = await page.$eval(
-              "#EmbassyCode",
-              (el) => el.value
-            );
-            budgie.save("hsfi_embassyCode", embassyCode);
-            // #car_number
-            const carNumber = await page.$eval("#car_number", (el) => el.value);
-            budgie.save("hsfi_carNumber", carNumber);
-            // ENTRY_POINT
-            const entryPoint = await page.$eval(
-              "#ENTRY_POINT",
-              (el) => el.value
-            );
-            budgie.save("hsfi_ENTRY_POINT", entryPoint);
-            // #porpose
-            const porpose = await page.$eval("#porpose", (el) => el.value);
-            budgie.save("hsfi_purpose", porpose);
+            await util.remember(page, "#VisaKind");
+            await util.remember(page, "#COMING_THROUGH");
+            await util.remember(page, "#EmbassyCode");
+            await util.remember(page, "#car_number");
+            await util.remember(page, "#ENTRY_POINT");
+            await util.remember(page, "#porpose");
           },
         },
       });
@@ -471,45 +452,19 @@ async function sendNewApplication(selectedTraveler) {
   if (selectedTraveler) {
     try {
       var passenger = data.travellers[selectedTraveler];
-      const visaKind = budgie.get("hsfi_visaKind");
-      if (visaKind) {
-        await page.select("#VisaKind", visaKind);
-      }
-      const comingThrough = budgie.get("hsfi_COMING_THROUGH");
-      if (comingThrough) {
-        await page.select("#COMING_THROUGH", comingThrough);
-      }
+      await util.recall(page, "#VisaKind");
       await page.waitForTimeout(1000);
-      const embassyCode = budgie.get("hsfi_embassyCode");
-      if (embassyCode) {
-        await page.select("#EmbassyCode", embassyCode);
-      }
-      // #car_number
-      const carNumber = budgie.get("hsfi_carNumber");
-      if (carNumber) {
-        await page.type("#car_number", carNumber);
-      }
-      // ENTRY_POINT
-      const entryPoint = budgie.get("hsfi_ENTRY_POINT");
-      if (entryPoint) {
-        await page.select("#ENTRY_POINT", entryPoint);
-      }
-      // #porpose
-      const purpose = budgie.get("hsfi_purpose");
-      if (purpose) {
-        await page.type("#porpose", purpose);
-      }
-
+      await util.recall(page, "#COMING_THROUGH");
+      await page.waitForTimeout(1000);
+      await util.recall(page, "#EmbassyCode");
+      await util.recall(page, "#car_number");
+      await util.recall(page, "#ENTRY_POINT");
+      await util.recall(page, "#porpose");
       await util.commit(
         page,
         config.find((con) => con.name === "traditional").details,
         passenger
       );
-      // await page.waitForSelector("#MahramType");
-      // if (passenger.gender === "Female") {
-      //   await page.select("#MahramType", "661");
-      // }
-
       let resizedPhotoPath = await util.downloadAndResizeImage(
         passenger,
         200,
