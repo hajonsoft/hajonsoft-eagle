@@ -178,9 +178,7 @@ const writeData = async () => {
 };
 
 const updateSelectedTraveller = async (value) => {
-  console.log(
-    `🦜 Updating selectedTraveller to ${value}`
-  );
+  console.log(`🦜 Updating selectedTraveller to ${value}`);
   // optimistic update
   global.run.selectedTraveller = value;
   return updateDoc(db.run(global.run.id), {
@@ -199,16 +197,20 @@ const updatePassenger = async (accountId, passportNumber, payload) => {
   const promises = [];
   snaps.docs.forEach(async (doc) => {
     const data = doc.data();
-    console.log(`🦜 Updating passenger ${data.givenNames.toUpperCase()} ${data.surname.toUpperCase()}  in Group: ${data.groupId}`, { payload });
-    promises.push(updateDoc(doc.ref, payload));
+    console.log(
+      `🦜 Updating passenger ${data.givenNames.toUpperCase()} ${data.surname.toUpperCase()}  in Group: ${
+        data.groupId
+      }`,
+      { payload }
+    );
+    promises.push(
+      updateDoc(doc.ref, { ...payload, updatedAt: new Date().toISOString() })
+    );
   });
   await Promise.all(promises);
 };
 const updateSubmission = async (payload) => {
-  console.log(
-    `🦜 Updating submission`,
-    payload
-  );
+  console.log(`🦜 Updating submission`, payload);
   await updateDoc(db.submission(global.submission.id), payload);
 };
 
