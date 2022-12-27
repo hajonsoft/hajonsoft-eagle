@@ -25,10 +25,12 @@ const config = [
       { selector: "#txtPassword", value: (system) => system.password },
     ],
     commit: true,
-    supportSelector: "#form1 > div:nth-child(13) > div",
     success: {
       name: "main",
     },
+  },{
+    name: "impersonate",
+    regex: `https://app${SERVER_NUMBER}.babalumra.com/Security/Impersonate.aspx`,
   },
   {
     name: "main",
@@ -151,6 +153,16 @@ async function runPageConfiguration(currentConfig) {
           `https://app${SERVER_NUMBER}.babalumra.com/Groups/AddNewGroup.aspx?gMode=1`
         );
       }
+      break;
+    case "impersonate":
+      // TODO choose one value from the list
+      // get available options
+      const options = await page.$$eval(
+        "#ctl00_ContentHolder_LstRoles > option",
+        (els) => els.map(el => el.value)
+        );
+      await page.select("#ctl00_ContentHolder_LstRoles", options[1])
+      await page.click("#ctl00_ContentHolder_BtnImpersonate")
       break;
     case "search-group":
       // remove target _blank from all links
