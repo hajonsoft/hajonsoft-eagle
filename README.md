@@ -171,3 +171,5 @@ https://www.w3.org/International/questions/qa-escapes#:~:text=CSS%20represents%2
 Gmail 
 https://developers.google.com/gmail/api/quickstart/nodejs
 
+Captcha
+https://2captcha.com/enterpage
