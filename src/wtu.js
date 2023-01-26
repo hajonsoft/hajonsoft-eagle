@@ -579,6 +579,18 @@ async function sendPassenger(passenger) {
         300,
         "passport"
       );
+
+      // if #furesidenceidimg is visible then we need to upload a residence id
+      const residenceIdVisible = await page.$("#furesidenceidimg");
+      // if there is no image in the src of this element #imgresidenceid then we need to upload a residence id
+      const residenceIdSrc = await page.$eval("#imgresidenceid", (el) => el.src);
+      if (residenceIdVisible && residenceIdSrc === "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx") {
+        util.infoMessage(page, "🏠 Uploading residence id", 5);
+        await page.waitForTimeout(2000);
+        await util.commitFile("#furesidenceidimg", resizedPassportPath);
+        return;
+      }
+
       await page.waitForSelector("#imgppcopy");
       await util.commitFile("#fuppcopy", resizedPassportPath);
       util.infoMessage(page, "🌇 Uploading passport", 5);

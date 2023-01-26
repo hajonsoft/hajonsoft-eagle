@@ -791,14 +791,18 @@ async function commitFile(selector, fileName, imgElementSelector) {
   if (!fs.existsSync(fileName) || process.argv.includes("noimage")) {
     return;
   }
-  await page.waitForSelector(selector);
-  if (imgElementSelector) {
-    await page.waitForSelector(imgElementSelector);
+  try {
+    await page.waitForSelector(selector);
+    if (imgElementSelector) {
+      await page.waitForSelector(imgElementSelector);
+    }
+    // This must be an input with type="file"
+    const input = await page.$(selector);
+    await input.uploadFile(fileName);
+    // await page.$eval(imgElementSelector, e=> e.setAttribute('src', fileName))
+  } catch (err) {
+    console.log(err);
   }
-  // This must be an input with type="file"
-  const input = await page.$(selector);
-  await input.uploadFile(fileName);
-  // await page.$eval(imgElementSelector, e=> e.setAttribute('src', fileName))
 }
 
 async function captchaClick(selector, numbers, actionSelector) {
@@ -1588,5 +1592,5 @@ module.exports = {
   isTravelDocument,
   screenShotToKea,
   remember,
-  recall
+  recall,
 };
