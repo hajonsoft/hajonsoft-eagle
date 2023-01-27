@@ -28,7 +28,8 @@ const config = [
     success: {
       name: "main",
     },
-  },{
+  },
+  {
     name: "impersonate",
     regex: `https://app${SERVER_NUMBER}.babalumra.com/Security/Impersonate.aspx`,
   },
@@ -159,10 +160,10 @@ async function runPageConfiguration(currentConfig) {
       // get available options
       const options = await page.$$eval(
         "#ctl00_ContentHolder_LstRoles > option",
-        (els) => els.map(el => el.value)
-        );
-      await page.select("#ctl00_ContentHolder_LstRoles", options[1])
-      await page.click("#ctl00_ContentHolder_BtnImpersonate")
+        (els) => els.map((el) => el.value)
+      );
+      await page.select("#ctl00_ContentHolder_LstRoles", options[1]);
+      await page.click("#ctl00_ContentHolder_BtnImpersonate");
       break;
     case "search-group":
       // remove target _blank from all links
@@ -465,6 +466,38 @@ async function sendPassenger(passenger) {
       .toFile(resizedPassportFile);
     await fileChooser.accept([resizedPassportFile]);
     util.infoMessage(page, `🛂 passport accepted ${resizedPassportFile}`);
+
+    // upload resident permit.
+    // upload input element is #ctl00_ContentHolder_ppupload
+    // upload button is #ctl00_ContentHolder_btnpp
+    // Image element is #ctl00_ContentHolder_img_aqama
+
+    // Check if image element source === ../images/noimage.jpg then upload an image otherwise skip
+    const residentPermitImageVisible = await page.$(
+      "#ctl00_ContentHolder_img_aqama"
+    );
+    if (residentPermitImageVisible) {
+      const residentPermitImage = await page.$eval(
+        "#ctl00_ContentHolder_img_aqama",
+        (el) => el.src
+      );
+      if (residentPermitImage?.includes("noimage.jpg")) {
+        futureFileChooser = page.waitForFileChooser();
+        await page.evaluate(() =>
+          document
+            .querySelector("#ctl00_ContentHolder_ppupload")
+            .click()
+        );
+        fileChooser = await futureFileChooser;
+        await fileChooser.accept([resizedPassportFile]);
+        // click upload button
+        await page.click("#ctl00_ContentHolder_btnpp");
+        util.infoMessage(
+          page,
+          `🧟 passenger ${passenger.passportNumber} residence permit uploaded`
+        );
+      }
+    }
   }
 
   util.infoMessage(page, `🧟 passenger ${passenger.passportNumber} captcha`);
