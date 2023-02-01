@@ -482,20 +482,40 @@ async function sendPassenger(passenger) {
         (el) => el.src
       );
       if (residentPermitImage?.includes("noimage.jpg")) {
-        futureFileChooser = page.waitForFileChooser();
-        await page.evaluate(() =>
-          document
-            .querySelector("#ctl00_ContentHolder_ppupload")
-            .click()
+        const residencyImagePath = await util.downloadAndResizeImage(
+          passenger,
+          null,
+          null,
+          "residency",
+          100,
+          200
         );
-        fileChooser = await futureFileChooser;
-        await fileChooser.accept([resizedPassportFile]);
-        // click upload button
-        await page.click("#ctl00_ContentHolder_btnpp");
-        util.infoMessage(
-          page,
-          `🧟 passenger ${passenger.passportNumber} residence permit uploaded`
-        );
+        if (fs.existsSync(residencyImagePath)) {
+          futureFileChooser = page.waitForFileChooser();
+          await page.evaluate(() =>
+            document.querySelector("#ctl00_ContentHolder_ppupload").click()
+          );
+          fileChooser = await futureFileChooser;
+          await fileChooser.accept([residencyImagePath]);
+          // click upload button
+          await page.click("#ctl00_ContentHolder_btnpp");
+          // Wait for the input field to receieve the value
+          await page.waitForTimeout(10000);
+          util.infoMessage(
+            page,
+            `🧟 passenger ${passenger.passportNumber} residence permit uploaded`
+          );
+        } else {
+          // Store status in kea
+          kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+            "submissionData.bau.rejectionReason":
+              "Residency image upload failed",
+            "submissionData.bau.status": "Rejected",
+          });
+
+          // Proceed to next pax
+          util.incrementSelectedTraveler();
+        }
       }
     }
   }
