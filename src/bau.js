@@ -94,6 +94,19 @@ async function send(sendData) {
       });
       util.incrementSelectedTraveler();
     }
+    if (
+      dialog.message().match(/Wrong passport number/i) ||
+      dialog.message().match(/There is an error in MRZ reading/i)
+    ) {
+      // Store status in kea
+      const passenger = data.travellers[util.getSelectedTraveler()];
+      util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
+      kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+        "submissionData.bau.status": "Rejected",
+        "submissionData.bau.rejectionReason": dialog.message(),
+      });
+      util.incrementSelectedTraveler();
+    }
     await dialog.accept();
   });
 
@@ -488,7 +501,7 @@ async function sendPassenger(passenger) {
           null,
           "residency",
           100,
-          200
+          175
         );
         if (fs.existsSync(residencyImagePath)) {
           futureFileChooser = page.waitForFileChooser();

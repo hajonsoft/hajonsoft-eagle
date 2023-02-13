@@ -926,8 +926,9 @@ async function downloadAndResizeImage(
   let quality = 80;
   await sharp(imagePath)
     .resize(width, height, {
-      fit: sharp.fit.fill,
+      fit: sharp.fit.contain,
     })
+    .withMetadata()
     // Make high quality bump up file size
     .jpeg({
       quality,
@@ -941,8 +942,9 @@ async function downloadAndResizeImage(
     quality += 5;
     await sharp(imagePath)
       .resize(width, height, {
-        fit: sharp.fit.fill,
+        fit: sharp.fit.contain,
       })
+      .withMetadata()
       // Make high quality bump up file size
       .jpeg({
         quality,
@@ -952,13 +954,13 @@ async function downloadAndResizeImage(
     sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }
 
-  // TODO: Test with wtu group 7 pax because the size of the photo is too small
   while (sizeAfter > maxKb && quality > 0) {
     quality -= 5;
     await sharp(imagePath)
       .resize(width, height, {
-        fit: sharp.fit.fill,
+        fit: sharp.fit.contain,
       })
+      .withMetadata()
       // Make high quality bump up file size
       .jpeg({
         quality,
