@@ -13,7 +13,6 @@ const homedir = require("os").homedir();
 const SMS = require("./sms");
 const email = require("./email");
 const totp = require("totp-generator");
-const { default: axios } = require("axios");
 const { cloneDeep } = require("lodash");
 
 let page;
@@ -151,6 +150,10 @@ const config = [
         value: (row) => util.getIssuingCountry(row)?.telCode,
       },
       {
+        selector: "#IssueCountry",
+        value: (row) => util.getIssuingCountry(row)?.telCode,
+      },
+      {
         selector: "#Job",
         value: (row) => decodeURI(row.profession) || "Employee",
       },
@@ -170,39 +173,9 @@ const config = [
   },
 ];
 
-async function sendPassenger(selectedTraveler) {
-  const data = fs.readFileSync(getPath("data.json"), "utf-8");
-  var passengersData = JSON.parse(data);
-  await pasteCodeLine(selectedTraveler, passengersData);
-}
-
-async function pasteCodeLine(selectedTraveler, passengersData) {
-  await page.focus("#passportCaptureStatus");
-  if (selectedTraveler == "-1") {
-    const browser = await page.browser();
-    browser.disconnect();
-  }
-  var passenger = passengersData.travellers[selectedTraveler];
-  await page.keyboard.type(passenger.codeline);
-}
-
 async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
-  // Accept the confirmation dialog, to prevent script hanging
-  // page.on("dialog", async (dialog) => {
-  //   console.log("dialog message: ", dialog.message());
-  //   // if (dialog.message().match(/Record has been saved Successfully/i)) {
-  //   //   // Store status in kea
-  //   //   const passenger = data.travellers[util.getSelectedTraveler()];
-  //   //   util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
-  //   //   kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-  //   //     "submissionData.bau.status": "Submitted",
-  //   //   });
-  //   //   util.incrementSelectedTraveler();
-  //   // }
-  //   await dialog.accept();
-  // });
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
@@ -268,23 +241,24 @@ async function pageContentHandler(currentConfig) {
     case "passengers":
       const selectedTraveler = util.getSelectedTraveler();
       if (selectedTraveler >= data.travellers.length) {
-        await page.goto("https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/")
+        await page.goto(
+          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/"
+        );
         return;
       }
-      await page.waitForSelector(
-        "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled"
-      );
-      await page.click(
-        "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled"
-      );
+      const groupCreatedOkButtonSelector =
+        "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled";
+      await page.waitForSelector(groupCreatedOkButtonSelector);
+      await page.click(groupCreatedOkButtonSelector);
       await page.waitForTimeout(500);
+      const addMutamerButtonSelector = "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a";
       await page.waitForSelector(
-        "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a"
+        addMutamerButtonSelector
       );
       await page.click(
-        "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a"
+        addMutamerButtonSelector
       );
-      await page.waitForSelector("#PassportPictureUploader");
+      await page.waitForSelector("#PassportPictureUploader", { timeout: 0 });
       const passportPath = path.join(
         util.passportsFolder,
         `${passenger.passportNumber}.jpg`
@@ -318,6 +292,13 @@ async function pageContentHandler(currentConfig) {
       }
 
       await util.commit(page, currentConfig.details, passenger);
+      // select the first option in the select
+      await page.$eval("#IssueCity", (e) => {
+        const options = e.querySelectorAll("option");
+        if (options.length >= 2) {
+          options[1].selected = true;
+        }
+      });
 
       let photoPath = path.join(
         util.photosFolder,
@@ -335,16 +316,17 @@ async function pageContentHandler(currentConfig) {
           withoutEnlargement: true,
         })
         .toFile(resizedPhotoPath);
-      await util.commitFile("#PersonalPictureUploader", resizedPhotoPath);
-      await util.commitFile("#VaccinationPictureUploader", resizedPhotoPath);
-      await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
+      await util.commitFile("#PersonalPictureUploader", passportPath);
+      await util.commitFile("#VaccinationPictureUploader", passportPath);
+      await util.commitFile("#ResidencyPictureUploader", passportPath);
 
       await page.focus("#PassportNumber");
       await page.click("#PassportNumber");
       await page.waitForTimeout(500);
-      util.incrementSelectedTraveler();
       await page.click("#qa-add-mutamer-save");
-      await page.waitForTimeout(500);
+      util.incrementSelectedTraveler();
+    // Wait for confirmation
+    // await page.waitForTimeout(500);
     default:
       break;
   }
