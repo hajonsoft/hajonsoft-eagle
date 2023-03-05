@@ -4,16 +4,10 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const path = require("path");
-const budgie = require("./budgie");
 const util = require("./util");
 const { getPath } = util;
-const moment = require("moment");
 const sharp = require("sharp");
-const homedir = require("os").homedir();
-const SMS = require("./sms");
-const email = require("./email");
 const totp = require("totp-generator");
-const { cloneDeep } = require("lodash");
 
 let page;
 let data;
@@ -251,13 +245,10 @@ async function pageContentHandler(currentConfig) {
       await page.waitForSelector(groupCreatedOkButtonSelector);
       await page.click(groupCreatedOkButtonSelector);
       await page.waitForTimeout(500);
-      const addMutamerButtonSelector = "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a";
-      await page.waitForSelector(
-        addMutamerButtonSelector
-      );
-      await page.click(
-        addMutamerButtonSelector
-      );
+      const addMutamerButtonSelector =
+        "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a";
+      await page.waitForSelector(addMutamerButtonSelector);
+      await page.click(addMutamerButtonSelector);
       await page.waitForSelector("#PassportPictureUploader", { timeout: 0 });
       const passportPath = path.join(
         util.passportsFolder,
