@@ -158,7 +158,7 @@ function toCodeLine(passenger) {
 function getPassengersByGender(passengers, gender, adultsOnly = true) {
   let result = passengers;
   if (gender) {
-    result = passengers.filter((p) => p.gender === gender)
+    result = passengers.filter((p) => p.gender === gender);
   }
 
   if (adultsOnly) {
@@ -167,17 +167,16 @@ function getPassengersByGender(passengers, gender, adultsOnly = true) {
     result = result.filter((p) => getAge(p) < 18);
   }
 
-  return result
-    .sort((a, b) => {
-      if (!a.birthDate || !b.birthDate) {
-        return -1;
-      }
-      if (isAfter(parseISO(a.birthDate), parseISO(b.birthDate))) {
-        return 1;
-      }
-
+  return result.sort((a, b) => {
+    if (!a.birthDate || !b.birthDate) {
       return -1;
-    });
+    }
+    if (isAfter(parseISO(a.birthDate), parseISO(b.birthDate))) {
+      return 1;
+    }
+
+    return -1;
+  });
 }
 
 function toPassengers(passengers) {
@@ -251,6 +250,7 @@ function toPassengers(passengers) {
       images: {
         photo: passenger.photoUrl,
         passport: passenger.passportScanUrl,
+        residency: passenger.residencyScanUrl,
         covid1: passenger.covidVaccination1ScanUrl,
         covid2: passenger.covidVaccination2ScanUrl,
         id: passenger.residencyScanUrl,

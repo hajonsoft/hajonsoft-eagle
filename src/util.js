@@ -21,6 +21,7 @@ const homedir = require("os").homedir();
 const photosFolder = path.join(homedir, "hajonsoft", "photos");
 const idFolder = path.join(homedir, "hajonsoft", "id");
 const passportsFolder = path.join(homedir, "hajonsoft", "passports");
+const residencyFolder = path.join(homedir, "hajonsoft", "residency");
 const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
 
 const VISION_DEFICIENCY = "none";
@@ -188,6 +189,9 @@ async function initPage(config, onContentLoaded, data) {
   }
   if (!fs.existsSync(passportsFolder)) {
     fs.mkdirSync(passportsFolder);
+  }
+  if (!fs.existsSync(residencyFolder)) {
+    fs.mkdirSync(residencyFolder);
   }
   if (!fs.existsSync(vaccineFolder)) {
     fs.mkdirSync(vaccineFolder);
@@ -854,6 +858,11 @@ async function downloadAndResizeImage(
     url = passenger.images.passport;
   }
 
+  if (imageType == "residency") {
+    folder = residencyFolder;
+    url = passenger.images.residency ?? passenger.images.passport;
+  }
+
   if (imageType == "vaccine") {
     folder = vaccineFolder;
     url = passenger.images.vaccine;
@@ -881,7 +890,7 @@ async function downloadAndResizeImage(
   let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
   const resizedPath = path.join(
     folder,
-    `${passenger.passportNumber}_${width}x${height}.jpg`
+    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.jpg`
   );
 
   if (url?.includes("placeholder")) {
@@ -918,8 +927,9 @@ async function downloadAndResizeImage(
   let quality = 80;
   await sharp(imagePath)
     .resize(width, height, {
-      fit: sharp.fit.fill,
+      fit: sharp.fit.contain,
     })
+    .withMetadata()
     // Make high quality bump up file size
     .jpeg({
       quality,
@@ -933,8 +943,9 @@ async function downloadAndResizeImage(
     quality += 5;
     await sharp(imagePath)
       .resize(width, height, {
-        fit: sharp.fit.fill,
+        fit: sharp.fit.contain,
       })
+      .withMetadata()
       // Make high quality bump up file size
       .jpeg({
         quality,
@@ -944,13 +955,13 @@ async function downloadAndResizeImage(
     sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }
 
-  // TODO: Test with wtu group 7 pax because the size of the photo is too small
   while (sizeAfter > maxKb && quality > 0) {
     quality -= 5;
     await sharp(imagePath)
       .resize(width, height, {
-        fit: sharp.fit.fill,
+        fit: sharp.fit.contain,
       })
+      .withMetadata()
       // Make high quality bump up file size
       .jpeg({
         quality,
@@ -1560,6 +1571,7 @@ module.exports = {
   downloadImage,
   photosFolder,
   passportsFolder,
+  residencyFolder,
   vaccineFolder,
   isCodelineLooping,
   endCase,
