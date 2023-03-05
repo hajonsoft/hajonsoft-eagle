@@ -17,6 +17,7 @@ const { send: sendSfi } = require("./src/sfi");
 const { send: sendSbr } = require("./src/sbr");
 const { send: sendMtf } = require("./src/mtf");
 const { send: sendGhb } = require("./src/ghb");
+const { send: sendNsk } = require("./src/nsk");
 
 const util = require("./src/util");
 const { getPath } = util;
@@ -190,6 +191,8 @@ async function submitToProvider() {
       return sendSbr(data);
     case "mtf":
       return sendMtf(data);
+      case "nsk":
+        return sendNsk(data);
     default:
       console.log("unknown system");
   }
