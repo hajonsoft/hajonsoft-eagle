@@ -19,11 +19,6 @@ const { cloneDeep } = require("lodash");
 let page;
 let data;
 let counter = 0;
-const passports = [];
-const housings = [];
-let importClicks = 0;
-let editPassportNumber;
-let liberiaPassports = [];
 
 function getLogFile() {
   const logFolder = path.join(getPath("log"), data.info.munazim);
@@ -76,6 +71,18 @@ const config = [
       "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/EditMuatamerList/",
     details: [
       {
+        selector: "#NationalityId",
+        value: (row) => row.nationality.telCode,
+      },
+      {
+        selector: "#Gender",
+        value: (row) => (row.gender === "Male" ? "1" : "2"),
+      },
+      {
+        selector: "#BirthDate",
+        value: (row) => `${row.dob.yyyy}-${row.dob.mm}-${row.dob.dd}`,
+      },
+      {
         selector: "#FirstNameAr",
         value: (row) =>
           row?.nameArabic?.first?.match(/[a-zA-Z]/)
@@ -102,6 +109,22 @@ const config = [
             : row?.nameArabic?.father,
       },
       {
+        selector: "#FirstNameEn",
+        value: (row) => row?.name?.first,
+      },
+      {
+        selector: "#FamilyNameEn",
+        value: (row) => row?.name?.last,
+      },
+      {
+        selector: "#ThirdNameEn",
+        value: (row) => row?.name?.grand,
+      },
+      {
+        selector: "#SecondNameEn",
+        value: (row) => row?.name?.father,
+      },
+      {
         selector: "#BirthCity",
         value: (row) => decodeURI(row.birthPlace) || row.nationality.name,
       },
@@ -113,6 +136,11 @@ const config = [
         selector: "#PassportIssueDate",
         value: (row) =>
           `${row.passIssueDt.yyyy}-${row.passIssueDt.mm}-${row.passIssueDt.dd}`,
+      },
+      {
+        selector: "#PassportExpiryDate",
+        value: (row) =>
+          `${row.passExpireDt.yyyy}-${row.passExpireDt.mm}-${row.passExpireDt.dd}`,
       },
       {
         selector: "#MartialStatus",
@@ -129,6 +157,14 @@ const config = [
       {
         selector: "#IdNo",
         value: (row) => row.passportNumber,
+      },
+      {
+        selector: "#PassportNumber",
+        value: (row) => row.passportNumber,
+      },
+      {
+        selector: "#PassportType",
+        value: (row) => "1",
       },
     ],
   },
@@ -232,8 +268,9 @@ async function pageContentHandler(currentConfig) {
     case "passengers":
       const selectedTraveler = util.getSelectedTraveler();
       if (selectedTraveler >= data.travellers.length) {
+        await page.goto("https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/")
         return;
-      } 
+      }
       await page.waitForSelector(
         "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled"
       );
@@ -253,28 +290,32 @@ async function pageContentHandler(currentConfig) {
         `${passenger.passportNumber}.jpg`
       );
       await util.downloadImage(passenger.images.passport, passportPath);
-      let resizedPassportFile = path.join(
-        util.passportsFolder,
-        `${passenger.passportNumber}_400x300.jpg`
-      );
-      await sharp(passportPath)
-        .resize(400, 300, {
-          fit: sharp.fit.inside,
-          withoutEnlargement: true,
-        })
-        .toFile(resizedPassportFile);
-      await util.commitFile("#PassportPictureUploader", resizedPassportFile);
+      // let resizedPassportFile = path.join(
+      //   util.passportsFolder,
+      //   `${passenger.passportNumber}_400x300.jpg`
+      // );
+      // await sharp(passportPath)
+      //   .resize(400, 300, {
+      //     fit: sharp.fit.inside,
+      //     withoutEnlargement: true,
+      //   })
+      //   .toFile(resizedPassportFile);
+      await util.commitFile("#PassportPictureUploader", passportPath);
       // wait until passport number is filled
       // #PassportNumber
-      await page.waitForFunction(
-        (arg) => {
-          if (document.querySelector(arg).value.length > 0) {
-            return true;
-          }
-        },
-        { timeout: 0 },
-        "#PassportNumber"
-      );
+      try {
+        await page.waitForFunction(
+          (arg) => {
+            if (document.querySelector(arg).value.length > 0) {
+              return true;
+            }
+          },
+          { timeout: 3000 },
+          "#PassportNumber"
+        );
+      } catch (err) {
+        console.log(err);
+      }
 
       await util.commit(page, currentConfig.details, passenger);
 
