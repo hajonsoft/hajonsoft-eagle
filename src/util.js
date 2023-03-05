@@ -127,6 +127,7 @@ async function initPage(config, onContentLoaded, data) {
     "--disable-web-security",
     "--disable-features=IsolateOrigins,site-per-process",
     "--allow-running-insecure-content",
+    "--use-fake-ui-for-media-stream",
   ];
 
   const isCloudRun = Boolean(data?.info?.caravan?.startsWith("CLOUD_"));
