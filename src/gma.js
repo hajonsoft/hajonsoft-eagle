@@ -369,7 +369,6 @@ async function runPageConfiguration(currentConfig) {
       if (token) {
         await page.click("#btn_Login_otp");
       }
-
       break;
     case "main":
     case "download":

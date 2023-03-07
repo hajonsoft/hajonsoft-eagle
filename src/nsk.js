@@ -27,8 +27,8 @@ let startTime;
 const config = [
   {
     name: "login",
-    url: "https://bsp-nusuk.haj.gov.sa/Identity/Index",
-    regex: "https://bsp-nusuk.haj.gov.sa/Identity/Index",
+    url: "https://bsp-nusuk.haj.gov.sa/Identity",
+    regex: "https://bsp-nusuk.haj.gov.sa/Identity",
     details: [
       {
         selector: "#userName",
