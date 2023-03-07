@@ -139,10 +139,10 @@ const config = [
 async function passengerExists(passenger) {
   try {
     // Check if pax exists by filtering by passport number
-    const searchSelector = "#tableGroupMutamers_filter input[type='search']"
+    const searchSelector = "#tableGroupMutamers_filter input[type='search']";
     await page.focus(searchSelector);
     await page.type(searchSelector, passenger.passportNumber);
-    await page.waitForTimeout(2000)
+    await page.waitForTimeout(2000);
     const filterResults = await page.$eval(
       "#tableGroupMutamers_info",
       (el) => el.innerText
@@ -151,22 +151,21 @@ async function passengerExists(passenger) {
 
     // Clear search
     const input = await page.$(searchSelector);
-    await input.click({ clickCount: 3 })
-    await page.keyboard.press('Backspace')
-    await page.waitForTimeout(2000)
+    await input.click({ clickCount: 3 });
+    await page.keyboard.press("Backspace");
+    await page.waitForTimeout(2000);
 
-    return Boolean(exists)
+    return Boolean(exists);
   } catch {
-    return false
+    return false;
   }
 }
 
 async function sendPassenger(passenger) {
-  
-  const exists = await passengerExists(passenger)
-  
-  if(exists) {
-    console.log(`--- Skipping ${passenger.slug}, already exists.`)
+  const exists = await passengerExists(passenger);
+
+  if (exists) {
+    console.log(`--- Skipping ${passenger.slug}, already exists.`);
 
     // Update kea status
     await await kea.updatePassenger(
@@ -177,8 +176,8 @@ async function sendPassenger(passenger) {
       }
     );
 
-    await proccedToNextPassenger()
-    return
+    await proccedToNextPassenger();
+    return;
   }
 
   status = "sending";
@@ -187,10 +186,16 @@ async function sendPassenger(passenger) {
   const selectedGroup = await page.$eval(groupSelector, (el) => el.value);
   if (!selectedGroup || selectedGroup == "0") {
     const options = await page.$eval(groupSelector, (e) => e.innerHTML);
-    const valuePattern = new RegExp(`value="(.*)".*?>.*?${groupName}</option>`, "im");
+    const valuePattern = new RegExp(
+      `value="(.*)".*?>.*?${groupName}</option>`,
+      "im"
+    );
     const found = valuePattern.exec(options.replace(/\n/gim, ""));
     if (found && found.length >= 2) {
-      await page.select(groupSelector, `${found?.[1]?.split("=")[1].replace(/["']/gim, "")}`);
+      await page.select(
+        groupSelector,
+        `${found?.[1]?.split("=")[1].replace(/["']/gim, "")}`
+      );
     }
   }
 
@@ -203,7 +208,7 @@ async function sendPassenger(passenger) {
     parseInt(util.getSelectedTraveler()) + 1
   }/${data.travellers.length}-${passenger?.name?.last}`;
   util.infoMessage(page, titleMessage);
-  await page.waitForTimeout(5000)
+  await page.waitForTimeout(5000);
   await util.commit(page, mutamerConfig.details, passenger);
   for (const field of mutamerConfig.details) {
     await page.$eval(field.selector, (e) => {
@@ -252,9 +257,9 @@ async function sendPassenger(passenger) {
   if (!process.argv.includes("noimage")) {
     await util.commitFile("#img_MutamerPP", resizedPassportFile);
   }
-  await util.toggleBlur(page,false);
+  await util.toggleBlur(page, false);
 
-  await captchaAndSave(page)
+  await captchaAndSave(page);
 }
 
 async function captchaAndSave(page) {
@@ -270,23 +275,19 @@ async function captchaAndSave(page) {
     await page.click(
       "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success"
     );
-    await page.waitForTimeout(2000)
-    util.infoMessage(page, "Save clicked", 2, false, true)
+    await page.waitForTimeout(2000);
+    util.infoMessage(page, "Save clicked", 2, false, true);
   }
-  await page.waitForTimeout(5000)
+  await page.waitForTimeout(5000);
 
-  const hasSaved = await passengerExists(passenger)
-  
-  console.log({hasSaved}, passenger.slug)
+  const hasSaved = await passengerExists(passenger);
+
+  console.log({ hasSaved }, passenger.slug);
   if (hasSaved && fs.existsSync(getPath("loop.txt"))) {
     // Update kea status
-    await kea.updatePassenger(
-      data.system.accountId,
-      passenger.passportNumber,
-      {
-        "submissionData.gma.status": "Submitted",
-      }
-    );
+    await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+      "submissionData.gma.status": "Submitted",
+    });
   }
 
   await proccedToNextPassenger();
@@ -301,7 +302,7 @@ async function proccedToNextPassenger() {
     console.log("Exiting in 5 seconds...");
     setTimeout(() => {
       process.exit(0);
-    }, 5000)
+    }, 5000);
   }
 }
 
@@ -311,34 +312,32 @@ async function send(sendData) {
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 
   // Read save group response for id
-  page.on('response', response => {
-    if(response.url() === "https://eumra.com/auploader.aspx/SaveGroup") {
-      response.text().then(body => {
+  page.on("response", (response) => {
+    if (response.url() === "https://eumra.com/auploader.aspx/SaveGroup") {
+      response.text().then((body) => {
         // eg. {"d":[{"Errcode":0,"Key":27675,"ErrDescription":"KEY=27675"},{"Errcode":0,"Key":27675,"ErrDescription":"Success"}]}
         const data = JSON.parse(body);
-        const [res1, res2] = data.d
-        if(res2.ErrDescription === "Success") {
+        const [res1, res2] = data.d;
+        if (res2.ErrDescription === "Success") {
           // Write group id to submission
-          const targetGroupId = parseInt(res2.Key,10)
+          const targetGroupId = parseInt(res2.Key, 10);
           global.submission.targetGroupId = targetGroupId;
           kea.updateSubmission({
             targetGroupId,
           });
-
         }
-      })
+      });
     }
-  })
+  });
 
   // Dsimiss invalid captch message
   page.on("dialog", async (dialog) => {
     console.log("dialog message: ", dialog.message());
     if (dialog.message().match(/invalid captcha/i)) {
       await dialog.accept();
-      captchaAndSave(page)
+      captchaAndSave(page);
     }
   });
-    
 }
 
 async function onContentLoaded(res) {
@@ -365,12 +364,11 @@ async function runPageConfiguration(currentConfig) {
         "#CodeNumberTextBox",
         5
       );
-        await util.pauseMessage(page);
+      await util.pauseMessage(page);
 
       if (token) {
-        await page.click("#btn_Login");
+        await page.click("#btn_Login_otp");
       }
-
       break;
     case "main":
     case "download":
@@ -380,37 +378,44 @@ async function runPageConfiguration(currentConfig) {
       });
       break;
     case "create-group-or-mutamer":
-      
       let editGroupRowIndex = null;
-      const targetGroupId = global.submission.targetGroupId
-      if(targetGroupId) {
-          // If submission has group id, go to that group
-          // Get more groups in table
-          await page.select("select[name='table_Groups_length']", "100")
-          await page.waitForTimeout(5000)
-          
-          editGroupRowIndex = await page.$$eval("#table_Groups tbody tr", (rows, targetGroupId) => {
-            console.log(`found ${rows.length} rows`)
-            for(let i = 0; i < rows.length; i += 1) {
+      const targetGroupId = global.submission.targetGroupId;
+      if (targetGroupId) {
+        // If submission has group id, go to that group
+        // Get more groups in table
+        await page.select("select[name='table_Groups_length']", "100");
+        await page.waitForTimeout(5000);
+
+        editGroupRowIndex = await page.$$eval(
+          "#table_Groups tbody tr",
+          (rows, targetGroupId) => {
+            console.log(`found ${rows.length} rows`);
+            for (let i = 0; i < rows.length; i += 1) {
               const tr = rows[i];
-              const td = tr.querySelector('td:nth-child(3)');
-              const groupId = td.innerHTML
-              if(parseInt(groupId,10) === parseInt(targetGroupId,10)) {
-                return i
+              const td = tr.querySelector("td:nth-child(3)");
+              const groupId = td.innerHTML;
+              if (parseInt(groupId, 10) === parseInt(targetGroupId, 10)) {
+                return i;
               }
             }
             return null;
-          }, targetGroupId)
-        }
-        
-      if(editGroupRowIndex !== null) {
+          },
+          targetGroupId
+        );
+      }
+
+      if (editGroupRowIndex !== null) {
         // Group already exists
-        console.log(`Edit existing group ${targetGroupId}`)
-        await page.click(`#table_Groups tbody tr:nth-child(${editGroupRowIndex + 1}) td:nth-child(13) > a:last-child`);
+        console.log(`Edit existing group ${targetGroupId}`);
+        await page.click(
+          `#table_Groups tbody tr:nth-child(${
+            editGroupRowIndex + 1
+          }) td:nth-child(13) > a:last-child`
+        );
       } else {
         // Create group
         groupName = util.suggestGroupName(data);
-        console.log(`Creating new group ${groupName}`)
+        console.log(`Creating new group ${groupName}`);
         await util.commit(
           page,
           [
@@ -430,17 +435,17 @@ async function runPageConfiguration(currentConfig) {
           const optionsEmbassy = await page.$eval(
             embassySelector,
             (e) => e.innerHTML
-            );
-            const valuePatternEmbassy = new RegExp(
-              `value="(.{3,4})">${data.system.embassy}.*?</option>`,
-              "im"
-            );
-            const foundEmbassy = valuePatternEmbassy.exec(
-              optionsEmbassy.replace(/\n/gim, "")
-            );
-            if (foundEmbassy && foundEmbassy.length >= 2) {
-              await page.select(embassySelector, foundEmbassy[1]);
-            }
+          );
+          const valuePatternEmbassy = new RegExp(
+            `value="(.{3,4})">${data.system.embassy}.*?</option>`,
+            "im"
+          );
+          const foundEmbassy = valuePatternEmbassy.exec(
+            optionsEmbassy.replace(/\n/gim, "")
+          );
+          if (foundEmbassy && foundEmbassy.length >= 2) {
+            await page.select(embassySelector, foundEmbassy[1]);
+          }
         }
 
         await util.pauseMessage(page);
