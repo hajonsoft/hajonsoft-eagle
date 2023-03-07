@@ -273,8 +273,8 @@ async function pageContentHandler(currentConfig) {
           kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
             "submissionData.nsk.status": "Submitted",
           });
+          util.incrementSelectedTraveler();
         }
-        util.incrementSelectedTraveler();
       } catch (e) {}
 
       // Submit passengers
