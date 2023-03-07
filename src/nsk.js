@@ -13,6 +13,7 @@ const kea = require("./lib/kea");
 let page;
 let data;
 let counter = 0;
+let passenger;
 
 function getLogFile() {
   const logFolder = path.join(getPath("log"), data.info.munazim);
@@ -191,7 +192,6 @@ async function onContentLoaded(res) {
 }
 
 async function pageContentHandler(currentConfig) {
-  const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
@@ -285,6 +285,8 @@ async function pageContentHandler(currentConfig) {
         );
         return;
       }
+      passenger = data.travellers[selectedTraveler];
+      util.infoMessage(page, `🧟 Inputting ${passenger.slug} saved`);
       // Close modal
       try {
         const groupCreatedOkButtonSelector =
@@ -329,7 +331,7 @@ async function pageContentHandler(currentConfig) {
           "#PassportNumber"
         );
       } catch (err) {
-        console.log(err);
+        // console.log(err);
       }
 
       await util.commit(page, currentConfig.details, passenger);
