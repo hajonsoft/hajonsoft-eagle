@@ -580,16 +580,28 @@ async function sendPassenger(passenger) {
         "passport"
       );
 
+    try {
       // if #furesidenceidimg is visible then we need to upload a residence id
       const residenceIdVisible = await page.$("#furesidenceidimg");
       // if there is no image in the src of this element #imgresidenceid then we need to upload a residence id
       const residenceIdSrc = await page.$eval("#imgresidenceid", (el) => el.src);
       if (residenceIdVisible && residenceIdSrc === "https://www.waytoumrah.com/prj_umrah/eng/eng_mutamerentry.aspx") {
+        const residencyImagePath =  await util.downloadAndResizeImage(
+          passenger,
+          null,
+          null,
+          "residency",
+          5,
+          100
+        );
         util.infoMessage(page, "🏠 Uploading residence id", 5);
         await page.waitForTimeout(2000);
-        await util.commitFile("#furesidenceidimg", resizedPassportPath);
+        await util.commitFile("#furesidenceidimg", residencyImagePath);
         return;
       }
+    } catch (e) {
+      console.log("Error uplading residence id", e.message);
+    }
 
       await page.waitForSelector("#imgppcopy");
       await util.commitFile("#fuppcopy", resizedPassportPath);

@@ -28,7 +28,8 @@ const config = [
     success: {
       name: "main",
     },
-  },{
+  },
+  {
     name: "impersonate",
     regex: `https://app${SERVER_NUMBER}.babalumra.com/Security/Impersonate.aspx`,
   },
@@ -90,6 +91,19 @@ async function send(sendData) {
       util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
       kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
         "submissionData.bau.status": "Submitted",
+      });
+      util.incrementSelectedTraveler();
+    }
+    if (
+      dialog.message().match(/Wrong passport number/i) ||
+      dialog.message().match(/There is an error in MRZ reading/i)
+    ) {
+      // Store status in kea
+      const passenger = data.travellers[util.getSelectedTraveler()];
+      util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
+      kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+        "submissionData.bau.status": "Rejected",
+        "submissionData.bau.rejectionReason": dialog.message(),
       });
       util.incrementSelectedTraveler();
     }
@@ -159,10 +173,10 @@ async function runPageConfiguration(currentConfig) {
       // get available options
       const options = await page.$$eval(
         "#ctl00_ContentHolder_LstRoles > option",
-        (els) => els.map(el => el.value)
-        );
-      await page.select("#ctl00_ContentHolder_LstRoles", options[1])
-      await page.click("#ctl00_ContentHolder_BtnImpersonate")
+        (els) => els.map((el) => el.value)
+      );
+      await page.select("#ctl00_ContentHolder_LstRoles", options[1]);
+      await page.click("#ctl00_ContentHolder_BtnImpersonate");
       break;
     case "search-group":
       // remove target _blank from all links
@@ -465,6 +479,58 @@ async function sendPassenger(passenger) {
       .toFile(resizedPassportFile);
     await fileChooser.accept([resizedPassportFile]);
     util.infoMessage(page, `🛂 passport accepted ${resizedPassportFile}`);
+
+    // upload resident permit.
+    // upload input element is #ctl00_ContentHolder_ppupload
+    // upload button is #ctl00_ContentHolder_btnpp
+    // Image element is #ctl00_ContentHolder_img_aqama
+
+    // Check if image element source === ../images/noimage.jpg then upload an image otherwise skip
+    const residentPermitImageVisible = await page.$(
+      "#ctl00_ContentHolder_img_aqama"
+    );
+    if (residentPermitImageVisible) {
+      const residentPermitImage = await page.$eval(
+        "#ctl00_ContentHolder_img_aqama",
+        (el) => el.src
+      );
+      if (residentPermitImage?.includes("noimage.jpg")) {
+        const residencyImagePath = await util.downloadAndResizeImage(
+          passenger,
+          null,
+          null,
+          "residency",
+          100,
+          175
+        );
+        if (fs.existsSync(residencyImagePath)) {
+          futureFileChooser = page.waitForFileChooser();
+          await page.evaluate(() =>
+            document.querySelector("#ctl00_ContentHolder_ppupload").click()
+          );
+          fileChooser = await futureFileChooser;
+          await fileChooser.accept([residencyImagePath]);
+          // click upload button
+          await page.click("#ctl00_ContentHolder_btnpp");
+          // Wait for the input field to receieve the value
+          await page.waitForTimeout(10000);
+          util.infoMessage(
+            page,
+            `🧟 passenger ${passenger.passportNumber} residence permit uploaded`
+          );
+        } else {
+          // Store status in kea
+          kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+            "submissionData.bau.rejectionReason":
+              "Residency image upload failed",
+            "submissionData.bau.status": "Rejected",
+          });
+
+          // Proceed to next pax
+          util.incrementSelectedTraveler();
+        }
+      }
+    }
   }
 
   util.infoMessage(page, `🧟 passenger ${passenger.passportNumber} captcha`);
