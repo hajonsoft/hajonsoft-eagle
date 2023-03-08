@@ -173,3 +173,7 @@ https://developers.google.com/gmail/api/quickstart/nodejs
 
 Captcha
 https://2captcha.com/enterpage
+
+Release process
+https://youtu.be/IdHik3GxV0Q
+
