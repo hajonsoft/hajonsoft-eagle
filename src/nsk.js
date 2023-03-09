@@ -307,19 +307,10 @@ async function pageContentHandler(currentConfig) {
         `${passenger.passportNumber}.jpg`
       );
       await util.downloadImage(passenger.images.passport, passportPath);
-      // let resizedPassportFile = path.join(
-      //   util.passportsFolder,
-      //   `${passenger.passportNumber}_400x300.jpg`
-      // );
-      // await sharp(passportPath)
-      //   .resize(400, 300, {
-      //     fit: sharp.fit.inside,
-      //     withoutEnlargement: true,
-      //   })
-      //   .toFile(resizedPassportFile);
       await util.commitFile("#PassportPictureUploader", passportPath);
       // wait until passport number is filled
       // #PassportNumber
+      let shouldFakePassport = false;
       try {
         await page.waitForFunction(
           (arg) => {
@@ -327,12 +318,78 @@ async function pageContentHandler(currentConfig) {
               return true;
             }
           },
-          { timeout: 3000 },
+          { timeout: 15000 },
           "#PassportNumber"
         );
       } catch (err) {
-        // console.log(err);
+        shouldFakePassport = true;
       }
+
+      // if (shouldFakePassport) {
+      //   const blankPassportPath = getPath(
+      //     `${passenger.passportNumber}_mrz.jpg`
+      //   );
+      //   // Generate fake passport image using the browser canvas api
+      //   const dataUrl = await page.evaluate((_passenger) => {
+      //     const ele = document.createElement("canvas");
+      //     ele.id = "hajonsoftcanvas";
+      //     ele.style.display = "none";
+      //     document.body.appendChild(ele);
+      //     const canvas = document.getElementById("hajonsoftcanvas");
+      //     canvas.width = 600;
+      //     canvas.height = 300;
+      //     const ctx = canvas.getContext("2d");
+      //     // White background
+      //     ctx.fillStyle = "white";
+      //     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      //     ctx.fillStyle = "black";
+      //     // Font must be 11 to fit in the canvas
+      //     ctx.font = "bold 16pt Courier New, Menlo, Verdana, Verdana, Geneva, sans-serif";
+      //     ctx.fillText(
+      //       _passenger.codeline?.replace(/\n/g, "")?.substring(0, 44),
+      //       14,
+      //       canvas.height - 60
+      //     );
+      //     ctx.fillText(
+      //       _passenger.codeline?.replace(/\n/g, "")?.substring(44),
+      //       14,
+      //       canvas.height - 25
+      //     );
+
+      //     // Photo
+      //     ctx.lineWidth = 1;
+      //     ctx.fillStyle = "hsl(240, 25%, 94%)";
+      //     ctx.fillRect(45, 25, 100, 125);
+      //     // Visible area
+      //     ctx.fillStyle = "hsl(240, 25%, 94%)";
+      //     ctx.fillRect(170, 25, 200, 175);
+
+      //     // under photo area
+      //     ctx.fillStyle = "hsl(240, 25%, 94%)";
+      //     ctx.fillRect(45, 165, 100, 35);
+      //     return canvas.toDataURL("image/jpeg", 1.0);
+      //   }, passenger);
+
+      //   // Save dataUrl to file
+      //   const imageData = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+      //   const buf = Buffer.from(imageData, "base64");
+      //   fs.writeFileSync(blankPassportPath, buf);
+      //   await util.commitFile("#PassportPictureUploader", blankPassportPath);
+      //   try {
+      //     await page.waitForFunction(
+      //       (arg) => {
+      //         if (document.querySelector(arg).value.length > 0) {
+      //           return true;
+      //         }
+      //       },
+      //       { timeout: 7000 },
+      //       "#PassportNumber"
+      //     );
+      //   } catch (err) {
+      //     console.log("Error: ", err);
+      //   }
+      // }
 
       await util.commit(page, currentConfig.details, passenger);
       // select the first option in the select
@@ -359,8 +416,19 @@ async function pageContentHandler(currentConfig) {
           withoutEnlargement: true,
         })
         .toFile(resizedPhotoPath);
-      await util.commitFile("#PersonalPictureUploader", passportPath);
-      await util.commitFile("#VaccinationPictureUploader", passportPath);
+      await util.commitFile("#PersonalPictureUploader", resizedPhotoPath);
+
+      if (passenger.images.vaccine) {
+        let vaccinePath = path.join(
+          util.vaccineFolder,
+          `${passenger.passportNumber}.jpg`
+        );
+        await util.downloadImage(passenger.images.vaccine, vaccinePath);
+        await util.commitFile("#VaccinationPictureUploader", vaccinePath);
+      } else {
+        await util.commitFile("#VaccinationPictureUploader", passportPath);
+      }
+
       await util.commitFile("#ResidencyPictureUploader", passportPath);
 
       await page.focus("#PassportNumber");
