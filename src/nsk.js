@@ -8,10 +8,12 @@ const util = require("./util");
 const { getPath } = util;
 const sharp = require("sharp");
 const totp = require("totp-generator");
+const kea = require("./lib/kea");
 
 let page;
 let data;
 let counter = 0;
+let passenger;
 
 function getLogFile() {
   const logFolder = path.join(getPath("log"), data.info.munazim);
@@ -190,7 +192,6 @@ async function onContentLoaded(res) {
 }
 
 async function pageContentHandler(currentConfig) {
-  const passenger = data.travellers[counter];
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
@@ -219,7 +220,14 @@ async function pageContentHandler(currentConfig) {
       await page.click("#newfrm > button");
       break;
     case "groups":
-      await page.click("#qa-create-group");
+      if (global.submission.targetGroupId) {
+        // If a group already created for this submission, go directly to that page
+        await page.goto(
+          `https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/EditMuatamerList/${global.submission.targetGroupId}`
+        );
+      } else {
+        await page.click("#qa-create-group");
+      }
       break;
     case "create-group":
       await util.commit(page, currentConfig.details, data);
@@ -233,6 +241,43 @@ async function pageContentHandler(currentConfig) {
       await page.click("#qa-next");
       break;
     case "passengers":
+      // Store group id
+      if (!global.submission.targetGroupId) {
+        const groupId = page
+          .url()
+          .match(/EditMuatamerList\/([a-zA-Z0-9\-_]+)/)?.[1];
+        if (groupId) {
+          global.submission.targetGroupId = groupId;
+          kea.updateSubmission({
+            targetGroupId: groupId,
+          });
+        }
+      }
+
+      // Parse modal content for success/error
+      try {
+        const modalContentSelector = "#swal2-content";
+        await page.waitForSelector(modalContentSelector, {
+          timeout: 1000,
+        });
+        const modalContent = await page.$eval(
+          modalContentSelector,
+          (e) => e.textContent
+        );
+        if (
+          modalContent.match(
+            /(Mutamer has been added Successfully)|(This Mutamer has been added before)/
+          )
+        ) {
+          util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
+          kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+            "submissionData.nsk.status": "Submitted",
+          });
+          util.incrementSelectedTraveler();
+        }
+      } catch (e) {}
+
+      // Submit passengers
       const selectedTraveler = util.getSelectedTraveler();
       if (selectedTraveler >= data.travellers.length) {
         await page.goto(
@@ -240,10 +285,17 @@ async function pageContentHandler(currentConfig) {
         );
         return;
       }
-      const groupCreatedOkButtonSelector =
-        "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled";
-      await page.waitForSelector(groupCreatedOkButtonSelector);
-      await page.click(groupCreatedOkButtonSelector);
+      passenger = data.travellers[selectedTraveler];
+      util.infoMessage(page, `🧟 Inputting ${passenger.slug} saved`);
+      // Close modal
+      try {
+        const groupCreatedOkButtonSelector =
+          "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled";
+        await page.waitForSelector(groupCreatedOkButtonSelector, {
+          timeout: 1000,
+        });
+        await page.click(groupCreatedOkButtonSelector);
+      } catch (e) {}
       await page.waitForTimeout(500);
       const addMutamerButtonSelector =
         "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a";
@@ -383,7 +435,7 @@ async function pageContentHandler(currentConfig) {
       await page.click("#PassportNumber");
       await page.waitForTimeout(500);
       await page.click("#qa-add-mutamer-save");
-      util.incrementSelectedTraveler();
+
     // Wait for confirmation
     // await page.waitForTimeout(500);
     default:
