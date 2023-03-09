@@ -601,6 +601,10 @@ async function controller(page, structure, travellers) {
         "handleLoadImportedOnlyClick",
         handleLoadImportedOnlyClick
       );
+      await page.exposeFunction(
+        "handleNSKClick",
+        structure.controller.nskAction || (() => {})
+      );
       await page.exposeFunction("closeBrowser", closeBrowser);
     }
   } catch (err) {

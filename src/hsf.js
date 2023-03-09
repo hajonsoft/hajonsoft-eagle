@@ -27,6 +27,11 @@ const {
   onBAUPageLoad,
   initialize: initializeBAUImport,
 } = require("./mofa_import/bau");
+const {
+  injectNSKEagleButton,
+  onNSKPageLoad,
+  initialize: initializeNSKImport,
+} = require("./mofa_import/nsk");
 const { SERVER_NUMBER } = require("./bau");
 const { hsf_nationalities } = require("./data/nationalities");
 const { clearInterval } = require("timers");
@@ -40,6 +45,7 @@ let wtuPage;
 let gmaPage;
 let bauPage;
 let twfPage;
+let nskPage;
 
 let status = "idle";
 
@@ -262,6 +268,9 @@ async function showController() {
         twfAction: async () => {
           await beginTWFImport();
         },
+        nskAction: async () => {
+          await beginNSKImport();
+        }
       },
     },
     data.travellers
@@ -318,6 +327,19 @@ async function beginWTUImport() {
   );
 }
 
+async function beginNSKImport() {
+  status = "nsk";
+  nskPage = await util.newPage(onNSKPageLoad, () => {});
+  initializeNSKImport(nskPage, data);
+  nskPage.on("response", injectNSKEagleButton);
+  await nskPage.goto(
+    "https://bsp-nusuk.haj.gov.sa/Identity",
+    {
+      waitUntil: "domcontentloaded",
+    }
+  );
+}
+
 function isValidPassenger(passenger) {
   return (
     passenger.mofaNumber &&
@@ -342,6 +364,9 @@ async function startImport(page, data) {
     case "wtu":
       beginWTUImport();
       break;
+      case "nsk":
+        beginNSKImport();
+        break;
     default:
       return;
   }
