@@ -11,6 +11,7 @@
   "author": "Ayman A",
   "license": "ISC",
   "dependencies": {
+    "@firebase/app": "^0.9.4",
     "@google-cloud/local-auth": "^2.1.0",
     "@google-cloud/vision": "^2.4.2",
     "axios": "^0.25.0",
