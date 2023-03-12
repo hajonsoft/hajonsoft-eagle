@@ -154,10 +154,6 @@ const config = [
         value: (row) => decodeURI(row.profession) || "Employee",
       },
       {
-        selector: "#IdNo",
-        value: (row) => row.passportNumber,
-      },
-      {
         selector: "#PassportNumber",
         value: (row) => row.passportNumber,
       },
@@ -357,30 +353,25 @@ async function pageContentHandler(currentConfig) {
         }
       });
 
-      let photoPath = path.join(
-        util.photosFolder,
-        `${passenger.passportNumber}.jpg`
+      let resizedPhotoPath = await util.downloadAndResizeImage(
+        passenger,
+        100,
+        150,
+        "photo",
+        5,
+        20
       );
-
-      await util.downloadImage(passenger.images.photo, photoPath);
-      const resizedPhotoPath = path.join(
-        util.photosFolder,
-        `${passenger.passportNumber}_200x200.jpg`
-      );
-      await sharp(photoPath)
-        .resize(200, 200, {
-          fit: sharp.fit.inside,
-          withoutEnlargement: true,
-        })
-        .toFile(resizedPhotoPath);
       await util.commitFile("#PersonalPictureUploader", resizedPhotoPath);
 
       if (passenger.images.vaccine) {
-        let vaccinePath = path.join(
-          util.vaccineFolder,
-          `${passenger.passportNumber}.jpg`
+        let vaccinePath = await util.downloadAndResizeImage(
+          passenger,
+          100,
+          150,
+          "vaccine",
+          5,
+          20
         );
-        await util.downloadImage(passenger.images.vaccine, vaccinePath);
         await util.commitFile("#VaccinationPictureUploader", vaccinePath);
       } else {
         await util.commitFile("#VaccinationPictureUploader", resizedPhotoPath);
@@ -399,13 +390,17 @@ async function pageContentHandler(currentConfig) {
         residencyPictureUploaderSelector
       );
       if (isResidencyPictureUploaderVisible) {
+        await page.type("#IdNo", passenger.passportNumber);
         await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
       }
 
+      // allow photos to settle in the DOM
+      await page.waitForTimeout(1000);
       await page.focus("#PassportNumber");
       await page.click("#PassportNumber");
       await page.waitForTimeout(500);
       await page.click("#qa-add-mutamer-save");
+
     default:
       break;
   }
@@ -421,8 +416,8 @@ async function pasteSimulatedPassport(shouldSimulatePassport, passenger) {
       ele.style.display = "none";
       document.body.appendChild(ele);
       const canvas = document.getElementById("hajonsoftcanvas");
-      canvas.width = 600;
-      canvas.height = 300;
+      canvas.width = 1060;
+      canvas.height = 1500;
       const ctx = canvas.getContext("2d");
       // White background
       ctx.fillStyle = "white";
@@ -431,7 +426,7 @@ async function pasteSimulatedPassport(shouldSimulatePassport, passenger) {
       ctx.fillStyle = "black";
       // Font must be 11 to fit in the canvas
       ctx.font =
-        "bold 16pt Courier New, Menlo, Verdana, Verdana, Geneva, sans-serif";
+        "bold 18pt Courier New, Menlo, Verdana, Verdana, Geneva, sans-serif";
       ctx.fillText(
         _passenger.codeline?.replace(/\n/g, "")?.substring(0, 44),
         14,
