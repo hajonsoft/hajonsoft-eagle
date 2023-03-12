@@ -241,6 +241,8 @@ async function pageContentHandler(currentConfig) {
       await page.click("#qa-next");
       break;
     case "passengers":
+      // Add a delay to allow the user to see the list of mutamers added so far
+      await page.waitForTimeout(1000);
       // Store group id
       if (!global.submission.targetGroupId) {
         const groupId = page
@@ -273,6 +275,23 @@ async function pageContentHandler(currentConfig) {
           kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
             "submissionData.nsk.status": "Submitted",
           });
+          util.incrementSelectedTraveler();
+        } else if (
+          modalContent.match(
+            /Please make sure that you attached a valid file formats/
+          )
+        ) {
+          // this is an error, mark the passenger rejected and move on
+          util.infoMessage(page, `🧟 passenger ${passenger.slug} rejected`);
+          await kea.updatePassenger(
+            data.system.accountId,
+            passenger.passportNumber,
+            {
+              "submissionData.nsk.status": "Rejected",
+              "submissionData.nsk.rejectionReason": "invalid file format",
+            }
+          );
+
           util.incrementSelectedTraveler();
         }
       } catch (e) {}
@@ -310,7 +329,7 @@ async function pageContentHandler(currentConfig) {
       await util.commitFile("#PassportPictureUploader", passportPath);
       // wait until passport number is filled
       // #PassportNumber
-      let shouldFakePassport = false;
+      let shouldSimulatePassport = false;
       try {
         await page.waitForFunction(
           (arg) => {
@@ -322,74 +341,12 @@ async function pageContentHandler(currentConfig) {
           "#PassportNumber"
         );
       } catch (err) {
-        shouldFakePassport = true;
+        // console.log("Passport number not filled, simulating");
+        console.log("Passport number not filled, skipping");
+        shouldSimulatePassport = true;
       }
 
-      // if (shouldFakePassport) {
-      //   const blankPassportPath = getPath(
-      //     `${passenger.passportNumber}_mrz.jpg`
-      //   );
-      //   // Generate fake passport image using the browser canvas api
-      //   const dataUrl = await page.evaluate((_passenger) => {
-      //     const ele = document.createElement("canvas");
-      //     ele.id = "hajonsoftcanvas";
-      //     ele.style.display = "none";
-      //     document.body.appendChild(ele);
-      //     const canvas = document.getElementById("hajonsoftcanvas");
-      //     canvas.width = 600;
-      //     canvas.height = 300;
-      //     const ctx = canvas.getContext("2d");
-      //     // White background
-      //     ctx.fillStyle = "white";
-      //     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      //     ctx.fillStyle = "black";
-      //     // Font must be 11 to fit in the canvas
-      //     ctx.font = "bold 16pt Courier New, Menlo, Verdana, Verdana, Geneva, sans-serif";
-      //     ctx.fillText(
-      //       _passenger.codeline?.replace(/\n/g, "")?.substring(0, 44),
-      //       14,
-      //       canvas.height - 60
-      //     );
-      //     ctx.fillText(
-      //       _passenger.codeline?.replace(/\n/g, "")?.substring(44),
-      //       14,
-      //       canvas.height - 25
-      //     );
-
-      //     // Photo
-      //     ctx.lineWidth = 1;
-      //     ctx.fillStyle = "hsl(240, 25%, 94%)";
-      //     ctx.fillRect(45, 25, 100, 125);
-      //     // Visible area
-      //     ctx.fillStyle = "hsl(240, 25%, 94%)";
-      //     ctx.fillRect(170, 25, 200, 175);
-
-      //     // under photo area
-      //     ctx.fillStyle = "hsl(240, 25%, 94%)";
-      //     ctx.fillRect(45, 165, 100, 35);
-      //     return canvas.toDataURL("image/jpeg", 1.0);
-      //   }, passenger);
-
-      //   // Save dataUrl to file
-      //   const imageData = dataUrl.replace(/^data:image\/\w+;base64,/, "");
-      //   const buf = Buffer.from(imageData, "base64");
-      //   fs.writeFileSync(blankPassportPath, buf);
-      //   await util.commitFile("#PassportPictureUploader", blankPassportPath);
-      //   try {
-      //     await page.waitForFunction(
-      //       (arg) => {
-      //         if (document.querySelector(arg).value.length > 0) {
-      //           return true;
-      //         }
-      //       },
-      //       { timeout: 7000 },
-      //       "#PassportNumber"
-      //     );
-      //   } catch (err) {
-      //     console.log("Error: ", err);
-      //   }
-      // }
+      // await pasteSimulatedPassport(shouldSimulatePassport, passenger);
 
       await util.commit(page, currentConfig.details, passenger);
       // select the first option in the select
@@ -426,20 +383,98 @@ async function pageContentHandler(currentConfig) {
         await util.downloadImage(passenger.images.vaccine, vaccinePath);
         await util.commitFile("#VaccinationPictureUploader", vaccinePath);
       } else {
-        await util.commitFile("#VaccinationPictureUploader", passportPath);
+        await util.commitFile("#VaccinationPictureUploader", resizedPhotoPath);
       }
 
-      await util.commitFile("#ResidencyPictureUploader", passportPath);
+      // paste residency picture only if the selector is visible
+      const residencyPictureUploaderSelector = "#ResidencyPictureUploader";
+      const isResidencyPictureUploaderVisible = await page.evaluate(
+        (selector) => {
+          const element = document.querySelector(selector);
+          if (element) {
+            return true;
+          }
+          return false;
+        },
+        residencyPictureUploaderSelector
+      );
+      if (isResidencyPictureUploaderVisible) {
+        await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
+      }
 
       await page.focus("#PassportNumber");
       await page.click("#PassportNumber");
       await page.waitForTimeout(500);
       await page.click("#qa-add-mutamer-save");
-
-    // Wait for confirmation
-    // await page.waitForTimeout(500);
     default:
       break;
+  }
+}
+
+async function pasteSimulatedPassport(shouldSimulatePassport, passenger) {
+  if (shouldSimulatePassport) {
+    const blankPassportPath = getPath(`${passenger.passportNumber}_mrz.jpg`);
+    // Generate simulated passport image using the browser canvas api
+    const dataUrl = await page.evaluate((_passenger) => {
+      const ele = document.createElement("canvas");
+      ele.id = "hajonsoftcanvas";
+      ele.style.display = "none";
+      document.body.appendChild(ele);
+      const canvas = document.getElementById("hajonsoftcanvas");
+      canvas.width = 600;
+      canvas.height = 300;
+      const ctx = canvas.getContext("2d");
+      // White background
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "black";
+      // Font must be 11 to fit in the canvas
+      ctx.font =
+        "bold 16pt Courier New, Menlo, Verdana, Verdana, Geneva, sans-serif";
+      ctx.fillText(
+        _passenger.codeline?.replace(/\n/g, "")?.substring(0, 44),
+        14,
+        canvas.height - 60
+      );
+      ctx.fillText(
+        _passenger.codeline?.replace(/\n/g, "")?.substring(44),
+        14,
+        canvas.height - 25
+      );
+
+      // Photo
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "hsl(240, 25%, 94%)";
+      ctx.fillRect(45, 25, 100, 125);
+      // Visible area
+      ctx.fillStyle = "hsl(240, 25%, 94%)";
+      ctx.fillRect(170, 25, 200, 175);
+
+      // under photo area
+      ctx.fillStyle = "hsl(240, 25%, 94%)";
+      ctx.fillRect(45, 165, 100, 35);
+      return canvas.toDataURL("image/jpeg", 1.0);
+    }, passenger);
+
+    // Save dataUrl to file
+    const imageData = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+    const buf = Buffer.from(imageData, "base64");
+    fs.writeFileSync(blankPassportPath, buf);
+    await util.commitFile("#PassportPictureUploader", blankPassportPath);
+    try {
+      await page.waitForFunction(
+        (arg) => {
+          if (document.querySelector(arg).value.length > 0) {
+            return true;
+          }
+        },
+        { timeout: 7000 },
+        "#PassportNumber"
+      );
+    } catch (err) {
+      console.log("Error: ", err);
+    }
   }
 }
 
