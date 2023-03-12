@@ -828,6 +828,7 @@ async function captchaClick(selector, numbers, actionSelector) {
 }
 
 async function downloadImage(url, imagePath) {
+  console.log("Deprecated, please use downloadAndResizeImage");
   if (!url) return;
   const writer = fs.createWriteStream(imagePath);
   const response = await axios({
