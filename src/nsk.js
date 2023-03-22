@@ -9,6 +9,7 @@ const { getPath } = util;
 const sharp = require("sharp");
 const totp = require("totp-generator");
 const kea = require("./lib/kea");
+const moment = require("moment");
 
 let page;
 let data;
@@ -202,7 +203,12 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "otp":
-      const googleToken = totp(data.system.ehajCode);
+      const currentTime = await util.getCurrentTime();
+      const timeString = moment(currentTime).format('YYYY-MM-DDTHH:mm:ssZ');
+      console.log("timeString: ", timeString);
+      const googleToken = totp(data.system.ehajCode, { time: timeString });
+      console.log("data.system.ehajCode: ", data.system.ehajCode);
+      console.log("googleToken: ", googleToken);
       await util.commit(
         page,
         [
