@@ -1559,6 +1559,17 @@ async function recall(page, selector) {
   }
 }
 
+async function getCurrentTime() {
+  try {
+    const response = await axios.get('http://worldtimeapi.org/api/ip');
+    const { unixtime } = response.data;
+    return new Date(unixtime * 1000);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
 const hijriYear = 44;
 
 module.exports = {
@@ -1611,4 +1622,5 @@ module.exports = {
   screenShotToKea,
   remember,
   recall,
+  getCurrentTime,
 };
