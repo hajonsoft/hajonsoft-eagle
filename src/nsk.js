@@ -48,6 +48,10 @@ const config = [
     regex: "https://bsp-nusuk.haj.gov.sa/OTP/GoogleAuth",
   },
   {
+    name: "insurance",
+    regex: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/ViewPackage/",
+  },
+  {
     name: "groups",
     url: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups",
   },
@@ -204,7 +208,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "otp":
       const currentTime = await util.getCurrentTime();
-      const timeString = moment(currentTime).format('YYYY-MM-DDTHH:mm:ssZ');
+      const timeString = moment(currentTime).format("YYYY-MM-DDTHH:mm:ssZ");
       console.log("timeString: ", timeString);
       const googleToken = totp(data.system.ehajCode, { time: timeString });
       console.log("data.system.ehajCode: ", data.system.ehajCode);
@@ -221,7 +225,43 @@ async function pageContentHandler(currentConfig) {
       );
       await page.click("#newfrm > button");
       break;
+    case "insurance":
+      // add a button to download all insurances
+
+      await util.commander(page, {
+        controller: {
+          selector:
+            "#kt_content > div > div > div > div.kt-portlet__head > div.kt-portlet__head-label > h3",
+          title: "Download All",
+          arabicTitle: "تحميل الكل",
+          action: async () => {
+            // get the mofa numbers from the table
+            // download the pdfs
+            // https://bsp-nusuk.haj.gov.sa/Home/DownloadInsuranceDocument/?MutamerMofa=105756826
+            // #kt_content > div > div > div > div.kt-portlet__body.px-0 > div:nth-child(1) > div > div > div > div > div.kt-widget__body > table > tbody > tr:nth-child(1) > td:nth-child(10) > a
+            // #kt_content > div > div > div > div.kt-portlet__body.px-0 > div:nth-child(1) > div > div > div > div > div.kt-widget__body > table > tbody > tr
+
+            const tableRows = await page.$$(
+              "#kt_content > div > div > div > div.kt-portlet__body.px-0 > div:nth-child(1) > div > div > div > div > div.kt-widget__body > table > tbody > tr"
+            );
+            console.log("tableRows: ", tableRows);
+            for (let i = 0; i < tableRows.length; i++) {
+              const tableRow = tableRows[i];
+              const mofaNumber = await tableRow.$eval(
+                "td:nth-child(10) > a",
+                (e) => e.innerText
+              );
+              console.log("mofaNumber: ", mofaNumber);
+              // await page.goto(`https://bsp-nusuk.haj.gov.sa/Home/DownloadInsuranceDocument/?MutamerMofa=${mofaNumber}`);
+              // await page.waitForTimeout(1000);
+            }
+          },
+        },
+      });
+
+      break;
     case "groups":
+      await page.waitForTimeout(100000);
       if (global.submission.targetGroupId) {
         // If a group already created for this submission, go directly to that page
         await page.goto(
