@@ -1,8 +1,10 @@
 const util = require("../util");
 const kea = require("../lib/kea");
+const axios = require("axios");
 const { getPath } = util;
 const fs = require("fs");
 const totp = require("totp-generator");
+const { PDFDocument, StandardFonts } = require("pdf-lib");
 
 let page;
 let data;
@@ -108,7 +110,8 @@ async function onNSKPageLoad(res) {
       return;
     }
     const googleToken = totp(data.system.ehajCode);
-    console.log("📢[nsk.js:72]: googleToken: ", googleToken);
+    console.log("Google setup token: ", data.system.ehajCode);
+    console.log("googleToken: ", googleToken);
     await util.commit(
       page,
       [
@@ -146,37 +149,29 @@ async function onNSKPageLoad(res) {
 
 async function handleImportNSKMofa() {
   console.log({ data });
-  const tableSelector =
-    "#kt_content > div > div > div > div.kt-portlet__body.px-0- > div:nth-child(1) > div > div > div > div > div.kt-widget__body > table";
+  const tableSelector = "table:nth-child(2)";
   const table = await page.$(tableSelector);
   if (!table) {
     return;
   }
 
-  const tableRows = await page.$$(
-    "#kt_content > div > div > div > div.kt-portlet__body.px-0- > div:nth-child(1) > div > div > div > div > div.kt-widget__body > table > tbody > tr"
-  );
+  const tableRows = await page.$$("table:nth-child(2) tr");
   const passports = [];
-  for (let i = 1; i <= tableRows.length; i++) {
-    const rowPassportNumberSelector = `#kt_content > div > div > div > div.kt-portlet__body.px-0- > div:nth-child(1) > div > div > div > div > div.kt-widget__body > table > tbody > tr:nth-child(${i}) > td:nth-child(3)`;
-    const passportNumber = await page.$eval(
-      rowPassportNumberSelector,
+  const pdfDoc = await PDFDocument.create();
+  for (let i = 1; i < tableRows.length; i++) {
+    const row = tableRows[i];
+    const passportNumber = await row.$eval(
+      "td:nth-child(3)",
       (el) => el.innerText
     );
     // import name
-    const rowNameSelector = `#kt_content > div > div > div > div.kt-portlet__body.px-0- > div:nth-child(1) > div > div > div > div > div.kt-widget__body > table > tbody > tr:nth-child(${i}) > td:nth-child(1)`;
-    const name = await page.$eval(rowNameSelector, (el) => el.innerText);
+    const name = await row.$eval("td:nth-child(1)", (el) => el.innerText);
     passports.push(passportNumber);
-
-    const rowMofaSelector = `#kt_content > div > div > div > div.kt-portlet__body.px-0- > div:nth-child(1) > div > div > div > div > div.kt-widget__body > table > tbody > tr:nth-child(${i}) > td:nth-child(7)`;
-    const mofaNumber = await page.$eval(rowMofaSelector, (el) => el.innerText);
-
-    const rowNationalitySelector = `#kt_content > div > div > div > div.kt-portlet__body.px-0- > div:nth-child(1) > div > div > div > div > div.kt-widget__body > table > tbody > tr:nth-child(${i}) > td:nth-child(2)`;
-    const nationality = await page.$eval(
-      rowNationalitySelector,
+    const mofaNumber = await row.$eval("td:nth-child(7)", (el) => el.innerText);
+    const nationality = await row.$eval(
+      "td:nth-child(2)",
       (el) => el.innerText
     );
-
     mofas.push({ passportNumber, mofaNumber, nationality, name });
     if (passportNumber) {
       fs.writeFileSync(
@@ -196,8 +191,10 @@ async function handleImportNSKMofa() {
     );
     eagleButton.textContent = `Done... [${passportsArrayFromNode[0]}-${
       passportsArrayFromNode[passportsArrayFromNode.length - 1]
-    }]`;
+    }] downloading insurance...`;
   }, passports);
+// TODO: download all insurance docs and save to pdf here
+  
 }
 
 async function handleImportNSKMofa2() {
