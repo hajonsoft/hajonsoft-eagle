@@ -1,8 +1,20 @@
-const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
-const cheerio = require('cheerio');
+const axios = require('axios');
+const { PDFDocument, StandardFonts } = require('pdf-lib');
+const fs = require('fs');
 
+const url = 'https://bsp-nusuk.haj.gov.sa/Home/DownloadInsuranceDocument/?MutamerMofa=105848936';
+
+axios.get(url, { responseType: 'arraybuffer' }).then(response => {
+  const pdfDoc = PDFDocument.load(response.data);
+  const fileName = 'output.pdf';
+
+  pdfDoc.save().then((data) => {
+    fs.writeFileSync(fileName, data);
+    console.log(`File saved as ${fileName}`);
+  });
+}).catch(error => {
+  console.error(`Error downloading file: ${error}`);
+});
 
 // const Canvas, { createCanvas, loadImage } = require('canvas')
 // // https://github.com/Automattic/node-canvas
@@ -315,58 +327,58 @@ const cheerio = require('cheerio');
 // fs.renameSync(path.join(folder,file), path.join(folder, `./${passportNumber}.jpg`))
 // }
 
-function locateMofa(bauView) {
-    const $ = cheerio.load(bauView, {
-        xml: {
-            normalizeWhitespace: true,
-        },
-    });
+// function locateMofa(bauView) {
+//     const $ = cheerio.load(bauView, {
+//         xml: {
+//             normalizeWhitespace: true,
+//         },
+//     });
 
-    let i = 0;
-    for (const sc of $('script')) {
-        try {
+//     let i = 0;
+//     for (const sc of $('script')) {
+//         try {
 
-            console.log(sc)
-        } catch {}
-        // i++;
-        // if (sc.children) {
-        // fs.writeFileSync('ayman' + i + '.html', JSON.stringify(sc.children))
-        // }
+//             console.log(sc)
+//         } catch {}
+//         // i++;
+//         // if (sc.children) {
+//         // fs.writeFileSync('ayman' + i + '.html', JSON.stringify(sc.children))
+//         // }
         
-        // if (sc.content.includes("bobj.crv.writeWidget")) {
-        // }
-    }
+//         // if (sc.content.includes("bobj.crv.writeWidget")) {
+//         // }
+//     }
     
-    // 
-    return bauView;
+//     // 
+//     return bauView;
 
-}
-function importMofa(bauView) {
-    const mofaData = [];
+// }
+// function importMofa(bauView) {
+//     const mofaData = [];
 
-    const mofaArea = locateMofa(bauView);
+//     const mofaArea = locateMofa(bauView);
 
-    const $ = cheerio.load(mofaArea, {
-        xml: {
-            normalizeWhitespace: true,
-          },
-    });
+//     const $ = cheerio.load(mofaArea, {
+//         xml: {
+//             normalizeWhitespace: true,
+//           },
+//     });
 
-    const mofaRow = {};
-    mofaRow.name = $('#mofaRow_name').text();
-    mofaRow.address = $('#mofaRow_address').text();
-    mofaRow.phone = $('#mofaRow_phone').text();
-    mofaRow.email = $('#mofaRow_email').text();
-    mofaRow.website = $('#mofaRow_website').text();
-    mofaData.push(mofaRow)
+//     const mofaRow = {};
+//     mofaRow.name = $('#mofaRow_name').text();
+//     mofaRow.address = $('#mofaRow_address').text();
+//     mofaRow.phone = $('#mofaRow_phone').text();
+//     mofaRow.email = $('#mofaRow_email').text();
+//     mofaRow.website = $('#mofaRow_website').text();
+//     mofaData.push(mofaRow)
 
-    return mofaData;
+//     return mofaData;
 
-}
+// }
 
-const root = fs.readFileSync('./ayman.html', 'utf-8');
-const data = importMofa(root)
-console.log('%cMyProject%cline:342%cmofas', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(237, 222, 139);padding:3px;border-radius:2px', data)
+// const root = fs.readFileSync('./ayman.html', 'utf-8');
+// const data = importMofa(root)
+// console.log('%cMyProject%cline:342%cmofas', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(237, 222, 139);padding:3px;border-radius:2px', data)
 
 
 

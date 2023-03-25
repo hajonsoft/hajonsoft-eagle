@@ -204,7 +204,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "otp":
       const currentTime = await util.getCurrentTime();
-      const timeString = moment(currentTime).format('YYYY-MM-DDTHH:mm:ssZ');
+      const timeString = moment(currentTime).format("YYYY-MM-DDTHH:mm:ssZ");
       console.log("timeString: ", timeString);
       const googleToken = totp(data.system.ehajCode, { time: timeString });
       console.log("data.system.ehajCode: ", data.system.ehajCode);

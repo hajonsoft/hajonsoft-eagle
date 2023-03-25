@@ -1,6 +1,6 @@
 {
   "name": "hajonsoft-eagle",
-  "version": "2.4.48",
+  "version": "2.4.49",
   "description": "HAJonSoft node app to submit passengers to visa systems",
   "main": "index.js",
   "scripts": {
@@ -31,6 +31,7 @@
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
     "mrz": "^3.1.4",
+    "pdf-lib": "^1.17.1",
     "puppeteer": "14.0.0",
     "puppeteer-extra": "3.2.3",
     "puppeteer-extra-plugin-recaptcha": "^3.5.0",
