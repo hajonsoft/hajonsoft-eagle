@@ -157,7 +157,6 @@ async function handleImportNSKMofa() {
 
   const tableRows = await page.$$("table:nth-child(2) tr");
   const passports = [];
-  const pdfDoc = await PDFDocument.create();
   for (let i = 1; i < tableRows.length; i++) {
     const row = tableRows[i];
     const passportNumber = await row.$eval(
@@ -172,11 +171,16 @@ async function handleImportNSKMofa() {
       "td:nth-child(2)",
       (el) => el.innerText
     );
-    mofas.push({ passportNumber, mofaNumber, nationality, name });
+// #kt_content > div > div > div > div.kt-portlet__body.px-0 > div:nth-child(1) > div > div > div > div > div.kt-widget__body > table > tbody > tr:nth-child(1) > td:nth-child(10) > a
+    const insurancePdf = await row.$eval(
+      "td:nth-child(10) > a",
+      (el) => el.href
+    );
+    mofas.push({ passportNumber, mofaNumber, nationality, name, insurancePdf });
     if (passportNumber) {
       fs.writeFileSync(
         getPath(passportNumber + ".txt"),
-        JSON.stringify({ mofaNumber, nationality, name, passportNumber })
+        JSON.stringify({ mofaNumber, nationality, name, passportNumber, insurancePdf })
       );
       // Write to Kea
       const params = {
@@ -193,8 +197,14 @@ async function handleImportNSKMofa() {
       passportsArrayFromNode[passportsArrayFromNode.length - 1]
     }] downloading insurance...`;
   }, passports);
-// TODO: download all insurance docs and save to pdf here
-  
+  // const downloadPath = await downloadInsuranceFile(mofas);
+  // await page.evaluate(() => {
+  //   const eagleButton = document.querySelector(
+  //     "#kt_content > div > div > div > div.kt-portlet__head > div.kt-portlet__head-label > h3 > div > button"
+  //   );
+  //   eagleButton.textContent = `Done... ${downloadPath}`;
+  // });
+
 }
 
 async function handleImportNSKMofa2() {
@@ -260,6 +270,37 @@ async function handleImportNSKMofa2() {
   }, passports);
 }
 
+async function downloadInsuranceFile(mofas) {
+// TODO: download all insurance docs and save to pdf here
+const pdfDoc = await PDFDocument.create();
+// download first page of insurance pdf found in mofas array and add to pdfDoc
+const insurancePdfs = mofas.map(item => item.insurancePdf);
+// use promise.all to download all insurance pdfs in parallel using axios
+const insurancePdfBuffers = await Promise.all(
+  insurancePdfs.map(async (insurancePdf) => {
+    const response = await axios.get(insurancePdf, {
+      responseType: "arraybuffer",
+    });
+    return PDFDocument.load(response.data);
+  })
+);
+// add all insurance pdfs to pdfDoc
+for (let i = 0; i < insurancePdfBuffers.length; i++) {
+  const insurancePdfBuffer = insurancePdfBuffers[i];  
+  const insurancePdf = await pdfDoc.embedPdf(insurancePdfBuffer);
+  const insurancePages = insurancePdf.getPages();
+  const insurancePage = insurancePages[0];
+  pdfDoc.addPage(insurancePage);
+}
+// save pdfDoc
+const pdfBytes = await pdfDoc.save();
+const downloadPath = getPath(
+  `${passportsArrayFromNode[0]}-${
+    passportsArrayFromNode[passportsArrayFromNode.length - 1]
+  }-insurance.pdf`
+);
+fs.writeFileSync(downloadPath, pdfBytes);
+}
 module.exports = {
   initialize,
   injectNSKEagleButton: injectNSKEagleButton1,
