@@ -169,21 +169,6 @@ async function send(sendData) {
   page = await util.initPage(config, onContentLoaded);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
-async function attemptOTP() {
-  const googleToken = totp(data.system.ehajCode);
-  await page.type("#OtpValue", googleToken);
-  await page.click("#newfrm > button");
-
-  try {
-    await page.waitForSelector("#swal2-content", { timeout: 1000 });
-    const content = await page.$eval("#swal2-content", (el) => el.textContent);
-    if (content === "Invalid OTP") {
-      return false;
-    }
-  } catch (e) {
-    return true;
-  }
-}
 
 async function onContentLoaded(res) {
   counter = util.useCounter(counter);
@@ -216,7 +201,21 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "otp":
-      await attemptOTP();
+      const googleToken = totp(data.system.ehajCode);
+      await page.type("#OtpValue", googleToken);
+      await page.click("#newfrm > button");
+
+      try {
+        await page.waitForSelector("#swal2-content", { timeout: 1000 });
+        const content = await page.$eval(
+          "#swal2-content",
+          (el) => el.textContent
+        );
+        if (content === "Invalid OTP") {
+          console.log("Error: Invalid OTP");
+          process.exit(1);
+        }
+      } catch (e) {}
       break;
     case "groups":
       if (global.submission.targetGroupId) {
