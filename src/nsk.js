@@ -304,23 +304,31 @@ async function pageContentHandler(currentConfig) {
             "submissionData.nsk.status": "Submitted",
           });
           util.incrementSelectedTraveler();
-        } else if (
-          modalContent.match(
-            /Please make sure that you attached a valid file formats/
-          )
-        ) {
-          // this is an error, mark the passenger rejected and move on
-          util.infoMessage(page, `🧟 passenger ${passenger.slug} rejected`);
-          await kea.updatePassenger(
-            data.system.accountId,
-            passenger.passportNumber,
-            {
-              "submissionData.nsk.status": "Rejected",
-              "submissionData.nsk.rejectionReason": "invalid file format",
-            }
-          );
+        } else {
+          try {
+            // Wait for the error icon to appear
+            await page.waitForSelector(
+              "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-header > div.swal2-icon.swal2-error.swal2-animate-error-icon > span",
+              {
+                visible: true,
+              }
+            );
 
-          util.incrementSelectedTraveler();
+            // this is an error, mark the passenger rejected and move on
+            util.infoMessage(page, `🧟 passenger ${passenger.slug} rejected`);
+            await kea.updatePassenger(
+              data.system.accountId,
+              passenger.passportNumber,
+              {
+                "submissionData.nsk.status": "Rejected",
+                "submissionData.nsk.rejectionReason": modalContent,
+              }
+            );
+
+            util.incrementSelectedTraveler();
+          } catch (e) {
+            // Do nothing
+          }
         }
       } catch (e) {}
 
