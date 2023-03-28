@@ -6,10 +6,8 @@ const fs = require("fs");
 const path = require("path");
 const util = require("./util");
 const { getPath } = util;
-const sharp = require("sharp");
 const totp = require("totp-generator");
 const kea = require("./lib/kea");
-const moment = require("moment");
 
 let page;
 let data;
@@ -171,6 +169,21 @@ async function send(sendData) {
   page = await util.initPage(config, onContentLoaded);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
+async function attemptOTP() {
+  const googleToken = totp(data.system.ehajCode);
+  await page.type("#OtpValue", googleToken);
+  await page.click("#newfrm > button");
+
+  try {
+    await page.waitForSelector("#swal2-content", { timeout: 1000 });
+    const content = await page.$eval("#swal2-content", (el) => el.textContent);
+    if (content === "Invalid OTP") {
+      return false;
+    }
+  } catch (e) {
+    return true;
+  }
+}
 
 async function onContentLoaded(res) {
   counter = util.useCounter(counter);
@@ -203,23 +216,7 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "otp":
-      const currentTime = await util.getCurrentTime();
-      const timeString = moment(currentTime).format("YYYY-MM-DDTHH:mm:ssZ");
-      console.log("timeString: ", timeString);
-      const googleToken = totp(data.system.ehajCode, { time: timeString });
-      console.log("data.system.ehajCode: ", data.system.ehajCode);
-      console.log("googleToken: ", googleToken);
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#OtpValue",
-            value: () => googleToken,
-          },
-        ],
-        {}
-      );
-      await page.click("#newfrm > button");
+      await attemptOTP();
       break;
     case "groups":
       if (global.submission.targetGroupId) {
@@ -233,14 +230,44 @@ async function pageContentHandler(currentConfig) {
       break;
     case "create-group":
       await util.commit(page, currentConfig.details, data);
-      await page.$eval("#EmbassyId", (e) => {
-        const options = e.querySelectorAll("option");
-        if (options.length === 2) {
-          options[1].selected = true;
-        }
-      });
-      // TODO: If there is more than 2 options in the select, then select the one that matches the data
+      await page.$eval(
+        "#EmbassyId",
+        (e, data) => {
+          const options = e.querySelectorAll("option");
+          if (options.length === 2) {
+            options[1].selected = true;
+          } else {
+            const embassy = data.system.embassy;
+            // Select the option that matches embassy text
+            for (let i = 0; i < options.length; i++) {
+              const embassyRegex = new RegExp(`^${embassy}$`, "i");
+              if (embassyRegex.test(options[i].text)) {
+                options[i].selected = true;
+                break;
+              }
+            }
+          }
+        },
+        data
+      );
       await page.click("#qa-next");
+
+      //Wait for the #EmbassyId-error div and get the text, otherwise wait for the next page to load
+      try {
+        await page.waitForSelector("#EmbassyId-error", {
+          timeout: 1000,
+        });
+        const error = await page.$eval(
+          "#EmbassyId-error",
+          (e) => e.textContent
+        );
+        console.log(
+          `Error creating group: Embassy not specified. Specify an embassy in your settings.`
+        );
+        process.exit(1);
+      } catch (err) {
+        // Do nothing
+      }
       break;
     case "passengers":
       // Add a delay to allow the user to see the list of mutamers added so far
