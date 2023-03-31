@@ -18,6 +18,7 @@ const { send: sendSbr } = require("./src/sbr");
 const { send: sendMtf } = require("./src/mtf");
 const { send: sendGhb } = require("./src/ghb");
 const { send: sendNsk } = require("./src/nsk");
+const { send: sendTrk } = require("./src/trk");
 
 const util = require("./src/util");
 const { getPath } = util;
@@ -191,8 +192,10 @@ async function submitToProvider() {
       return sendSbr(data);
     case "mtf":
       return sendMtf(data);
-      case "nsk":
-        return sendNsk(data);
+    case "nsk":
+      return sendNsk(data);
+    case "trk":
+      return sendTrk(data);
     default:
       console.log("unknown system");
   }
