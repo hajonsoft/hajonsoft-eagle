@@ -828,7 +828,7 @@ async function captchaClick(selector, numbers, actionSelector) {
 }
 
 async function downloadImage(url, imagePath) {
-  console.log("Deprecated, please use downloadAndResizeImage");
+  // console.log("Deprecated, please use downloadAndResizeImage");
   if (!url) return;
   const writer = fs.createWriteStream(imagePath);
   const response = await axios({
@@ -1561,7 +1561,7 @@ async function recall(page, selector) {
 
 async function getCurrentTime() {
   try {
-    const response = await axios.get('http://worldtimeapi.org/api/ip');
+    const response = await axios.get("http://worldtimeapi.org/api/ip");
     const { unixtime } = response.data;
     return new Date(unixtime * 1000);
   } catch (error) {
