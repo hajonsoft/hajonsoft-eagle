@@ -6,10 +6,8 @@ const fs = require("fs");
 const path = require("path");
 const util = require("./util");
 const { getPath } = util;
-const sharp = require("sharp");
 const totp = require("totp-generator");
 const kea = require("./lib/kea");
-const moment = require("moment");
 
 let page;
 let data;
@@ -211,23 +209,21 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "otp":
-      const currentTime = await util.getCurrentTime();
-      const timeString = moment(currentTime).format("YYYY-MM-DDTHH:mm:ssZ");
-      console.log("timeString: ", timeString);
-      const googleToken = totp(data.system.ehajCode, { time: timeString });
-      console.log("data.system.ehajCode: ", data.system.ehajCode);
-      console.log("googleToken: ", googleToken);
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#OtpValue",
-            value: () => googleToken,
-          },
-        ],
-        {}
-      );
+      const googleToken = totp(data.system.ehajCode);
+      await page.type("#OtpValue", googleToken);
       await page.click("#newfrm > button");
+
+      try {
+        await page.waitForSelector("#swal2-content", { timeout: 1000 });
+        const content = await page.$eval(
+          "#swal2-content",
+          (el) => el.textContent
+        );
+        if (content === "Invalid OTP") {
+          console.log("Error: Invalid OTP");
+          process.exit(1);
+        }
+      } catch (e) {}
       break;
     case "groups":
       if (global.submission.targetGroupId) {
@@ -241,14 +237,44 @@ async function pageContentHandler(currentConfig) {
       break;
     case "create-group":
       await util.commit(page, currentConfig.details, data);
-      await page.$eval("#EmbassyId", (e) => {
-        const options = e.querySelectorAll("option");
-        if (options.length === 2) {
-          options[1].selected = true;
-        }
-      });
-      // TODO: If there is more than 2 options in the select, then select the one that matches the data
+      await page.$eval(
+        "#EmbassyId",
+        (e, data) => {
+          const options = e.querySelectorAll("option");
+          if (options.length === 2) {
+            options[1].selected = true;
+          } else {
+            const embassy = data.system.embassy;
+            // Select the option that matches embassy text
+            for (let i = 0; i < options.length; i++) {
+              const embassyRegex = new RegExp(`^${embassy}$`, "i");
+              if (embassyRegex.test(options[i].text)) {
+                options[i].selected = true;
+                break;
+              }
+            }
+          }
+        },
+        data
+      );
       await page.click("#qa-next");
+
+      //Wait for the #EmbassyId-error div and get the text, otherwise wait for the next page to load
+      try {
+        await page.waitForSelector("#EmbassyId-error", {
+          timeout: 1000,
+        });
+        const error = await page.$eval(
+          "#EmbassyId-error",
+          (e) => e.textContent
+        );
+        console.log(
+          `Error creating group: Embassy not specified. Specify an embassy in your settings.`
+        );
+        process.exit(1);
+      } catch (err) {
+        // Do nothing
+      }
       break;
     case "passengers":
       // Add a delay to allow the user to see the list of mutamers added so far
@@ -286,23 +312,31 @@ async function pageContentHandler(currentConfig) {
             "submissionData.nsk.status": "Submitted",
           });
           util.incrementSelectedTraveler();
-        } else if (
-          modalContent.match(
-            /Please make sure that you attached a valid file formats/
-          )
-        ) {
-          // this is an error, mark the passenger rejected and move on
-          util.infoMessage(page, `🧟 passenger ${passenger.slug} rejected`);
-          await kea.updatePassenger(
-            data.system.accountId,
-            passenger.passportNumber,
-            {
-              "submissionData.nsk.status": "Rejected",
-              "submissionData.nsk.rejectionReason": "invalid file format",
-            }
-          );
+        } else {
+          try {
+            // Wait for the error icon to appear
+            await page.waitForSelector(
+              "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-header > div.swal2-icon.swal2-error.swal2-animate-error-icon > span",
+              {
+                visible: true,
+              }
+            );
 
-          util.incrementSelectedTraveler();
+            // this is an error, mark the passenger rejected and move on
+            util.infoMessage(page, `🧟 passenger ${passenger.slug} rejected`);
+            await kea.updatePassenger(
+              data.system.accountId,
+              passenger.passportNumber,
+              {
+                "submissionData.nsk.status": "Rejected",
+                "submissionData.nsk.rejectionReason": modalContent,
+              }
+            );
+
+            util.incrementSelectedTraveler();
+          } catch (e) {
+            // Do nothing
+          }
         }
       } catch (e) {}
 
