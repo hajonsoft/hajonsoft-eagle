@@ -164,6 +164,14 @@ const config = [
       },
     ],
   },
+  {
+    name: "permits-home",
+    url: "https://bsp-nusuk.haj.gov.sa/UmrahOperators/Nusuk/",
+  },
+  {
+    name: "permits",
+    url: "https://bsp-nusuk.haj.gov.sa/UmrahOperators/Nusuk/SubmitPermit",
+  }
 ];
 
 async function send(sendData) {
@@ -406,7 +414,33 @@ async function pageContentHandler(currentConfig) {
       await page.click("#PassportNumber");
       await page.waitForTimeout(500);
       await page.click("#qa-add-mutamer-save");
-
+    case "permits":
+      await util.commander(page, {
+        controller: {
+          selector: "#kt_form > div > div.kt-portlet__head > div.kt-portlet__head-label > h3",
+          title: "Select 20",
+          arabicTitle: "اختر 20",
+          name: "select20",
+          action: async () => {
+            const tableSelector = "#DataTables_Table_0"
+            const tableRowsSelector = `${tableSelector} > tbody > tr`
+            const tableRowsLength = await page.$eval(tableRowsSelector, (e) => {
+              return e.length
+            })
+            let loopLength = tableRowsLength < 20 ? tableRowsLength : 20
+            for (let i = 1; i <= loopLength; i++) {
+              const checkboxSelector = `${tableRowsSelector}:nth-child(${i}) > td.sorting_1 > label > input[type=checkbox]`
+              await page.$eval(checkboxSelector, (e) => {
+                if (e) {
+                  e.checked = true
+                }
+              })
+            }
+            // await page.type("#SelectedTimeSlot", moment().add(1, 'day').format("YYYY-MM-DD"))
+          }
+        },
+      });
+      break;
     default:
       break;
   }
