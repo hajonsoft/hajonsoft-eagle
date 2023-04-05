@@ -34,7 +34,8 @@ const config = [
     name: "register",
     url: "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
     controller: {
-      selector: "#footerId > div > div:nth-child(1) > div.col-lg-6.col-md-4.text-center.text-md-start",
+      selector:
+        "#footerId > div > div:nth-child(1) > div.col-lg-6.col-md-4.text-center.text-md-start",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -495,7 +496,7 @@ async function pageContentHandler(currentConfig) {
               })
             }
             // await page.type("#SelectedTimeSlot", moment().add(1, 'day').format("YYYY-MM-DD"))
-          }
+          },
         },
       });
       break;
@@ -571,39 +572,96 @@ async function pasteSimulatedPassport(shouldSimulatePassport, passenger) {
   }
 }
 
+// TODO: make this function work and use it's value for all select input
+async function getSelectInputOptValue(selector, optionText) {
+  await page.waitForSelector(selector);
+
+  return await page.$eval(selector, (el) => {
+    for (const option of Array.from(el.options)) {
+      if (option.textContent.toLowerCase() === optionText.toLowerCase()) {
+        return option.getAttribute("value");
+      }
+    }
+
+    return null;
+  });
+}
+
 async function registerPassenger(selectedTraveler) {
   const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
-  await util.commit(page, [
-    {
-      selector: "#ApplicantRegistrationViewModel_FirstNameEn",
-      value: (row) =>  row.name.first,
-    },
-    {
-      selector: "#ApplicantRegistrationViewModel_LastNameEn",
-      value: (row) =>  row.name.last,
-    },
-    {
-      selector: "#ApplicantRegistrationViewModel_SecondNameEn",
-      value: (row) =>  row.name.father,
-    },
-    {
-      selector: "#ApplicantRegistrationViewModel_MiddleNameEn",
-      value: (row) =>  row.name.grand,
-    },
-    {
-      selector: "#ApplicantRegistrationViewModel_FirstNameAr",
-      value: (row) =>  row.nameArabic.first,
-    },
-    {
-      selector: "#ApplicantRegistrationViewModel_LastNameAr",
-      value: (row) =>  row.nameArabic.last,
-    },
-  ], passenger);
+  await page.$$eval("input[type='checkbox']", (checks) =>
+    checks.forEach((c) => (c.checked = true))
+  );
 
-  await page.click("#ApplicantRegistrationViewModel_PrivacyAgree")
-  
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#ApplicantRegistrationViewModel_FirstNameEn",
+        value: (row) => row.name.first,
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_LastNameEn",
+        value: (row) => row.name.last,
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_SecondNameEn",
+        value: (row) => row.name.father,
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_MiddleNameEn",
+        value: (row) => row.name.grand,
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_FirstNameAr",
+        value: (row) => row.nameArabic.first,
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_LastNameAr",
+        value: (row) => row.nameArabic.last,
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_CountryResidenceId",
+        value: (row) => "71b74d3b-fe8c-48d0-bada-715b91e1007f",
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_BirthDate",
+        value: (row) => `${row.dob.yyyy}-${row.dob.mm}-${row.dob.dd}`,
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_Email",
+        value: (row) => "no@email.com",
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_Password",
+        value: (row) => "pa55word",
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_PasswordConfirmation",
+        value: (row) => "pa55word",
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_MobileNumber",
+        value: (row) => row.mobileNumber || "+35696961234",
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_GenderId",
+        value: (row) =>
+          row.gender.toLowerCase() === "female"
+            ? "24d70000-4100-0250-08e6-08da85bae1e6"
+            : "24d70000-4100-0250-c0aa-08da85bad857",
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_NationalityId",
+        value: (row) => "b2f944a7-7b03-4f6a-844b-cbfd360b2375",
+      },
+    ],
+    passenger
+  );
+
+  await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
 }
 
 module.exports = { send };
