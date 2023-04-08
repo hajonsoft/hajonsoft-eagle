@@ -466,14 +466,28 @@ async function pageContentHandler(currentConfig) {
               const checkboxSelector = `${tableRowsSelector}:nth-child(${i}) > td.sorting_1 > label > input[type=checkbox]`
               await page.$eval(checkboxSelector, (e) => {
                 if (e) {
-                  e.checked = true
+                  e.click()
                 }
               })
             }
             // await page.type("#SelectedTimeSlot", moment().add(1, 'day').format("YYYY-MM-DD"))
+            // scroll to element #SelectedTimeSlot
+            await page.evaluate((selector) => {
+              const element = document.querySelector(selector)
+              if (element) {
+                element.scrollIntoView()
+              }
+            }
+            , "#SelectedTimeSlot")
+            await page.waitForTimeout(500)
+            await page.type("#SelectedTimeSlot", moment().add(1, 'day').format("YYYY-MM-DD"))
+            await page.waitForTimeout(500)
+
           }
         },
       });
+
+      await page.select("#NusukPermitType", "11");
       break;
     default:
       break;
