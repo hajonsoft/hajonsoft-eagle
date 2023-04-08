@@ -33,6 +33,26 @@ const config = [
     url: "https://hajj.nusuk.sa/",
   },
   {
+    name: "registration-complete",
+    regex:
+      // "https://hajj.nusuk.sa/Applicants/Individual/Registration/Complete/.*",
+      "https://hajj.nusuk.sa/Applicants/Individual/Registration/Complete/[0-9a-f-]+",
+    controller: {
+      selector:
+        "#footerId > div > div:nth-child(1) > div.col-lg-6.col-md-4.text-center.text-md-start",
+      action: async () => {
+        const selectedTraveler = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
+        if (selectedTraveler) {
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
+          await registerPassengerComplete(selectedTraveler);
+        }
+      },
+    },
+  },
+  {
     name: "register",
     regex: "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
     controller: {
@@ -53,7 +73,8 @@ const config = [
   {
     name: "register",
     regex:
-      "https://hajj.nusuk.sa/Applicants/Individual/Registration?handler=RegisterApplicant",
+      // "https://hajj.nusuk.sa/Applicants/Individual/Registration?handler=RegisterApplicant",
+      "https://hajj.nusuk.sa/Applicants/Individual/Registration?handler=RegisterApplicant&?.$",
     controller: {
       selector:
         "#footerId > div > div:nth-child(1) > div.col-lg-6.col-md-4.text-center.text-md-start",
@@ -72,25 +93,6 @@ const config = [
   {
     name: "login",
     url: "https://hajj.nusuk.sa/Account/Login",
-  },
-  {
-    name: "registration-complete",
-    regex:
-      "https://hajj.nusuk.sa/Applicants/Individual/Registration/Complete/.*",
-    controller: {
-      selector:
-        "#footerId > div > div:nth-child(1) > div.col-lg-6.col-md-4.text-center.text-md-start",
-      action: async () => {
-        const selectedTraveler = await page.$eval(
-          "#hajonsoft_select",
-          (el) => el.value
-        );
-        if (selectedTraveler) {
-          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
-          await registerPassengerComplete(selectedTraveler);
-        }
-      },
-    },
   },
 ];
 
@@ -279,10 +281,10 @@ async function registerPassenger(selectedTraveler) {
         selector: "#ApplicantRegistrationViewModel_BirthDate",
         value: (row) => `${row.dob.yyyy}-${row.dob.mm}-${row.dob.dd}`,
       },
-      {
-        selector: "#ApplicantRegistrationViewModel_Email",
-        value: (row) => emailAddress,
-      },
+      // {
+      //   selector: "#ApplicantRegistrationViewModel_Email",
+      //   value: (row) => emailAddress,
+      // },
       {
         selector: "#ApplicantRegistrationViewModel_Password",
         value: (row) => "Pa55word!",
@@ -316,6 +318,19 @@ async function registerPassengerComplete(selectedTraveler) {
   const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
+
+  // TODO: add passport upload..
+  const passportPath = path.join(
+    util.passportsFolder,
+    `${passenger.passportNumber}.jpg`
+  );
+
+  await page.waitForSelector("#CompleteViewModel_PassportPhoto", {
+    timeout: 0,
+  });
+  await util.downloadImage(passenger.images.passport, passportPath);
+  await util.commitFile("#CompleteViewModel_PassportPhoto", passportPath);
+
   await util.commit(
     page,
     [
@@ -323,6 +338,36 @@ async function registerPassengerComplete(selectedTraveler) {
         selector: "#CompleteViewModel_PassportNumber",
         value: (row) => row.passportNumber,
       },
+      {
+        selector: "#CompleteViewModel_PassportTypeId",
+        value: (row) => "Normal", // TODO: add passport type
+      },
+      {
+        selector: "#CompleteViewModel_IssueDate",
+        value: (row) =>
+          `${row.passIssueDt.yyyy}-${row.passIssueDt.mm}-${row.passIssueDt.dd}`,
+      },
+      {
+        selector: "#CompleteViewModel_ExpiryDate",
+        value: (row) =>
+          `${row.passExpireDt.yyyy}-${row.passExpireDt.mm}-${row.passExpireDt.dd}`,
+      },
+      {
+        selector: "#CompleteViewModel_IssuePlace",
+        value: (row) => row.placeOfIssue,
+      },
+      {
+        selector: "#CompleteViewModel_BirthPlace",
+        value: (row) => row.birthPlace,
+      },
+      // {
+      //   selector: "#CompleteViewModel_PassportPhoto",
+      //   value: (row) =>  row.images.passport
+      // },
+      // {
+      //   selector: "#CompleteViewModel_PersonalPhoto",
+      //   value: (row) => row.images.photo,
+      // },
     ],
     passenger
   );
