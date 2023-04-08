@@ -169,7 +169,7 @@ const config = [
   {
     name: "permits",
     url: "https://bsp-nusuk.haj.gov.sa/UmrahOperators/Nusuk/SubmitPermit",
-  }
+  },
 ];
 
 async function send(sendData) {
@@ -226,6 +226,7 @@ async function pageContentHandler(currentConfig) {
       } catch (e) {}
       break;
     case "groups":
+      await page.waitForTimeout(5000);
       if (global.submission.targetGroupId) {
         // If a group already created for this submission, go directly to that page
         await page.goto(
@@ -236,6 +237,7 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "create-group":
+      await page.waitForTimeout(5000);
       await util.commit(page, currentConfig.details, data);
       await page.$eval(
         "#EmbassyId",
@@ -258,7 +260,6 @@ async function pageContentHandler(currentConfig) {
         data
       );
       await page.click("#qa-next");
-
       //Wait for the #EmbassyId-error div and get the text, otherwise wait for the next page to load
       try {
         await page.waitForSelector("#EmbassyId-error", {
@@ -273,6 +274,16 @@ async function pageContentHandler(currentConfig) {
         );
         process.exit(1);
       } catch (err) {
+        // Do nothing
+      }
+      try {
+        await page.waitForSelector(
+          "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled"
+        );
+        await page.click(
+          "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled"
+        );
+      } catch (e) {
         // Do nothing
       }
       break;
@@ -451,39 +462,41 @@ async function pageContentHandler(currentConfig) {
     case "permits":
       await util.commander(page, {
         controller: {
-          selector: "#kt_form > div > div.kt-portlet__head > div.kt-portlet__head-label > h3",
+          selector:
+            "#kt_form > div > div.kt-portlet__head > div.kt-portlet__head-label > h3",
           title: "Select 20",
           arabicTitle: "اختر 20",
           name: "select20",
           action: async () => {
-            const tableSelector = "#DataTables_Table_0"
-            const tableRowsSelector = `${tableSelector} > tbody > tr`
+            const tableSelector = "#DataTables_Table_0";
+            const tableRowsSelector = `${tableSelector} > tbody > tr`;
             const tableRowsLength = await page.$eval(tableRowsSelector, (e) => {
-              return e.length
-            })
-            let loopLength = tableRowsLength < 20 ? tableRowsLength : 20
+              return e.length;
+            });
+            let loopLength = tableRowsLength < 20 ? tableRowsLength : 20;
             for (let i = 1; i <= loopLength; i++) {
-              const checkboxSelector = `${tableRowsSelector}:nth-child(${i}) > td.sorting_1 > label > input[type=checkbox]`
+              const checkboxSelector = `${tableRowsSelector}:nth-child(${i}) > td.sorting_1 > label > input[type=checkbox]`;
               await page.$eval(checkboxSelector, (e) => {
                 if (e) {
-                  e.click()
+                  e.click();
                 }
-              })
+              });
             }
             // await page.type("#SelectedTimeSlot", moment().add(1, 'day').format("YYYY-MM-DD"))
             // scroll to element #SelectedTimeSlot
             await page.evaluate((selector) => {
-              const element = document.querySelector(selector)
+              const element = document.querySelector(selector);
               if (element) {
-                element.scrollIntoView()
+                element.scrollIntoView();
               }
-            }
-            , "#SelectedTimeSlot")
-            await page.waitForTimeout(500)
-            await page.type("#SelectedTimeSlot", moment().add(1, 'day').format("YYYY-MM-DD"))
-            await page.waitForTimeout(500)
-
-          }
+            }, "#SelectedTimeSlot");
+            await page.waitForTimeout(500);
+            await page.type(
+              "#SelectedTimeSlot",
+              moment().add(1, "day").format("YYYY-MM-DD")
+            );
+            await page.waitForTimeout(500);
+          },
         },
       });
 
