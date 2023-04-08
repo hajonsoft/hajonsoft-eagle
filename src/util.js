@@ -1339,6 +1339,7 @@ async function commitCaptchaTokenWithSelector(
     }
   } catch (err) {
     infoMessage(page, "🔓 Captcha error!", 5);
+    console.log(err);
   }
 }
 
