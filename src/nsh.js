@@ -40,6 +40,7 @@ const config = [
     controller: {
       selector:
         "#footerId > div > div:nth-child(1) > div.col-lg-6.col-md-4.text-center.text-md-start",
+      name: "register",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -243,6 +244,13 @@ async function registerPassenger(selectedTraveler) {
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
   emailAddress = await email.getNewEmail();
+  // await kea.updatePassenger(
+  //   passengersData.system.accountId,
+  //   passenger.passportNumber,
+  //   {
+  //     email: emailAddress,
+  //   }
+  // );
   await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
   await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
   await util.commit(
@@ -281,10 +289,10 @@ async function registerPassenger(selectedTraveler) {
         selector: "#ApplicantRegistrationViewModel_BirthDate",
         value: (row) => `${row.dob.yyyy}-${row.dob.mm}-${row.dob.dd}`,
       },
-      // {
-      //   selector: "#ApplicantRegistrationViewModel_Email",
-      //   value: (row) => emailAddress,
-      // },
+      {
+        selector: "#ApplicantRegistrationViewModel_Email",
+        value: (row) => emailAddress,
+      },
       {
         selector: "#ApplicantRegistrationViewModel_Password",
         value: (row) => "Pa55word!",
