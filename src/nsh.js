@@ -238,12 +238,16 @@ async function getSelectInputOptValue(selector, optionText) {
     return null;
   });
 }
-
+let emailAddresses = [];
 async function registerPassenger(selectedTraveler) {
   const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
-  emailAddress = await email.getNewEmail();
+  emailAddress = `${passenger.name.first.replace(/\s/g, "")}${passenger.passportNumber}@mailinator.com`.toLowerCase();
+  if (!emailAddress.includes(emailAddress)) {
+    emailAddresses.push(emailAddress);
+  await email.openMailinator(emailAddress);
+  }
   // await kea.updatePassenger(
   //   passengersData.system.accountId,
   //   passenger.passportNumber,
