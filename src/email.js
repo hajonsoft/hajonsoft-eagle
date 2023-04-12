@@ -21,6 +21,26 @@ async function getNewEmail() {
   return email;
 }
 
+async function openMailinator(emailAddress) {
+  const browser = await puppeteer.launch({
+    headless: false,
+    defaultViewport: null,
+    args: [
+      "--incognito",
+      "--disable-web-security",
+      "--disable-features=IsolateOrigins,site-per-process",
+    ],
+  });
+  const pages = await browser.pages();
+  page = pages[0];
+  await page.goto(`https://www.mailinator.com/v4/public/inboxes.jsp?to=${emailAddress.split('@')[0]}`, {
+    waitUntill: "networkidle0",
+  });
+  // await page.waitForSelector("#email");
+  // const email = await page.$eval("#email", (el) => el.innerText);
+  // return email;
+}
+
 async function getOtpFromEmail(email) {
   const browser = await puppeteer.launch({
     headless: false,
@@ -63,4 +83,4 @@ async function readCode() {
   }
 }
 
-module.exports = { getNewEmail, getOtpFromEmail, readCode, page };
+module.exports = { getNewEmail, getOtpFromEmail, readCode, openMailinator, page };

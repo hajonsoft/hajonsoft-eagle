@@ -120,7 +120,7 @@ const config = [
       },
       {
         selector: "#BirthCity",
-        value: (row) => decodeURI(row.birthPlace) || row.nationality.name,
+        value: (row) => decodeURI(row.birthPlace?.replace(/,/, ' ')) || row.nationality.name,
       },
       {
         selector: "#IssueCity",

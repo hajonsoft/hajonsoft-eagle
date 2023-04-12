@@ -18,6 +18,7 @@ const { send: sendSbr } = require("./src/sbr");
 const { send: sendMtf } = require("./src/mtf");
 const { send: sendGhb } = require("./src/ghb");
 const { send: sendNsk } = require("./src/nsk");
+const { send: sendNsh } = require("./src/nsh");
 const { send: sendTrk } = require("./src/trk");
 
 const util = require("./src/util");
@@ -194,6 +195,8 @@ async function submitToProvider() {
       return sendMtf(data);
     case "nsk":
       return sendNsk(data);
+    case "nsh":
+      return sendNsh(data);
     case "trk":
       return sendTrk(data);
     default:
