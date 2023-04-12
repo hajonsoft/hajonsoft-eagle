@@ -94,6 +94,21 @@ const config = [
   {
     name: "login",
     url: "https://hajj.nusuk.sa/Account/Login",
+    controller: {
+      name: "login",
+      selector:
+        "#footerId > div > div:nth-child(1) > div.col-lg-6.col-md-4.text-center.text-md-start",
+      action: async () => {
+        const selectedTraveler = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
+        if (selectedTraveler) {
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
+          await loginPassenger(selectedTraveler);
+        }
+      },
+    },
   },
 ];
 
@@ -128,29 +143,7 @@ async function pageContentHandler(currentConfig) {
       await util.controller(page, currentConfig, data.travellers);
       break;
     case "login":
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#LogInViewModel_Email",
-            value: (row) => emailAddress,
-          },
-          {
-            selector: "#LogInViewModel_Password",
-            value: (row) => "Pa55word!",
-          },
-        ],
-        data.system
-      );
-      const code = await util.commitCaptchaTokenWithSelector(
-        page,
-        "#img-captcha",
-        "#CaptchaCode",
-        5
-      );
-      if (code && data.system.username && data.system.password) {
-        await page.click("#kt_login_signin_submit");
-      }
+      await util.controller(page, currentConfig, data.travellers);
       break;
     default:
       break;
@@ -224,6 +217,12 @@ async function pasteSimulatedPassport(shouldSimulatePassport, passenger) {
   }
 }
 
+function getPassengerEmailAddress(passenger) {
+  return `${passenger.name.first.replace(/\s/g, "")}${
+    passenger.passportNumber
+  }@mailinator.com`.toLowerCase();
+}
+
 // TODO: make this function work and use it's value for all select input
 async function getSelectInputOptValue(selector, optionText) {
   await page.waitForSelector(selector);
@@ -239,24 +238,27 @@ async function getSelectInputOptValue(selector, optionText) {
   });
 }
 let emailAddresses = [];
+
 async function registerPassenger(selectedTraveler) {
   const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
-  emailAddress = `${passenger.name.first.replace(/\s/g, "")}${passenger.passportNumber}@mailinator.com`.toLowerCase();
+  
+  emailAddress = getPassengerEmailAddress(passenger);
   if (!emailAddress.includes(emailAddress)) {
     emailAddresses.push(emailAddress);
-  await email.openMailinator(emailAddress);
+    await email.openMailinator(emailAddress);
   }
-  // await kea.updatePassenger(
-  //   passengersData.system.accountId,
-  //   passenger.passportNumber,
-  //   {
-  //     email: emailAddress,
-  //   }
-  // );
+
   await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
   await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
+
+  const nationality = nationalities.find(
+    (n) =>
+      n.name.toLowerCase().trim() ===
+      passenger.nationality.name.toLowerCase().trim()
+  )?.uuid;
+
   await util.commit(
     page,
     [
@@ -286,8 +288,7 @@ async function registerPassenger(selectedTraveler) {
       },
       {
         selector: "#ApplicantRegistrationViewModel_CountryResidenceId",
-        value: (row) =>
-          nationalities.find((n) => n.name === row.nationality.name)?.uuid,
+        value: (row) => nationality,
       },
       {
         selector: "#ApplicantRegistrationViewModel_BirthDate",
@@ -318,8 +319,40 @@ async function registerPassenger(selectedTraveler) {
       },
       {
         selector: "#ApplicantRegistrationViewModel_NationalityId",
-        value: (row) =>
-          nationalities.find((n) => n.name === row.nationality.name)?.uuid,
+        value: (row) => nationality,
+      },
+    ],
+    passenger
+  );
+}
+
+async function loginPassenger(selectedTraveler) {
+  const data = fs.readFileSync(getPath("data.json"), "utf-8");
+  var passengersData = JSON.parse(data);
+  const passenger = passengersData.travellers[selectedTraveler];
+
+  // TODO: solve captcha... different captcha
+  // const code = await util.commitCaptchaTokenWithSelector(
+  //   page,
+  //   "#img-captcha",
+  //   "#CaptchaCode",
+  //   5
+  // );
+  // if (code && data.system.username && data.system.password) {
+  //   await page.click("#kt_login_signin_submit");
+  // }
+
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#LogInViewModel_Email",
+        value: (row) => getPassengerEmailAddress(passenger),
+      },
+
+      {
+        selector: "#LogInViewModel_Password",
+        value: (row) => `Pa55word!`,
       },
     ],
     passenger
@@ -331,7 +364,7 @@ async function registerPassengerComplete(selectedTraveler) {
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
 
-  // TODO: add passport upload..
+  // passport upload
   const passportPath = path.join(
     util.passportsFolder,
     `${passenger.passportNumber}.jpg`
@@ -343,6 +376,58 @@ async function registerPassengerComplete(selectedTraveler) {
   await util.downloadImage(passenger.images.passport, passportPath);
   await util.commitFile("#CompleteViewModel_PassportPhoto", passportPath);
 
+  // personal photo upload
+  let photoPath = path.join(
+    util.photosFolder,
+    `${passenger.passportNumber}.jpg`
+  );
+  await page.waitForSelector("#CompleteViewModel_PersonalPhoto", {
+    timeout: 0,
+  });
+
+  // TODO: image not being resized to 15kb...
+  await util.downloadAndResizeImage(passenger, 50, 50, "photo", 5, 15);
+  await util.commitFile("#CompleteViewModel_PersonalPhoto", photoPath);
+
+  // residence upload
+  let residencyPath = path.join(
+    util.residencyFolder,
+    `${passenger.passportNumber}.jpg`
+  );
+  await page.waitForSelector("#CompleteViewModel_ResidencyPhoto", {
+    timeout: 0,
+  });
+
+  await util.downloadImage(
+    passenger.images.residency || passenger.images.passport,
+    residencyPath
+  );
+  await util.commitFile("#CompleteViewModel_ResidencyPhoto", residencyPath);
+
+  if (!passenger.images.residency) {
+    await page.$eval("#HaveResidence_No", (e) => {
+      if (e) {
+        e.checked = true;
+      }
+    });
+  } else {
+    await page.$eval("#HaveResidence_Yes", (e) => {
+      if (e) {
+        e.checked = true;
+      }
+    });
+  }
+
+  await page.waitForSelector("#CompleteViewModel_PassportTypeId", {
+    timeout: 0,
+  });
+
+  await page.$eval("#CompleteViewModel_PassportTypeId", (e) => {
+    if (e) {
+      e.value = "074240a9-e07f-4959-889d-b163c8743dad";
+    }
+  });
+
   await util.commit(
     page,
     [
@@ -350,10 +435,7 @@ async function registerPassengerComplete(selectedTraveler) {
         selector: "#CompleteViewModel_PassportNumber",
         value: (row) => row.passportNumber,
       },
-      {
-        selector: "#CompleteViewModel_PassportTypeId",
-        value: (row) => "Normal", // TODO: add passport type
-      },
+
       {
         selector: "#CompleteViewModel_IssueDate",
         value: (row) =>
@@ -370,16 +452,8 @@ async function registerPassengerComplete(selectedTraveler) {
       },
       {
         selector: "#CompleteViewModel_BirthPlace",
-        value: (row) => row.birthPlace,
+        value: (row) => row.nationality.name,
       },
-      // {
-      //   selector: "#CompleteViewModel_PassportPhoto",
-      //   value: (row) =>  row.images.passport
-      // },
-      // {
-      //   selector: "#CompleteViewModel_PersonalPhoto",
-      //   value: (row) => row.images.photo,
-      // },
     ],
     passenger
   );
@@ -664,7 +738,7 @@ const nationalities = [
   },
   { uuid: "70ddeab9-c07a-46c6-a63a-b9ebde30082d", name: "Uruguay" },
   { uuid: "8310344d-4b26-4ce4-bc2c-90fa8750446e", name: "US Virgin Islands" },
-  { uuid: "f81ee7d7-707d-4e02-82b0-93d9c84b1e0c", name: "Uzbekistan " },
+  { uuid: "f81ee7d7-707d-4e02-82b0-93d9c84b1e0c", name: "Uzbekistan" },
   { uuid: "6a8b1977-f0a6-4fc7-9a3e-f2154fc59085", name: "Vanuatu" },
   { uuid: "49e11c54-a32c-4fee-97d6-248d1b6c0729", name: "Vatican City" },
   { uuid: "adf8cc66-ac09-4aa8-add0-badf96f20c69", name: "Venezuela" },
