@@ -61,15 +61,14 @@ async function getOtpFromEmail(email) {
   await page.waitForSelector("#emailFormBtn");
   await page.click("#emailFormBtn");
 
-  // const email = await page.$eval("#email", (el) => el.innerText);
-  // return email;
+  const code = await page.$eval("#email", (el) => el.innerText);
+  return code;
 }
 
-async function readCode() {
+async function readCode(id = 2) {
   for (let i = 0; i < 10; i++) {
     const content = await page.content();
-    if (content.includes("Motawif | Email Verification Code")) {
-      await page.goto("https://www.minuteinbox.com/window/id/2", {
+      await page.goto(`https://www.minuteinbox.com/window/id/${id}`, {
         waitUntill: "domcontentloaded",
       });
       const selector =
@@ -78,7 +77,7 @@ async function readCode() {
       await page.waitForSelector(selector);
       const code = await page.$eval(selector, (el) => el.innerText);
       return code;
-    }
+    
     await page.waitForTimeout(2000);
   }
 }

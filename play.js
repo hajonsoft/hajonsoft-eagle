@@ -2,19 +2,19 @@ const axios = require('axios');
 const { PDFDocument, StandardFonts } = require('pdf-lib');
 const fs = require('fs');
 
-const url = 'https://bsp-nusuk.haj.gov.sa/Home/DownloadInsuranceDocument/?MutamerMofa=105848936';
+// const url = 'https://bsp-nusuk.haj.gov.sa/Home/DownloadInsuranceDocument/?MutamerMofa=105848936';
 
-axios.get(url, { responseType: 'arraybuffer' }).then(response => {
-  const pdfDoc = PDFDocument.load(response.data);
-  const fileName = 'output.pdf';
+// axios.get(url, { responseType: 'arraybuffer' }).then(response => {
+//   const pdfDoc = PDFDocument.load(response.data);
+//   const fileName = 'output.pdf';
 
-  pdfDoc.save().then((data) => {
-    fs.writeFileSync(fileName, data);
-    console.log(`File saved as ${fileName}`);
-  });
-}).catch(error => {
-  console.error(`Error downloading file: ${error}`);
-});
+//   pdfDoc.save().then((data) => {
+//     fs.writeFileSync(fileName, data);
+//     console.log(`File saved as ${fileName}`);
+//   });
+// }).catch(error => {
+//   console.error(`Error downloading file: ${error}`);
+// });
 
 // const Canvas, { createCanvas, loadImage } = require('canvas')
 // // https://github.com/Automattic/node-canvas
@@ -379,6 +379,38 @@ axios.get(url, { responseType: 'arraybuffer' }).then(response => {
 // const root = fs.readFileSync('./ayman.html', 'utf-8');
 // const data = importMofa(root)
 // console.log('%cMyProject%cline:342%cmofas', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(237, 222, 139);padding:3px;border-radius:2px', data)
+
+
+const MAILGUN_API_KEY = 'pubkey-1dacae088983b8e14d45ea3e49a79c84';
+const DOMAIN = 'your-domain.com';
+
+const newEmailAddress = 'new-email@example.com';
+
+const data = {
+  priority: 0,
+  description: `Forwarding email to ${newEmailAddress}`,
+  expression: `match_recipient('${newEmailAddress}')`,
+  action: `forward('alialiayman@gmail.com')`
+};
+
+axios({
+  method: 'post',
+  url: `https://api.mailgun.net/v3/${DOMAIN}/routes`,
+  auth: {
+    username: 'api',
+    password: MAILGUN_API_KEY
+  },
+  data: data
+})
+.then(response => {
+  console.log(response.data);
+})
+.catch(error => {
+  console.log(error);
+});
+
+
+
 
 
 
