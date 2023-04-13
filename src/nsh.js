@@ -9,6 +9,8 @@ const { getPath } = util;
 const totp = require("totp-generator");
 const kea = require("./lib/kea");
 const email = require("./email");
+const moment = require("moment");
+const budgie = require("./budgie");
 
 let page;
 let data;
@@ -138,6 +140,23 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "register":
       await util.controller(page, currentConfig, data.travellers);
+      await util.commander(page, {
+        controller: {
+          selector:
+            "#footerId > div > div:nth-child(1) > div.col-lg-3.offset-lg-3.col-md-4.offset-md-4",
+          title: "Remember",
+          arabicTitle: "تذكر",
+          name: "rememberPassword",
+          action: async () => {
+            // store password into budgie
+            const password = await page.$eval(
+              "#ApplicantRegistrationViewModel_Password",
+              (el) => el.value
+            );
+            budgie.save("nusuk-hajj-password", password.toString());
+          },
+        },
+      });
       break;
     case "registration-complete":
       await util.controller(page, currentConfig, data.travellers);
@@ -148,79 +167,6 @@ async function pageContentHandler(currentConfig) {
     default:
       break;
   }
-}
-
-async function pasteSimulatedPassport(shouldSimulatePassport, passenger) {
-  if (shouldSimulatePassport) {
-    const blankPassportPath = getPath(`${passenger.passportNumber}_mrz.jpg`);
-    // Generate simulated passport image using the browser canvas api
-    const dataUrl = await page.evaluate((_passenger) => {
-      const ele = document.createElement("canvas");
-      ele.id = "hajonsoftcanvas";
-      ele.style.display = "none";
-      document.body.appendChild(ele);
-      const canvas = document.getElementById("hajonsoftcanvas");
-      canvas.width = 1060;
-      canvas.height = 1500;
-      const ctx = canvas.getContext("2d");
-      // White background
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = "black";
-      // Font must be 11 to fit in the canvas
-      ctx.font =
-        "bold 18pt Courier New, Menlo, Verdana, Verdana, Geneva, sans-serif";
-      ctx.fillText(
-        _passenger.codeline?.replace(/\n/g, "")?.substring(0, 44),
-        14,
-        canvas.height - 60
-      );
-      ctx.fillText(
-        _passenger.codeline?.replace(/\n/g, "")?.substring(44),
-        14,
-        canvas.height - 25
-      );
-
-      // Photo
-      ctx.lineWidth = 1;
-      ctx.fillStyle = "hsl(240, 25%, 94%)";
-      ctx.fillRect(45, 25, 100, 125);
-      // Visible area
-      ctx.fillStyle = "hsl(240, 25%, 94%)";
-      ctx.fillRect(170, 25, 200, 175);
-
-      // under photo area
-      ctx.fillStyle = "hsl(240, 25%, 94%)";
-      ctx.fillRect(45, 165, 100, 35);
-      return canvas.toDataURL("image/jpeg", 1.0);
-    }, passenger);
-
-    // Save dataUrl to file
-    const imageData = dataUrl.replace(/^data:image\/\w+;base64,/, "");
-    const buf = Buffer.from(imageData, "base64");
-    fs.writeFileSync(blankPassportPath, buf);
-    await util.commitFile("#PassportPictureUploader", blankPassportPath);
-    try {
-      await page.waitForFunction(
-        (arg) => {
-          if (document.querySelector(arg).value.length > 0) {
-            return true;
-          }
-        },
-        { timeout: 7000 },
-        "#PassportNumber"
-      );
-    } catch (err) {
-      console.log("Error: ", err);
-    }
-  }
-}
-
-function getPassengerEmailAddress(passenger) {
-  return `${passenger.name.first.replace(/\s/g, "")}${
-    passenger.passportNumber
-  }@mailinator.com`.toLowerCase();
 }
 
 // TODO: make this function work and use it's value for all select input
@@ -237,19 +183,12 @@ async function getSelectInputOptValue(selector, optionText) {
     return null;
   });
 }
-let emailAddresses = [];
-
 async function registerPassenger(selectedTraveler) {
   const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
-  
-  emailAddress = getPassengerEmailAddress(passenger);
-  if (!emailAddress.includes(emailAddress)) {
-    emailAddresses.push(emailAddress);
-    await email.openMailinator(emailAddress);
-  }
 
+  emailAddress = await email.getNewEmail();
   await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
   await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
 
@@ -306,10 +245,6 @@ async function registerPassenger(selectedTraveler) {
         selector: "#ApplicantRegistrationViewModel_PasswordConfirmation",
         value: (row) => "Pa55word!",
       },
-      // {
-      //   selector: "#ApplicantRegistrationViewModel_MobileNumber",
-      //   value: (row) => "+19495555555",
-      // },
       {
         selector: "#ApplicantRegistrationViewModel_GenderId",
         value: (row) =>
@@ -324,6 +259,15 @@ async function registerPassenger(selectedTraveler) {
     ],
     passenger
   );
+
+  await page.click("#ApplicantRegistrationViewModel_Password");
+  await page.$eval("#ApplicantRegistrationViewModel_MobileNumber", (el) => {
+    el.value = "+1949" + new Date().valueOf().toString().substring(6, 13);
+  });
+
+  await page.waitForSelector("#OTPCode");
+  // const code = email.readCode(2);
+  // await page.type("#OTPCode", code);
 }
 
 async function loginPassenger(selectedTraveler) {
@@ -347,7 +291,7 @@ async function loginPassenger(selectedTraveler) {
     [
       {
         selector: "#LogInViewModel_Email",
-        value: (row) => getPassengerEmailAddress(passenger),
+        value: (row) => emailAddress,
       },
 
       {
@@ -364,6 +308,43 @@ async function registerPassengerComplete(selectedTraveler) {
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
 
+
+  await page.$eval("#CompleteViewModel_PassportTypeId", (e) => {
+    if (e) {
+      e.value = "074240a9-e07f-4959-889d-b163c8743dad";
+    }
+  });
+
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#CompleteViewModel_PassportNumber",
+        value: (row) => row.passportNumber,
+      },
+
+      {
+        selector: "#CompleteViewModel_IssueDate",
+        value: (row) =>
+          `${row.passIssueDt.yyyy}-${row.passIssueDt.mm}-${row.passIssueDt.dd}`,
+      },
+      {
+        selector: "#CompleteViewModel_ExpiryDate",
+        value: (row) =>
+          `${row.passExpireDt.yyyy}-${row.passExpireDt.mm}-${row.passExpireDt.dd}`,
+      },
+      {
+        selector: "#CompleteViewModel_IssuePlace",
+        value: (row) => row.placeOfIssue,
+      },
+      {
+        selector: "#CompleteViewModel_BirthPlace",
+        value: (row) => row.nationality.name,
+      },
+    ],
+    passenger
+  );
+  
   // passport upload
   const passportPath = path.join(
     util.passportsFolder,
@@ -422,41 +403,6 @@ async function registerPassengerComplete(selectedTraveler) {
     timeout: 0,
   });
 
-  await page.$eval("#CompleteViewModel_PassportTypeId", (e) => {
-    if (e) {
-      e.value = "074240a9-e07f-4959-889d-b163c8743dad";
-    }
-  });
-
-  await util.commit(
-    page,
-    [
-      {
-        selector: "#CompleteViewModel_PassportNumber",
-        value: (row) => row.passportNumber,
-      },
-
-      {
-        selector: "#CompleteViewModel_IssueDate",
-        value: (row) =>
-          `${row.passIssueDt.yyyy}-${row.passIssueDt.mm}-${row.passIssueDt.dd}`,
-      },
-      {
-        selector: "#CompleteViewModel_ExpiryDate",
-        value: (row) =>
-          `${row.passExpireDt.yyyy}-${row.passExpireDt.mm}-${row.passExpireDt.dd}`,
-      },
-      {
-        selector: "#CompleteViewModel_IssuePlace",
-        value: (row) => row.placeOfIssue,
-      },
-      {
-        selector: "#CompleteViewModel_BirthPlace",
-        value: (row) => row.nationality.name,
-      },
-    ],
-    passenger
-  );
 }
 
 module.exports = { send };
