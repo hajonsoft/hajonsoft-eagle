@@ -175,18 +175,18 @@ async function listNusukMessages(auth, recipient, subject) {
         userId: "me",
         id: message.id,
       });
-      try {
-        const modify_request = {
-          removeLabelIds: ["UNREAD"],
-        };
-        await gmail
-          .users()
-          .messages()
-          .modify((userId = "me"), (id = message.id), (body = modify_request))
-          .execute();
-      } catch (e) {
-        console.log(e);
-      }
+      // try {
+      //   const modify_request = {
+      //     removeLabelIds: ["UNREAD"],
+      //   };
+      //   await gmail
+      //     .users()
+      //     .messages()
+      //     .modify((userId = "me"), (id = message.id), (body = modify_request))
+      //     .execute();
+      // } catch (e) {
+      //   console.log(e);
+      // }
       const messageDate = moment(
         contents.data.payload.headers.find((h) => h.name === "Date").value
       );
