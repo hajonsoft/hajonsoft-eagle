@@ -11,6 +11,7 @@ const kea = require("./lib/kea");
 const email = require("./email");
 const moment = require("moment");
 const budgie = require("./budgie");
+const gmail = require("./lib/gmail");
 
 let page;
 let data;
@@ -74,26 +75,6 @@ const config = [
     },
   },
   {
-    name: "register",
-    regex:
-      // "https://hajj.nusuk.sa/Applicants/Individual/Registration?handler=RegisterApplicant",
-      "https://hajj.nusuk.sa/Applicants/Individual/Registration?handler=RegisterApplicant&?.$",
-    controller: {
-      selector:
-        "#footerId > div > div:nth-child(1) > div.col-lg-6.col-md-4.text-center.text-md-start",
-      action: async () => {
-        const selectedTraveler = await page.$eval(
-          "#hajonsoft_select",
-          (el) => el.value
-        );
-        if (selectedTraveler) {
-          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
-          await registerPassenger(selectedTraveler);
-        }
-      },
-    },
-  },
-  {
     name: "login",
     url: "https://hajj.nusuk.sa/Account/Login",
     controller: {
@@ -112,6 +93,10 @@ const config = [
       },
     },
   },
+  {
+    name: "verify-login",
+    regex: "https://hajj.nusuk.sa/Account/VerifyOTP/",
+  }
 ];
 
 async function send(sendData) {
@@ -154,6 +139,15 @@ async function pageContentHandler(currentConfig) {
               (el) => el.value
             );
             budgie.save("nusuk-hajj-password", password.toString());
+
+            const email = await page.$eval(
+              "#ApplicantRegistrationViewModel_Email",
+              (el) => el.value
+            );
+            const emailDomain = email.split("@")?.[1];
+            if (emailDomain) {
+              budgie.save("nusuk-hajj-email-domain", emailDomain);
+            }
           },
         },
       });
@@ -164,31 +158,36 @@ async function pageContentHandler(currentConfig) {
     case "login":
       await util.controller(page, currentConfig, data.travellers);
       break;
+    case "verify-login":
+      // #VerifyOTPViewModel_OTPCode
+      const code = await gmail.getNusukCodeByEmail(emailAddress, "One Time Password")
+      if (code) {
+        await page.type("#VerifyOTPViewModel_OTPCode", code);
+        await page.click("body > main > div > form > div.text-center > input");
+      }
     default:
       break;
   }
 }
 
-// TODO: make this function work and use it's value for all select input
-async function getSelectInputOptValue(selector, optionText) {
-  await page.waitForSelector(selector);
-
-  return await page.$eval(selector, (el) => {
-    for (const option of Array.from(el.options)) {
-      if (option.textContent.toLowerCase() === optionText.toLowerCase()) {
-        return option.getAttribute("value");
-      }
-    }
-
-    return null;
-  });
-}
 async function registerPassenger(selectedTraveler) {
   const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
+  const emailDomain = budgie.get("nusuk-hajj-email-domain");
+  emailAddress = `${passenger.name.first}${
+    passenger.name.last
+  }${moment().format("YYYYMMDDHHmmss")}@${
+    emailDomain || "premiumemail.ca"
+  }`.toLowerCase();
 
-  emailAddress = await email.getNewEmail();
+  await kea.updatePassenger(
+    passengersData.system.accountId,
+    passenger.passportNumber,
+    {
+      email: emailAddress,
+    }
+  );
   await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
   await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
 
@@ -197,7 +196,7 @@ async function registerPassenger(selectedTraveler) {
       n.name.toLowerCase().trim() ===
       passenger.nationality.name.toLowerCase().trim()
   )?.uuid;
-
+  const nusukPassword = budgie.get("nusuk-hajj-password");
   await util.commit(
     page,
     [
@@ -239,11 +238,11 @@ async function registerPassenger(selectedTraveler) {
       },
       {
         selector: "#ApplicantRegistrationViewModel_Password",
-        value: (row) => "Pa55word!",
+        value: (row) => `${nusukPassword || "Pa55word!"}`,
       },
       {
         selector: "#ApplicantRegistrationViewModel_PasswordConfirmation",
-        value: (row) => "Pa55word!",
+        value: (row) => `${nusukPassword || "Pa55word!"}`,
       },
       {
         selector: "#ApplicantRegistrationViewModel_GenderId",
@@ -266,26 +265,16 @@ async function registerPassenger(selectedTraveler) {
   });
 
   await page.waitForSelector("#OTPCode");
-  // const code = email.readCode(2);
-  // await page.type("#OTPCode", code);
+  await page.waitForTimeout(10000);
+  const code = await gmail.getNusukCodeByEmail(emailAddress, "Email Activation");
+  await page.type("#OTPCode", code);
 }
 
 async function loginPassenger(selectedTraveler) {
   const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
-
-  // TODO: solve captcha... different captcha
-  // const code = await util.commitCaptchaTokenWithSelector(
-  //   page,
-  //   "#img-captcha",
-  //   "#CaptchaCode",
-  //   5
-  // );
-  // if (code && data.system.username && data.system.password) {
-  //   await page.click("#kt_login_signin_submit");
-  // }
-
+  const nusukPassword = budgie.get("nusuk-hajj-password");
   await util.commit(
     page,
     [
@@ -296,7 +285,7 @@ async function loginPassenger(selectedTraveler) {
 
       {
         selector: "#LogInViewModel_Password",
-        value: (row) => `Pa55word!`,
+        value: (row) => `${nusukPassword || "Pa55word!"}`,
       },
     ],
     passenger
@@ -307,7 +296,6 @@ async function registerPassengerComplete(selectedTraveler) {
   const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
-
 
   await page.$eval("#CompleteViewModel_PassportTypeId", (e) => {
     if (e) {
@@ -344,7 +332,7 @@ async function registerPassengerComplete(selectedTraveler) {
     ],
     passenger
   );
-  
+
   // passport upload
   const passportPath = path.join(
     util.passportsFolder,
@@ -402,7 +390,6 @@ async function registerPassengerComplete(selectedTraveler) {
   await page.waitForSelector("#CompleteViewModel_PassportTypeId", {
     timeout: 0,
   });
-
 }
 
 module.exports = { send };

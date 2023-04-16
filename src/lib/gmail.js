@@ -143,7 +143,7 @@ async function listMessages(auth, recipient) {
 
   return newMessages;
 }
- async function getVisitVisaCodeByEmail(email) {
+async function getVisitVisaCodeByEmail(email) {
   const client = await authorize();
   const messages = await listMessages(client, email);
   messages.sort((a, b) => b.date - a.date);
@@ -151,5 +151,62 @@ async function listMessages(auth, recipient) {
   return message?.code;
 }
 
-module.exports = {getVisitVisaCodeByEmail}
+// Read email messages from the user's inbox.
+async function listNusukMessages(auth, recipient, subject) {
+  const newMessages = [];
+  const gmail = google.gmail({ version: "v1", auth });
+  for (let i = 0; i < 20; i++) {
+    const res = await gmail.users.messages.list({
+      userId: "me",
+      includeSpamTrash: true,
+      q: `from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject}`,
+    });
+    const messages = res.data.messages;
+    if (!messages || messages.length === 0) {
+      console.log(
+        `waiting for OTP from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject}`
+      );
+      // wait 10 seconds and try again
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      continue;
+    }
+    for (const message of messages) {
+      const contents = await gmail.users.messages.get({
+        userId: "me",
+        id: message.id,
+      });
+      try {
+        const modify_request = {
+          removeLabelIds: ["UNREAD"],
+        };
+        await gmail
+          .users()
+          .messages()
+          .modify((userId = "me"), (id = message.id), (body = modify_request))
+          .execute();
+      } catch (e) {
+        console.log(e);
+      }
+      const messageDate = moment(
+        contents.data.payload.headers.find((h) => h.name === "Date").value
+      );
+      const verificationCode =
+        contents.data.snippet.match(/Your OTP is (\d{4})/)?.[1];
+      newMessages.push({ code: verificationCode, date: messageDate });
+    }
+    return newMessages;
+  }
+}
+async function getNusukCodeByEmail(email, subject) {
+  const client = await authorize();
+  const messages = await listNusukMessages(client, email, subject);
+  if (!messages || messages.length === 0) {
+    return;
+  }
+  messages.sort((a, b) => b.date - a.date);
+  console.log("📢[gmail.js:197]: messages: ", messages);
+  const message = messages?.[0];
+  return message?.code;
+}
 
+module.exports = { getVisitVisaCodeByEmail, getNusukCodeByEmail };
