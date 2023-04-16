@@ -1343,6 +1343,36 @@ async function commitCaptchaTokenWithSelector(
   }
 }
 
+async function SolveIamNotARobot(responseSelector, url, siteKey) {
+  const data = await axios.get(
+    `http://2captcha.com/in.php?key=637a1787431d77ad2c1618440a3d7149&method=userrecaptcha&googlekey=${siteKey}&pageurl=${url}`
+  );
+  const id = data.data.split("|")?.[1];
+  if (!id) {
+    return;
+  }
+
+  for (let i = 0; i < 20; i++) {
+    const res = await axios.get(
+      `http://2captcha.com/res.php?key=637a1787431d77ad2c1618440a3d7149&action=get&id=${id}`
+    );
+    console.log("solving I am not a robot", id);
+    if (res.data.split("|")[0] === "OK") {
+      const tokenValue = res.data.split("|")[1].replace(/ /g, "");
+      console.log(
+        "📢[util.js:1358]: I am not a robot tokenValue: ",
+        tokenValue
+      );
+      await page.$eval(responseSelector, (el) => {
+        el.style.display = "block";
+      });
+      await page.type(responseSelector, tokenValue);
+      return tokenValue;
+    }
+    // wait 5 seconds
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
+}
 const premiumSupportAlert = async (page, selector, data) => {
   await page.waitForSelector(selector);
   const adNode = await page.$(selector);
@@ -1624,4 +1654,5 @@ module.exports = {
   remember,
   recall,
   getCurrentTime,
+  SolveIamNotARobot,
 };

@@ -96,7 +96,7 @@ const config = [
   {
     name: "verify-login",
     regex: "https://hajj.nusuk.sa/Account/VerifyOTP/",
-  }
+  },
 ];
 
 async function send(sendData) {
@@ -148,6 +148,13 @@ async function pageContentHandler(currentConfig) {
             if (emailDomain) {
               budgie.save("nusuk-hajj-email-domain", emailDomain);
             }
+            const nusukPhone = await page.$eval(
+              "#ApplicantRegistrationViewModel_MobileNumber",
+              (el) => el.value
+            );
+            if (nusukPhone) {
+              budgie.save("nusuk-hajj-phone", nusukPhone.toString());
+            }
           },
         },
       });
@@ -157,10 +164,21 @@ async function pageContentHandler(currentConfig) {
       break;
     case "login":
       await util.controller(page, currentConfig, data.travellers);
+      const loginCaptchaValue = await util.SolveIamNotARobot(
+        "#g-recaptcha-response",
+        "https://hajj.nusuk.sa/Account/Login",
+        "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
+      );
+      if (loginCaptchaValue) {
+        await page.click("body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input");
+      }
       break;
     case "verify-login":
       // #VerifyOTPViewModel_OTPCode
-      const code = await gmail.getNusukCodeByEmail(emailAddress, "One Time Password")
+      const code = await gmail.getNusukCodeByEmail(
+        emailAddress,
+        "One Time Password"
+      );
       if (code) {
         await page.type("#VerifyOTPViewModel_OTPCode", code);
         await page.click("body > main > div > form > div.text-center > input");
@@ -175,21 +193,49 @@ async function registerPassenger(selectedTraveler) {
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[selectedTraveler];
   const emailDomain = budgie.get("nusuk-hajj-email-domain");
-  emailAddress = `${passenger.name.first}${
-    passenger.name.last
-  }${moment().format("YYYYMMDDHHmmss")}@${
-    emailDomain || "premiumemail.ca"
-  }`.toLowerCase();
+  emailAddress = `${passenger.name.first}${passenger.name.last}${moment()
+    .unix()
+    .toString(36)}@${emailDomain || "premiumemail.ca"}`.toLowerCase();
+
+  let telephoneNumber;
+  const nusukPhone = budgie.get("nusuk-hajj-phone");
+  if (nusukPhone) {
+    // find the number of zeros at the end of the phone number
+    const numberOfTrailingZeros = nusukPhone.match(/0*$/)[0].length;
+    const generatedNumber = new Date()
+      .valueOf()
+      .toString()
+      .substring(13 - numberOfTrailingZeros, 13);
+
+    // replace the zeros at the end of the phone number with the generated number
+    telephoneNumber = nusukPhone.replace(/0*$/, generatedNumber);
+  } else {
+    telephoneNumber =
+      "+1949" + new Date().valueOf().toString().substring(6, 13);
+  }
 
   await kea.updatePassenger(
     passengersData.system.accountId,
     passenger.passportNumber,
     {
       email: emailAddress,
+      phone: telephoneNumber,
     }
   );
-  await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
-  await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
+  const isFirstCheckboxChecked = await page.$eval(
+    "#ApplicantRegistrationViewModel_PrivacyAgree",
+    (el) => el.checked
+  );
+  if (!isFirstCheckboxChecked) {
+    await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
+  }
+  const isSecondCheckboxChecked = await page.$eval(
+    "#ApplicantRegistrationViewModel_EndorsementAgree",
+    (el) => el.checked
+  );
+  if (!isSecondCheckboxChecked) {
+    await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
+  }
 
   const nationality = nationalities.find(
     (n) =>
@@ -260,14 +306,31 @@ async function registerPassenger(selectedTraveler) {
   );
 
   await page.click("#ApplicantRegistrationViewModel_Password");
-  await page.$eval("#ApplicantRegistrationViewModel_MobileNumber", (el) => {
-    el.value = "+1949" + new Date().valueOf().toString().substring(6, 13);
-  });
+  await page.$eval(
+    "#ApplicantRegistrationViewModel_MobileNumber",
+    (el, val) => {
+      el.value = val;
+    },
+    telephoneNumber
+  );
 
   await page.waitForSelector("#OTPCode");
-  await page.waitForTimeout(10000);
-  const code = await gmail.getNusukCodeByEmail(emailAddress, "Email Activation");
+  // solve captcha "I am not a robot"
+  const captchaCode = await util.SolveIamNotARobot(
+    "#g-recaptcha-response",
+    "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
+    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
+  );
+  const code = await gmail.getNusukCodeByEmail(
+    emailAddress,
+    "Email Activation"
+  );
   await page.type("#OTPCode", code);
+  if (code && captchaCode) {
+    await page.click(
+      "#verifyOtpModal > div > div > form > div.modal-footer.justify-content-center > button.btn.btn-main.btn-sm"
+    );
+  }
 }
 
 async function loginPassenger(selectedTraveler) {
