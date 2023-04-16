@@ -148,7 +148,6 @@ async function pageContentHandler(currentConfig) {
             if (emailDomain) {
               budgie.save("nusuk-hajj-email-domain", emailDomain);
             }
-
             const nusukPhone = await page.$eval(
               "#ApplicantRegistrationViewModel_MobileNumber",
               (el) => el.value
