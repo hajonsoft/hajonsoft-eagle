@@ -186,6 +186,10 @@ async function pageContentHandler(currentConfig) {
       await util.controller(page, currentConfig, data.travellers);
       break;
     case "login":
+      if (manualMode === "register") {
+        await page.goto("https://hajj.nusuk.sa/Applicants/Individual/Registration/Index|https://hajj.nusuk.sa/Applicants/Individual/Registration?handler=RegisterApplicant")
+        return ;
+      }
       await util.controller(page, currentConfig, data.travellers);
       const loginCaptchaValue = await util.SolveIamNotARobot(
         "#g-recaptcha-response",
@@ -217,6 +221,7 @@ async function registerPassenger(selectedTraveler) {
   const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
   var data = JSON.parse(rawData);
   const passenger = data.travellers[selectedTraveler];
+  console.log("📢[nsh.js:220]: data.system.username: ", data.system.username);
   const emailDomain = data.system.username.includes("@")
     ? data.system.username.split("@")[1]
     : data.system.username;
@@ -336,23 +341,23 @@ async function registerPassenger(selectedTraveler) {
     telephoneNumber
   );
 
-  await page.waitForSelector("#OTPCode");
-  // solve captcha "I am not a robot"
-  const captchaCode = await util.SolveIamNotARobot(
-    "#g-recaptcha-response",
-    "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
-    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
-  );
-  const code = await gmail.getNusukCodeByEmail(
-    emailAddress,
-    "Email Activation"
-  );
-  await page.type("#OTPCode", code);
-  if (code && captchaCode) {
-    await page.click(
-      "#verifyOtpModal > div > div > form > div.modal-footer.justify-content-center > button.btn.btn-main.btn-sm"
-    );
-  }
+  // await page.waitForSelector("#OTPCode");
+  // // solve captcha "I am not a robot"
+  // const captchaCode = await util.SolveIamNotARobot(
+  //   "#g-recaptcha-response",
+  //   "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
+  //   "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
+  // );
+  // const code = await gmail.getNusukCodeByEmail(
+  //   emailAddress,
+  //   "Email Activation"
+  // );
+  // await page.type("#OTPCode", code);
+  // if (code && captchaCode) {
+  //   await page.click(
+  //     "#verifyOtpModal > div > div > form > div.modal-footer.justify-content-center > button.btn.btn-main.btn-sm"
+  //   );
+  // }
 }
 
 async function loginPassenger(selectedTraveler) {
