@@ -349,7 +349,9 @@ async function registerPassenger(selectedTraveler) {
     ],
     passenger
   );
-
+// wait for all javascript functions to execute
+  await page.waitForTimeout(1000);
+  
   await page.waitForSelector("#ApplicantRegistrationViewModel_MobileNumber", {
     visible: true,
   });
