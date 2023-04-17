@@ -129,6 +129,10 @@ async function onContentLoaded(res) {
 async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "register":
+      // scroll to the bottom
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
       if (!manualMode) {
         manualMode = currentConfig.name;
       }
@@ -230,7 +234,6 @@ async function registerPassenger(selectedTraveler) {
   const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
   var data = JSON.parse(rawData);
   const passenger = data.travellers[selectedTraveler];
-  console.log("📢[nsh.js:220]: data.system.username: ", data.system.username);
   const emailDomain = data.system.username.includes("@")
     ? data.system.username.split("@")[1]
     : data.system.username;
@@ -259,6 +262,7 @@ async function registerPassenger(selectedTraveler) {
     }
   }
 
+  passenger.phone = telephoneNumber;
   await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
     email: emailAddress,
     phone: telephoneNumber,
@@ -283,6 +287,7 @@ async function registerPassenger(selectedTraveler) {
       n.name.toLowerCase().trim() ===
       passenger.nationality.name.toLowerCase().trim()
   )?.uuid;
+
   await util.commit(
     page,
     [
@@ -345,29 +350,26 @@ async function registerPassenger(selectedTraveler) {
     passenger
   );
 
-  await page.click("#ApplicantRegistrationViewModel_Password");
-  await page.$eval(
-    "#ApplicantRegistrationViewModel_MobileNumber",
-    (el, val) => {
-      el.value = val;
-    },
-    telephoneNumber
+  await page.waitForSelector("#ApplicantRegistrationViewModel_MobileNumber", {
+    visible: true,
+  });
+  await page.evaluate((passenger) => {
+    const telephoneNumberElement = document.querySelector(
+      "#ApplicantRegistrationViewModel_MobileNumber"
+    );
+    telephoneNumberElement.value = passenger.phone;
+  }, passenger);
+  await page.waitForSelector("#OTPCode", { visible: true });
+  const captchaCode = await util.SolveIamNotARobot(
+    "#g-recaptcha-response",
+    "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
+    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
   );
 
-  await page.waitForSelector("#OTPCode", { visible: true });
-  // use promise.all to wait for both captcha and email code
-
-  const [captchaCode, code] = await Promise.all([
-    util.SolveIamNotARobot(
-      "#g-recaptcha-response",
-      "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
-      "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
-    ),
-    gmail.getNusukCodeByEmail(
-      emailAddress,
-      "Email Activation"
-    )
-  ]);
+  const code = await gmail.getNusukCodeByEmail(
+    emailAddress,
+    "Email Activation"
+  );
 
   await util.commit(
     page,

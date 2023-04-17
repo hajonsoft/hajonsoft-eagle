@@ -1352,7 +1352,7 @@ async function SolveIamNotARobot(responseSelector, url, siteKey) {
     return;
   }
 
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 10; i++) {
     const res = await axios.get(
       `http://2captcha.com/res.php?key=637a1787431d77ad2c1618440a3d7149&action=get&id=${id}`
     );
