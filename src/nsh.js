@@ -321,6 +321,14 @@ async function registerPassenger(selectedTraveler) {
         value: (row) => budgie.get("nusuk-hajj-residence") || nationality,
       },
       {
+        selector: "#ApplicantRegistrationViewModel_SecondNameAr",
+        value: (row) => row.nameArabic.father,
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_MiddleNameAr",
+        value: (row) => row.nameArabic.grand,
+      },
+      {
         selector: "#ApplicantRegistrationViewModel_BirthDate",
         value: (row) => `${row.dob.yyyy}-${row.dob.mm}-${row.dob.dd}`,
       },
