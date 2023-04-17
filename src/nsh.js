@@ -107,34 +107,6 @@ const config = [
 async function send(sendData) {
   data = sendData;
   page = await util.initPage(config, onContentLoaded);
-  // Accept the confirmation dialog, to prevent script hanging
-  page.on("dialog", async (dialog) => {
-    console.log("dialog message: ", dialog.message());
-    if (
-      dialog
-        .message()
-        .match(/You have been successfully registered on Nusuk Hajj platform/i)
-    ) {
-      // Store status in kea
-      const passenger = data.travellers[util.getSelectedTraveler()];
-      util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
-      kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-        "submissionData.nsh.status": "Submitted",
-      });
-      util.incrementSelectedTraveler();
-    }
-    if (dialog.message().match(/The applicant information already used./i)) {
-      // Store status in kea
-      const passenger = data.travellers[util.getSelectedTraveler()];
-      util.infoMessage(page, `🧟 passenger ${passenger.slug} registered`);
-      kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-        "submissionData.nsh.status": "Rejected",
-        "submissionData.nsh.rejectionReason": dialog.message(),
-      });
-      util.incrementSelectedTraveler();
-    }
-    await dialog.accept();
-  });
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
 
@@ -190,6 +162,23 @@ async function pageContentHandler(currentConfig) {
       });
       break;
     case "register-forward":
+      // read the success message here
+      if (manualMode === "register") {
+        const errorMessage = await page.$eval(
+          "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
+          (el) => el.innerText
+        );
+        const passenger = data.travellers[util.getSelectedTraveler()];
+        util.infoMessage(
+          page,
+          `🚦 passenger ${passenger.slug} ERROR not registered`
+        );
+        kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          "submissionData.nsh.status": "Rejected",
+          "submissionData.nsh.rejectionReason": errorMessage || "Unknown error",
+        });
+        util.incrementSelectedTraveler();
+      }
       await page.goto(
         "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index"
       );
@@ -199,6 +188,12 @@ async function pageContentHandler(currentConfig) {
       break;
     case "login":
       if (manualMode === "register") {
+        const passenger = data.travellers[util.getSelectedTraveler()];
+        util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
+        kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          "submissionData.nsh.status": "Submitted",
+        });
+        util.incrementSelectedTraveler();
         await page.goto(
           "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index"
         );
@@ -245,21 +240,23 @@ async function registerPassenger(selectedTraveler) {
       .unix()
       .toString(36)}@${emailDomain}`.toLowerCase();
 
-  let telephoneNumber;
-  const nusukPhone = budgie.get("nusuk-hajj-phone");
-  if (nusukPhone) {
-    // find the number of zeros at the end of the phone number
-    const numberOfTrailingZeros = nusukPhone.match(/0*$/)[0].length;
-    const generatedNumber = new Date()
-      .valueOf()
-      .toString()
-      .substring(13 - numberOfTrailingZeros, 13);
+  let telephoneNumber = passenger.phone;
+  if (!telephoneNumber) {
+    const nusukPhone = budgie.get("nusuk-hajj-phone");
+    if (nusukPhone) {
+      // find the number of zeros at the end of the phone number
+      const numberOfTrailingZeros = nusukPhone.match(/0*$/)[0].length;
+      const generatedNumber = new Date()
+        .valueOf()
+        .toString()
+        .substring(13 - numberOfTrailingZeros, 13);
 
-    // replace the zeros at the end of the phone number with the generated number
-    telephoneNumber = nusukPhone.replace(/0*$/, generatedNumber);
-  } else {
-    telephoneNumber =
-      "+1949" + new Date().valueOf().toString().substring(6, 13);
+      // replace the zeros at the end of the phone number with the generated number
+      telephoneNumber = nusukPhone.replace(/0*$/, generatedNumber);
+    } else {
+      telephoneNumber =
+        "+1949" + new Date().valueOf().toString().substring(6, 13);
+    }
   }
 
   await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
@@ -358,16 +355,20 @@ async function registerPassenger(selectedTraveler) {
   );
 
   await page.waitForSelector("#OTPCode", { visible: true });
-  // solve captcha "I am not a robot"
-  const captchaCode = await util.SolveIamNotARobot(
-    "#g-recaptcha-response",
-    "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
-    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
-  );
-  const code = await gmail.getNusukCodeByEmail(
-    emailAddress,
-    "Email Activation"
-  );
+  // use promise.all to wait for both captcha and email code
+
+  const [captchaCode, code] = await Promise.all([
+    util.SolveIamNotARobot(
+      "#g-recaptcha-response",
+      "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
+      "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
+    ),
+    gmail.getNusukCodeByEmail(
+      emailAddress,
+      "Email Activation"
+    )
+  ]);
+
   await util.commit(
     page,
     [
