@@ -39,7 +39,6 @@ const config = [
   {
     name: "registration-complete",
     regex:
-      // "https://hajj.nusuk.sa/Applicants/Individual/Registration/Complete/.*",
       "https://hajj.nusuk.sa/Applicants/Individual/Registration/Complete/[0-9a-f-]+",
     controller: {
       selector:
@@ -59,8 +58,7 @@ const config = [
   },
   {
     name: "register",
-    regex:
-      "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index|https://hajj.nusuk.sa/Applicants/Individual/Registration?handler=RegisterApplicant",
+    regex: "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
     controller: {
       selector:
         "#footerId > div > div:nth-child(1) > div.col-lg-6.col-md-4.text-center.text-md-start",
@@ -75,6 +73,11 @@ const config = [
         }
       },
     },
+  },
+  {
+    name: "register-forward",
+    regex:
+      "https://hajj.nusuk.sa/Applicants/Individual/Registration.handler=RegisterApplicant",
   },
   {
     name: "login",
@@ -107,7 +110,11 @@ async function send(sendData) {
   // Accept the confirmation dialog, to prevent script hanging
   page.on("dialog", async (dialog) => {
     console.log("dialog message: ", dialog.message());
-    if (dialog.message().match(/You have been successfully registered on Nusuk Hajj platform/i)) {
+    if (
+      dialog
+        .message()
+        .match(/You have been successfully registered on Nusuk Hajj platform/i)
+    ) {
       // Store status in kea
       const passenger = data.travellers[util.getSelectedTraveler()];
       util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
@@ -182,13 +189,20 @@ async function pageContentHandler(currentConfig) {
         },
       });
       break;
+    case "register-forward":
+      await page.goto(
+        "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index"
+      );
+      break;
     case "registration-complete":
       await util.controller(page, currentConfig, data.travellers);
       break;
     case "login":
       if (manualMode === "register") {
-        await page.goto("https://hajj.nusuk.sa/Applicants/Individual/Registration/Index|https://hajj.nusuk.sa/Applicants/Individual/Registration?handler=RegisterApplicant")
-        return ;
+        await page.goto(
+          "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index"
+        );
+        return;
       }
       await util.controller(page, currentConfig, data.travellers);
       const loginCaptchaValue = await util.SolveIamNotARobot(
@@ -225,9 +239,11 @@ async function registerPassenger(selectedTraveler) {
   const emailDomain = data.system.username.includes("@")
     ? data.system.username.split("@")[1]
     : data.system.username;
-  emailAddress = `${passenger.name.first}${passenger.name.last}${moment()
-    .unix()
-    .toString(36)}@${emailDomain}`.toLowerCase();
+  emailAddress =
+    passenger.email ||
+    `${passenger.name.first}${passenger.name.last}${moment()
+      .unix()
+      .toString(36)}@${emailDomain}`.toLowerCase();
 
   let telephoneNumber;
   const nusukPhone = budgie.get("nusuk-hajj-phone");
@@ -341,40 +357,49 @@ async function registerPassenger(selectedTraveler) {
     telephoneNumber
   );
 
-  // await page.waitForSelector("#OTPCode");
-  // // solve captcha "I am not a robot"
-  // const captchaCode = await util.SolveIamNotARobot(
-  //   "#g-recaptcha-response",
-  //   "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
-  //   "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
-  // );
-  // const code = await gmail.getNusukCodeByEmail(
-  //   emailAddress,
-  //   "Email Activation"
-  // );
-  // await page.type("#OTPCode", code);
-  // if (code && captchaCode) {
-  //   await page.click(
-  //     "#verifyOtpModal > div > div > form > div.modal-footer.justify-content-center > button.btn.btn-main.btn-sm"
-  //   );
-  // }
+  await page.waitForSelector("#OTPCode", { visible: true });
+  // solve captcha "I am not a robot"
+  const captchaCode = await util.SolveIamNotARobot(
+    "#g-recaptcha-response",
+    "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
+    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
+  );
+  const code = await gmail.getNusukCodeByEmail(
+    emailAddress,
+    "Email Activation"
+  );
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#OTPCode",
+        value: (row) => code,
+      },
+    ],
+    passenger
+  );
+  if (code && captchaCode) {
+    await page.click(
+      "#verifyOtpModal > div > div > form > div.modal-footer.justify-content-center > button.btn.btn-main.btn-sm"
+    );
+  }
 }
 
 async function loginPassenger(selectedTraveler) {
-  const data = fs.readFileSync(getPath("data.json"), "utf-8");
-  var passengersData = JSON.parse(data);
-  const passenger = passengersData.travellers[selectedTraveler];
+  const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
+  var data = JSON.parse(rawData);
+  const passenger = data.travellers[selectedTraveler];
   await util.commit(
     page,
     [
       {
         selector: "#LogInViewModel_Email",
-        value: (row) => emailAddress,
+        value: (row) => row.email,
       },
 
       {
         selector: "#LogInViewModel_Password",
-        value: (row) => passengersData.system.password,
+        value: (row) => data.system.password,
       },
     ],
     passenger
@@ -382,9 +407,9 @@ async function loginPassenger(selectedTraveler) {
 }
 
 async function registerPassengerComplete(selectedTraveler) {
-  const data = fs.readFileSync(getPath("data.json"), "utf-8");
-  var passengersData = JSON.parse(data);
-  const passenger = passengersData.travellers[selectedTraveler];
+  const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
+  var data = JSON.parse(rawData);
+  const passenger = data.travellers[selectedTraveler];
 
   await page.$eval("#CompleteViewModel_PassportTypeId", (e) => {
     if (e) {
