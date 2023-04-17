@@ -229,6 +229,7 @@ function toPassengers(passengers) {
         grand: namesArabic[2],
       },
       mobileNumber: passenger.phone,
+      email: passenger.email,
       gender: passenger.gender,
       dob: {
         ...toDate(passenger.birthDate),
