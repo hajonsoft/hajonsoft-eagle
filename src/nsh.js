@@ -231,6 +231,7 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function registerPassenger(selectedTraveler) {
+  util.setSelectedTraveller(selectedTraveler);
   const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
   var data = JSON.parse(rawData);
   const passenger = data.travellers[selectedTraveler];
@@ -351,7 +352,7 @@ async function registerPassenger(selectedTraveler) {
   );
 // wait for all javascript functions to execute
   await page.waitForTimeout(1000);
-  
+
   await page.waitForSelector("#ApplicantRegistrationViewModel_MobileNumber", {
     visible: true,
   });
@@ -361,6 +362,7 @@ async function registerPassenger(selectedTraveler) {
     );
     telephoneNumberElement.value = passenger.phone;
   }, passenger);
+  await page.click("#frmRegisteration")
   await page.waitForSelector("#OTPCode", { visible: true });
   const captchaCode = await util.SolveIamNotARobot(
     "#g-recaptcha-response",
