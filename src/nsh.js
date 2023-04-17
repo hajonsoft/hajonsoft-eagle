@@ -18,6 +18,7 @@ let data;
 let counter = 0;
 let passenger;
 let emailAddress;
+let manualMode;
 
 function getLogFile() {
   const logFolder = path.join(getPath("log"), data.info.munazim);
@@ -38,7 +39,6 @@ const config = [
   {
     name: "registration-complete",
     regex:
-      // "https://hajj.nusuk.sa/Applicants/Individual/Registration/Complete/.*",
       "https://hajj.nusuk.sa/Applicants/Individual/Registration/Complete/[0-9a-f-]+",
     controller: {
       selector:
@@ -73,6 +73,11 @@ const config = [
         }
       },
     },
+  },
+  {
+    name: "register-forward",
+    regex:
+      "https://hajj.nusuk.sa/Applicants/Individual/Registration.handler=RegisterApplicant",
   },
   {
     name: "login",
@@ -124,6 +129,9 @@ async function onContentLoaded(res) {
 async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "register":
+      if (!manualMode) {
+        manualMode = currentConfig.name;
+      }
       await util.controller(page, currentConfig, data.travellers);
       await util.commander(page, {
         controller: {
@@ -134,20 +142,6 @@ async function pageContentHandler(currentConfig) {
           name: "rememberPassword",
           action: async () => {
             // store password into budgie
-            const password = await page.$eval(
-              "#ApplicantRegistrationViewModel_Password",
-              (el) => el.value
-            );
-            budgie.save("nusuk-hajj-password", password.toString());
-
-            const email = await page.$eval(
-              "#ApplicantRegistrationViewModel_Email",
-              (el) => el.value
-            );
-            const emailDomain = email.split("@")?.[1];
-            if (emailDomain) {
-              budgie.save("nusuk-hajj-email-domain", emailDomain);
-            }
             const nusukPhone = await page.$eval(
               "#ApplicantRegistrationViewModel_MobileNumber",
               (el) => el.value
@@ -155,14 +149,56 @@ async function pageContentHandler(currentConfig) {
             if (nusukPhone) {
               budgie.save("nusuk-hajj-phone", nusukPhone.toString());
             }
+
+            const nusukResidence = await page.$eval(
+              "#ApplicantRegistrationViewModel_CountryResidenceId",
+              (el) => el.value
+            );
+            if (nusukResidence) {
+              budgie.save("nusuk-hajj-residence", nusukResidence.toString());
+            }
           },
         },
       });
+      break;
+    case "register-forward":
+      // read the success message here
+      if (manualMode === "register") {
+        const errorMessage = await page.$eval(
+          "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
+          (el) => el.innerText
+        );
+        const passenger = data.travellers[util.getSelectedTraveler()];
+        util.infoMessage(
+          page,
+          `🚦 passenger ${passenger.slug} ERROR not registered`
+        );
+        kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          "submissionData.nsh.status": "Rejected",
+          "submissionData.nsh.rejectionReason": errorMessage || "Unknown error",
+        });
+        util.incrementSelectedTraveler();
+      }
+      await page.goto(
+        "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index"
+      );
       break;
     case "registration-complete":
       await util.controller(page, currentConfig, data.travellers);
       break;
     case "login":
+      if (manualMode === "register") {
+        const passenger = data.travellers[util.getSelectedTraveler()];
+        util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
+        kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          "submissionData.nsh.status": "Submitted",
+        });
+        util.incrementSelectedTraveler();
+        await page.goto(
+          "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index"
+        );
+        return;
+      }
       await util.controller(page, currentConfig, data.travellers);
       const loginCaptchaValue = await util.SolveIamNotARobot(
         "#g-recaptcha-response",
@@ -170,7 +206,9 @@ async function pageContentHandler(currentConfig) {
         "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
       );
       if (loginCaptchaValue) {
-        await page.click("body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input");
+        await page.click(
+          "body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input"
+        );
       }
       break;
     case "verify-login":
@@ -189,39 +227,42 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function registerPassenger(selectedTraveler) {
-  const data = fs.readFileSync(getPath("data.json"), "utf-8");
-  var passengersData = JSON.parse(data);
-  const passenger = passengersData.travellers[selectedTraveler];
-  const emailDomain = budgie.get("nusuk-hajj-email-domain");
-  emailAddress = `${passenger.name.first}${passenger.name.last}${moment()
-    .unix()
-    .toString(36)}@${emailDomain || "premiumemail.ca"}`.toLowerCase();
+  const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
+  var data = JSON.parse(rawData);
+  const passenger = data.travellers[selectedTraveler];
+  console.log("📢[nsh.js:220]: data.system.username: ", data.system.username);
+  const emailDomain = data.system.username.includes("@")
+    ? data.system.username.split("@")[1]
+    : data.system.username;
+  emailAddress =
+    passenger.email ||
+    `${passenger.name.first}${passenger.name.last}${moment()
+      .unix()
+      .toString(36)}@${emailDomain}`.toLowerCase();
 
-  let telephoneNumber;
-  const nusukPhone = budgie.get("nusuk-hajj-phone");
-  if (nusukPhone) {
-    // find the number of zeros at the end of the phone number
-    const numberOfTrailingZeros = nusukPhone.match(/0*$/)[0].length;
-    const generatedNumber = new Date()
-      .valueOf()
-      .toString()
-      .substring(13 - numberOfTrailingZeros, 13);
+  let telephoneNumber = passenger.phone;
+  if (!telephoneNumber) {
+    const nusukPhone = budgie.get("nusuk-hajj-phone");
+    if (nusukPhone) {
+      // find the number of zeros at the end of the phone number
+      const numberOfTrailingZeros = nusukPhone.match(/0*$/)[0].length;
+      const generatedNumber = new Date()
+        .valueOf()
+        .toString()
+        .substring(13 - numberOfTrailingZeros, 13);
 
-    // replace the zeros at the end of the phone number with the generated number
-    telephoneNumber = nusukPhone.replace(/0*$/, generatedNumber);
-  } else {
-    telephoneNumber =
-      "+1949" + new Date().valueOf().toString().substring(6, 13);
+      // replace the zeros at the end of the phone number with the generated number
+      telephoneNumber = nusukPhone.replace(/0*$/, generatedNumber);
+    } else {
+      telephoneNumber =
+        "+1949" + new Date().valueOf().toString().substring(6, 13);
+    }
   }
 
-  await kea.updatePassenger(
-    passengersData.system.accountId,
-    passenger.passportNumber,
-    {
-      email: emailAddress,
-      phone: telephoneNumber,
-    }
-  );
+  await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+    email: emailAddress,
+    phone: telephoneNumber,
+  });
   const isFirstCheckboxChecked = await page.$eval(
     "#ApplicantRegistrationViewModel_PrivacyAgree",
     (el) => el.checked
@@ -242,7 +283,6 @@ async function registerPassenger(selectedTraveler) {
       n.name.toLowerCase().trim() ===
       passenger.nationality.name.toLowerCase().trim()
   )?.uuid;
-  const nusukPassword = budgie.get("nusuk-hajj-password");
   await util.commit(
     page,
     [
@@ -272,7 +312,7 @@ async function registerPassenger(selectedTraveler) {
       },
       {
         selector: "#ApplicantRegistrationViewModel_CountryResidenceId",
-        value: (row) => nationality,
+        value: (row) => budgie.get("nusuk-hajj-residence") || nationality,
       },
       {
         selector: "#ApplicantRegistrationViewModel_BirthDate",
@@ -284,11 +324,11 @@ async function registerPassenger(selectedTraveler) {
       },
       {
         selector: "#ApplicantRegistrationViewModel_Password",
-        value: (row) => `${nusukPassword || "Pa55word!"}`,
+        value: (row) => data.system.password,
       },
       {
         selector: "#ApplicantRegistrationViewModel_PasswordConfirmation",
-        value: (row) => `${nusukPassword || "Pa55word!"}`,
+        value: (row) => data.system.password,
       },
       {
         selector: "#ApplicantRegistrationViewModel_GenderId",
@@ -314,18 +354,31 @@ async function registerPassenger(selectedTraveler) {
     telephoneNumber
   );
 
-  await page.waitForSelector("#OTPCode");
-  // solve captcha "I am not a robot"
-  const captchaCode = await util.SolveIamNotARobot(
-    "#g-recaptcha-response",
-    "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
-    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
+  await page.waitForSelector("#OTPCode", { visible: true });
+  // use promise.all to wait for both captcha and email code
+
+  const [captchaCode, code] = await Promise.all([
+    util.SolveIamNotARobot(
+      "#g-recaptcha-response",
+      "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
+      "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
+    ),
+    gmail.getNusukCodeByEmail(
+      emailAddress,
+      "Email Activation"
+    )
+  ]);
+
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#OTPCode",
+        value: (row) => code,
+      },
+    ],
+    passenger
   );
-  const code = await gmail.getNusukCodeByEmail(
-    emailAddress,
-    "Email Activation"
-  );
-  await page.type("#OTPCode", code);
   if (code && captchaCode) {
     await page.click(
       "#verifyOtpModal > div > div > form > div.modal-footer.justify-content-center > button.btn.btn-main.btn-sm"
@@ -334,21 +387,20 @@ async function registerPassenger(selectedTraveler) {
 }
 
 async function loginPassenger(selectedTraveler) {
-  const data = fs.readFileSync(getPath("data.json"), "utf-8");
-  var passengersData = JSON.parse(data);
-  const passenger = passengersData.travellers[selectedTraveler];
-  const nusukPassword = budgie.get("nusuk-hajj-password");
+  const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
+  var data = JSON.parse(rawData);
+  const passenger = data.travellers[selectedTraveler];
   await util.commit(
     page,
     [
       {
         selector: "#LogInViewModel_Email",
-        value: (row) => emailAddress,
+        value: (row) => row.email,
       },
 
       {
         selector: "#LogInViewModel_Password",
-        value: (row) => `${nusukPassword || "Pa55word!"}`,
+        value: (row) => data.system.password,
       },
     ],
     passenger
@@ -356,9 +408,9 @@ async function loginPassenger(selectedTraveler) {
 }
 
 async function registerPassengerComplete(selectedTraveler) {
-  const data = fs.readFileSync(getPath("data.json"), "utf-8");
-  var passengersData = JSON.parse(data);
-  const passenger = passengersData.travellers[selectedTraveler];
+  const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
+  var data = JSON.parse(rawData);
+  const passenger = data.travellers[selectedTraveler];
 
   await page.$eval("#CompleteViewModel_PassportTypeId", (e) => {
     if (e) {
@@ -418,7 +470,7 @@ async function registerPassengerComplete(selectedTraveler) {
   });
 
   // TODO: image not being resized to 15kb...
-  await util.downloadAndResizeImage(passenger, 50, 50, "photo", 5, 15);
+  await util.downloadAndResizeImage(passenger, 200, 200, "photo", 5, 17);
   await util.commitFile("#CompleteViewModel_PersonalPhoto", photoPath);
 
   // residence upload
