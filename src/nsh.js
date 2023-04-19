@@ -37,6 +37,14 @@ const config = [
     url: "https://hajj.nusuk.sa/",
   },
   {
+    name: "profile",
+    url: "https://hajj.nusuk.sa/Account/Profile",
+  },
+  {
+    name: "index",
+    url: "https://hajj.nusuk.sa/Index",
+  },
+  {
     name: "registration-complete",
     regex:
       "https://hajj.nusuk.sa/Applicants/Individual/Registration/Complete/[0-9a-f-]+",
@@ -128,6 +136,22 @@ async function onContentLoaded(res) {
 
 async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
+    case "index":
+      if (manualMode === "login") {
+        await page.goto("https://hajj.nusuk.sa/Account/LogIn");
+      }
+      break;
+    case "profile":
+      // completed registration success
+      const passengeForMofa = data.travellers[util.getSelectedTraveler()];
+      util.incrementSelectedTraveler();
+      kea.updatePassenger(
+        data.system.accountId,
+        passengeForMofa.passportNumber,
+        { mofaNumber: "complete" }
+      );
+
+      break;
     case "register":
       // scroll to the bottom
       await page.evaluate(() => {
@@ -191,8 +215,11 @@ async function pageContentHandler(currentConfig) {
       await util.controller(page, currentConfig, data.travellers);
       break;
     case "login":
+      const passenger = data.travellers[util.getSelectedTraveler()];
+      if (!manualMode) {
+        manualMode = currentConfig.name;
+      }
       if (manualMode === "register") {
-        const passenger = data.travellers[util.getSelectedTraveler()];
         util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
         kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
           "submissionData.nsh.status": "Submitted",
@@ -209,17 +236,32 @@ async function pageContentHandler(currentConfig) {
         "https://hajj.nusuk.sa/Account/Login",
         "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
       );
-      if (loginCaptchaValue) {
-        await page.click(
-          "body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input"
-        );
-      }
+      // const emailAddress = await page.$eval(
+      //   "#LogInViewModel_Email",
+      //   (el) => el.value
+      // );
+
+      // const password = await page.$eval(
+      //   "#LoginViewModel_Password",
+      //   (el) => el.value
+      // );
+      // if (
+      //   loginCaptchaValue &&
+      //   manualMode === "login" &&
+      //   emailAddress &&
+      //   password
+      // ) {
+      //   await page.click(
+      //     "body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input"
+      //   );
+      // }
       break;
     case "verify-login":
       // #VerifyOTPViewModel_OTPCode
+      const passengerForEmail = data.travellers[util.getSelectedTraveler()];
       const code = await gmail.getNusukCodeByEmail(
-        emailAddress,
-        "One Time Password"
+        passengerForEmail.email,
+        `("One Time Password" OR "رمز سري لمرة واحدة")`
       );
       if (code) {
         await page.type("#VerifyOTPViewModel_OTPCode", code);
@@ -358,7 +400,7 @@ async function registerPassenger(selectedTraveler) {
     ],
     passenger
   );
-// wait for all javascript functions to execute
+  // wait for all javascript functions to execute
   await page.waitForTimeout(1000);
 
   await page.waitForSelector("#ApplicantRegistrationViewModel_MobileNumber", {
@@ -370,7 +412,7 @@ async function registerPassenger(selectedTraveler) {
     );
     telephoneNumberElement.value = passenger.phone;
   }, passenger);
-  await page.click("#frmRegisteration")
+  await page.click("#frmRegisteration");
   await page.waitForSelector("#OTPCode", { visible: true });
   const captchaCode = await util.SolveIamNotARobot(
     "#g-recaptcha-response",
@@ -380,7 +422,7 @@ async function registerPassenger(selectedTraveler) {
 
   const code = await gmail.getNusukCodeByEmail(
     emailAddress,
-    "Email Activation"
+    `("Email Activation" OR "تفعيل البريد الالكتروني")`
   );
 
   await util.commit(
@@ -401,6 +443,7 @@ async function registerPassenger(selectedTraveler) {
 }
 
 async function loginPassenger(selectedTraveler) {
+  util.setSelectedTraveller(selectedTraveler);
   const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
   var data = JSON.parse(rawData);
   const passenger = data.travellers[selectedTraveler];
@@ -516,9 +559,7 @@ async function registerPassengerComplete(selectedTraveler) {
     });
   }
 
-  await page.waitForSelector("#CompleteViewModel_PassportTypeId", {
-    timeout: 0,
-  });
+  await page.click("body > main > div > form > div.text-center.mt-5 > input");
 }
 
 module.exports = { send };
