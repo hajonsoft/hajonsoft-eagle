@@ -1349,7 +1349,7 @@ async function SolveIamNotARobot(responseSelector, url, siteKey) {
   );
   const id = data.data.split("|")?.[1];
   if (!id) {
-    return;
+    return null;
   }
 
   for (let i = 0; i < 10; i++) {

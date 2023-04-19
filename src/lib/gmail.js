@@ -155,7 +155,7 @@ async function getVisitVisaCodeByEmail(email) {
 async function listNusukMessages(auth, recipient, subject) {
   const newMessages = [];
   const gmail = google.gmail({ version: "v1", auth });
-  const query = `in:inbox from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject}`
+  const query = `in:inbox from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject} newer_than:5m`
   for (let i = 0; i < 20; i++) {
     const res = await gmail.users.messages.list({
       userId: "me",
@@ -176,18 +176,6 @@ async function listNusukMessages(auth, recipient, subject) {
         userId: "me",
         id: message.id,
       });
-      // try {
-      //   const modify_request = {
-      //     removeLabelIds: ["UNREAD"],
-      //   };
-      //   await gmail
-      //     .users()
-      //     .messages()
-      //     .modify((userId = "me"), (id = message.id), (body = modify_request))
-      //     .execute();
-      // } catch (e) {
-      //   console.log(e);
-      // }
       const messageDate = moment(
         contents.data.payload.headers.find((h) => h.name === "Date").value
       );
