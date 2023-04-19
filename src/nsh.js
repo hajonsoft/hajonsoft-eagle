@@ -261,7 +261,7 @@ async function pageContentHandler(currentConfig) {
       const passengerForEmail = data.travellers[util.getSelectedTraveler()];
       const code = await gmail.getNusukCodeByEmail(
         passengerForEmail.email,
-        `("One Time Password" OR "رمز سري لمرة واحدة")`
+        "One Time Password"
       );
       if (code) {
         await page.type("#VerifyOTPViewModel_OTPCode", code);
@@ -422,7 +422,7 @@ async function registerPassenger(selectedTraveler) {
 
   const code = await gmail.getNusukCodeByEmail(
     emailAddress,
-    `("Email Activation" OR "تفعيل البريد الالكتروني")`
+    "Email Activation"
   );
 
   await util.commit(
