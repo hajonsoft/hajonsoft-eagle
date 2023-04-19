@@ -155,16 +155,17 @@ async function getVisitVisaCodeByEmail(email) {
 async function listNusukMessages(auth, recipient, subject) {
   const newMessages = [];
   const gmail = google.gmail({ version: "v1", auth });
+  const query = `in:inbox from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject}`
   for (let i = 0; i < 20; i++) {
     const res = await gmail.users.messages.list({
       userId: "me",
       includeSpamTrash: true,
-      q: `from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject}`,
+      q: query,
     });
     const messages = res.data.messages;
     if (!messages || messages.length === 0) {
       console.log(
-        `waiting for OTP from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject}`
+        `waiting for OTP ${query}`
       );
       // wait 10 seconds and try again
       await new Promise((resolve) => setTimeout(resolve, 10000));

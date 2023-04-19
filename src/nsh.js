@@ -148,7 +148,7 @@ async function pageContentHandler(currentConfig) {
       kea.updatePassenger(
         data.system.accountId,
         passengeForMofa.passportNumber,
-        { mofaNumber: "complete" }
+        { "submissionData.nsh.status": "Submitted", mofaNumber: "complete" }
       );
 
       break;
