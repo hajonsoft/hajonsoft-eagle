@@ -359,20 +359,35 @@ async function registerPassenger(selectedTraveler) {
     email: emailAddress,
     phone: telephoneNumber,
   });
-  const isFirstCheckboxChecked = await page.$eval(
-    "#ApplicantRegistrationViewModel_PrivacyAgree",
-    (el) => el.checked
+
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#ApplicantRegistrationViewModel_PrivacyAgree",
+        value: () => true,
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_EndorsementAgree",
+        value: () => true,
+      },
+    ],
+    {}
   );
-  if (!isFirstCheckboxChecked) {
-    await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
-  }
-  const isSecondCheckboxChecked = await page.$eval(
-    "#ApplicantRegistrationViewModel_EndorsementAgree",
-    (el) => el.checked
-  );
-  if (!isSecondCheckboxChecked) {
-    await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
-  }
+  // const isFirstCheckboxChecked = await page.$eval(
+  //   "#ApplicantRegistrationViewModel_PrivacyAgree",
+  //   (el) => el.checked
+  // );
+  // if (!isFirstCheckboxChecked) {
+  //   await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
+  // }
+  // const isSecondCheckboxChecked = await page.$eval(
+  //   "#ApplicantRegistrationViewModel_EndorsementAgree",
+  //   (el) => el.checked
+  // );
+  // if (!isSecondCheckboxChecked) {
+  //   await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
+  // }
 
   const nationality = nationalities.find(
     (n) =>
@@ -463,12 +478,17 @@ async function registerPassenger(selectedTraveler) {
   }, passenger);
   await page.click("#frmRegisteration");
   await page.waitForSelector("#OTPCode", { visible: true });
+  await util.infoMessage(page, "captcha ...");
   const captchaCode = await util.SolveIamNotARobot(
     "#g-recaptcha-response",
     "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
     "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
   );
 
+  if (!captchaCode) {
+    await util.infoMessage(page, "Manual captcha required ...");
+  }
+  await util.infoMessage(page, "OTP ...");
   const code = await gmail.getNusukCodeByEmail(
     emailAddress,
     "Email Activation"
