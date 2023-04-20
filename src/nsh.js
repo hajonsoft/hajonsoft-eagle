@@ -148,9 +148,11 @@ async function pageContentHandler(currentConfig) {
       kea.updatePassenger(
         data.system.accountId,
         passengeForMofa.passportNumber,
-        { "submissionData.nsh.status": "Submitted", mofaNumber: "complete" }
+        { "submissionData.nsh.status": "Submitted", mofaNumber: "attachments" }
       );
-
+      if (fs.readFileSync(getPath("loop.txt"))) {
+        await page.goto("https://hajj.nusuk.sa/Account/Signout");
+      }
       break;
     case "register":
       // scroll to the bottom
@@ -231,11 +233,18 @@ async function pageContentHandler(currentConfig) {
         return;
       }
       await util.controller(page, currentConfig, data.travellers);
+      if (fs.readFileSync(getPath("loop.txt"))) {
+        await loginPassenger(util.getSelectedTraveler());
+      }
+      util.infoMessage(page, `Captcha ...`);
       const loginCaptchaValue = await util.SolveIamNotARobot(
         "#g-recaptcha-response",
         "https://hajj.nusuk.sa/Account/Login",
         "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
       );
+      if (!loginCaptchaValue) {
+        util.infoMessage(page, `Manual captcha required`);
+      }
       // const emailAddress = await page.$eval(
       //   "#LogInViewModel_Email",
       //   (el) => el.value
@@ -259,13 +268,22 @@ async function pageContentHandler(currentConfig) {
     case "verify-login":
       // #VerifyOTPViewModel_OTPCode
       const passengerForEmail = data.travellers[util.getSelectedTraveler()];
+      util.infoMessage(page, `OTP ...`);
       const code = await gmail.getNusukCodeByEmail(
         passengerForEmail.email,
         "One Time Password"
       );
       if (code) {
-        await page.type("#VerifyOTPViewModel_OTPCode", code);
-        await page.click("body > main > div > form > div.text-center > input");
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#VerifyOTPViewModel_OTPCode",
+              value: () => code,
+            },
+          ],
+          {}
+        );
       }
     default:
       break;
@@ -527,8 +545,15 @@ async function registerPassengerComplete(selectedTraveler) {
   });
 
   // TODO: image not being resized to 15kb...
-  await util.downloadAndResizeImage(passenger, 200, 200, "photo", 5, 17);
-  await util.commitFile("#CompleteViewModel_PersonalPhoto", photoPath);
+  const resizedPhotoPath = await util.downloadAndResizeImage(
+    passenger,
+    200,
+    200,
+    "photo",
+    5,
+    17
+  );
+  await util.commitFile("#CompleteViewModel_PersonalPhoto", resizedPhotoPath);
 
   // residence upload
   let residencyPath = path.join(
