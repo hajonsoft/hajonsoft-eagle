@@ -359,35 +359,7 @@ async function registerPassenger(selectedTraveler) {
     email: emailAddress,
     phone: telephoneNumber,
   });
-
-  await util.commit(
-    page,
-    [
-      {
-        selector: "#ApplicantRegistrationViewModel_PrivacyAgree",
-        value: () => true,
-      },
-      {
-        selector: "#ApplicantRegistrationViewModel_EndorsementAgree",
-        value: () => true,
-      },
-    ],
-    {}
-  );
-  // const isFirstCheckboxChecked = await page.$eval(
-  //   "#ApplicantRegistrationViewModel_PrivacyAgree",
-  //   (el) => el.checked
   // );
-  // if (!isFirstCheckboxChecked) {
-  //   await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
-  // }
-  // const isSecondCheckboxChecked = await page.$eval(
-  //   "#ApplicantRegistrationViewModel_EndorsementAgree",
-  //   (el) => el.checked
-  // );
-  // if (!isSecondCheckboxChecked) {
-  //   await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
-  // }
 
   const nationality = nationalities.find(
     (n) =>
@@ -461,6 +433,14 @@ async function registerPassenger(selectedTraveler) {
         selector: "#ApplicantRegistrationViewModel_NationalityId",
         value: (row) => nationality,
       },
+      {
+        selector: "#ApplicantRegistrationViewModel_PrivacyAgree",
+        value: () => true,
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_EndorsementAgree",
+        value: () => true,
+      },
     ],
     passenger
   );
@@ -476,9 +456,25 @@ async function registerPassenger(selectedTraveler) {
     );
     telephoneNumberElement.value = passenger.phone;
   }, passenger);
+
+  const isFirstCheckboxChecked = await page.$eval(
+    "#ApplicantRegistrationViewModel_PrivacyAgree",
+    (el) => el.checked
+  );
+  if (!isFirstCheckboxChecked) {
+    await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
+  }
+  const isSecondCheckboxChecked = await page.$eval(
+    "#ApplicantRegistrationViewModel_EndorsementAgree",
+    (el) => el.checked
+  );
+  if (!isSecondCheckboxChecked) {
+    await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
+  }
+
   await page.click("#frmRegisteration");
   await page.waitForSelector("#OTPCode", { visible: true });
-  await util.infoMessage(page, "captcha ...");
+  await util.infoMessage(page, "Captcha ...");
   const captchaCode = await util.SolveIamNotARobot(
     "#g-recaptcha-response",
     "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
