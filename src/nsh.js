@@ -19,6 +19,7 @@ let counter = 0;
 let passenger;
 let emailAddress;
 let manualMode;
+const verifyClicked = {};
 
 function getLogFile() {
   const logFolder = path.join(getPath("log"), data.info.munazim);
@@ -30,7 +31,7 @@ function getLogFile() {
 }
 
 let startTime;
-
+let timerHandler;
 const config = [
   {
     name: "home",
@@ -136,6 +137,26 @@ async function onContentLoaded(res) {
 
 async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
+    case "home":
+      // check if you should perform a login flow or a register flow
+      if (data.travellers.filter((t) => t.mofaNumber === "").length > 0) {
+        // At least one passenger does not have a mofa number, then we need to register
+        await util.infoMessage(page, "Registering in 30 seconds");
+
+        timerHandler = setTimeout(async () => {
+          fs.writeFileSync(getPath("loop.txt"), "true");
+          await page.goto(
+            "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index"
+          );
+        }, 30000);
+      } else {
+        await util.infoMessage(page, "Logging-in 30 seconds");
+        timerHandler = setTimeout(async () => {
+          fs.writeFileSync(getPath("loop.txt"), "true");
+          await page.goto("https://hajj.nusuk.sa/Account/LogIn");
+        }, 30000);
+      }
+      break;
     case "index":
       if (manualMode === "login") {
         await page.goto("https://hajj.nusuk.sa/Account/LogIn");
@@ -143,18 +164,20 @@ async function pageContentHandler(currentConfig) {
       break;
     case "profile":
       // completed registration success
-      const passengeForMofa = data.travellers[util.getSelectedTraveler()];
+      const passengerForMofa = data.travellers[util.getSelectedTraveler()];
       util.incrementSelectedTraveler();
       kea.updatePassenger(
         data.system.accountId,
-        passengeForMofa.passportNumber,
-        { "submissionData.nsh.status": "Submitted", mofaNumber: "attachments" }
+        passengerForMofa.passportNumber,
+        { "submissionData.nsh.status": "Submitted", eNumber: "completed" }
       );
       if (fs.readFileSync(getPath("loop.txt"))) {
         await page.goto("https://hajj.nusuk.sa/Account/Signout");
       }
       break;
     case "register":
+      // clear the timer handler
+      clearTimeout(timerHandler);
       // scroll to the bottom
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
@@ -190,6 +213,9 @@ async function pageContentHandler(currentConfig) {
           },
         },
       });
+      if (fs.existsSync(getPath("loop.txt"))) {
+        await registerPassenger(util.getSelectedTraveler());
+      }
       break;
     case "register-forward":
       // read the success message here
@@ -215,8 +241,16 @@ async function pageContentHandler(currentConfig) {
       break;
     case "registration-complete":
       await util.controller(page, currentConfig, data.travellers);
+      if (fs.existsSync(getPath("loop.txt"))) {
+        await registerPassengerComplete(util.getSelectedTraveler());
+      }
       break;
     case "login":
+      clearTimeout(timerHandler);
+
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
       const passenger = data.travellers[util.getSelectedTraveler()];
       if (!manualMode) {
         manualMode = currentConfig.name;
@@ -225,6 +259,7 @@ async function pageContentHandler(currentConfig) {
         util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
         kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
           "submissionData.nsh.status": "Submitted",
+          mofaNumber: "registered",
         });
         util.incrementSelectedTraveler();
         await page.goto(
@@ -233,17 +268,8 @@ async function pageContentHandler(currentConfig) {
         return;
       }
       await util.controller(page, currentConfig, data.travellers);
-      if (fs.readFileSync(getPath("loop.txt"))) {
+      if (fs.existsSync(getPath("loop.txt"))) {
         await loginPassenger(util.getSelectedTraveler());
-      }
-      util.infoMessage(page, `Captcha ...`);
-      const loginCaptchaValue = await util.SolveIamNotARobot(
-        "#g-recaptcha-response",
-        "https://hajj.nusuk.sa/Account/Login",
-        "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
-      );
-      if (!loginCaptchaValue) {
-        util.infoMessage(page, `Manual captcha required`);
       }
       // const emailAddress = await page.$eval(
       //   "#LogInViewModel_Email",
@@ -284,6 +310,11 @@ async function pageContentHandler(currentConfig) {
           ],
           {}
         );
+      }
+      // click the verify button only once
+      if (!verifyClicked[code]) {
+        await page.click("body > main > div > form > div.text-center > input");
+        verifyClicked[code] = true;
       }
     default:
       break;
@@ -328,20 +359,7 @@ async function registerPassenger(selectedTraveler) {
     email: emailAddress,
     phone: telephoneNumber,
   });
-  const isFirstCheckboxChecked = await page.$eval(
-    "#ApplicantRegistrationViewModel_PrivacyAgree",
-    (el) => el.checked
-  );
-  if (!isFirstCheckboxChecked) {
-    await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
-  }
-  const isSecondCheckboxChecked = await page.$eval(
-    "#ApplicantRegistrationViewModel_EndorsementAgree",
-    (el) => el.checked
-  );
-  if (!isSecondCheckboxChecked) {
-    await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
-  }
+  // );
 
   const nationality = nationalities.find(
     (n) =>
@@ -415,6 +433,14 @@ async function registerPassenger(selectedTraveler) {
         selector: "#ApplicantRegistrationViewModel_NationalityId",
         value: (row) => nationality,
       },
+      {
+        selector: "#ApplicantRegistrationViewModel_PrivacyAgree",
+        value: () => true,
+      },
+      {
+        selector: "#ApplicantRegistrationViewModel_EndorsementAgree",
+        value: () => true,
+      },
     ],
     passenger
   );
@@ -430,14 +456,35 @@ async function registerPassenger(selectedTraveler) {
     );
     telephoneNumberElement.value = passenger.phone;
   }, passenger);
+
+  const isFirstCheckboxChecked = await page.$eval(
+    "#ApplicantRegistrationViewModel_PrivacyAgree",
+    (el) => el.checked
+  );
+  if (!isFirstCheckboxChecked) {
+    await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
+  }
+  const isSecondCheckboxChecked = await page.$eval(
+    "#ApplicantRegistrationViewModel_EndorsementAgree",
+    (el) => el.checked
+  );
+  if (!isSecondCheckboxChecked) {
+    await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
+  }
+
   await page.click("#frmRegisteration");
   await page.waitForSelector("#OTPCode", { visible: true });
+  await util.infoMessage(page, "Captcha ...");
   const captchaCode = await util.SolveIamNotARobot(
     "#g-recaptcha-response",
     "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
     "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
   );
 
+  if (!captchaCode) {
+    await util.infoMessage(page, "Manual captcha required ...");
+  }
+  await util.infoMessage(page, "OTP ...");
   const code = await gmail.getNusukCodeByEmail(
     emailAddress,
     "Email Activation"
@@ -480,6 +527,16 @@ async function loginPassenger(selectedTraveler) {
     ],
     passenger
   );
+
+  util.infoMessage(page, `Captcha ...`);
+  const loginCaptchaValue = await util.SolveIamNotARobot(
+    "#g-recaptcha-response",
+    "https://hajj.nusuk.sa/Account/Login",
+    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
+  );
+  if (!loginCaptchaValue) {
+    util.infoMessage(page, `Manual captcha required`);
+  }
 }
 
 async function registerPassengerComplete(selectedTraveler) {
