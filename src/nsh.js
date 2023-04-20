@@ -150,7 +150,9 @@ async function pageContentHandler(currentConfig) {
         passengeForMofa.passportNumber,
         { "submissionData.nsh.status": "Submitted", mofaNumber: "attachments" }
       );
-
+      if (fs.readFileSync(getPath("loop.txt"))) {
+        await page.goto("https://hajj.nusuk.sa/Account/Signout");
+      }
       break;
     case "register":
       // scroll to the bottom
@@ -231,6 +233,9 @@ async function pageContentHandler(currentConfig) {
         return;
       }
       await util.controller(page, currentConfig, data.travellers);
+      if (fs.readFileSync(getPath("loop.txt"))) {
+        await loginPassenger(util.getSelectedTraveler());
+      }
       util.infoMessage(page, `Captcha ...`);
       const loginCaptchaValue = await util.SolveIamNotARobot(
         "#g-recaptcha-response",
