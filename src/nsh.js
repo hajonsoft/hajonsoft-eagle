@@ -20,6 +20,7 @@ let passenger;
 let emailAddress;
 let manualMode;
 const verifyClicked = {};
+const loginRetries = {};
 
 function getLogFile() {
   const logFolder = path.join(getPath("log"), data.info.munazim);
@@ -136,6 +137,7 @@ async function onContentLoaded(res) {
 }
 
 async function pageContentHandler(currentConfig) {
+  const passenger = data.travellers[util.getSelectedTraveler()];
   switch (currentConfig.name) {
     case "home":
       // check if you should perform a login flow or a register flow
@@ -163,22 +165,28 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "profile":
-      // completed registration success
-      const passengerForMofa = data.travellers[util.getSelectedTraveler()];
+      // take screenshot and save it as the visa picture
+      const pageElement = await page.$("body");
+      // save screenshot to kea
+      try {
+        await util.screenShotToKea(
+          pageElement,
+          data.system.accountId,
+          passenger,
+          "Embassy"
+        );
+      } catch (error) {}
       util.incrementSelectedTraveler();
-      kea.updatePassenger(
-        data.system.accountId,
-        passengerForMofa.passportNumber,
-        { "submissionData.nsh.status": "Submitted", eNumber: "completed" }
-      );
-      if (fs.readFileSync(getPath("loop.txt"))) {
+      kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+        "submissionData.nsh.status": "Submitted",
+        eNumber: "completed",
+      });
+      if (fs.existsSync(getPath("loop.txt"))) {
         await page.goto("https://hajj.nusuk.sa/Account/Signout");
       }
       break;
     case "register":
-      // clear the timer handler
       clearTimeout(timerHandler);
-      // scroll to the bottom
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
@@ -218,13 +226,11 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "register-forward":
-      // read the success message here
       if (manualMode === "register") {
         const errorMessage = await page.$eval(
           "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
           (el) => el.innerText
         );
-        const passenger = data.travellers[util.getSelectedTraveler()];
         util.infoMessage(
           page,
           `🚦 passenger ${passenger.slug} ERROR not registered`
@@ -251,7 +257,6 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
-      const passenger = data.travellers[util.getSelectedTraveler()];
       if (!manualMode) {
         manualMode = currentConfig.name;
       }
@@ -270,29 +275,10 @@ async function pageContentHandler(currentConfig) {
       await util.controller(page, currentConfig, data.travellers);
       if (fs.existsSync(getPath("loop.txt"))) {
         await loginPassenger(util.getSelectedTraveler());
+        return;
       }
-      // const emailAddress = await page.$eval(
-      //   "#LogInViewModel_Email",
-      //   (el) => el.value
-      // );
-
-      // const password = await page.$eval(
-      //   "#LoginViewModel_Password",
-      //   (el) => el.value
-      // );
-      // if (
-      //   loginCaptchaValue &&
-      //   manualMode === "login" &&
-      //   emailAddress &&
-      //   password
-      // ) {
-      //   await page.click(
-      //     "body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input"
-      //   );
-      // }
       break;
     case "verify-login":
-      // #VerifyOTPViewModel_OTPCode
       const passengerForEmail = data.travellers[util.getSelectedTraveler()];
       util.infoMessage(page, `OTP ...`);
       const code = await gmail.getNusukCodeByEmail(
@@ -536,6 +522,18 @@ async function loginPassenger(selectedTraveler) {
   );
   if (!loginCaptchaValue) {
     util.infoMessage(page, `Manual captcha required`);
+    if ((loginRetries[selectedTraveler] || 0) < 3) {
+      if (!loginRetries[selectedTraveler]) {
+        loginRetries[selectedTraveler] = 0;
+      }
+      loginRetries[selectedTraveler] += 1;
+      await loginPassenger(selectedTraveler);
+    }
+  } else {
+    util.infoMessage(page, `Login ...`);
+    await page.click(
+      "body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input"
+    );
   }
 }
 
