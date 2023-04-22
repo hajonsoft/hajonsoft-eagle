@@ -146,16 +146,19 @@ async function pageContentHandler(currentConfig) {
         await util.infoMessage(page, "Registering in 30 seconds");
 
         timerHandler = setTimeout(async () => {
-          fs.writeFileSync(getPath("loop.txt"), "true");
+          util.registerLoop();
           await page.goto(
-            "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index"
+            "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
+            { waitUntil: "domcontentloaded" }
           );
         }, 30000);
       } else {
         await util.infoMessage(page, "Logging-in 30 seconds");
         timerHandler = setTimeout(async () => {
-          fs.writeFileSync(getPath("loop.txt"), "true");
-          await page.goto("https://hajj.nusuk.sa/Account/LogIn");
+          util.registerLoop();
+          await page.goto("https://hajj.nusuk.sa/Account/LogIn", {
+            waitUntil: "domcontentloaded",
+          });
         }, 30000);
       }
       break;
@@ -272,11 +275,11 @@ async function pageContentHandler(currentConfig) {
         );
         return;
       }
-      await util.controller(page, currentConfig, data.travellers);
       if (fs.existsSync(getPath("loop.txt"))) {
         await loginPassenger(util.getSelectedTraveler());
-        return;
       }
+      await util.controller(page, currentConfig, data.travellers);
+
       break;
     case "verify-login":
       const passengerForEmail = data.travellers[util.getSelectedTraveler()];
@@ -301,6 +304,23 @@ async function pageContentHandler(currentConfig) {
       if (!verifyClicked[code]) {
         await page.click("body > main > div > form > div.text-center > input");
         verifyClicked[code] = true;
+      }
+
+      await page.waitForTimeout(1000);
+      const codeError = await page.$eval(
+        "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
+        (el) => el ? el.innerText : null
+      );
+      if (codeError) {
+        util.infoMessage(page, `OTP error: ${codeError}`);
+        util.incrementSelectedTraveler();
+        if (manualMode === "login") {
+          await page.goto("https://hajj.nusuk.sa/Account/LogIn");
+        } else {
+          await page.goto(
+            "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index"
+          );
+        }
       }
     default:
       break;
@@ -531,6 +551,10 @@ async function loginPassenger(selectedTraveler) {
     }
   } else {
     util.infoMessage(page, `Login ...`);
+    await page.waitForSelector(
+      "body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input",
+      { visible: true }
+    );
     await page.click(
       "body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input"
     );
@@ -639,7 +663,14 @@ async function registerPassengerComplete(selectedTraveler) {
     });
   }
 
+  try {
   await page.click("body > main > div > form > div.text-center.mt-5 > input");
+  } catch (e) {
+    console.log(e);
+    // this button is not clickable in case there is an error
+    util.incrementSelectedTraveler();
+    await page.goto("https://hajj.nusuk.sa/Account/SignOut");
+  }
 }
 
 module.exports = { send };
