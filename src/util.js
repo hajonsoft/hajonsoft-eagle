@@ -569,6 +569,13 @@ async function controller(page, structure, travellers) {
         lastTraveler,
       ]
     );
+    const isRegisterLoopRegistered = await page.evaluate(
+      () => window.registerLoop
+    );
+    if (!isRegisterLoopRegistered) {
+      await page.exposeFunction("registerLoop", registerLoop);
+    }
+
     const isExposed = await page.evaluate(
       (p) => window[p],
       controllerHandleMethod
@@ -578,7 +585,6 @@ async function controller(page, structure, travellers) {
         controllerHandleMethod,
         structure.controller.action
       );
-      await page.exposeFunction("registerLoop", registerLoop);
       await page.exposeFunction("unregisterLoop", unregisterLoop);
       await page.exposeFunction("getVisaCount", getVisaCount);
       await page.exposeFunction(
@@ -614,6 +620,8 @@ async function controller(page, structure, travellers) {
 
 function registerLoop() {
   fs.writeFileSync(getPath("loop.txt"), "", "utf8");
+  console.log("Loop registered");
+
 }
 function unregisterLoop() {
   if (fs.existsSync(getPath("loop.txt"))) {
@@ -1655,4 +1663,5 @@ module.exports = {
   recall,
   getCurrentTime,
   SolveIamNotARobot,
+  registerLoop,
 };
