@@ -28,8 +28,8 @@ const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
 // The file token.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
 // time.
-const TOKEN_PATH = path.join(process.cwd(), "token.json");
-const CREDENTIALS_PATH = path.join(process.cwd(), "credentials.json");
+// const TOKEN_PATH = path.join(process.cwd(), "token.json");
+// const CREDENTIALS_PATH = path.join(process.cwd(), "credentials.json");
 
 /**
  * Reads previously authorized credentials from the save file.
@@ -38,7 +38,13 @@ const CREDENTIALS_PATH = path.join(process.cwd(), "credentials.json");
  */
 async function loadSavedCredentialsIfExist() {
   try {
-    const content = await fs.readFile(TOKEN_PATH);
+    // const content = await fs.readFile(TOKEN_PATH);
+    const content = `{
+      "type": "authorized_user",
+      "client_id": "905193277281-1efrj0pqbdc98ipvidvae4qppauv2ctt.apps.googleusercontent.com",
+      "client_secret": "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",
+      "refresh_token": "1//06jUijhC2SOSBCgYIARAAGAYSNwF-L9IrCFZXVq3DDoMnnteShAqrBJsRHejyDPapQat3fAWN8Vdf0F_6OVNu9sRw_juup7AW0Rg"
+  }`;
     const credentials = JSON.parse(content);
     return google.auth.fromJSON(credentials);
   } catch (err) {
@@ -52,18 +58,18 @@ async function loadSavedCredentialsIfExist() {
  * @param {OAuth2Client} client
  * @return {Promise<void>}
  */
-async function saveCredentials(client) {
-  const content = await fs.readFile(CREDENTIALS_PATH);
-  const keys = JSON.parse(content);
-  const key = keys.installed || keys.web;
-  const payload = JSON.stringify({
-    type: "authorized_user",
-    client_id: key.client_id,
-    client_secret: key.client_secret,
-    refresh_token: client.credentials.refresh_token,
-  });
-  await fs.writeFile(TOKEN_PATH, payload);
-}
+// async function saveCredentials(client) {
+//   const content = await fs.readFile(CREDENTIALS_PATH);
+//   const keys = JSON.parse(content);
+//   const key = keys.installed || keys.web;
+//   const payload = JSON.stringify({
+//     type: "authorized_user",
+//     client_id: key.client_id,
+//     client_secret: key.client_secret,
+//     refresh_token: client.credentials.refresh_token,
+//   });
+//   await fs.writeFile(TOKEN_PATH, payload);
+// }
 
 /**
  * Load or request or authorization to call APIs.
@@ -74,14 +80,14 @@ async function authorize() {
   if (client) {
     return client;
   }
-  client = await authenticate({
-    scopes: SCOPES,
-    keyfilePath: CREDENTIALS_PATH,
-  });
-  if (client.credentials) {
-    await saveCredentials(client);
-  }
-  return client;
+  // client = await authenticate({
+  //   scopes: SCOPES,
+  //   keyfilePath: CREDENTIALS_PATH,
+  // });
+  // if (client.credentials) {
+  //   await saveCredentials(client);
+  // }
+  // return client;
 }
 
 /**
@@ -155,7 +161,7 @@ async function getVisitVisaCodeByEmail(email) {
 async function listNusukMessages(auth, recipient, subject) {
   const newMessages = [];
   const gmail = google.gmail({ version: "v1", auth });
-  const query = `in:inbox from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject} newer_than:5m`
+  const query = `in:inbox from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject} newer_than:5m`;
   for (let i = 0; i < 20; i++) {
     const res = await gmail.users.messages.list({
       userId: "me",
@@ -164,9 +170,7 @@ async function listNusukMessages(auth, recipient, subject) {
     });
     const messages = res.data.messages;
     if (!messages || messages.length === 0) {
-      console.log(
-        `waiting for OTP ${query}`
-      );
+      console.log(`waiting for OTP ${query}`);
       // wait 10 seconds and try again
       await new Promise((resolve) => setTimeout(resolve, 10000));
       continue;
