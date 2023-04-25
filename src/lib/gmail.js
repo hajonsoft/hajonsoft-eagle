@@ -162,15 +162,15 @@ async function listNusukMessages(auth, recipient, subject) {
   const newMessages = [];
   const gmail = google.gmail({ version: "v1", auth });
   const query = `in:inbox from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject} newer_than:5m`;
-  for (let i = 0; i < 20; i++) {
-    const res = await gmail.users.messages.list({
+  for (let i = 0; i < 50; i++) {
+    console.log(`waiting for OTP ${i}/50 ${query}`);
+    const listResponse = await gmail.users.messages.list({
       userId: "me",
-      includeSpamTrash: true,
+      includeSpamTrash: false,
       q: query,
     });
-    const messages = res.data.messages;
+    const messages = listResponse.data.messages;
     if (!messages || messages.length === 0) {
-      console.log(`waiting for OTP ${query}`);
       // wait 10 seconds and try again
       await new Promise((resolve) => setTimeout(resolve, 10000));
       continue;
@@ -183,9 +183,20 @@ async function listNusukMessages(auth, recipient, subject) {
       const messageDate = moment(
         contents.data.payload.headers.find((h) => h.name === "Date").value
       );
+      // if messageDate is older than 5 minutes, skip it
+      if (messageDate.isBefore(moment().subtract(1, "minutes"))) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        continue;
+      }
       const verificationCode =
         contents.data.snippet.match(/Your OTP is (\d{4})/)?.[1];
-      newMessages.push({ code: verificationCode, date: messageDate });
+        // try arabic here
+      if (verificationCode) {
+        newMessages.push({ code: verificationCode, date: messageDate });
+      }
+    }
+    if (newMessages.length === 0) {
+      continue;
     }
     return newMessages;
   }
