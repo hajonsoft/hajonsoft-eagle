@@ -309,7 +309,7 @@ async function pageContentHandler(currentConfig) {
       await page.waitForTimeout(1000);
       const codeError = await page.$eval(
         "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
-        (el) => el ? el.innerText : null
+        (el) => (el ? el.innerText : null)
       );
       if (codeError) {
         util.infoMessage(page, `OTP error: ${codeError}`);
@@ -650,21 +650,27 @@ async function registerPassengerComplete(selectedTraveler) {
   await util.commitFile("#CompleteViewModel_ResidencyPhoto", residencyPath);
 
   if (!passenger.images.residency) {
-    await page.$eval("#HaveResidence_No", (e) => {
-      if (e) {
-        e.checked = true;
-      }
-    });
+    const haveResidence = await page.$("#HaveResidence_No");
+    if (haveResidence) {
+      await page.$eval("#HaveResidence_No", (e) => {
+        if (e) {
+          e.checked = true;
+        }
+      });
+    }
   } else {
-    await page.$eval("#HaveResidence_Yes", (e) => {
-      if (e) {
-        e.checked = true;
-      }
-    });
+    const haveResidence = await page.$("#HaveResidence_Yes");
+    if (haveResidence) {
+      await page.$eval("#HaveResidence_Yes", (e) => {
+        if (e) {
+          e.checked = true;
+        }
+      });
+    }
   }
 
   try {
-  await page.click("body > main > div > form > div.text-center.mt-5 > input");
+    await page.click("body > main > div > form > div.text-center.mt-5 > input");
   } catch (e) {
     console.log(e);
     // this button is not clickable in case there is an error
