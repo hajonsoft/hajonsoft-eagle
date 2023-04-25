@@ -232,7 +232,7 @@ async function pageContentHandler(currentConfig) {
       if (manualMode === "register") {
         const errorMessage = await page.$eval(
           "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
-          (el) => el.innerText
+          (el) => (el ? el.innerText : null)
         );
         util.infoMessage(
           page,
@@ -250,6 +250,9 @@ async function pageContentHandler(currentConfig) {
       break;
     case "registration-complete":
       await util.controller(page, currentConfig, data.travellers);
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
       if (fs.existsSync(getPath("loop.txt"))) {
         await registerPassengerComplete(util.getSelectedTraveler());
       }
@@ -302,25 +305,41 @@ async function pageContentHandler(currentConfig) {
       }
       // click the verify button only once
       if (!verifyClicked[code]) {
-        await page.click("body > main > div > form > div.text-center > input");
-        verifyClicked[code] = true;
+        const isSelectorAvailable = await page.$(
+          "body > main > div > form > div.text-center > input"
+        );
+        if (isSelectorAvailable) {
+          await page.click(
+            "body > main > div > form > div.text-center > input"
+          );
+          verifyClicked[code] = true;
+        }
       }
 
       await page.waitForTimeout(1000);
-      const codeError = await page.$eval(
-        "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
-        (el) => (el ? el.innerText : null)
-      );
-      if (codeError) {
-        util.infoMessage(page, `OTP error: ${codeError}`);
-        util.incrementSelectedTraveler();
-        if (manualMode === "login") {
-          await page.goto("https://hajj.nusuk.sa/Account/LogIn");
-        } else {
-          await page.goto(
-            "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index"
+      try {
+        const isAlert = await page.$(
+          "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text"
+        );
+        if (isAlert) {
+          const codeError = await page.$eval(
+            "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
+            (el) => (el ? el.innerText : null)
           );
+          if (codeError) {
+            util.infoMessage(page, `OTP error: ${codeError}`);
+            util.incrementSelectedTraveler();
+            if (manualMode === "login") {
+              await page.goto("https://hajj.nusuk.sa/Account/LogIn");
+            } else {
+              await page.goto(
+                "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index"
+              );
+            }
+          }
         }
+      } catch (e) {
+        console.log(e);
       }
     default:
       break;
@@ -673,7 +692,16 @@ async function registerPassengerComplete(selectedTraveler) {
     await page.click("body > main > div > form > div.text-center.mt-5 > input");
   } catch (e) {
     console.log(e);
-    // this button is not clickable in case there is an error
+    const pageElement = await page.$("body");
+    // save screenshot to kea
+    try {
+      await util.screenShotToKea(
+        pageElement,
+        data.system.accountId,
+        passenger,
+        "Embassy"
+      );
+    } catch (error) {}
     util.incrementSelectedTraveler();
     await page.goto("https://hajj.nusuk.sa/Account/SignOut");
   }
