@@ -732,7 +732,7 @@ const nationalities = [
   { uuid: "2f390746-f6b6-41ae-a2af-49df21f5d9d4", name: "Anguilla" },
   { uuid: "ef6691a9-bde1-4ab6-8321-8232df2bdf28", name: "Antigua" },
   { uuid: "7bb02d0c-498d-4a39-963a-2af853fcd55e", name: "Argentina" },
-  { uuid: "b2f944a7-7b03-4f6a-844b-cbfd360b2375", name: ">Armenia" },
+  { uuid: "b2f944a7-7b03-4f6a-844b-cbfd360b2375", name: "Armenia" },
   { uuid: "fe7228c7-fa80-4019-ad38-1bb6e2f16a68", name: "Aruba" },
   { uuid: "32496cfc-4a95-4b80-a454-ba4a2ac1cc38", name: "Australia" },
   { uuid: "c18849e2-aeaf-457e-abdc-45c180a951eb", name: "Austria" },
