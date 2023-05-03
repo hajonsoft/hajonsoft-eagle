@@ -621,7 +621,6 @@ async function controller(page, structure, travellers) {
 function registerLoop() {
   fs.writeFileSync(getPath("loop.txt"), "", "utf8");
   console.log("Loop registered");
-
 }
 function unregisterLoop() {
   if (fs.existsSync(getPath("loop.txt"))) {
@@ -692,6 +691,13 @@ async function commander(page, structure, travellers) {
         controllerHandleMethod,
         structure.controller.action
       );
+    }
+
+    const isCloseBrowserExposed = await page.evaluate(
+      (p) => window[p],
+      "closeBrowser"
+    );
+    if (!isCloseBrowserExposed) {
       await page.exposeFunction("closeBrowser", closeBrowser);
     }
   } catch (err) {

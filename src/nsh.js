@@ -309,10 +309,15 @@ async function pageContentHandler(currentConfig) {
           "body > main > div > form > div.text-center > input"
         );
         if (isSelectorAvailable) {
-          await page.click(
-            "body > main > div > form > div.text-center > input"
-          );
-          verifyClicked[code] = true;
+          await page.waitForTimeout(1000); // wait because this throws an error if clicked too fast
+          try {
+            await page.click(
+              "body > main > div > form > div.text-center > input"
+            );
+            verifyClicked[code] = true;
+          } catch (e) {
+            console.log(e);
+          }
         }
       }
 
@@ -386,6 +391,7 @@ async function registerPassenger(selectedTraveler) {
   });
   // );
 
+  console.log("📢[nsh.js:397]: passenger.nationality.name.toLowerCase(): ", passenger.nationality.name.toLowerCase());
   const nationality = nationalities.find(
     (n) =>
       n.name.toLowerCase().trim() ===
@@ -458,14 +464,6 @@ async function registerPassenger(selectedTraveler) {
         selector: "#ApplicantRegistrationViewModel_NationalityId",
         value: (row) => nationality,
       },
-      {
-        selector: "#ApplicantRegistrationViewModel_PrivacyAgree",
-        value: () => true,
-      },
-      {
-        selector: "#ApplicantRegistrationViewModel_EndorsementAgree",
-        value: () => true,
-      },
     ],
     passenger
   );
@@ -482,21 +480,30 @@ async function registerPassenger(selectedTraveler) {
     telephoneNumberElement.value = passenger.phone;
   }, passenger);
 
-  const isFirstCheckboxChecked = await page.$eval(
-    "#ApplicantRegistrationViewModel_PrivacyAgree",
-    (el) => el.checked
-  );
-  if (!isFirstCheckboxChecked) {
-    await page.click("#ApplicantRegistrationViewModel_PrivacyAgree");
-  }
-  const isSecondCheckboxChecked = await page.$eval(
+  const isEndorsementCheckbox = await page.$eval(
     "#ApplicantRegistrationViewModel_EndorsementAgree",
     (el) => el.checked
   );
-  if (!isSecondCheckboxChecked) {
-    await page.click("#ApplicantRegistrationViewModel_EndorsementAgree");
+  if (!isEndorsementCheckbox) {
+    await page.$eval(
+      "#ApplicantRegistrationViewModel_EndorsementAgree",
+      (el) => (el.checked = true)
+    );
+  }
+  
+
+  const isPrivacyCheckbox = await page.$eval(
+    "#ApplicantRegistrationViewModel_PrivacyAgree",
+    (el) => el.checked
+  );
+  if (!isPrivacyCheckbox) {
+    await page.$eval(
+      "#ApplicantRegistrationViewModel_PrivacyAgree",
+      (el) => (el.checked = true)
+    );
   }
 
+  
   await page.click("#frmRegisteration");
   await page.waitForSelector("#OTPCode", { visible: true });
   await util.infoMessage(page, "Captcha ...");
@@ -574,9 +581,14 @@ async function loginPassenger(selectedTraveler) {
       "body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input",
       { visible: true }
     );
-    await page.click(
-      "body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input"
-    );
+    await page.waitForTimeout(1000); // this takes sometime to be enabled and it throws an error if we don't wait
+    try {
+      await page.click(
+        "body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input"
+      );
+    } catch (e) {
+      console.log(e);
+    }
   }
 }
 
@@ -720,7 +732,7 @@ const nationalities = [
   { uuid: "2f390746-f6b6-41ae-a2af-49df21f5d9d4", name: "Anguilla" },
   { uuid: "ef6691a9-bde1-4ab6-8321-8232df2bdf28", name: "Antigua" },
   { uuid: "7bb02d0c-498d-4a39-963a-2af853fcd55e", name: "Argentina" },
-  { uuid: "b2f944a7-7b03-4f6a-844b-cbfd360b2375", name: ">Armenia" },
+  { uuid: "b2f944a7-7b03-4f6a-844b-cbfd360b2375", name: "Armenia" },
   { uuid: "fe7228c7-fa80-4019-ad38-1bb6e2f16a68", name: "Aruba" },
   { uuid: "32496cfc-4a95-4b80-a454-ba4a2ac1cc38", name: "Australia" },
   { uuid: "c18849e2-aeaf-457e-abdc-45c180a951eb", name: "Austria" },
@@ -982,7 +994,7 @@ const nationalities = [
   { uuid: "a9c91738-ac3c-44c6-ad25-ec626ace73e0", name: "United Kingdom" },
   {
     uuid: "7d4ffd39-0694-4160-810c-5ea9fb353dac",
-    name: "United States of America",
+    name: "united states",
   },
   { uuid: "70ddeab9-c07a-46c6-a63a-b9ebde30082d", name: "Uruguay" },
   { uuid: "8310344d-4b26-4ce4-bc2c-90fa8750446e", name: "US Virgin Islands" },
