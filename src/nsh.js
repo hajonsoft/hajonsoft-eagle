@@ -361,7 +361,7 @@ async function registerPassenger(selectedTraveler) {
     : data.system.username;
   emailAddress =
     passenger.email ||
-    `${passenger.name.first}${passenger.name.last}${moment()
+    `${passenger.name.first}${data.system.accountId}${moment()
       .unix()
       .toString(36)}@${emailDomain}`.toLowerCase();
 
@@ -391,7 +391,6 @@ async function registerPassenger(selectedTraveler) {
   });
   // );
 
-  console.log("📢[nsh.js:397]: passenger.nationality.name.toLowerCase(): ", passenger.nationality.name.toLowerCase());
   const nationality = nationalities.find(
     (n) =>
       n.name.toLowerCase().trim() ===
@@ -427,7 +426,7 @@ async function registerPassenger(selectedTraveler) {
       },
       {
         selector: "#ApplicantRegistrationViewModel_CountryResidenceId",
-        value: (row) => budgie.get("nusuk-hajj-residence") || nationality,
+        value: (row) => budgie.get("nusuk-hajj-residence", nationality),
       },
       {
         selector: "#ApplicantRegistrationViewModel_SecondNameAr",
@@ -473,12 +472,21 @@ async function registerPassenger(selectedTraveler) {
   await page.waitForSelector("#ApplicantRegistrationViewModel_MobileNumber", {
     visible: true,
   });
-  await page.evaluate((passenger) => {
-    const telephoneNumberElement = document.querySelector(
-      "#ApplicantRegistrationViewModel_MobileNumber"
+  for (let i = 0; i < 10; i++) {
+    const telephoneValue = await page.$eval(
+      "#ApplicantRegistrationViewModel_MobileNumber",
+      (el) => el.value
     );
-    telephoneNumberElement.value = passenger.phone;
-  }, passenger);
+    if (!telephoneValue) {
+      await page.waitForTimeout(1000);
+      await page.evaluate((passenger) => {
+        const telephoneNumberElement = document.querySelector(
+          "#ApplicantRegistrationViewModel_MobileNumber"
+        );
+        telephoneNumberElement.value = passenger.phone;
+      }, passenger);
+    }
+  }
 
   const isEndorsementCheckbox = await page.$eval(
     "#ApplicantRegistrationViewModel_EndorsementAgree",
@@ -490,7 +498,6 @@ async function registerPassenger(selectedTraveler) {
       (el) => (el.checked = true)
     );
   }
-  
 
   const isPrivacyCheckbox = await page.$eval(
     "#ApplicantRegistrationViewModel_PrivacyAgree",
@@ -503,7 +510,6 @@ async function registerPassenger(selectedTraveler) {
     );
   }
 
-  
   await page.click("#frmRegisteration");
   await page.waitForSelector("#OTPCode", { visible: true });
   await util.infoMessage(page, "Captcha ...");
