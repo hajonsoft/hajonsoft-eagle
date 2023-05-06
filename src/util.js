@@ -1449,7 +1449,7 @@ const infoMessage = async (
   visaShot = false,
   takeScreenShot = false
 ) => {
-  console.log(`🦅 ${getSelectedTraveler() + 1}.${".".repeat(depth)}${message}`);
+  console.log(`🦅 ${parseInt(getSelectedTraveler()) + 1}.${".".repeat(depth)}${message}`);
   const screenshotsDir = getPath("screenshots");
   if (!fs.existsSync(screenshotsDir)) {
     fs.mkdirSync(screenshotsDir);
