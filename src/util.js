@@ -553,7 +553,7 @@ async function controller(page, structure, travellers) {
           .replace(/{options}/, optionsParam)
           .replace(/{visaPath}/, visaPath)
           .replace(/{pax}/, pax.length)
-          .replace(/{current}/, lastTraveler + 1)
+          .replace(/{current}/, (parseInt(lastTraveler) + 1).toString())
           .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`.replace(
           /{sendall}/,
           "Send All إرسل الكل"
@@ -1449,7 +1449,7 @@ const infoMessage = async (
   visaShot = false,
   takeScreenShot = false
 ) => {
-  console.log(`🦅 ${getSelectedTraveler() + 1}.${".".repeat(depth)}${message}`);
+  console.log(`🦅 ${parseInt(getSelectedTraveler()) + 1}.${".".repeat(depth)}${message}`);
   const screenshotsDir = getPath("screenshots");
   if (!fs.existsSync(screenshotsDir)) {
     fs.mkdirSync(screenshotsDir);
