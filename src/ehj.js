@@ -74,6 +74,29 @@ const config = [
     ],
   },
   {
+    name: "mission-questionnaire",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Questionnaire.xhtml",
+    details: [
+      {
+        selector: "#j_idt3690\:2\:answerTF",
+        value: (row) => new Date().valueOf().toString(),
+      },
+      {
+        selector: "#j_idt3690\3A3\3AanswerTF",
+        value: (row) => `${new Date().valueOf().toString()}@gmail.com`,
+      },
+      {
+        selector: "#j_idt3690\3A30\3AflagRadio:1",
+        value: (row) => "true",
+      },
+      {
+        selector: "#j_idt3690\3A31\3AflagRadio:1",
+        value: (row) => "true",
+      },
+    ],
+  },
+  {
     name: "package-quota-list",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/packagesQuota/List.xhtml",
@@ -128,7 +151,10 @@ const config = [
         );
         if (selectedTraveler) {
           fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
-          await sendPassenger(selectedTraveler);
+          fs.writeFileSync(getPath("loop.txt"), "", "utf-8");
+          // reload page
+          await page.reload();
+          // await sendPassenger(selectedTraveler);
         }
       },
     },
@@ -148,8 +174,12 @@ const config = [
         if (selectedTraveler) {
           fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
           const data = fs.readFileSync(getPath("data.json"), "utf-8");
-          var passengersData = JSON.parse(data);
-          await pasteCodeLine(selectedTraveler, passengersData);
+          fs.writeFileSync(getPath("loop.txt"), "", "utf-8");
+          // reload page
+          await page.reload();
+          // var passengersData = JSON.parse(data);
+
+          // await pasteCodeLine(selectedTraveler, passengersData);
         }
       },
     },
@@ -190,7 +220,16 @@ const config = [
         value: (row) => "", // budgie.get("ehaj_pilgrim_address", row.address)
       },
       {
+        selector: "#countryOfResidence",
+        value: (row) => budgie.get("ehaj_pilgrim_countryOfResidence", "SA"),
+      },
+      {
         selector: "#passportIssueDate",
+        value: (row) => row.passIssueDt.dmy,
+      },
+      {
+        selector:
+          "#formData > div:nth-child(9) > div:nth-child(1) > div:nth-child(4) > label",
         value: (row) => row.passIssueDt.dmy,
       },
       {
@@ -539,7 +578,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "list-pilgrims":
     case "list-pilgrims-mission":
-      await util.toggleBlur(page,false);
+      await util.toggleBlur(page, false);
       const ehajNumbers = [];
       await util.commander(page, {
         controller: {
@@ -719,8 +758,7 @@ async function pageContentHandler(currentConfig) {
         fs.appendFileSync(getLogFile(), confirmationMessage + "\n");
       }
 
-      await util.toggleBlur(page,false);
-      await util.controller(page, currentConfig, data.travellers);
+      await util.toggleBlur(page, false);
       if (
         fs.existsSync(getPath("loop.txt")) &&
         fs.existsSync(getPath("selectedTraveller.txt"))
@@ -741,6 +779,8 @@ async function pageContentHandler(currentConfig) {
           );
           await sendPassenger(parseInt(selectedPassenger) + 1);
         }
+      } else {
+        await util.controller(page, currentConfig, data.travellers);
       }
       await page.waitForSelector("#proceedButton > div > input", {
         visible: true,
@@ -773,7 +813,7 @@ async function pageContentHandler(currentConfig) {
       console.log(passenger.slug);
       const pageUrl = await page.url();
       await page.waitForSelector("#pass");
-      await page.select("#vaccineType", "1");
+
       const visiblePassportNumber = await page.$eval("#pass", (el) => el.value);
       if (!visiblePassportNumber) {
         return;
@@ -834,16 +874,6 @@ async function pageContentHandler(currentConfig) {
           action: async () => {
             const address = await page.$eval("#address", (el) => el.value);
             budgie.save("ehaj_pilgrim_address", address);
-            const vaccineType = await page.$eval(
-              "#vaccineType",
-              (el) => el.value
-            );
-            budgie.save("ehaj_pilgrim_vaccine_type", vaccineType);
-            const firstDoseDate = await page.$eval(
-              "#hdcviFirstDoseDate",
-              (el) => el.value
-            );
-            budgie.save("ehaj_pilgrim_vaccine_1_date", firstDoseDate);
 
             const embassy = await page.$eval("#embassy", (el) => el.value);
             if (embassy) {
@@ -857,13 +887,15 @@ async function pageContentHandler(currentConfig) {
             if (roomType) {
               budgie.save("ehaj_pilgrim_roomType", roomType);
             }
-            const isSecondDoseRequired = await page.$("#hdcviSecondDoseDate");
-            if (isSecondDoseRequired) {
-              const secondDoseDate = await page.$eval(
-                "#hdcviSecondDoseDate",
-                (el) => el.value
+
+            const countryOfResidence = await page.evaluate(
+              "document.querySelector('#countryOfResidence').value"
+            );
+            if (countryOfResidence) {
+              budgie.save(
+                "ehaj_pilgrim_countryOfResidence",
+                countryOfResidence.toString()
               );
-              budgie.save("ehaj_pilgrim_vaccine_2_date", secondDoseDate);
             }
           },
         },
@@ -951,61 +983,19 @@ async function pageContentHandler(currentConfig) {
           passenger
         );
       }
-      const resizedVaccinePath = await util.downloadAndResizeImage(
-        passenger,
-        100,
-        100,
-        "vaccine"
-      );
-      const resizedVaccinePath2 = await util.downloadAndResizeImage(
-        passenger,
-        100,
-        100,
-        "vaccine2"
-      );
-
-      await page.select(
-        "#vaccineType",
-        budgie.get("ehaj_pilgrim_vaccine_type", 1)
-      );
-      await page.waitForTimeout(100);
-      const isFirstDoseRequired = await page.$("#hdcviFirstDoseDate");
-      if (isFirstDoseRequired) {
-        // await page.type(
-        //   "#hdcviFirstDoseDate",
-        //   moment().add(-60, "days").format("DD/MM/YYYY")
-        //   );
-
-        await page.$eval("#hdcviFirstDoseDate", (el) => {
-          el.value = "01/01/2022";
-        });
-        const vaccine1Input = "#vaccine_attmnt_1_input";
-        await page.waitForSelector(vaccine1Input);
-        await page.click(vaccine1Input);
-        await util.commitFile(vaccine1Input, resizedVaccinePath);
-        await page.waitForTimeout(500);
-      }
-
-      const isSecondDoseRequired = await page.$("#hdcviSecondDoseDate");
-      if (isSecondDoseRequired) {
-        await page.type(
-          "#hdcviSecondDoseDate",
-          moment().add(-30, "days").format("DD/MM/YYYY")
-        );
-        await page.click("#vaccine_attmnt_2_input");
-        await util.commitFile("#vaccine_attmnt_2_input", resizedVaccinePath2);
-      }
 
       await page.waitForTimeout(500);
       await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
-      await util.toggleBlur(page,false);
+      await util.toggleBlur(page, false);
       await page.waitForTimeout(500);
 
       if (passports.filter((x) => x == passenger.passportNumber).length > 3) {
         // Stop
       } else {
         if (fs.existsSync(getPath("loop.txt"))) {
+          await page.click("#covidVaccines");
+
           const submitButtonSelector =
             "#actionPanel > div > div > input.btn.btn-primary";
           await page.click(submitButtonSelector);
@@ -1020,6 +1010,9 @@ async function pageContentHandler(currentConfig) {
       await page.select("#arrivalPort", "50");
       await page.select("#hpDepartureAirline", "11435");
       await page.select("#deptPort", "50");
+      break;
+    case "mission-questionnaire":
+      await util.commit(page, currentConfig.details, passenger);
       break;
     case "housing-contract":
       //
