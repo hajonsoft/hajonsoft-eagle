@@ -16,6 +16,7 @@ const totp = require("totp-generator");
 const { default: axios } = require("axios");
 const { cloneDeep } = require("lodash");
 const { send: sendHsf } = require("./hsf");
+const { el } = require("date-fns/locale");
 
 let page;
 let data;
@@ -79,20 +80,23 @@ const config = [
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Questionnaire.xhtml",
     details: [
       {
-        selector: "#j_idt3690\:2\:answerTF",
+        selector: "#j_idt3688_content > div:nth-child(3) > div > div > input",
         value: (row) => new Date().valueOf().toString(),
       },
       {
-        selector: "#j_idt3690\3A3\3AanswerTF",
-        value: (row) => `${new Date().valueOf().toString()}@gmail.com`,
+        selector: "#j_idt3688_content > div:nth-child(4) > div > div > input",
+        value: (row) =>
+          `${row.name.first}${new Date()
+            .valueOf()
+            .toString(36)}@premiumemail.ca`.toLowerCase(),
       },
       {
-        selector: "#j_idt3690\3A30\3AflagRadio:1",
-        value: (row) => "true",
+        selector: "#j_idt3688_content > div:nth-child(8) > div > div > input",
+        value: () => "Employee",
       },
       {
-        selector: "#j_idt3690\3A31\3AflagRadio:1",
-        value: (row) => "true",
+        selector: "#j_idt3688_content > div:nth-child(13) > div > div > select",
+        value: () => "7",
       },
     ],
   },
@@ -150,7 +154,7 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveler) {
-          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
+          util.setSelectedTraveller(selectedTraveler);
           fs.writeFileSync(getPath("loop.txt"), "", "utf-8");
           // reload page
           await page.reload();
@@ -219,14 +223,10 @@ const config = [
         selector: "#address",
         value: (row) => "", // budgie.get("ehaj_pilgrim_address", row.address)
       },
-      {
-        selector: "#countryOfResidence",
-        value: (row) => budgie.get("ehaj_pilgrim_countryOfResidence", row.nationality.telCode),
-      },
-      {
-        selector: "#passportIssueDate",
-        value: (row) => row.passIssueDt.dmy,
-      },
+      // {
+      //   selector: "#passportIssueDate",
+      //   value: (row) => row.passIssueDt.dmy,
+      // },
       {
         selector: "#idno",
         value: (row) => "0",
@@ -254,10 +254,10 @@ const config = [
         selector: "#address",
         value: (row) => "", // budgie.get("ehaj_pilgrim_address", row.address),
       },
-      {
-        selector: "#passportIssueDate",
-        value: (row) => row.passIssueDt.dmy,
-      },
+      // {
+      //   selector: "#passportIssueDate",
+      //   value: (row) => row.passIssueDt.dmy,
+      // },
       {
         selector: "#idno",
         value: (row) => "0",
@@ -366,6 +366,22 @@ async function sendPassenger(selectedTraveler) {
   await pasteCodeLine(selectedTraveler, passengersData);
 }
 
+async function rememberValue(selector, budgieKey) {
+  const selectorPresent = await page.$(selector);
+  if (!selectorPresent) {
+    return;
+  }
+  const selectorValue = await page.$eval(selector, (el) => {
+    if (el) {
+      return el.value;
+    } else {
+      return null;
+    }
+  });
+  if (selectorValue) {
+    budgie.save(budgieKey, selectorValue);
+  }
+}
 async function pasteCodeLine(selectedTraveler, passengersData) {
   await page.focus("#passportCaptureStatus");
   if (selectedTraveler == "-1") {
@@ -752,6 +768,9 @@ async function pageContentHandler(currentConfig) {
           (el) => el.innerText
         );
         fs.appendFileSync(getLogFile(), confirmationMessage + "\n");
+        if (confirmationMessage.includes(passenger.name.last)) {
+          util.incrementSelectedTraveler();
+        }
       }
 
       await util.toggleBlur(page, false);
@@ -759,22 +778,8 @@ async function pageContentHandler(currentConfig) {
         fs.existsSync(getPath("loop.txt")) &&
         fs.existsSync(getPath("selectedTraveller.txt"))
       ) {
-        const selectedPassenger = fs.readFileSync(
-          getPath("selectedTraveller.txt"),
-          "utf8"
-        );
-        const data = fs.readFileSync(getPath("data.json"), "utf-8");
-        var passengersData = JSON.parse(data);
-        if (
-          passengersData.travellers.length >
-          parseInt(selectedPassenger) + 1
-        ) {
-          fs.writeFileSync(
-            getPath("selectedTraveller.txt"),
-            (parseInt(selectedPassenger) + 1).toString()
-          );
-          await sendPassenger(parseInt(selectedPassenger) + 1);
-        }
+        await sendPassenger(util.getSelectedTraveler());
+        fs.unlinkSync(getPath("loop.txt"));
       } else {
         await util.controller(page, currentConfig, data.travellers);
       }
@@ -868,31 +873,15 @@ async function pageContentHandler(currentConfig) {
           title: "Remember",
           arabicTitle: "تذكر",
           action: async () => {
-            const address = await page.$eval("#address", (el) => el.value);
-            budgie.save("ehaj_pilgrim_address", address);
-
-            const embassy = await page.$eval("#embassy", (el) => el.value);
-            if (embassy) {
-              budgie.save("ehaj_pilgrim_embassy", embassy);
-            }
-            const packageName = await page.$eval("#packge2", (el) => el.value);
-            if (packageName) {
-              budgie.save("ehaj_pilgrim_package", packageName);
-            }
-            const roomType = await page.$eval("#roomType", (el) => el.value);
-            if (roomType) {
-              budgie.save("ehaj_pilgrim_roomType", roomType);
-            }
-
-            const countryOfResidence = await page.evaluate(
-              "document.querySelector('#countryOfResidence').value"
+            rememberValue("#address", "ehaj_pilgrim_address");
+            rememberValue("#embassy", "ehaj_pilgrim_embassy");
+            rememberValue("#packge2", "ehaj_pilgrim_package");
+            rememberValue("#roomType", "ehaj_pilgrim_roomType");
+            rememberValue(
+              "#countryOfResidence",
+              "ehaj_pilgrim_countryOfResidence"
             );
-            if (countryOfResidence) {
-              budgie.save(
-                "ehaj_pilgrim_countryOfResidence",
-                countryOfResidence.toString()
-              );
-            }
+            rememberValue("#hajType", "ehaj_pilgrim_hajType");
           },
         },
       });
@@ -984,13 +973,27 @@ async function pageContentHandler(currentConfig) {
       await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
       await util.toggleBlur(page, false);
-      await page.$eval("#formData > div:nth-child(9) > div:nth-child(1) > div:nth-child(4) > label", 
-      (el, val) => el.innerText = val, 
-      passenger.passIssueDt.dmy);
+      await page.$eval(
+        "#formData > div:nth-child(9) > div:nth-child(1) > div:nth-child(4) > label",
+        (el, val) => (el.innerText = val),
+        passenger.passIssueDt.dmy
+      );
       // Wait here for 1 second
       await page.waitForTimeout(1000);
-
+      await page.type(
+        "#passportIssueDate",
+        `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`
+      );
       await page.click("#covidVaccines");
+      await page.$eval(
+        "#countryOfResidence",
+        (el, val) => (el.value = val),
+        budgie.get(
+          "ehaj_pilgrim_countryOfResidence",
+          passenger.nationality.telCode
+        )
+      );
+      // await page.select("#hajType", budgie.get("ehaj_pilgrim_hajType", "1"));
 
       // if (passports.filter((x) => x == passenger.passportNumber).length > 3) {
       //   // Stop
@@ -1015,6 +1018,23 @@ async function pageContentHandler(currentConfig) {
       break;
     case "mission-questionnaire":
       await util.commit(page, currentConfig.details, passenger);
+      await page.type(
+        "#j_idt3688_content > div:nth-child(14) > div > div > input",
+        "23/07/2023"
+      );
+      await page.click(
+        "#j_idt3688_content > div:nth-child(31) > div > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
+      );
+      await page.click(
+        "#j_idt3688_content > div:nth-child(32) > div > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
+      );
+      // scroll this element #j_idt3688_content > div:nth-child(13) > div > label into view
+      await page.evaluate(() => {
+        document
+          .querySelector("#j_idt3688_content > div:nth-child(13) > div > label")
+          .scrollIntoView();
+      });
+
       break;
     case "housing-contract":
       //
