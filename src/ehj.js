@@ -221,15 +221,10 @@ const config = [
       },
       {
         selector: "#countryOfResidence",
-        value: (row) => budgie.get("ehaj_pilgrim_countryOfResidence", "SA"),
+        value: (row) => budgie.get("ehaj_pilgrim_countryOfResidence", row.nationality.telCode),
       },
       {
         selector: "#passportIssueDate",
-        value: (row) => row.passIssueDt.dmy,
-      },
-      {
-        selector:
-          "#formData > div:nth-child(9) > div:nth-child(1) > div:nth-child(4) > label",
         value: (row) => row.passIssueDt.dmy,
       },
       {
@@ -367,6 +362,7 @@ const config = [
 async function sendPassenger(selectedTraveler) {
   const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
+  util.setSelectedTraveller(selectedTraveler);
   await pasteCodeLine(selectedTraveler, passengersData);
 }
 
@@ -403,7 +399,7 @@ async function onContentLoaded(res) {
 }
 
 async function pageContentHandler(currentConfig) {
-  const passenger = data.travellers[counter];
+  const passenger = data.travellers[util.getSelectedTraveler()];
   switch (currentConfig.name) {
     case "home":
     case "index":
@@ -988,19 +984,25 @@ async function pageContentHandler(currentConfig) {
       await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
       await util.toggleBlur(page, false);
-      await page.waitForTimeout(500);
+      await page.$eval("#formData > div:nth-child(9) > div:nth-child(1) > div:nth-child(4) > label", 
+      (el, val) => el.innerText = val, 
+      passenger.passIssueDt.dmy);
+      // Wait here for 1 second
+      await page.waitForTimeout(1000);
 
-      if (passports.filter((x) => x == passenger.passportNumber).length > 3) {
-        // Stop
-      } else {
-        if (fs.existsSync(getPath("loop.txt"))) {
-          await page.click("#covidVaccines");
+      await page.click("#covidVaccines");
 
-          const submitButtonSelector =
-            "#actionPanel > div > div > input.btn.btn-primary";
-          await page.click(submitButtonSelector);
-        }
-      }
+      // if (passports.filter((x) => x == passenger.passportNumber).length > 3) {
+      //   // Stop
+      // } else {
+      //   if (fs.existsSync(getPath("loop.txt"))) {
+      //     await page.click("#covidVaccines");
+
+      //     const submitButtonSelector =
+      //       "#actionPanel > div > div > input.btn.btn-primary";
+      //     await page.click(submitButtonSelector);
+      //   }
+      // }
 
       break;
     case "package-details":
