@@ -969,17 +969,19 @@ async function pageContentHandler(currentConfig) {
         );
       }
 
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
       await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
       await util.toggleBlur(page, false);
+      // Wait here for 1 second
+      await page.waitForTimeout(1000);
+      // show the user the issue date 
       await page.$eval(
         "#formData > div:nth-child(9) > div:nth-child(1) > div:nth-child(4) > label",
         (el, val) => (el.innerText = val),
         passenger.passIssueDt.dmy
       );
-      // Wait here for 1 second
-      await page.waitForTimeout(1000);
+      // type the issue date for the user
       await page.type(
         "#passportIssueDate",
         `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`
@@ -993,13 +995,12 @@ async function pageContentHandler(currentConfig) {
           passenger.nationality.telCode
         )
       );
-      // await page.select("#hajType", budgie.get("ehaj_pilgrim_hajType", "1"));
+      await page.select("#hajType", budgie.get("ehaj_pilgrim_hajType", "1"));
 
       // if (passports.filter((x) => x == passenger.passportNumber).length > 3) {
       //   // Stop
       // } else {
       //   if (fs.existsSync(getPath("loop.txt"))) {
-      //     await page.click("#covidVaccines");
 
       //     const submitButtonSelector =
       //       "#actionPanel > div > div > input.btn.btn-primary";
