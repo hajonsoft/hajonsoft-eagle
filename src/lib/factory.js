@@ -38,7 +38,7 @@ async function toSystem(integration, account) {
 function toInfo(passengers) {
   return {
     pax: passengers.length,
-    caravan: [...new Set(passengers.map((p) => p.groupId))].join(""),
+    caravan: global.submission.name,
     // write back url - optional
     caravanUrl: "",
     munazim: "munazim",

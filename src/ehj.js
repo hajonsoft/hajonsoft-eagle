@@ -176,8 +176,7 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveler) {
-          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
-          const data = fs.readFileSync(getPath("data.json"), "utf-8");
+          util.setSelectedTraveller(selectedTraveler)
           fs.writeFileSync(getPath("loop.txt"), "", "utf-8");
           // reload page
           await page.reload();
@@ -217,7 +216,7 @@ const config = [
       },
       {
         selector: "#placeofBirth",
-        value: (row) => row.birthPlace,
+        value: (row) => row.birthPlace || row.nationality.name,
       },
       {
         selector: "#address",
@@ -248,7 +247,7 @@ const config = [
       },
       {
         selector: "#placeofBirth",
-        value: (row) => row.birthPlace,
+        value: (row) => row.birthPlace || row.nationality.name,
       },
       {
         selector: "#address",
@@ -577,7 +576,7 @@ async function pageContentHandler(currentConfig) {
       );
       if (editPassenger) {
         await page.$eval(
-          "#formData > h3:nth-child(10)",
+          "#filedetails > span",
           (el, url) => {
             el.outerHTML =
               "<div style='width: 100%; height: 400px; overflow: scroll'> <img src='" +
@@ -897,11 +896,11 @@ async function pageContentHandler(currentConfig) {
             selector: "#reference1",
             value: (row) =>
               row.caravan < 40
-                ? row.caravan
+                ? row.caravan.replace(/[^a-zA-Z0-9 ]/, '')
                 : row.caravan.substring(
                     row.caravan.length - 40,
                     row.caravan.length
-                  ),
+                  ).replace(/[^a-zA-Z0-9 ]/, ''),
           },
         ],
         data.info
@@ -998,7 +997,10 @@ async function pageContentHandler(currentConfig) {
         `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`
       );
       await page.waitForSelector("#covidVaccines");
-      await page.click("#covidVaccines");
+      const isVaccineClicked = await page.$eval("#covidVaccines", el => el.value)
+      if (!isVaccineClicked) {
+        await page.click("#covidVaccines");
+      }
       await page.$eval(
         "#countryOfResidence",
         (el, val) => (el.value = val),
