@@ -537,6 +537,7 @@ async function controller(page, structure, travellers) {
     const htmlFileName = path.join(__dirname, "assets", "controller.html");
     let html = fs.readFileSync(htmlFileName, "utf8");
 
+    // Attach controller
     await page.evaluate(
       (params) => {
         const structureParam = params[0];
