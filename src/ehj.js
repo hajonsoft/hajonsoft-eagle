@@ -13,10 +13,10 @@ const homedir = require("os").homedir();
 const SMS = require("./sms");
 const email = require("./email");
 const totp = require("totp-generator");
+const kea = require("./lib/kea");
 const { default: axios } = require("axios");
-const { cloneDeep } = require("lodash");
+const { cloneDeep, kebabCase } = require("lodash");
 const { send: sendHsf } = require("./hsf");
-const { el } = require("date-fns/locale");
 
 let page;
 let data;
@@ -770,6 +770,10 @@ async function pageContentHandler(currentConfig) {
         fs.appendFileSync(getLogFile(), confirmationMessage + "\n");
         if (confirmationMessage.includes(passenger.name.last)) {
           util.incrementSelectedTraveler();
+          //TODO: get the ehaj id as well and save it
+          kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+            "submissionData.ehj.status": "Submitted",
+          });
         }
       }
 
@@ -975,17 +979,25 @@ async function pageContentHandler(currentConfig) {
       await util.toggleBlur(page, false);
       // Wait here for 1 second
       await page.waitForTimeout(1000);
-      // show the user the issue date 
-      await page.$eval(
-        "#formData > div:nth-child(9) > div:nth-child(1) > div:nth-child(4) > label",
-        (el, val) => (el.innerText = val),
-        passenger.passIssueDt.dmy
-      );
-      // type the issue date for the user
+      try {
+        await page.$eval(
+          "#formData > div:nth-child(9) > div:nth-child(1) > div:nth-child(4) > label",
+          (el, val) => (el.innerText = val),
+          passenger.passIssueDt.dmy
+        );
+      } catch {}
+      try {
+        await page.$eval(
+          "#formData > div:nth-child(11) > div:nth-child(1) > div:nth-child(4) > label",
+          (el, val) => (el.innerText = val),
+          passenger.passIssueDt.dmy
+        );
+      } catch {}
       await page.type(
         "#passportIssueDate",
         `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`
       );
+      await page.waitForSelector("#covidVaccines");
       await page.click("#covidVaccines");
       await page.$eval(
         "#countryOfResidence",
@@ -995,7 +1007,10 @@ async function pageContentHandler(currentConfig) {
           passenger.nationality.telCode
         )
       );
-      await page.select("#hajType", budgie.get("ehaj_pilgrim_hajType", "1"));
+      try {
+
+        await page.select("#hajType", budgie.get("ehaj_pilgrim_hajType", "1"));
+      } catch {}
 
       // if (passports.filter((x) => x == passenger.passportNumber).length > 3) {
       //   // Stop
