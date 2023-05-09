@@ -101,6 +101,32 @@ const config = [
     ],
   },
   {
+    name: "company-questionnaire",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/Questionnaire.xhtml",
+    details: [
+      {
+        selector: "#j_idt3688_content > div:nth-child(3) > div > div > input",
+        value: (row) => new Date().valueOf().toString(),
+      },
+      {
+        selector: "#j_idt3688_content > div:nth-child(4) > div > div > input",
+        value: (row) =>
+          `${row.name.first}${new Date()
+            .valueOf()
+            .toString(36)}@premiumemail.ca`.toLowerCase(),
+      },
+      {
+        selector: "#j_idt3688_content > div:nth-child(8) > div > div > input",
+        value: () => "Employee",
+      },
+      {
+        selector: "#j_idt3688_content > div:nth-child(13) > div > div > select",
+        value: () => "7",
+      },
+    ],
+  },
+  {
     name: "package-quota-list",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/packagesQuota/List.xhtml",
@@ -156,9 +182,7 @@ const config = [
         if (selectedTraveler) {
           util.setSelectedTraveller(selectedTraveler);
           fs.writeFileSync(getPath("loop.txt"), "", "utf-8");
-          // reload page
           await page.reload();
-          // await sendPassenger(selectedTraveler);
         }
       },
     },
@@ -176,13 +200,9 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveler) {
-          util.setSelectedTraveller(selectedTraveler)
+          util.setSelectedTraveller(selectedTraveler);
           fs.writeFileSync(getPath("loop.txt"), "", "utf-8");
-          // reload page
           await page.reload();
-          // var passengersData = JSON.parse(data);
-
-          // await pasteCodeLine(selectedTraveler, passengersData);
         }
       },
     },
@@ -777,10 +797,7 @@ async function pageContentHandler(currentConfig) {
       }
 
       await util.toggleBlur(page, false);
-      if (
-        fs.existsSync(getPath("loop.txt")) &&
-        fs.existsSync(getPath("selectedTraveller.txt"))
-      ) {
+      if (fs.existsSync(getPath("loop.txt"))) {
         await sendPassenger(util.getSelectedTraveler());
         fs.unlinkSync(getPath("loop.txt"));
       } else {
@@ -896,11 +913,10 @@ async function pageContentHandler(currentConfig) {
             selector: "#reference1",
             value: (row) =>
               row.caravan < 40
-                ? row.caravan.replace(/[^a-zA-Z0-9 ]/, '')
-                : row.caravan.substring(
-                    row.caravan.length - 40,
-                    row.caravan.length
-                  ).replace(/[^a-zA-Z0-9 ]/, ''),
+                ? row.caravan.replace(/[^a-zA-Z0-9 ]/, "")
+                : row.caravan
+                    .substring(row.caravan.length - 40, row.caravan.length)
+                    .replace(/[^a-zA-Z0-9 ]/, ""),
           },
         ],
         data.info
@@ -997,7 +1013,10 @@ async function pageContentHandler(currentConfig) {
         `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`
       );
       await page.waitForSelector("#covidVaccines");
-      const isVaccineClicked = await page.$eval("#covidVaccines", el => el.value)
+      const isVaccineClicked = await page.$eval(
+        "#covidVaccines",
+        (el) => el.value
+      );
       if (!isVaccineClicked) {
         await page.click("#covidVaccines");
       }
@@ -1010,7 +1029,6 @@ async function pageContentHandler(currentConfig) {
         )
       );
       try {
-
         await page.select("#hajType", budgie.get("ehaj_pilgrim_hajType", "1"));
       } catch {}
 
@@ -1034,6 +1052,7 @@ async function pageContentHandler(currentConfig) {
       await page.select("#hpDepartureAirline", "11435");
       await page.select("#deptPort", "50");
       break;
+    case "company-questionnaire":
     case "mission-questionnaire":
       await util.commit(page, currentConfig.details, passenger);
       await page.type(
