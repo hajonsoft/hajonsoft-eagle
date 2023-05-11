@@ -80,22 +80,26 @@ const config = [
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Questionnaire.xhtml",
     details: [
       {
-        selector: "#j_idt3688_content > div:nth-child(3) > div > div > input",
+        selector:
+          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(3) > div > div > input",
         value: (row) => new Date().valueOf().toString(),
       },
       {
-        selector: "#j_idt3688_content > div:nth-child(4) > div > div > input",
+        selector:
+          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > div > input",
         value: (row) =>
           `${row.name.first}${new Date()
             .valueOf()
             .toString(36)}@premiumemail.ca`.toLowerCase(),
       },
       {
-        selector: "#j_idt3688_content > div:nth-child(8) > div > div > input",
+        selector:
+          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(8) > div > div > input",
         value: () => "Employee",
       },
       {
-        selector: "#j_idt3688_content > div:nth-child(13) > div > div > select",
+        selector:
+          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(13) > div > div > select",
         value: () => "7",
       },
     ],
@@ -181,7 +185,9 @@ const config = [
         );
         if (selectedTraveler) {
           util.setSelectedTraveller(selectedTraveler);
-          fs.writeFileSync(getPath("loop.txt"), "", "utf-8");
+          if (!fs.existsSync(getPath("loop.txt"))) {
+            fs.writeFileSync(getPath("loop.txt"), "ehaj", "utf-8");
+          }
           await page.reload();
         }
       },
@@ -201,7 +207,9 @@ const config = [
         );
         if (selectedTraveler) {
           util.setSelectedTraveller(selectedTraveler);
-          fs.writeFileSync(getPath("loop.txt"), "", "utf-8");
+          if (!fs.existsSync(getPath("loop.txt"))) {
+            fs.writeFileSync(getPath("loop.txt"), "ehaj", "utf-8");
+          }
           await page.reload();
         }
       },
@@ -799,7 +807,12 @@ async function pageContentHandler(currentConfig) {
       await util.toggleBlur(page, false);
       if (fs.existsSync(getPath("loop.txt"))) {
         await sendPassenger(util.getSelectedTraveler());
-        fs.unlinkSync(getPath("loop.txt"));
+        const loopContents = fs.readFileSync(getPath("loop.txt"), 'utf-8')
+        console.log("📢[ehj.js:811]: loopContents: ", loopContents);
+        if (loopContents === "ehaj") {
+
+          fs.unlinkSync(getPath("loop.txt"));
+        }
       } else {
         await util.controller(page, currentConfig, data.travellers);
       }
@@ -1015,7 +1028,7 @@ async function pageContentHandler(currentConfig) {
       await page.waitForSelector("#covidVaccines");
       const isVaccineClicked = await page.$eval(
         "#covidVaccines",
-        (el) => el.value
+        (el) => el.checked
       );
       if (!isVaccineClicked) {
         await page.click("#covidVaccines");
@@ -1056,19 +1069,19 @@ async function pageContentHandler(currentConfig) {
     case "mission-questionnaire":
       await util.commit(page, currentConfig.details, passenger);
       await page.type(
-        "#j_idt3688_content > div:nth-child(14) > div > div > input",
+        "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(14) > div > div > input",
         "23/07/2023"
       );
       await page.click(
-        "#j_idt3688_content > div:nth-child(31) > div > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
+        "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(31) > div.form-group > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
       );
       await page.click(
-        "#j_idt3688_content > div:nth-child(32) > div > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
+        "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.form-group > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
       );
-      // scroll this element #j_idt3688_content > div:nth-child(13) > div > label into view
+      await page.waitForTimeout(1000)
       await page.evaluate(() => {
         document
-          .querySelector("#j_idt3688_content > div:nth-child(13) > div > label")
+          .querySelector("#actionPanel > div > div > input.btn.btn-primary")
           .scrollIntoView();
       });
 
