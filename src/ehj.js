@@ -17,6 +17,7 @@ const kea = require("./lib/kea");
 const { default: axios } = require("axios");
 const { cloneDeep, kebabCase } = require("lodash");
 const { send: sendHsf } = require("./hsf");
+const { el } = require("date-fns/locale");
 
 let page;
 let data;
@@ -807,10 +808,9 @@ async function pageContentHandler(currentConfig) {
       await util.toggleBlur(page, false);
       if (fs.existsSync(getPath("loop.txt"))) {
         await sendPassenger(util.getSelectedTraveler());
-        const loopContents = fs.readFileSync(getPath("loop.txt"), 'utf-8')
+        const loopContents = fs.readFileSync(getPath("loop.txt"), "utf-8");
         console.log("📢[ehj.js:811]: loopContents: ", loopContents);
         if (loopContents === "ehaj") {
-
           fs.unlinkSync(getPath("loop.txt"));
         }
       } else {
@@ -1025,6 +1025,13 @@ async function pageContentHandler(currentConfig) {
         "#passportIssueDate",
         `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`
       );
+      try {
+      await page.$eval(
+        "#formData > div:nth-child(12) > div:nth-child(1) > div:nth-child(4) > label",
+        (el, val) => (el.innerText = val),
+        passenger.passIssueDt.dmy
+      );
+      } catch {}
       await page.waitForSelector("#covidVaccines");
       const isVaccineClicked = await page.$eval(
         "#covidVaccines",
@@ -1033,14 +1040,29 @@ async function pageContentHandler(currentConfig) {
       if (!isVaccineClicked) {
         await page.click("#covidVaccines");
       }
-      await page.$eval(
-        "#countryOfResidence",
-        (el, val) => (el.value = val),
-        budgie.get(
-          "ehaj_pilgrim_countryOfResidence",
-          passenger.nationality.telCode
-        )
-      );
+      const rememberedCountryOfResidence = budgie.get(
+        "ehaj_pilgrim_countryOfResidence",
+        passenger.nationality.telCode
+        );
+      if (rememberedCountryOfResidence) {
+        const countryOfResidenceText = await page.$$eval(
+          "#countryOfResidence > option",
+          (els, val) => {
+            return els.find((el) => el.value === val).innerText;
+          },
+          rememberedCountryOfResidence
+        );
+        await page.$eval(
+          "#countryOfResidence",
+          (el, vals) => {
+            el.value = vals[0];
+            document.querySelector(
+              "#s2id_countryOfResidence > a > span.select2-chosen"
+            ).innerText = vals[1];
+          },
+          [rememberedCountryOfResidence, countryOfResidenceText]
+        );
+      }
       try {
         await page.select("#hajType", budgie.get("ehaj_pilgrim_hajType", "1"));
       } catch {}
@@ -1078,7 +1100,7 @@ async function pageContentHandler(currentConfig) {
       await page.click(
         "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.form-group > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
       );
-      await page.waitForTimeout(1000)
+      await page.waitForTimeout(1000);
       await page.evaluate(() => {
         document
           .querySelector("#actionPanel > div > div > input.btn.btn-primary")
