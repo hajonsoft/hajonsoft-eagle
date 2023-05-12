@@ -111,22 +111,22 @@ const config = [
       "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/Questionnaire.xhtml",
     details: [
       {
-        selector: "#j_idt3688_content > div:nth-child(3) > div > div > input",
+        selector: "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(3) > div > div > input",
         value: (row) => new Date().valueOf().toString(),
       },
       {
-        selector: "#j_idt3688_content > div:nth-child(4) > div > div > input",
+        selector: "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > div > input",
         value: (row) =>
           `${row.name.first}${new Date()
             .valueOf()
             .toString(36)}@premiumemail.ca`.toLowerCase(),
       },
       {
-        selector: "#j_idt3688_content > div:nth-child(8) > div > div > input",
+        selector: "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(8) > div > div > input",
         value: () => "Employee",
       },
       {
-        selector: "#j_idt3688_content > div:nth-child(13) > div > div > select",
+        selector: "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(13) > div > div > select",
         value: () => "7",
       },
     ],
