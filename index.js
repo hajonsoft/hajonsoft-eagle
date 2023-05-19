@@ -20,6 +20,7 @@ const { send: sendGhb } = require("./src/ghb");
 const { send: sendNsk } = require("./src/nsk");
 const { send: sendNsh } = require("./src/nsh");
 const { send: sendTrk } = require("./src/trk");
+const { send: sendChv } = require("./src/chv");
 
 const util = require("./src/util");
 const { getPath } = util;
@@ -169,6 +170,8 @@ async function submitToProvider() {
   switch (data.system.name) {
     case "ehj":
       return sendEhj(data);
+      case "chv":
+        return sendChv(data);
     case "bau":
       return sendBau(data);
     case "wtu":
