@@ -557,7 +557,7 @@ async function controller(page, structure, travellers) {
           .replace(/{current}/, (parseInt(lastTraveler) + 1).toString())
           .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`.replace(
           /{sendall}/,
-          "Send All إرسل الكل"
+          "Continuous مستمر"
         );
       },
       [

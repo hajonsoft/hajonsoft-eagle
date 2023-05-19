@@ -17,6 +17,7 @@ const kea = require("./lib/kea");
 const { default: axios } = require("axios");
 const { cloneDeep, kebabCase } = require("lodash");
 const { send: sendHsf } = require("./hsf");
+const { el } = require("date-fns/locale");
 
 let page;
 let data;
@@ -110,22 +111,22 @@ const config = [
       "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/Questionnaire.xhtml",
     details: [
       {
-        selector: "#j_idt3688_content > div:nth-child(3) > div > div > input",
+        selector: "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(3) > div > div > input",
         value: (row) => new Date().valueOf().toString(),
       },
       {
-        selector: "#j_idt3688_content > div:nth-child(4) > div > div > input",
+        selector: "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > div > input",
         value: (row) =>
           `${row.name.first}${new Date()
             .valueOf()
             .toString(36)}@premiumemail.ca`.toLowerCase(),
       },
       {
-        selector: "#j_idt3688_content > div:nth-child(8) > div > div > input",
+        selector: "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(8) > div > div > input",
         value: () => "Employee",
       },
       {
-        selector: "#j_idt3688_content > div:nth-child(13) > div > div > select",
+        selector: "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(13) > div > div > select",
         value: () => "7",
       },
     ],
@@ -1014,6 +1015,13 @@ async function pageContentHandler(currentConfig) {
         "#passportIssueDate",
         `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`
       );
+      try {
+      await page.$eval(
+        "#formData > div:nth-child(12) > div:nth-child(1) > div:nth-child(4) > label",
+        (el, val) => (el.innerText = val),
+        passenger.passIssueDt.dmy
+      );
+      } catch {}
       await page.waitForSelector("#covidVaccines");
       const isVaccineClicked = await page.$eval(
         "#covidVaccines",
@@ -1022,14 +1030,29 @@ async function pageContentHandler(currentConfig) {
       if (!isVaccineClicked) {
         await page.click("#covidVaccines");
       }
-      await page.$eval(
-        "#countryOfResidence",
-        (el, val) => (el.value = val),
-        budgie.get(
-          "ehaj_pilgrim_countryOfResidence",
-          passenger.nationality.telCode
-        )
-      );
+      const rememberedCountryOfResidence = budgie.get(
+        "ehaj_pilgrim_countryOfResidence",
+        passenger.nationality.telCode
+        );
+      if (rememberedCountryOfResidence) {
+        const countryOfResidenceText = await page.$$eval(
+          "#countryOfResidence > option",
+          (els, val) => {
+            return els.find((el) => el.value === val).innerText;
+          },
+          rememberedCountryOfResidence
+        );
+        await page.$eval(
+          "#countryOfResidence",
+          (el, vals) => {
+            el.value = vals[0];
+            document.querySelector(
+              "#s2id_countryOfResidence > a > span.select2-chosen"
+            ).innerText = vals[1];
+          },
+          [rememberedCountryOfResidence, countryOfResidenceText]
+        );
+      }
       try {
         await page.select("#hajType", budgie.get("ehaj_pilgrim_hajType", "1"));
       } catch {}
