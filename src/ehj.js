@@ -1092,7 +1092,7 @@ async function pageContentHandler(currentConfig) {
       await util.commit(page, currentConfig.details, passenger);
       await page.type(
         "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(14) > div > div > input",
-        "23/07/2023"
+        "23/06/2023"
       );
       await page.click(
         "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(31) > div.form-group > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
@@ -1566,7 +1566,7 @@ async function makeReservations(index, passengersData) {
         await page.type(
           "#email",
           (passenger.name.first + passenger.name.last).replace(/ /g, "") +
-            "@gmail.com"
+            "@premiumemail.ca"
         );
       }
     }
