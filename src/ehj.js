@@ -475,33 +475,23 @@ async function pageContentHandler(currentConfig) {
       const isAuthCode = await page.$("#secretKey");
       if (isAuthCode) {
         const code = await page.$eval("#secretKey", (el) => el.value);
-        console.log("Google Authenticator Code: " + code);
+        console.log(
+          "Google Authenticator Code: " + code,
+          "Ehaj Username: ",
+          data.system.username,
+          "Ehaj password: ",
+          data.system.password
+        );
         if (data?.system?.ehajCode.length > 1) {
           return;
         }
         //save to data.json immediately
         data.system.ehajCode = code;
         fs.writeFileSync(getPath("data.json"), JSON.stringify(data, null, 2));
-
-        // Save to firebase
-        const config = {
-          headers: { Authorization: `Bearer ${data.info.accessToken}` },
-        };
-        let url = `${data.info.databaseURL}/${
-          data.system.path || "protected/profile/"
-        }.json`;
-        try {
-          await axios.patch(
-            url,
-            {
-              ehajCode: code,
-            },
-            config
-          );
-        } catch (err) {
-          console.log(err);
-        }
       }
+      kea.updateTargetSystem(data.system.accountId, "ehaj", {
+        ehajCode: data.system.ehajCode,
+      });
 
       break;
     case "otp":
@@ -807,10 +797,9 @@ async function pageContentHandler(currentConfig) {
       await util.toggleBlur(page, false);
       if (fs.existsSync(getPath("loop.txt"))) {
         await sendPassenger(util.getSelectedTraveler());
-        const loopContents = fs.readFileSync(getPath("loop.txt"), 'utf-8')
+        const loopContents = fs.readFileSync(getPath("loop.txt"), "utf-8");
         console.log("📢[ehj.js:811]: loopContents: ", loopContents);
         if (loopContents === "ehaj") {
-
           fs.unlinkSync(getPath("loop.txt"));
         }
       } else {
@@ -1078,7 +1067,7 @@ async function pageContentHandler(currentConfig) {
       await page.click(
         "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.form-group > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
       );
-      await page.waitForTimeout(1000)
+      await page.waitForTimeout(1000);
       await page.evaluate(() => {
         document
           .querySelector("#actionPanel > div > div > input.btn.btn-primary")
