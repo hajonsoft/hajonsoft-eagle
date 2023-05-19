@@ -483,14 +483,14 @@ async function pageContentHandler(currentConfig) {
           "Ehaj password: ",
           data.system.password
         );
-        if (data?.system?.ehajCode.length > 1) {
+        if (data?.system?.ehajCode?.length > 1) {
           return;
         }
         //save to data.json immediately
         data.system.ehajCode = code;
         fs.writeFileSync(getPath("data.json"), JSON.stringify(data, null, 2));
       }
-      kea.updateTargetSystem(data.system.accountId, "ehaj", {
+      kea.updateTargetSystem(data.system.accountId, "ehj", {
         ehajCode: data.system.ehajCode,
       });
 
