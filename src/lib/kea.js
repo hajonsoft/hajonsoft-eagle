@@ -186,6 +186,28 @@ const updateSelectedTraveller = async (value) => {
   });
 };
 
+const updateTargetSystem = async (accountId, targetSystemId, payload) => {
+  const snaps = await getDocs(
+    query(
+      db.integrations(),
+      where("accountId", "==", accountId),
+      where("targetSystemId", "==", targetSystemId)
+    )
+  );
+  const promises = [];
+  snaps.docs.forEach(async (doc) => {
+    const data = doc.data();
+    console.log(
+      `🦜 Updating targetSystem ${targetSystemId} with username ${data.username}`,
+      { payload }
+    );
+    promises.push(
+      updateDoc(doc.ref, { ...payload, updatedAt: new Date().toISOString() })
+    );
+  });
+  await Promise.all(promises);
+};
+
 const updatePassenger = async (accountId, passportNumber, payload) => {
   const snaps = await getDocs(
     query(
@@ -209,6 +231,7 @@ const updatePassenger = async (accountId, passportNumber, payload) => {
   });
   await Promise.all(promises);
 };
+
 const updateSubmission = async (payload) => {
   console.log(`🦜 Updating submission`, payload);
   await updateDoc(db.submission(global.submission.id), payload);
@@ -226,4 +249,5 @@ module.exports = {
   uploadImageToStorage,
   updatePassenger,
   updateSubmission,
+  updateTargetSystem,
 };

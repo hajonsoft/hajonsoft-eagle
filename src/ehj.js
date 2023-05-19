@@ -476,33 +476,23 @@ async function pageContentHandler(currentConfig) {
       const isAuthCode = await page.$("#secretKey");
       if (isAuthCode) {
         const code = await page.$eval("#secretKey", (el) => el.value);
-        console.log("Google Authenticator Code: " + code);
-        if (data?.system?.ehajCode.length > 1) {
+        console.log(
+          "Google Authenticator Code: " + code,
+          "Ehaj Username: ",
+          data.system.username,
+          "Ehaj password: ",
+          data.system.password
+        );
+        if (data?.system?.ehajCode?.length > 1) {
           return;
         }
         //save to data.json immediately
         data.system.ehajCode = code;
         fs.writeFileSync(getPath("data.json"), JSON.stringify(data, null, 2));
-
-        // Save to firebase
-        const config = {
-          headers: { Authorization: `Bearer ${data.info.accessToken}` },
-        };
-        let url = `${data.info.databaseURL}/${
-          data.system.path || "protected/profile/"
-        }.json`;
-        try {
-          await axios.patch(
-            url,
-            {
-              ehajCode: code,
-            },
-            config
-          );
-        } catch (err) {
-          console.log(err);
-        }
       }
+      kea.updateTargetSystem(data.system.accountId, "ehj", {
+        ehajCode: data.system.ehajCode,
+      });
 
       break;
     case "otp":

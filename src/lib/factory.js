@@ -25,7 +25,7 @@ async function toSystem(integration, account) {
   return {
     username: integration?.username,
     password: integration?.password,
-    ehajCode: integration.authenticatorCode,
+    ehajCode: integration.authenticatorCode || integration.ehajCode,
     country,
     // Write back path
     writeBack: "",
