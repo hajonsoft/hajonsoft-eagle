@@ -111,22 +111,26 @@ const config = [
       "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/Questionnaire.xhtml",
     details: [
       {
-        selector: "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(3) > div > div > input",
+        selector:
+          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(3) > div > div > input",
         value: (row) => new Date().valueOf().toString(),
       },
       {
-        selector: "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > div > input",
+        selector:
+          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > div > input",
         value: (row) =>
           `${row.name.first}${new Date()
             .valueOf()
             .toString(36)}@premiumemail.ca`.toLowerCase(),
       },
       {
-        selector: "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(8) > div > div > input",
+        selector:
+          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(8) > div > div > input",
         value: () => "Employee",
       },
       {
-        selector: "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(13) > div > div > select",
+        selector:
+          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(13) > div > div > select",
         value: () => "7",
       },
     ],
@@ -678,28 +682,13 @@ async function pageContentHandler(currentConfig) {
               );
               if (!ehajNumbers.find((p) => p === ehajNumber)) {
                 ehajNumbers.push(ehajNumber);
+                kea.updatePassenger(data.system.accountId, passportNumber, {
+                  mofaNumber,
+                  ehajNumber,
+                  status,
+                });
               }
-              const config = {
-                headers: { Authorization: `Bearer ${data.info.accessToken}` },
-              };
-              const passengerPath = data.travellers.find(
-                (p) => p.passportNumber === passportNumber
-              )?.path;
-              if (passengerPath) {
-                const url = `${data.info.databaseURL}/${passengerPath}/.json`;
-                try {
-                  await axios.patch(
-                    url,
-                    {
-                      ehajNumber,
-                      mofaNumber,
-                    },
-                    config
-                  );
-                } catch (err) {
-                  // console.log(err);
-                }
-              }
+
               fs.writeFileSync(
                 getPath(passportNumber + ".txt"),
                 JSON.stringify({
@@ -1016,11 +1005,11 @@ async function pageContentHandler(currentConfig) {
         `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`
       );
       try {
-      await page.$eval(
-        "#formData > div:nth-child(12) > div:nth-child(1) > div:nth-child(4) > label",
-        (el, val) => (el.innerText = val),
-        passenger.passIssueDt.dmy
-      );
+        await page.$eval(
+          "#formData > div:nth-child(12) > div:nth-child(1) > div:nth-child(4) > label",
+          (el, val) => (el.innerText = val),
+          passenger.passIssueDt.dmy
+        );
       } catch {}
       await page.waitForSelector("#covidVaccines");
       const isVaccineClicked = await page.$eval(
@@ -1033,7 +1022,7 @@ async function pageContentHandler(currentConfig) {
       const rememberedCountryOfResidence = budgie.get(
         "ehaj_pilgrim_countryOfResidence",
         passenger.nationality.telCode
-        );
+      );
       if (rememberedCountryOfResidence) {
         const countryOfResidenceText = await page.$$eval(
           "#countryOfResidence > option",
