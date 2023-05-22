@@ -72,6 +72,29 @@ const config = [
     ],
   },
   {
+    name: "print-visa",
+    url: "https://visa.mofa.gov.sa/visaservices/searchvisa",
+    controller: {
+      name: "searchVisa",
+      selector: "#content > div > div.page-head > div",
+      action: async () => {
+        const selectedTraveller = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
+        if (selectedTraveller) {
+          util.setSelectedTraveller(selectedTraveller);
+          await sendPassengerToPrint(selectedTraveller);
+          return;
+        }
+      },
+    },
+  },
+  {
+    name: "print-haj-visa",
+    url: "https://visa.mofa.gov.sa/Home/PrintHajVisa",
+  },
+  {
     name: "agreement",
     url: "https://visa.mofa.gov.sa/HajSmartForm/ElectronicAgreement",
   },
@@ -270,7 +293,7 @@ async function showController() {
         },
         nskAction: async () => {
           await beginNSKImport();
-        }
+        },
       },
     },
     data.travellers
@@ -332,12 +355,9 @@ async function beginNSKImport() {
   nskPage = await util.newPage(onNSKPageLoad, () => {});
   initializeNSKImport(nskPage, data);
   nskPage.on("response", injectNSKEagleButton);
-  await nskPage.goto(
-    "https://bsp-nusuk.haj.gov.sa/Identity",
-    {
-      waitUntil: "domcontentloaded",
-    }
-  );
+  await nskPage.goto("https://bsp-nusuk.haj.gov.sa/Identity", {
+    waitUntil: "domcontentloaded",
+  });
 }
 
 function isValidPassenger(passenger) {
@@ -364,9 +384,9 @@ async function startImport(page, data) {
     case "wtu":
       beginWTUImport();
       break;
-      case "nsk":
-        beginNSKImport();
-        break;
+    case "nsk":
+      beginNSKImport();
+      break;
     default:
       return;
   }
@@ -404,6 +424,27 @@ async function pageContentHandler(currentConfig) {
         }, 20000);
       }
 
+      break;
+    case "print-visa":
+      await util.controller(page, currentConfig, data.travellers);
+      break;
+    case "print-haj-visa":
+      // take visa screen shot to kea
+      // then continue to the next passenger
+
+      const pageElement = await page.$("body");
+      // save screenshot to kea
+      try {
+        await util.screenShotToKea(
+          pageElement,
+          data.system.accountId,
+          passenger,
+          "Visa"
+        );
+      } catch (error) {}
+      
+      util.incrementSelectedTraveler();
+      await page.goto("https://visa.mofa.gov.sa/visaservices/searchvisa");
       break;
     case "agreement":
       await page.waitForSelector(
@@ -769,17 +810,17 @@ async function pageContentHandler(currentConfig) {
 
       fs.writeFileSync(getPath("add.json"), JSON.stringify(passenger));
 
-        // if (fs.existsSync(getPath("loop.txt"))) {
-        //   const nextTraveller = util.incrementSelectedTraveler();
-        //   sendNewApplication(nextTraveller.toString());
-        // }
-        await page.hover(
-          "#myform > div.form-actions.fluid.right > div > div > button"
-        );
-        await page.focus(
-          "#myform > div.form-actions.fluid.right > div > div > button"
-        );
-      
+      // if (fs.existsSync(getPath("loop.txt"))) {
+      //   const nextTraveller = util.incrementSelectedTraveler();
+      //   sendNewApplication(nextTraveller.toString());
+      // }
+      await page.hover(
+        "#myform > div.form-actions.fluid.right > div > div > button"
+      );
+      await page.focus(
+        "#myform > div.form-actions.fluid.right > div > div > button"
+      );
+
       break;
     default:
       break;
@@ -1131,41 +1172,105 @@ async function injectGMAEagleButton() {
 
 async function setHSFDate(dateSelector, year, month, day) {
   try {
+    await page.click(dateSelector);
+    const yearSelector =
+      "body > div.calendars-popup > div > div.calendars-month-row > div > div > select.floatleft.calendars-month-year";
+    await page.waitForSelector(yearSelector);
+    await util.selectByValueStrict(yearSelector, `${year}`);
 
-  await page.click(dateSelector);
-  const yearSelector =
-    "body > div.calendars-popup > div > div.calendars-month-row > div > div > select.floatleft.calendars-month-year";
-  await page.waitForSelector(yearSelector);
-  await util.selectByValueStrict(yearSelector, `${year}`);
+    const monthSelector =
+      "body > div.calendars-popup > div > div.calendars-month-row > div > div > select:nth-child(1)";
+    await page.waitForSelector(monthSelector);
+    // TODO AA: Replace with page.waitForXPath(xpath[, options])
+    await page.waitForFunction(
+      (info) => document.querySelector(info[0])?.innerHTML?.includes(info[1]),
+      {},
+      [monthSelector, `${parseInt(month)}/${year}`]
+    );
 
-  const monthSelector =
-    "body > div.calendars-popup > div > div.calendars-month-row > div > div > select:nth-child(1)"
-  await page.waitForSelector(monthSelector);
-  // TODO AA: Replace with page.waitForXPath(xpath[, options])
-  await page.waitForFunction(
-    (info) => document.querySelector(info[0])?.innerHTML?.includes(info[1]),
-    {},
-    [monthSelector, `${parseInt(month)}/${year}`]
-  );
-
-  await page.waitForTimeout(2000);
-  await page.select(monthSelector, `${parseInt(month)}/${year}`);
-  await page.waitForTimeout(2000);
-  const dayTds = await page.$$("td");
-  for (const dayTd of dayTds) {
-    const dayAnchor = await dayTd.$("a");
-    if (dayAnchor) {
-      const anchorContent = await dayAnchor.evaluate((node) => node.innerText);
-      if (anchorContent == parseInt(day)) {
-        dayTd.focus();
-        dayTd.click();
+    await page.waitForTimeout(2000);
+    await page.select(monthSelector, `${parseInt(month)}/${year}`);
+    await page.waitForTimeout(2000);
+    const dayTds = await page.$$("td");
+    for (const dayTd of dayTds) {
+      const dayAnchor = await dayTd.$("a");
+      if (dayAnchor) {
+        const anchorContent = await dayAnchor.evaluate(
+          (node) => node.innerText
+        );
+        if (anchorContent == parseInt(day)) {
+          dayTd.focus();
+          dayTd.click();
+        }
       }
     }
-  }
 
-  await page.waitForTimeout(1000);
+    await page.waitForTimeout(1000);
   } catch (err) {
     console.log("Eagle error: Date select error", err);
+  }
+}
+
+async function sendPassengerToPrint(index) {
+  status = "sending";
+  let currentIndex = index;
+  if (!currentIndex) {
+    currentIndex = util.getSelectedTraveler();
+  }
+  const passenger = data.travellers[currentIndex];
+
+  // paste passport number and first name
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#ddlFirstValue",
+        value: (row) => "PassPortNo",
+      },
+      {
+        selector: "#ddlSecondValue",
+        value: (row) => "fName",
+      },
+      {
+        selector: "#tbFirstValue",
+        value: (row) => row?.passportNumber,
+      },
+      {
+        selector: "#tbSecondValue",
+        value: (row) => row?.name?.first,
+      },
+      {
+        selector: "#NationalityId",
+        value: (row) => row?.nationality?.code,
+      },
+    ],
+    passenger
+  );
+
+  const captchaImg = await page.$("#imgCaptcha");
+  const captchaTxt = await page.$("#Captcha");
+
+  if (captchaImg && captchaTxt) {
+    await util.commitCaptchaToken(page, "imgCaptcha", "#Captcha", 6);
+  }
+  await util.pauseMessage(page, 10);
+  const url = await page.url();
+  if (url == config.find((c) => c.name === "print-visa").url) {
+    await page.click("#btnSubmit");
+    await util.pauseMessage(page, 10);
+    // Make sure the button is visible before clicking
+    const isError = await page.$(
+      "#dlgMessage > div.modal-dialog > div > div.modal-footer > button",
+      { visible: true }
+    );
+    if (isError) {
+      await page.click(
+        "#dlgMessage > div.modal-dialog > div > div.modal-footer > button"
+      );
+      await util.pauseMessage(page, 10);
+      util.incrementSelectedTraveler();
+      await sendPassengerToPrint();
+    }
   }
 }
 
