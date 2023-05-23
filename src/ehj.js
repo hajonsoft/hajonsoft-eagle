@@ -326,7 +326,7 @@ const config = [
         value: (row) =>
           "Hajj journey of a lifetime. Visit Makkah and perform the duty of Hajj.",
       },
-      { selector: "#packageOwnerPrice", value: () => "25000" },
+      { selector: "#packageOwnerPrice", value: () => "30000" },
     ],
   },
   {
@@ -555,7 +555,6 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "profile":
-      // TODO: Check if this code is working fine
       const tokenValue = await page.$eval("#tokenValue", (el) => el.value);
       if (tokenValue) {
         return;
@@ -565,25 +564,6 @@ async function pageContentHandler(currentConfig) {
       const token = totp(secretCode);
       await page.type("#tokenValue", token);
       await page.click("#verifyGAuthToken > div > div.col-lg-4 > a");
-      // Save to firebase
-      const config = {
-        headers: { Authorization: `Bearer ${data.info.accessToken}` },
-      };
-      let url = `${data.info.databaseURL}/${
-        data.system.path || "protected/profile/"
-      }.json`;
-      try {
-        await axios.patch(
-          url,
-          {
-            ehajCode: secretCode,
-          },
-          config
-        );
-      } catch (err) {
-        console.log(err);
-      }
-
       break;
     case "dashboard":
       // await page.goto(
