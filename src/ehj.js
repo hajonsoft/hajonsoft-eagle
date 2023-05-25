@@ -768,7 +768,6 @@ async function pageContentHandler(currentConfig) {
       if (fs.existsSync(getPath("loop.txt"))) {
         await sendPassenger(util.getSelectedTraveler());
         const loopContents = fs.readFileSync(getPath("loop.txt"), "utf-8");
-        console.log("📢[ehj.js:811]: loopContents: ", loopContents);
         if (loopContents === "ehaj") {
           fs.unlinkSync(getPath("loop.txt"));
         }
@@ -919,11 +918,11 @@ async function pageContentHandler(currentConfig) {
             },
             {
               selector: "#iqamaIssueDate",
-              value: (row) => getPermitIssueDt(row.idIssueDt.dmy),
+              value: (row) => row.idIssueDt.dmy ? getPermitIssueDt(row.idIssueDt.dmy) : row.passIssueDt.dmy,
             },
             {
               selector: "#iqamaExpiryDate",
-              value: (row) => getPermitExpireDt(row.idExpireDt.dmy),
+              value: (row) => row.idExpireDt.dmy ? getPermitExpireDt(row.idExpireDt.dmy) : row.passExpireDt.dmy,
             },
           ],
           passenger
@@ -932,8 +931,10 @@ async function pageContentHandler(currentConfig) {
           passenger,
           350,
           500,
-          "id"
-        );
+          "id",
+          30,
+          100
+          );
 
         await util.commitFile("#permit_attmnt_input", resizedId);
       }
@@ -1059,7 +1060,28 @@ async function pageContentHandler(currentConfig) {
       await page.click(
         "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.form-group > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
       );
-      await page.waitForTimeout(1000);
+      const hasRequiredVaccinationBeenTakenTextSelector = "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(31) > div.ui-outputpanel.ui-widget > div > div > div > div > table > tbody > tr > td > div > textarea"
+      await page.waitForSelector(hasRequiredVaccinationBeenTakenTextSelector)
+      await page.type(hasRequiredVaccinationBeenTakenTextSelector, "covid-19, seasonal flu and others ")
+
+      const iPledgeToAbideByTheRulesTextSelector = "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.ui-outputpanel.ui-widget > div > div > div > div > table > tbody > tr > td > div > textarea"
+      await page.waitForSelector(iPledgeToAbideByTheRulesTextSelector)
+      await page.type(iPledgeToAbideByTheRulesTextSelector, "I pledge to abide by the rules")
+
+      // download passport image
+      const resizedPassportPath = await util.downloadAndResizeImage(
+        passenger,
+        400,
+        300,
+        "passport"
+      );
+      try {
+
+        await util.commitFile("body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(33) > div > div > div > div.ui-fileupload-buttonbar.ui-widget-header.ui-corner-top > span > input[type=file]", resizedPassportPath);
+        const labelForPassportImageSelector = "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(33) > div > label"
+        await page.$eval(labelForPassportImageSelector, (el, val) => el.innerText = val, resizedPassportPath)
+      } catch {}
+
       await page.evaluate(() => {
         document
           .querySelector("#actionPanel > div > div > input.btn.btn-primary")

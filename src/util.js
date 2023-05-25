@@ -869,7 +869,7 @@ async function downloadAndResizeImage(
 ) {
   let folder = photosFolder;
   let url = passenger?.images?.photo;
-  if (!url) {
+  if (!url && imageType == "photo") {
     return path.join(__dirname, "./dummy-image.jpg");
   }
 
@@ -902,7 +902,7 @@ async function downloadAndResizeImage(
   if (imageType == "id") {
     folder = idFolder;
     url = passenger.images.id;
-    if (url?.includes("placeholder")) {
+    if (!url || url?.includes("placeholder")) {
       return path.join(__dirname, "id.jpg");
     }
   }
