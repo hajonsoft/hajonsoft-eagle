@@ -349,7 +349,7 @@ const config = [
     regex: "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/hajData.xhtml",
     controller: {
       selector:
-        "body > div.main > div > div.portlet.light.portlet-fit.bordered > div.portlet-title > div > span",
+        "body > div.pre-header > div.col-md-10 > div > div.col-md-6",
       name: "makeReservation",
       action: async () => {
         const selectedTraveler = await page.$eval(
