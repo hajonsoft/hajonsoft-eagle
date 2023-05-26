@@ -41,11 +41,11 @@ if (fs.existsSync(getPath("passports.txt"))) {
 }
 
 function getLogFile() {
-  const logFolder = path.join(getPath("log"), data.info.munazim);
+  const logFolder = path.join(getPath("log"), data.info.munazim).replace(/[^0-9A-Za-z]/g,'');
   if (!fs.existsSync(logFolder)) {
     fs.mkdirSync(logFolder, { recursive: true });
   }
-  const logFile = path.join(logFolder, data.info.caravan + "_ehj.txt");
+  const logFile = path.join(logFolder, data.info.caravan?.replace(/[^0-9A-Za-z]/g,'') + "_ehj.txt").replace(/ /g, '');
   return logFile;
 }
 
