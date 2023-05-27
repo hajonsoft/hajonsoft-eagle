@@ -17,7 +17,6 @@ const kea = require("./lib/kea");
 const { default: axios } = require("axios");
 const { cloneDeep, kebabCase } = require("lodash");
 const { send: sendHsf } = require("./hsf");
-const { el } = require("date-fns/locale");
 
 let page;
 let data;
@@ -357,7 +356,7 @@ const config = [
           (el) => el.value
         );
         if (selectedTraveler) {
-          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
+          util.setSelectedTraveller(selectedTraveler);
           const data = fs.readFileSync(getPath("data.json"), "utf-8");
           var passengersData = JSON.parse(data);
           // If there is phone number selected then save it to budgie
@@ -415,6 +414,7 @@ async function rememberValue(selector, budgieKey) {
   }
 }
 async function pasteCodeLine(selectedTraveler, passengersData) {
+  await util.infoMessage(page,`${parseInt(selectedTraveler.toString()) + 1}/${passengersData.travellers.length}`);
   await page.focus("#passportCaptureStatus");
   if (selectedTraveler == "-1") {
     const browser = await page.browser();

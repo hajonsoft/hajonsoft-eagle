@@ -975,7 +975,7 @@ async function downloadAndResizeImage(
     sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }
 
-  while (sizeAfter > maxKb && quality > 0) {
+  while (sizeAfter > maxKb && quality > 10) {
     quality -= 5;
     await sharp(imagePath)
       .resize(width, height, {
