@@ -32,6 +32,7 @@ async function toSystem(integration, account) {
     embassy: integration?.embassy,
     name: integration?.targetSystemId,
     accountId: integration?.accountId,
+    email: integration?.email,
   };
 }
 

@@ -54,7 +54,7 @@ const config = [
       },
       {
         selector: "#AddressContactInfoModel_Mobile",
-        value: (row) => row.cell,
+        value: (row) => row.phone,
       },
       {
         selector: "#AddressContactInfoModel_ZipCode",
