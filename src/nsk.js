@@ -42,6 +42,10 @@ const config = [
     ],
   },
   {
+    name: "dashboard",
+    regex: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Dashboard",
+  },
+  {
     name: "otp",
     regex: "https://bsp-nusuk.haj.gov.sa/OTP/GoogleAuth",
   },
@@ -244,6 +248,20 @@ async function pageContentHandler(currentConfig) {
         );
       } else {
         await page.click("#qa-create-group");
+      }
+      break;
+    case "dashboard":
+      if (global.headless) {
+        await page.click("#qa-menu-groups");
+      } else {
+        await page.waitForTimeout(10000);
+        // if the page is still dashboard after 5 seconds, click on groups
+        if (
+          (await page.url()) ===
+          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Dashboard"
+        ) {
+          await page.click("#qa-menu-groups");
+        }
       }
       break;
     case "create-group":
@@ -468,10 +486,12 @@ async function pageContentHandler(currentConfig) {
         },
         residencyPictureUploaderSelector
       );
-      if (isResidencyPictureUploaderVisible) {
-        await page.type("#IdNo", passenger.passportNumber);
-        await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
-      }
+      try {
+        if (isResidencyPictureUploaderVisible) {
+          await page.type("#IdNo", passenger.passportNumber);
+          await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
+        }
+      } catch {}
 
       // allow photos to settle in the DOM
       await page.waitForTimeout(1000);
