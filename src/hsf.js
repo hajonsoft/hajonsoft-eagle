@@ -112,11 +112,11 @@ const config = [
       },
       {
         selector: "#AddressContactInfoModel_HomePhone",
-        value: (row) => row.tel,
+        value: (row) => row.phone,
       },
       {
         selector: "#AddressContactInfoModel_Mobile",
-        value: (row) => row.cell,
+        value: (row) => row.phone,
       },
       {
         selector: "#AddressContactInfoModel_ZipCode",

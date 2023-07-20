@@ -42,6 +42,10 @@ const config = [
     ],
   },
   {
+    name: "dashboard",
+    regex: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Dashboard",
+  },
+  {
     name: "otp",
     regex: "https://bsp-nusuk.haj.gov.sa/OTP/GoogleAuth",
   },
@@ -120,7 +124,8 @@ const config = [
       },
       {
         selector: "#BirthCity",
-        value: (row) => decodeURI(row.birthPlace?.replace(/,/, ' ')) || row.nationality.name,
+        value: (row) =>
+          decodeURI(row.birthPlace?.replace(/,/, " ")) || row.nationality.name,
       },
       {
         selector: "#IssueCity",
@@ -159,6 +164,15 @@ const config = [
       {
         selector: "#PassportType",
         value: (row) => "1",
+      },
+      {
+        selector: "#MobileCountryKey",
+        value: (row) => row.nationality.telCode,
+      },
+      {
+        selector: "#MobileNo",
+        value: (row) =>
+          row.phone || new Date().valueOf().toString().substring(0, 10),
       },
     ],
   },
@@ -236,6 +250,20 @@ async function pageContentHandler(currentConfig) {
         await page.click("#qa-create-group");
       }
       break;
+    case "dashboard":
+      if (global.headless) {
+        await page.click("#qa-menu-groups");
+      } else {
+        await page.waitForTimeout(10000);
+        // if the page is still dashboard after 5 seconds, click on groups
+        if (
+          (await page.url()) ===
+          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Dashboard"
+        ) {
+          await page.click("#qa-menu-groups");
+        }
+      }
+      break;
     case "create-group":
       await page.waitForTimeout(5000);
       await util.commit(page, currentConfig.details, data);
@@ -272,7 +300,7 @@ async function pageContentHandler(currentConfig) {
         console.log(
           `Error creating group: Embassy not specified. Specify an embassy in your settings.`
         );
-        process.exit(1);
+        // process.exit(1);
       } catch (err) {
         // Do nothing
       }
@@ -404,6 +432,16 @@ async function pageContentHandler(currentConfig) {
       // await pasteSimulatedPassport(shouldSimulatePassport, passenger);
 
       await util.commit(page, currentConfig.details, passenger);
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#Email",
+            value: (row) => row.email,
+          },
+        ],
+        data.system
+      );
       // select the first option in the select
       await page.$eval("#IssueCity", (e) => {
         const options = e.querySelectorAll("option");
@@ -448,10 +486,12 @@ async function pageContentHandler(currentConfig) {
         },
         residencyPictureUploaderSelector
       );
-      if (isResidencyPictureUploaderVisible) {
-        await page.type("#IdNo", passenger.passportNumber);
-        await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
-      }
+      try {
+        if (isResidencyPictureUploaderVisible) {
+          await page.type("#IdNo", passenger.passportNumber);
+          await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
+        }
+      } catch {}
 
       // allow photos to settle in the DOM
       await page.waitForTimeout(1000);
