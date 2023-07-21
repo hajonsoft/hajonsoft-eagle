@@ -224,6 +224,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "otp":
       const googleToken = totp(data.system.ehajCode);
+      console.log("📢[nsk.js:227]: googleToken: ", googleToken);
       await page.type("#OtpValue", googleToken);
       await page.click("#newfrm > button");
 
