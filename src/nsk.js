@@ -54,6 +54,10 @@ const config = [
     url: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups",
   },
   {
+    name: "groups",
+    url: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/",
+  },
+  {
     name: "create-group",
     url: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/CreateGroup",
     details: [
@@ -247,13 +251,16 @@ async function pageContentHandler(currentConfig) {
           `https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/EditMuatamerList/${global.submission.targetGroupId}`
         );
       } else {
-        await page.click("#qa-create-group");
+        // await page.click("#qa-create-group");
+        await page.goto(
+        "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/CreateGroup"
+        );
       }
       break;
     case "dashboard":
       if (global.headless) {
         await page.goto(
-          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/"
+          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups"
         );
       } else {
         await page.waitForTimeout(10000);
@@ -263,7 +270,7 @@ async function pageContentHandler(currentConfig) {
           "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Dashboard"
         ) {
           await page.goto(
-            "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/"
+            "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups"
           );
         }
       }
@@ -387,7 +394,7 @@ async function pageContentHandler(currentConfig) {
       const selectedTraveler = util.getSelectedTraveler();
       if (selectedTraveler >= data.travellers.length) {
         await page.goto(
-          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/"
+          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups"
         );
         return;
       }
