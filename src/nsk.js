@@ -252,15 +252,19 @@ async function pageContentHandler(currentConfig) {
       break;
     case "dashboard":
       if (global.headless) {
-        await page.click("#qa-menu-groups");
+        await page.goto(
+          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/"
+        );
       } else {
         await page.waitForTimeout(10000);
-        // if the page is still dashboard after 5 seconds, click on groups
+        // if the page is still dashboard after 10 seconds, click on groups
         if (
           (await page.url()) ===
           "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Dashboard"
         ) {
-          await page.click("#qa-menu-groups");
+          await page.goto(
+            "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/"
+          );
         }
       }
       break;
