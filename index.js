@@ -40,6 +40,16 @@ let userInput;
 let data = readDataFile();
 
 async function main() {
+
+  if (process.argv.includes("-v")) {
+    console.log("version: " + version);
+    process.exit(0);
+  }
+
+  if (process.argv.includes("-i")) {
+    return runInteractive();
+  }
+  
   console.log(
     `https://hajonsoft-kea.web.app/admin/submissions/${
       process.argv
@@ -47,12 +57,6 @@ async function main() {
         ?.split("=")?.[1]
     }/edit`
   );
-
-  if (process.argv.includes("-v")) {
-    console.log("version: " + version);
-    process.exit(0);
-  }
-
   // Authenticate firebase
   try {
     await kea.init();
@@ -69,10 +73,6 @@ async function main() {
   const loopFile = getPath("loop.txt");
   if (fs.existsSync(loopFile)) {
     fs.unlinkSync(loopFile);
-  }
-
-  if (process.argv.includes("-i")) {
-    return runInteractive();
   }
 
   if (process.argv.includes("budgie")) {
@@ -291,8 +291,8 @@ function readDataFile() {
 }
 
 function runInteractive() {
-  readDataFile();
-  let currentSlug = data?.travellers?.[0]?.slug || "unknown Slug";
+  // readDataFile();
+  // let currentSlug = data?.travellers?.[0]?.slug || "unknown Slug";
   setTimeout(() => {
     if (userInput) {
       return console.log("userInput", userInput);
@@ -307,9 +307,9 @@ function runInteractive() {
         message: "Advanced options!",
         type: "list",
         choices: [
-          `1- Run eagle default file ${currentSlug}`,
+          `1- Run eagle default file [${getPath("data.json")}]`,
           "2- Run Budgie display",
-          "3- Update Budgie... [will prompt]",
+          "3- Update Budgie...",
           `4- Set download folder. [${getDownloadFolder()}]`,
           "5- Get SMS number",
           "0- Exit",

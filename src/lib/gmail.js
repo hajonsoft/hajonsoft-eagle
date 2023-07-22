@@ -22,6 +22,7 @@ const process = require("process");
 const { authenticate } = require("@google-cloud/local-auth");
 const { google } = require("googleapis");
 const moment = require("moment");
+const inquirer = require("inquirer");
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"];
@@ -45,6 +46,7 @@ async function loadSavedCredentialsIfExist() {
       "client_secret": "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",
       "refresh_token": "1//06jUijhC2SOSBCgYIARAAGAYSNwF-L9IrCFZXVq3DDoMnnteShAqrBJsRHejyDPapQat3fAWN8Vdf0F_6OVNu9sRw_juup7AW0Rg"
   }`;
+
     const credentials = JSON.parse(content);
     return google.auth.fromJSON(credentials);
   } catch (err) {
@@ -190,7 +192,7 @@ async function listNusukMessages(auth, recipient, subject) {
       }
       const verificationCode =
         contents.data.snippet.match(/Your OTP is (\d{4})/)?.[1];
-        // try arabic here
+      // try arabic here
       if (verificationCode) {
         newMessages.push({ code: verificationCode, date: messageDate });
       }
@@ -213,4 +215,100 @@ async function getNusukCodeByEmail(email, subject) {
   return message?.code;
 }
 
+const evisaFrom = "no-reply@mofa.gov.sa";
+const emailList = [];
+async function downloadNusukVisas() {
+  const client = await authorize();
+  const gmail = google.gmail({ version: "v1", auth: client });
+  const res = await gmail.users.messages.list({
+    userId: "me",
+    q: "from:yazansaleh089@gmail.com",
+  });
+  const messages = res.data.messages;
+  if (!messages || messages.length === 0) {
+    console.log("No gmail messages found.");
+    return;
+  }
+  //download the attachments from all messages
+  let i = 1;
+  for (const message of messages) {
+    const contents = await gmail.users.messages.get({
+      userId: "me",
+      id: message.id,
+    });
+
+    const messageSubject = contents.data.payload.headers.find(
+      (h) => h.name === "Subject"
+    ).value;
+
+    // get the attachment file name
+    const attachmentFileName = contents.data.payload.parts[1].filename;
+    const recordInfo = {
+      seq: i,
+      messageId: message.id,
+      subject: messageSubject,
+      file: attachmentFileName,
+    };
+    console.log(`${recordInfo.seq}.${recordInfo.file}`);
+    emailList.push(recordInfo);
+    i++;
+  }
+
+  // ask the user using inquirer to specify range for messages to download ex. 2-6
+  const answers = await inquirer.prompt([
+    {
+      type: "input",
+      name: "range",
+      message: "Enter the range of messages to download ex. 2-6",
+    },
+  ]);
+  const range = answers.range.split("-");
+  const start = parseInt(range[0]);
+  const end = parseInt(range[1]);
+
+  // ask the user for folder name and suggest folder name based on the first attachment file name
+  const folderName = await inquirer.prompt([
+    {
+      type: "input",
+      name: "folder",
+      message: "Enter the folder name to save attachments in",
+      default: `attachments/${emailList[start - 1].file
+        .split(".")[0]
+        .replace(/ /g, "_")}`,
+    },
+  ]);
+
+  if (!fsLegacy.existsSync(folderName.folder)) {
+    fsLegacy.mkdirSync(folderName.folder, { recursive: true });
+  }
+
+  // download the attachments from the specified range
+  for (let i = start; i <= end; i++) {
+    const message = messages[i - 1];
+    const contents = await gmail.users.messages.get({
+      userId: "me",
+      id: message.id,
+    });
+    const attachmentId = contents.data.payload.parts[1].body.attachmentId;
+    const attachment = await gmail.users.messages.attachments.get({
+      userId: "me",
+      messageId: message.id,
+      id: attachmentId,
+    });
+    const buffer = Buffer.from(attachment.data.data, "base64");
+    try {
+      const fullFileName = path.join(
+        process.cwd(),
+        folderName.folder,
+        emailList[i - 1].file
+      );
+      await fs.writeFile(fullFileName, buffer);
+      console.log(`Attachment ${i} saved successfully. ${fullFileName}`);
+    } catch (err) {
+      console.error(`Error saving attachment ${i}:`, err);
+    }
+  }
+}
+
+downloadNusukVisas();
 module.exports = { getVisitVisaCodeByEmail, getNusukCodeByEmail };
