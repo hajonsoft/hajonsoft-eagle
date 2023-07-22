@@ -38,16 +38,35 @@ const CREDENTIALS_PATH = path.join(process.cwd(), "credentials.json");
  * @return {Promise<OAuth2Client|null>}
  */
 async function loadSavedCredentialsIfExist() {
-  if (!fsLegacy.existsSync(TOKEN_PATH)) return;
+  // if CREDENTIALS_PATH file is not found, tell the user how to download the file and save it
+  if (!fsLegacy.existsSync(CREDENTIALS_PATH)) {
+    throw new Error(`To access the Gmail API, you must follow these steps:
+    1. Go to cloud.google.com and sign in to your Google account.
+    2. Click on "Console" in the top-right corner of the page.
+    3. In the console, use the search bar to find "Gmail API."
+    4. Click on "Credentials" in the left navigation panel.
+    5. Create test credentials:
+       a. Click on "Create credentials."
+       b. Select "OAuth client ID."
+       c. Choose "Desktop App" as the application type.
+       d. Click "Create."
+    6. Download the "credentials.json" file that was generated.
+    7. Save the "credentials.json" file in your project directory.
+    8. Add your email address as a test user:
+       a. Go back to "Credentials" in the console.
+       b. Find your newly created OAuth client ID and click on the pencil icon to edit it.
+       c. In the "Test users" section, click on "Add users."
+       d. Enter your email address and click "Save."
+    9. You should now have access to the Gmail API for testing purposes.
+    
+    Please make sure to keep your "credentials.json" file secure and not share it with others. If you encounter any issues during the process, refer to the Google documentation or contact their developer support for assistance.`)
+  }
+
+  if (!fsLegacy.existsSync(TOKEN_PATH)) {
+    return; // This will trigger a login
+  }
   try {
     const content = await fsLegacy.readFileSync(TOKEN_PATH);
-    //   const content = `{
-    //     "type": "authorized_user",
-    //     "client_id": "905193277281-1efrj0pqbdc98ipvidvae4qppauv2ctt.apps.googleusercontent.com",
-    //     "client_secret": "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",
-    //     "refresh_token": "1//06jUijhC2SOSBCgYIARAAGAYSNwF-L9IrCFZXVq3DDoMnnteShAqrBJsRHejyDPapQat3fAWN8Vdf0F_6OVNu9sRw_juup7AW0Rg"
-    // }`;
-
     const credentials = JSON.parse(content);
     return google.auth.fromJSON(credentials);
   } catch (err) {
@@ -221,9 +240,19 @@ const emailList = [];
 async function downloadNusukVisas() {
   const client = await authorize();
   const gmail = google.gmail({ version: "v1", auth: client });
+  // as the user for the from email
+  const fromEmail = await inquirer.prompt([
+    {
+      type: "input",
+      name: "from",
+      message: "Enter the from email address",
+      default: evisaFrom,
+    },
+  ]);
+
   const res = await gmail.users.messages.list({
     userId: "me",
-    q: "from:yazansaleh089@gmail.com",
+    q: `from:${fromEmail.from}`,
   });
   const messages = res.data.messages;
   if (!messages || messages.length === 0) {
@@ -238,16 +267,11 @@ async function downloadNusukVisas() {
       id: message.id,
     });
 
-    const messageSubject = contents.data.payload.headers.find(
-      (h) => h.name === "Subject"
-    ).value;
-
     // get the attachment file name
     const attachmentFileName = contents.data.payload.parts[1].filename;
     const recordInfo = {
       seq: i,
       messageId: message.id,
-      subject: messageSubject,
       file: attachmentFileName,
     };
     console.log(`${recordInfo.seq}.${recordInfo.file}`);
@@ -261,7 +285,7 @@ async function downloadNusukVisas() {
       type: "input",
       name: "range",
       message: `Enter the range of messages to download`,
-      default: `1-${emailList.length}`
+      default: `1-${emailList.length}`,
     },
   ]);
   const range = answers.range.split("-");
@@ -312,5 +336,8 @@ async function downloadNusukVisas() {
   }
 }
 
-downloadNusukVisas();
-module.exports = { getVisitVisaCodeByEmail, getNusukCodeByEmail };
+module.exports = {
+  getVisitVisaCodeByEmail,
+  getNusukCodeByEmail,
+  downloadNusukVisas,
+};
