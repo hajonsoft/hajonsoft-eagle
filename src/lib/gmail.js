@@ -41,7 +41,7 @@ async function loadSavedCredentialsIfExist() {
   // if CREDENTIALS_PATH file is not found, tell the user how to download the file and save it
   if (!fsLegacy.existsSync(CREDENTIALS_PATH)) {
     throw new Error(`To access the Gmail API, you must follow these steps:
-    1. Go to cloud.google.com and sign in to your Google account.
+    1. Go to cloud.google.com and sign in to your Google account (Video https://youtu.be/r6piYgjC5zE).
     2. Click on "Console" in the top-right corner of the page.
     3. In the console, use the search bar to find "Gmail API."
     4. Click on "Credentials" in the left navigation panel.
