@@ -51,26 +51,7 @@ let status = "idle";
 
 let retries = 0;
 let countEmbassy = 0;
-
 const config = [
-  {
-    name: "login",
-    url: "https://visa.mofa.gov.sa/Account/HajSmartForm",
-    details: [
-      {
-        selector: "#Id",
-        value: (row) => row.mofaNumber,
-      },
-      {
-        selector: "#PassportNumber",
-        value: (row) => row.passportNumber,
-      },
-      {
-        selector: "#NationalityIsoCode",
-        value: (row) => row.nationality.code,
-      },
-    ],
-  },
   {
     name: "print-visa",
     url: "https://visa.mofa.gov.sa/visaservices/searchvisa",
@@ -91,8 +72,30 @@ const config = [
     },
   },
   {
+    name: "login",
+    url: "https://visa.mofa.gov.sa/Account/HajSmartForm",
+    details: [
+      {
+        selector: "#Id",
+        value: (row) => row.mofaNumber,
+      },
+      {
+        selector: "#PassportNumber",
+        value: (row) => row.passportNumber,
+      },
+      {
+        selector: "#NationalityIsoCode",
+        value: (row) => row.nationality.code,
+      },
+    ],
+  },
+  {
     name: "print-haj-visa",
     url: "https://visa.mofa.gov.sa/Home/PrintHajVisa",
+  },
+  {
+    name: "print-haj-visa",
+    url: "https://visa.mofa.gov.sa/Home/PrintEventVisa",
   },
   {
     name: "agreement",
@@ -429,20 +432,19 @@ async function pageContentHandler(currentConfig) {
       await util.controller(page, currentConfig, data.travellers);
       break;
     case "print-haj-visa":
-      // take visa screen shot to kea
-      // then continue to the next passenger
-
-      const pageElement = await page.$("body");
-      // save screenshot to kea
+      const pageElement = await page.$("body > form > page");
+      // take screen shot to kea
       try {
         await util.screenShotToKea(
           pageElement,
           data.system.accountId,
-          passenger,
-          "Visa"
+          passenger
         );
-      } catch (error) {}
-      
+      } catch (error) {
+        console.log(error);
+      }
+      // save screen shot to file
+
       util.incrementSelectedTraveler();
       await page.goto("https://visa.mofa.gov.sa/visaservices/searchvisa");
       break;
