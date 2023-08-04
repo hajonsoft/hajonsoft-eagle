@@ -10,6 +10,7 @@ const { getPath } = util;
 const moment = require("moment");
 const kea = require("./lib/kea");
 const { default: axios } = require("axios");
+const { homedir } = require("os");
 const JSZip = require("jszip");
 
 const {
@@ -35,7 +36,7 @@ const {
 const { SERVER_NUMBER } = require("./bau");
 const { hsf_nationalities } = require("./data/nationalities");
 const { clearInterval } = require("timers");
-const homedir = require("os").homedir();
+
 let page;
 let data;
 let counter = 0;
@@ -94,7 +95,7 @@ const config = [
     url: "https://visa.mofa.gov.sa/Home/PrintHajVisa",
   },
   {
-    name: "print-haj-visa",
+    name: "print-event-visa",
     url: "https://visa.mofa.gov.sa/Home/PrintEventVisa",
   },
   {
@@ -430,6 +431,14 @@ async function pageContentHandler(currentConfig) {
       break;
     case "print-visa":
       await util.controller(page, currentConfig, data.travellers);
+      // if loop.txt file exists, then loop
+      if (fs.existsSync(getPath("loop.txt"))) {
+        const nextIndex = util.getSelectedTraveler();
+        if (nextIndex < data.travellers.length) {
+          await sendPassengerToPrint(nextIndex.toString());
+        }
+      }
+      
       break;
     case "print-haj-visa":
       const pageElement = await page.$("body > form > page");
@@ -445,6 +454,18 @@ async function pageContentHandler(currentConfig) {
       }
       // save screen shot to file
 
+      util.incrementSelectedTraveler();
+      await page.goto("https://visa.mofa.gov.sa/visaservices/searchvisa");
+      break;
+    case "print-event-visa":
+      // make pdfPath, the download folder and append the passport number to it
+      const downloadsFolder = path.join(homedir(), "Downloads");
+      const pdfPath = path.join(
+        downloadsFolder,
+        passenger.passportNumber + ".pdf"
+      );
+      const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+      fs.writeFileSync(pdfPath, pdfBuffer);
       util.incrementSelectedTraveler();
       await page.goto("https://visa.mofa.gov.sa/visaservices/searchvisa");
       break;
