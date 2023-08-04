@@ -665,6 +665,7 @@ async function commander(page, structure, travellers) {
         const structureParam = params[0];
         const controller = structureParam.controller;
         const container = document.querySelector(controller.selector);
+        const alertText = controller.alert;
         const handleMethodName = params[1];
         const htmlContent = params[3]
           .replace(/{direction}/, controller.leftAlign ? "direction: rtl;" : "")
@@ -673,6 +674,7 @@ async function commander(page, structure, travellers) {
             params[0].controller.name
           )
           .replace(/{handleMethodName}/, handleMethodName)
+          .replace(/{alert}/, alertText || "")
           .replace(
             /{title}/g,
             structureParam.controller.title +
@@ -755,6 +757,21 @@ async function handleLoadImportedOnlyClick() {
   await browser.close();
 }
 
+function downloadPDF(pdfUrl, pdfName) {
+  const pdfPath = path.join(homedir, "hajonsoft", "pdf");
+  if (!fs.existsSync(pdfPath)) {
+    fs.mkdirSync(pdfPath);
+  }
+  const pdfFile = path.join(pdfPath, pdfName);
+  if (fs.existsSync(pdfFile)) {
+    return;
+  }
+  // download the pdf file
+  console.log("Downloading PDF: " + pdfUrl);
+
+
+
+}
 const getRange = () => {
   const data = JSON.parse(fs.readFileSync(getPath("data.json"), "utf8"));
   const isCloudRun = data.info.caravan.startsWith("CLOUD_");
@@ -1671,4 +1688,5 @@ module.exports = {
   getCurrentTime,
   SolveIamNotARobot,
   registerLoop,
+  downloadPDF,
 };

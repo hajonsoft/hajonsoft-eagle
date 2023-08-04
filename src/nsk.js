@@ -1,6 +1,7 @@
 const puppeteer = require("puppeteer-extra");
 // Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+const axios = require("axios");
 puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const path = require("path");
@@ -8,6 +9,7 @@ const util = require("./util");
 const { getPath } = util;
 const totp = require("totp-generator");
 const kea = require("./lib/kea");
+const { PDFDocument, rgb } = require("pdf-lib");
 
 let page;
 let data;
@@ -15,7 +17,7 @@ let counter = 0;
 let passenger;
 
 function getLogFile() {
-  const logFolder = path.join(getPath("log"), data.info.munazim);
+  const logFolder = path.join(getPath("log"), util.suggestGroupName(data));
   if (!fs.existsSync(logFolder)) {
     fs.mkdirSync(logFolder, { recursive: true });
   }
@@ -24,7 +26,7 @@ function getLogFile() {
 }
 
 let startTime;
-
+let autoMode = true;
 const config = [
   {
     name: "login",
@@ -188,6 +190,11 @@ const config = [
     name: "permits",
     url: "https://bsp-nusuk.haj.gov.sa/UmrahOperators/Nusuk/SubmitPermit",
   },
+  {
+    name: "package-info",
+    regex:
+      "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/ViewPackage/.*",
+  },
 ];
 
 async function send(sendData) {
@@ -245,6 +252,7 @@ async function pageContentHandler(currentConfig) {
       } catch (e) {}
       break;
     case "groups":
+      if (!autoMode) return;
       await page.waitForTimeout(5000);
       if (global.submission.targetGroupId) {
         // If a group already created for this submission, go directly to that page
@@ -254,22 +262,33 @@ async function pageContentHandler(currentConfig) {
       } else {
         // await page.click("#qa-create-group");
         await page.goto(
-        "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/CreateGroup"
+          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/CreateGroup"
         );
       }
       break;
     case "dashboard":
+      // put a commander at this selector to change the autoModel to false
+      if (!autoMode) return;
+      await util.commander(page, {
+        controller: {
+          selector:
+            "#kt_content > div > div > div > div.kt-portlet__head > div",
+          title: "Stop Auto Mode",
+          arabicTitle: "توقف الوضع التلقائي",
+          name: "autoMode",
+          action: async () => {
+            autoMode = false;
+            await page.reload();
+          },
+        },
+      });
+
       if (global.headless) {
-        await page.goto(
-          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups"
-        );
+        await page.goto("https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups");
       } else {
-        await page.waitForTimeout(10000);
+        await page.waitForTimeout(5000);
         // if the page is still dashboard after 10 seconds, click on groups
-        if (
-          (await page.url()) ===
-          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Dashboard"
-        ) {
+        if (autoMode) {
           await page.goto(
             "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups"
           );
@@ -277,6 +296,8 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "create-group":
+      if (!autoMode) return;
+
       await page.waitForTimeout(5000);
       await util.commit(page, currentConfig.details, data);
       await page.$eval(
@@ -328,6 +349,8 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "passengers":
+      if (!autoMode) return;
+
       // Add a delay to allow the user to see the list of mutamers added so far
       await page.waitForTimeout(1000);
       // Store group id
@@ -394,9 +417,7 @@ async function pageContentHandler(currentConfig) {
       // Submit passengers
       const selectedTraveler = util.getSelectedTraveler();
       if (selectedTraveler >= data.travellers.length) {
-        await page.goto(
-          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups"
-        );
+        await page.goto("https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups");
         return;
       }
       passenger = data.travellers[selectedTraveler];
@@ -512,6 +533,8 @@ async function pageContentHandler(currentConfig) {
       await page.waitForTimeout(500);
       await page.click("#qa-add-mutamer-save");
     case "permits":
+      if (!autoMode) return;
+
       await util.commander(page, {
         controller: {
           selector:
@@ -553,6 +576,63 @@ async function pageContentHandler(currentConfig) {
       });
 
       await page.select("#NusukPermitType", "11");
+      break;
+    case "package-info":
+      await util.commander(page, {
+        controller: {
+          selector:
+            "#kt_content > div > div > div > div.kt-portlet__head > div.kt-portlet__head-label",
+          title: "Download All PDF's",
+          arabicTitle: "تحميل جميع ملفات PDF",
+          name: "downloadAllPDF",
+          alert:
+            `Files will download in the browser context, please wait until all files are downloaded\n
+            الملفات ستتم تحميلها في الصفحة, الرجاء الانتظار حتى يتم تحميل جميع الملفات`,
+          action: async () => {
+            // get the table selector
+            const tableSelector =
+              "#kt_content > div > div > div > div.kt-portlet__body.px-0 > div:nth-child(1) > div > div > div > div > div.kt-widget__body > table";
+            // get the table rows selector
+            const tableRowsSelector = `${tableSelector} > tbody > tr`;
+            // get the table rows length
+            const tableRows = await page.$$(tableRowsSelector);
+            const tableRowsLength = tableRows.length;
+            // loop through the table rows
+
+            const downloadPromises = [];
+
+            for (let i = 1; i <= tableRowsLength; i++) {
+              const anchorTagSelector = `${tableRowsSelector}:nth-child(${i}) > td:nth-child(10) > a`;
+
+              const downloadPromise = page
+                .$eval(anchorTagSelector, (e) => {
+                  return e.getAttribute("href");
+                })
+                .then((href) => {
+                  const pdfUrl = `https://bsp-nusuk.haj.gov.sa${href}`;
+                  return page.evaluate(async (url) => {
+                    const response = await fetch(url);
+                    const blob = await response.blob();
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    const fileName = url.split("/").pop();
+                    link.download = `${fileName}.pdf`;
+                    link.click();
+                  }, pdfUrl);
+                });
+
+              downloadPromises.push(downloadPromise);
+            }
+
+            // Wait for all downloads to complete
+            await Promise.all(downloadPromises);
+
+            console.log("PDF downloads initiated in parallel");
+            // TODO: Get the first page only and merge all the pages in only one pdf
+          },
+        },
+      });
+
       break;
     default:
       break;
