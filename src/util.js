@@ -1296,8 +1296,8 @@ async function commitCaptchaToken(
     global.currentCaptchaId = captchaId;
 
     const token = await captchaSolver.get(captchaId);
-    await captchaSolver.reportGood(captchaId);
-    console.log("GOOD CAPTCHA REPORT SENT!!!")
+   
+
     infoMessage(page, `🔓 Captcha solved! ${token}`, 5);
 
     // Prevent an stale capthca from being used
@@ -1307,6 +1307,7 @@ async function commitCaptchaToken(
         [{ selector: textFieldSelector, value: () => token }],
         {}
       );
+      await captchaSolver.reportGood(captchaId);
       return token;
     } else {
       infoMessage(page, `🔓 Discarding stale captcha ${token}`, 5);
@@ -1359,8 +1360,7 @@ async function commitCaptchaTokenWithSelector(
     global.currentCaptchaId = captchaId;
 
     const token = await captchaSolver.get(captchaId);
-    await captchaSolver.reportGood(captchaId);
-    console.log("GOOD CAPTCHA REPORT SENT!!!")
+  
 
     if (id === global.currentCaptchaId) {
       await commit(
@@ -1369,6 +1369,7 @@ async function commitCaptchaTokenWithSelector(
         {}
       );
       infoMessage(page, "🔓 Captcha solved! " + token, 5);
+      await captchaSolver.reportGood(captchaId);
       return token;
     } else {
       infoMessage(page, `🔓 Discarding stale captcha ${token}`, 5);

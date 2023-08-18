@@ -533,9 +533,10 @@ async function sendNewApplication(selectedTraveler) {
         min_len: 6,
       });
       const token = await captchaSolver.get(captchaId);
-      await captchaSolver.reportGood(captchaId);
+      
       if (token) {
         await page.type("#Captcha", token);
+        await captchaSolver.reportGood(captchaId);
       }
     } catch (err) {
       await captchaSolver.reportBad(captchaId);
