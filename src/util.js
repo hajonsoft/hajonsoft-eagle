@@ -768,9 +768,6 @@ function downloadPDF(pdfUrl, pdfName) {
   }
   // download the pdf file
   console.log("Downloading PDF: " + pdfUrl);
-
-
-
 }
 const getRange = () => {
   const data = JSON.parse(fs.readFileSync(getPath("data.json"), "utf8"));
@@ -1264,6 +1261,7 @@ async function commitCaptchaToken(
 ) {
   infoMessage(page, "🔓 Captcha thinking...", 5);
   await pauseMessage(page, 3);
+  let captchaId 
 
   try {
     await page.waitForSelector(textFieldSelector);
@@ -1288,20 +1286,22 @@ async function commitCaptchaToken(
       "637a1787431d77ad2c1618440a3d7149",
       2
     );
-    const id = await captchaSolver.send({
+    captchaId = await captchaSolver.send({
       method: "base64",
       body: base64,
       max_len: captchaLength,
       min_len: captchaLength,
     });
 
-    global.currentCaptchaId = id;
+    global.currentCaptchaId = captchaId;
 
-    const token = await captchaSolver.get(id);
+    const token = await captchaSolver.get(captchaId);
+    await captchaSolver.reportGood(captchaId);
+    console.log("GOOD CAPTCHA REPORT SENT!!!")
     infoMessage(page, `🔓 Captcha solved! ${token}`, 5);
 
     // Prevent an stale capthca from being used
-    if (id === global.currentCaptchaId) {
+    if (captchaId === global.currentCaptchaId) {
       await commit(
         page,
         [{ selector: textFieldSelector, value: () => token }],
@@ -1313,6 +1313,8 @@ async function commitCaptchaToken(
       return null;
     }
   } catch (err) {
+    await captchaSolver.reportBad(captchaId);
+    console.log("BAD CAPTCHA REPORT SENT!!!")
     infoMessage(page, `🔓 Captcha error!!!`, 5);
   }
 }
@@ -1325,6 +1327,7 @@ async function commitCaptchaTokenWithSelector(
 ) {
   infoMessage(page, "🔓 Captcha thinking...", 5);
   await pauseMessage(page, 3);
+  let captchaId
   try {
     await page.waitForSelector(imageSelector);
     const base64 = await page.evaluate((selector) => {
@@ -1346,16 +1349,18 @@ async function commitCaptchaTokenWithSelector(
       2
     );
 
-    const id = await captchaSolver.send({
+    captchaId = await captchaSolver.send({
       method: "base64",
       body: base64,
       max_len: captchaLength,
       min_len: captchaLength,
     });
 
-    global.currentCaptchaId = id;
+    global.currentCaptchaId = captchaId;
 
-    const token = await captchaSolver.get(id);
+    const token = await captchaSolver.get(captchaId);
+    await captchaSolver.reportGood(captchaId);
+    console.log("GOOD CAPTCHA REPORT SENT!!!")
 
     if (id === global.currentCaptchaId) {
       await commit(
@@ -1370,6 +1375,8 @@ async function commitCaptchaTokenWithSelector(
       return null;
     }
   } catch (err) {
+    await captchaSolver.reportBad(captchaId);
+    console.log("BAD CAPTCHA REPORT SENT!!!")
     infoMessage(page, "🔓 Captcha error!", 5);
     console.log(err);
   }
@@ -1467,7 +1474,9 @@ const infoMessage = async (
   visaShot = false,
   takeScreenShot = false
 ) => {
-  console.log(`🦅 ${parseInt(getSelectedTraveler()) + 1}.${".".repeat(depth)}${message}`);
+  console.log(
+    `🦅 ${parseInt(getSelectedTraveler()) + 1}.${".".repeat(depth)}${message}`
+  );
   const screenshotsDir = getPath("screenshots");
   if (!fs.existsSync(screenshotsDir)) {
     fs.mkdirSync(screenshotsDir);

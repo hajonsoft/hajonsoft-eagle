@@ -450,6 +450,7 @@ async function pageContentHandler(currentConfig) {
 
 async function sendNewApplication(selectedTraveler) {
   if (selectedTraveler) {
+    let captchaId; 
     try {
       var passenger = data.travellers[selectedTraveler];
       await util.recall(page, "#VisaKind");
@@ -504,39 +505,41 @@ async function sendNewApplication(selectedTraveler) {
         todayPlusOneWeek.format("MM"),
         todayPlusOneWeek.format("DD")
       );
+
+      const captchaSelector = "#imgCaptcha";
+      await page.waitForSelector(captchaSelector);
+      await page.focus(captchaSelector);
+      // Wait for image to load.
+      await page.waitForTimeout(3000);
+      const base64 = await page.evaluate(() => {
+        const image = document.getElementById("imgCaptcha");
+        const canvas = document.createElement("canvas");
+        canvas.width = image.naturalWidth;
+        canvas.height = image.naturalHeight;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        const dataURL = canvas.toDataURL();
+        return dataURL.replace("data:", "").replace(/^.+,/, "");
+      });
+
+      const captchaSolver = new RuCaptcha2Captcha(
+        "637a1787431d77ad2c1618440a3d7149",
+        2
+      );
+
+      captchaId = await captchaSolver.send({
+        method: "base64",
+        body: base64,
+        max_len: 6,
+        min_len: 6,
+      });
+      const token = await captchaSolver.get(captchaId);
+      await captchaSolver.reportGood(captchaId);
+      if (token) {
+        await page.type("#Captcha", token);
+      }
     } catch (err) {
+      await captchaSolver.reportBad(captchaId);
       console.log(err.message);
-    }
-
-    const captchaSelector = "#imgCaptcha";
-    await page.waitForSelector(captchaSelector);
-    await page.focus(captchaSelector);
-    // Wait for image to load.
-    await page.waitForTimeout(3000);
-    const base64 = await page.evaluate(() => {
-      const image = document.getElementById("imgCaptcha");
-      const canvas = document.createElement("canvas");
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      canvas.getContext("2d").drawImage(image, 0, 0);
-      const dataURL = canvas.toDataURL();
-      return dataURL.replace("data:", "").replace(/^.+,/, "");
-    });
-
-    const captchaSolver = new RuCaptcha2Captcha(
-      "637a1787431d77ad2c1618440a3d7149",
-      2
-    );
-
-    const id = await captchaSolver.send({
-      method: "base64",
-      body: base64,
-      max_len: 6,
-      min_len: 6,
-    });
-    const token = await captchaSolver.get(id);
-    if (token) {
-      await page.type("#Captcha", token);
     }
   }
 }

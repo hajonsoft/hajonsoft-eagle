@@ -1,0 +1,88 @@
+
+0 - 2023-06-01 16:02:56 - KAOU DIAWARA 74 Male MLI
+P<MLIDIAWARA<<KAOU<<<<<<<<<<<<<<<<<<<<<<<<<<
+AA05700431MLI4812317M26061521480130200800294
+11 seconds
+0 - 2023-06-01 16:03:07 - KAOU DIAWARA 74 Male MLI
+P<MLIDIAWARA<<KAOU<<<<<<<<<<<<<<<<<<<<<<<<<<
+AA05700431MLI4812317M26061521480130200800294
+186 seconds
+0 - 2023-06-01 16:06:13 - KAOU DIAWARA 74 Male MLI
+P<MLIDIAWARA<<KAOU<<<<<<<<<<<<<<<<<<<<<<<<<<
+AA05700431MLI4812317M26061521480130200800294
+Haj Data details for KAOU DIAWARA has been saved successfully. Haj Data ID is #15270975
+203 seconds
+1 - 2023-06-01 16:09:36 - AMADOU SOUMARE 63 Male MLI
+P<MLISOUMARE<<AMADOU<<<<<<<<<<<<<<<<<<<<<<<<
+AA10409534MLI5912317M2805287<<<<<<<<<<<<<<08
+Haj Data details for AMADOU SOUMARE has been saved successfully. Haj Data ID is #15271425
+18 seconds
+2 - 2023-06-01 16:09:54 - MAHAMADOU SACKO 60 Male MLI
+P<MLISACKO<<MAHAMADOU<<<<<<<<<<<<<<<<<<<<<<<
+AA08066495MLI6212313M28022751620130100300188
+Haj Data details for MAHAMADOU SACKO has been saved successfully. Haj Data ID is #15271487
+29 seconds
+3 - 2023-06-01 16:10:23 - DAOUDA DEMBELE 57 Male MLI
+P<MLIDEMBELE<<DAOUDA<<<<<<<<<<<<<<<<<<<<<<<<
+AA05669828MLI6512312M26060821650531099900202
+Haj Data details for DAOUDA DEMBELE has been saved successfully. Haj Data ID is #15271545
+29 seconds
+4 - 2023-06-01 16:10:52 - MADY TAMBADOU 56 Male MLI
+P<MLITAMBADOU<<MADY<<<<<<<<<<<<<<<<<<<<<<<<<
+AA06651770MLI6701011M27030951670160400101030
+Haj Data details for MADY TAMBADOU has been saved successfully. Haj Data ID is #15271647
+21 seconds
+5 - 2023-06-01 16:11:13 - ISSIAKA COULIBALY 48 Male MLI
+P<MLICOULIBALY<<ISSIAKA<<<<<<<<<<<<<<<<<<<<<
+SA00047940MLI7501012M27113021750910200203750
+Haj Data details for ISSIAKA COULIBALY has been saved successfully. Haj Data ID is #15271720
+30 seconds
+6 - 2023-06-01 16:11:43 - MAMADOU MACALOU 44 Male MLI
+P<MLIMACALOU<<MAMADOU<<<<<<<<<<<<<<<<<<<<<<<
+AA07008902MLI7811241M27060961780120100107646
+Haj Data details for MAMADOU MACALOU has been saved successfully. Haj Data ID is #15271774
+63 seconds
+7 - 2023-06-01 16:12:46 - MAHAMADOU CISSE 33 Male MLI
+P<MLICISSE<<MAHAMADOU<<<<<<<<<<<<<<<<<<<<<<<
+AA07713493MLI9001011M27112101900910500305144
+Haj Data details for MAHAMADOU CISSE has been saved successfully. Haj Data ID is #15271886
+20 seconds
+8 - 2023-06-01 16:13:06 - BINTA MAREGA 70 Female MLI
+P<MLIMAREGA<<BINTA<<<<<<<<<<<<<<<<<<<<<<<<<<
+AA10085691MLI5212316F28013042520910200704336
+Haj Data details for BINTA MAREGA has been saved successfully. Haj Data ID is #15271970
+26 seconds
+9 - 2023-06-01 16:13:32 - SAFIATOU TANGARA 66 Female MLI
+P<MLITANGARA<<SAFIATOU<<<<<<<<<<<<<<<<<<<<<<
+AA05698123MLI5612318F26061412560460102602440
+Haj Data details for SAFIATOU TANGARA has been saved successfully. Haj Data ID is #15272092
+116 seconds
+10 - 2023-06-01 16:15:28 - AMINATA KONATE 65 Female MLI
+P<MLIKONATE<<AMINATA<<<<<<<<<<<<<<<<<<<<<<<<
+AA10295540MLI5712311F28041652570540700100836
+Haj Data details for AMINATA KONATE has been saved successfully. Haj Data ID is #15272235
+87 seconds
+11 - 2023-06-01 16:16:55 - FANTA DIALLO 62 Female MLI
+P<MLIDIALLO<<FANTA<<<<<<<<<<<<<<<<<<<<<<<<<<
+AA04658085MLI6012317F25021952600411200601298
+Haj Data details for FANTA DIALLO has been saved successfully. Haj Data ID is #15272384
+175 seconds
+12 - 2023-06-01 16:19:50 - HAWA CISSE 61 Female MLI
+P<MLICISSE<<HAWA<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+AA10471524MLI6112310F2805221<<<<<<<<<<<<<<08
+Haj Data details for HAWA CISSE has been saved successfully. Haj Data ID is #15272662
+23 seconds
+13 - 2023-06-01 16:20:13 - MARIAM DRAMERA 56 Female MLI
+P<MLIDRAMERA<<MARIAM<<<<<<<<<<<<<<<<<<<<<<<<
+AA07013355MLI6612315F27060962660120102100164
+Haj Data details for MARIAM DRAMERA has been saved successfully. Haj Data ID is #15272721
+24 seconds
+14 - 2023-06-01 16:20:37 - OUMOU KEITA 56 Female MLI
+P<MLIKEITA<<OUMOU<<<<<<<<<<<<<<<<<<<<<<<<<<<
+AA07293544MLI6705064F27081482670460100901338
+Haj Data details for OUMOU KEITA has been saved successfully. Haj Data ID is #15272739
+31 seconds
+15 - 2023-06-01 16:21:08 - HABIBATOU KANOU DIALLO 53 Female MLI
+P<MLIDIALLO<<HABIBATOU<KANOU<<<<<<<<<<<<<<<<
+AA10463952MLI6908083F28052102690910200103964
+Haj Data details for HABIBATOU DIALLO has been saved successfully. Haj Data ID is #15272815
