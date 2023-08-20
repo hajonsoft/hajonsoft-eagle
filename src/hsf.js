@@ -923,7 +923,7 @@ async function sendNewApplication(selectedTraveller) {
       });
 
       const captchaSolver = new RuCaptcha2Captcha(
-        "637a1787431d77ad2c1618440a3d7149",
+        global.captchaKey,
         2
       );
 

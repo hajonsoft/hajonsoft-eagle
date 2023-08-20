@@ -1283,7 +1283,7 @@ async function commitCaptchaToken(
     }
 
     const captchaSolver = new RuCaptcha2Captcha(
-      "637a1787431d77ad2c1618440a3d7149",
+      global.captchaKey,
       2
     );
     captchaId = await captchaSolver.send({
@@ -1329,27 +1329,27 @@ async function commitCaptchaTokenWithSelector(
   infoMessage(page, "🔓 Captcha thinking...", 5);
   await pauseMessage(page, 3);
   let captchaId
+  await page.waitForSelector(imageSelector);
+  const base64 = await page.evaluate((selector) => {
+    const image = document.querySelector(selector);
+    const canvas = document.createElement("canvas");
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    canvas.getContext("2d").drawImage(image, 0, 0);
+    const dataURL = canvas.toDataURL();
+    return dataURL.replace("data:", "").replace(/^.+,/, "");
+  }, imageSelector);
+
+  if (!base64) {
+    return;
+  }
+
+  const captchaSolver = new RuCaptcha2Captcha(
+    global.captchaKey,
+    2
+  );
+  
   try {
-    await page.waitForSelector(imageSelector);
-    const base64 = await page.evaluate((selector) => {
-      const image = document.querySelector(selector);
-      const canvas = document.createElement("canvas");
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      canvas.getContext("2d").drawImage(image, 0, 0);
-      const dataURL = canvas.toDataURL();
-      return dataURL.replace("data:", "").replace(/^.+,/, "");
-    }, imageSelector);
-
-    if (!base64) {
-      return;
-    }
-
-    const captchaSolver = new RuCaptcha2Captcha(
-      "637a1787431d77ad2c1618440a3d7149",
-      2
-    );
-
     captchaId = await captchaSolver.send({
       method: "base64",
       body: base64,
@@ -1360,24 +1360,20 @@ async function commitCaptchaTokenWithSelector(
     global.currentCaptchaId = captchaId;
 
     const token = await captchaSolver.get(captchaId);
-  
 
-    if (id === global.currentCaptchaId) {
+    if (captchaId === global.currentCaptchaId) {
       await commit(
         page,
         [{ selector: textFieldSelector, value: () => token.toString() }],
         {}
       );
       infoMessage(page, "🔓 Captcha solved! " + token, 5);
-      await captchaSolver.reportGood(captchaId);
       return token;
     } else {
       infoMessage(page, `🔓 Discarding stale captcha ${token}`, 5);
       return null;
     }
   } catch (err) {
-    await captchaSolver.reportBad(captchaId);
-    console.log("BAD CAPTCHA REPORT SENT!!!")
     infoMessage(page, "🔓 Captcha error!", 5);
     console.log(err);
   }
@@ -1385,7 +1381,7 @@ async function commitCaptchaTokenWithSelector(
 
 async function SolveIamNotARobot(responseSelector, url, siteKey) {
   const data = await axios.get(
-    `http://2captcha.com/in.php?key=637a1787431d77ad2c1618440a3d7149&method=userrecaptcha&googlekey=${siteKey}&pageurl=${url}`
+    `http://2captcha.com/in.php?key=${global.captchaKey}&method=userrecaptcha&googlekey=${siteKey}&pageurl=${url}`
   );
   const id = data.data.split("|")?.[1];
   if (!id) {
@@ -1394,7 +1390,7 @@ async function SolveIamNotARobot(responseSelector, url, siteKey) {
 
   for (let i = 0; i < 10; i++) {
     const res = await axios.get(
-      `http://2captcha.com/res.php?key=637a1787431d77ad2c1618440a3d7149&action=get&id=${id}`
+      `http://2captcha.com/res.php?key=${global.captchaKey}&action=get&id=${id}`
     );
     console.log("solving I am not a robot", id);
     if (res.data.split("|")[0] === "OK") {
