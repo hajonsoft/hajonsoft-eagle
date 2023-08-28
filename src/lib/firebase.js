@@ -4,7 +4,7 @@ const { getFunctions } = require("firebase/functions");
 const { getAuth, signInWithCustomToken } = require("firebase/auth");
 const { getFirestore, initializeFirestore } = require("firebase/firestore");
 const { getStorage } = require("firebase/storage");
-const { getDatabase, ref, onValue } = require("firebase/database");
+const { getDatabase } = require("firebase/database");
 const short = require("short-uuid");
 
 const config = {

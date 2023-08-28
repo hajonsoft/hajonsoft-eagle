@@ -5,7 +5,7 @@ const path = require("path");
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
 const argv = yargs(hideBin(process.argv)).argv;
-const { logInWithRefreshToken } = require("./firebase");
+const { logInWithRefreshToken, database } = require("./firebase");
 const {
   updateDoc,
   getDocs,
@@ -16,7 +16,7 @@ const {
 } = require("firebase/firestore");
 const db = require("./db");
 const { toData } = require("./factory");
-const { query } = require("firebase/database");
+const { query, get, ref: dbRef } = require("firebase/database");
 const { storage } = require("./firebase");
 const short = require("short-uuid");
 const sharp = require("sharp");
@@ -60,6 +60,14 @@ const init = async () => {
   }
 
   global.user = await logInWithRefreshToken(token, apiKey);
+
+  // Get captcha key from realtime database
+  global.captchaKey = null;
+  const snapshot = await get(dbRef(database, "app-data/2captcha-key")); 
+  if (snapshot.exists()) {
+    global.captchaKey = snapshot.val();
+    console.log("Captcha key found in database");
+  }
 
   await getSubmission(submissionId);
 
