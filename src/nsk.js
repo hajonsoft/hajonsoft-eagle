@@ -274,7 +274,7 @@ async function pageContentHandler(currentConfig) {
           selector:
             "#kt_content > div > div > div > div.kt-portlet__head > div",
           title: "Stop Auto Mode",
-          arabicTitle: "توقف الوضع التلقائي",
+          arabicTitle: "إيقاف الوضع التلقائي",
           name: "autoMode",
           action: async () => {
             autoMode = false;
@@ -491,6 +491,7 @@ async function pageContentHandler(currentConfig) {
         5,
         20
       );
+
       await util.commitFile("#PersonalPictureUploader", resizedPhotoPath);
 
       if (passenger.images.vaccine) {
@@ -521,7 +522,7 @@ async function pageContentHandler(currentConfig) {
       );
       try {
         if (isResidencyPictureUploaderVisible) {
-          await page.type("#IdNo", passenger.passportNumber);
+          await page.type("#IqamaId", passenger.idNumber || passenger.passportNumber);
           await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
         }
       } catch {}
