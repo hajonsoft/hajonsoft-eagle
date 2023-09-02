@@ -508,24 +508,14 @@ async function pageContentHandler(currentConfig) {
         await util.commitFile("#VaccinationPictureUploader", resizedPhotoPath);
       }
 
-      // paste residency picture only if the selector is visible
-      const residencyPictureUploaderSelector = "#ResidencyPictureUploader";
-      const isResidencyPictureUploaderVisible = await page.evaluate(
-        (selector) => {
-          const element = document.querySelector(selector);
-          if (element) {
-            return true;
-          }
-          return false;
-        },
-        residencyPictureUploaderSelector
-      );
-      try {
-        if (isResidencyPictureUploaderVisible) {
-          await page.type("#IqamaId", passenger.idNumber || passenger.passportNumber);
-          await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
-        }
-      } catch {}
+      // is resident
+      if (passenger.nationality.code !== data.system.country.code) {
+        await page.type(
+          "#IqamaId",
+          passenger.idNumber || passenger.passportNumber
+        );
+        await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
+      }
 
       // allow photos to settle in the DOM
       await page.waitForTimeout(1000);
@@ -586,8 +576,7 @@ async function pageContentHandler(currentConfig) {
           title: "Download All PDF's",
           arabicTitle: "تحميل جميع ملفات PDF",
           name: "downloadAllPDF",
-          alert:
-            `Files will download in the browser context, please wait until all files are downloaded\n
+          alert: `Files will download in the browser context, please wait until all files are downloaded\n
             الملفات ستتم تحميلها في الصفحة, الرجاء الانتظار حتى يتم تحميل جميع الملفات`,
           action: async () => {
             // get the table selector
