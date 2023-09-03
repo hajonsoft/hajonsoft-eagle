@@ -240,7 +240,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "otp":
       const googleToken = totp(data.system.ehajCode);
-      console.log("📢[nsk.js:227]: googleToken: ", googleToken);
+      console.log("📢[egp.js:243]: googleToken: ", googleToken);
       await page.type("#OtpValue", googleToken);
       await page.click("#newfrm > button");
 
@@ -390,7 +390,7 @@ async function pageContentHandler(currentConfig) {
         ) {
           util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
           kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-            "submissionData.nsk.status": "Submitted",
+            "submissionData.egp.status": "Submitted",
           });
           util.incrementSelectedTraveler();
         } else {
@@ -409,8 +409,8 @@ async function pageContentHandler(currentConfig) {
               data.system.accountId,
               passenger.passportNumber,
               {
-                "submissionData.nsk.status": "Rejected",
-                "submissionData.nsk.rejectionReason": modalContent,
+                "submissionData.egp.status": "Rejected",
+                "submissionData.egp.rejectionReason": modalContent,
               }
             );
 
