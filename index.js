@@ -21,6 +21,7 @@ const { send: sendNsk } = require("./src/nsk");
 const { send: sendNsh } = require("./src/nsh");
 const { send: sendTrk } = require("./src/trk");
 const { send: sendChv } = require("./src/chv");
+const { send: sendEgp } = require("./src/egp");
 
 const util = require("./src/util");
 const { getPath } = util;
@@ -40,7 +41,6 @@ let userInput;
 let data = readDataFile();
 
 async function main() {
-
   if (process.argv.includes("-v")) {
     console.log("version: " + version);
     process.exit(0);
@@ -49,7 +49,7 @@ async function main() {
   if (process.argv.includes("-i")) {
     return runInteractive();
   }
-  
+
   console.log(
     `https://hajonsoft-kea.web.app/admin/submissions/${
       process.argv
@@ -170,8 +170,8 @@ async function submitToProvider() {
   switch (data.system.name) {
     case "ehj":
       return sendEhj(data);
-      case "chv":
-        return sendChv(data);
+    case "chv":
+      return sendChv(data);
     case "bau":
       return sendBau(data);
     case "wtu":
@@ -202,6 +202,8 @@ async function submitToProvider() {
       return sendNsh(data);
     case "trk":
       return sendTrk(data);
+    case "egp":
+      return sendEgp(data);
     default:
       console.log("unknown system");
   }
