@@ -37,34 +37,55 @@ const config = [
     regex: "https://www.visa2egypt.gov.eg/eVisa/SignIn;jsessionid=",
     details: [
       {
-        selector: "#signin_frm > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div > input",
+        selector:
+          "#signin_frm > div > div:nth-child(1) > div > div > div > div:nth-child(1) > div > input",
         value: (row) => row.username,
       },
       {
-        selector: "#signin_frm > div > div:nth-child(1) > div > div > div > div.form-group.m-b-0.m-t-40.r-m-t-60 > div > input",
+        selector:
+          "#signin_frm > div > div:nth-child(1) > div > div > div > div.form-group.m-b-0.m-t-40.r-m-t-60 > div > input",
         value: (row) => row.password,
       },
     ],
   },
-  {
-    name: "dashboard",
-    regex: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Dashboard",
-  },
-  {
-    name: "otp",
-    regex: "https://bsp-nusuk.haj.gov.sa/OTP/GoogleAuth",
-  },
+
   {
     name: "groups",
-    regex: "https://www.visa2egypt.gov.eg/eVisa/Applications\?VISTK",
+    regex: "https://www.visa2egypt.gov.eg/eVisa/Applications?VISTK",
   },
   {
     name: "create-group",
-    url: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/CreateGroup",
+    regex: "https://www.visa2egypt.gov.eg/eVisa/Application\-Details\?VISTK=",
     details: [
       {
-        selector: "#GroupNameEn",
-        value: (row) => util.suggestGroupName(row),
+        selector:
+          "#travelInfo_frm > div.checkout-content-wrap > div > div.box-content > div:nth-child(3) > div:nth-child(2) > div > div > span > input",
+        value: (row) => moment().add(1, "day").format("YYYY-MM-DD"),
+      },
+      {
+        selector:
+          "#travelInfo_frm > div.checkout-content-wrap > div > div.box-content > div:nth-child(3) > div:nth-child(2) > div > div > span > input",
+        value: (row) => moment().add(60, "day").format("YYYY-MM-DD"),
+      },
+      {
+        selector:
+          "#travelInfo_frm > div.checkout-content-wrap > div > div.box-content > div:nth-child(2) > div:nth-child(1) > div > select",
+        value: () => "1",
+      },
+      {
+        selector:
+          "#travelInfo_frm > div.checkout-content-wrap > div > div.box-content > div:nth-child(1) > div:nth-child(3) > div > select",
+        value: () => "1",
+      },
+      {
+        selector:
+          "#travelInfo_frm > div.checkout-content-wrap > div > div.box-content > div:nth-child(1) > div:nth-child(2) > div > select",
+        value: () => "3",
+      },
+      {
+        selector:
+          "#travelInfo_frm > div.checkout-content-wrap > div > div.box-content > div:nth-child(2) > div:nth-child(2) > div > select",
+        value: (row) => row.nationality.code,
       },
     ],
   },
@@ -221,44 +242,45 @@ async function onContentLoaded(res) {
 async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "home":
-      await page.click("#top-bar > div > div.top-bar-wrap > div > ul > li:nth-child(1) > a");
+      await page.click(
+        "#top-bar > div > div.top-bar-wrap > div > ul > li:nth-child(1) > a"
+      );
       break;
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      const captchaCode = await util.SolveIamNotARobot(
+      let captchaCode = await util.SolveIamNotARobot(
         "#g-recaptcha-response",
         "https://www.visa2egypt.gov.eg/eVisa/SignIn",
         "6LevVyMUAAAAAEPfoZhGBRL-dv_nxPQoUBJvb3bV"
       );
-    
+
       if (!captchaCode) {
-        await util.infoMessage(page, "Manual captcha required ...");
+        await util.infoMessage(page, "Retry captcha ...");
+        captchaCode = await util.SolveIamNotARobot(
+          "#g-recaptcha-response",
+          "https://www.visa2egypt.gov.eg/eVisa/SignIn",
+          "6LevVyMUAAAAAEPfoZhGBRL-dv_nxPQoUBJvb3bV"
+        );
+      }
+      if (!captchaCode) {
+        await util.infoMessage(page, "Retry captcha ...");
+        captchaCode = await util.SolveIamNotARobot(
+          "#g-recaptcha-response",
+          "https://www.visa2egypt.gov.eg/eVisa/SignIn",
+          "6LevVyMUAAAAAEPfoZhGBRL-dv_nxPQoUBJvb3bV"
+        );
+      }
+      if (!captchaCode) {
+        await util.infoMessage(page, "Manual captcha required...");
       }
       if (captchaCode && data.system.username && data.system.password) {
         await page.click("#signin_frm > div > div:nth-child(3) > div > button");
       }
       break;
-    case "otp":
-      const googleToken = totp(data.system.ehajCode);
-      console.log("📢[egp.js:243]: googleToken: ", googleToken);
-      await page.type("#OtpValue", googleToken);
-      await page.click("#newfrm > button");
 
-      try {
-        await page.waitForSelector("#swal2-content", { timeout: 1000 });
-        const content = await page.$eval(
-          "#swal2-content",
-          (el) => el.textContent
-        );
-        if (content === "Invalid OTP") {
-          console.log("Error: Invalid OTP");
-          process.exit(1);
-        }
-      } catch (e) {}
-      break;
-    case "groups":
+      case "groups":
       if (!autoMode) return;
-      await page.click("#application_frm > div > div.row > div > button")
+      await page.click("#application_frm > div > div.row > div > button");
       return;
       await page.waitForTimeout(5000);
       if (global.submission.targetGroupId) {
@@ -273,36 +295,8 @@ async function pageContentHandler(currentConfig) {
         );
       }
       break;
-    case "dashboard":
-      // put a commander at this selector to change the autoModel to false
-      if (!autoMode) return;
-      await util.commander(page, {
-        controller: {
-          selector:
-            "#kt_content > div > div > div > div.kt-portlet__head > div",
-          title: "Stop Auto Mode",
-          arabicTitle: "إيقاف الوضع التلقائي",
-          name: "autoMode",
-          action: async () => {
-            autoMode = false;
-            await page.reload();
-          },
-        },
-      });
 
-      if (global.headless) {
-        await page.goto("https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups");
-      } else {
-        await page.waitForTimeout(5000);
-        // if the page is still dashboard after 10 seconds, click on groups
-        if (autoMode) {
-          await page.goto(
-            "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups"
-          );
-        }
-      }
-      break;
-    case "create-group":
+      case "create-group":
       if (!autoMode) return;
 
       await page.waitForTimeout(5000);

@@ -195,6 +195,11 @@ const config = [
     regex:
       "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/ViewPackage/.*",
   },
+  {
+    name: "package-info",
+    regex:
+      "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/ViewPackage/.*",
+  },
 ];
 
 async function send(sendData) {
@@ -590,25 +595,36 @@ async function pageContentHandler(currentConfig) {
             // loop through the table rows
 
             const downloadPromises = [];
-
             for (let i = 1; i <= tableRowsLength; i++) {
               const anchorTagSelector = `${tableRowsSelector}:nth-child(${i}) > td:nth-child(10) > a`;
+              const nameSelector = `${tableRowsSelector}:nth-child(${i}) > td:nth-child(1)`;
 
               const downloadPromise = page
-                .$eval(anchorTagSelector, (e) => {
-                  return e.getAttribute("href");
-                })
-                .then((href) => {
-                  const pdfUrl = `https://bsp-nusuk.haj.gov.sa${href}`;
-                  return page.evaluate(async (url) => {
+                .evaluate(
+                  (selectors) => {
+                    const anchor = document.querySelector(selectors[0]);
+                    const href = anchor.getAttribute("href");
+                    const name = document.querySelector(selectors[1]).innerText;
+                    return [href, name];
+                  },
+                  [anchorTagSelector, nameSelector]
+                )
+                .then((hrefName) => {
+                  return page.evaluate(async (params) => {
+                    const fileName = params[1];
+                    const label = (document.querySelector(
+                      "#kt_content > div > div > div > div.kt-portlet__body.px-0 > div:nth-child(1) > div > div > div > div > div.kt-widget__body > label"
+                    ).textContent = `Downloading ${params[2]} insurance files ...`);
+                    const url = `https://bsp-nusuk.haj.gov.sa${params[0]}`;
+
                     const response = await fetch(url);
                     const blob = await response.blob();
                     const link = document.createElement("a");
                     link.href = URL.createObjectURL(blob);
-                    const fileName = url.split("/").pop();
-                    link.download = `${fileName}.pdf`;
+                    label.textContent = `Downloaded ${fileName}`;
+                    link.download = `${fileName}_insurance.pdf`;
                     link.click();
-                  }, pdfUrl);
+                  }, [...hrefName, tableRowsLength]);
                 });
 
               downloadPromises.push(downloadPromise);
