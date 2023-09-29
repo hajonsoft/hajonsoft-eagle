@@ -70,9 +70,19 @@ const config = [
     ],
   },
   {
+    name: "create-group",
+    url: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/CreateGroup",
+    details: [
+      {
+        selector: "#GroupNameEn",
+        value: (row) => util.suggestGroupName(row),
+      },
+    ],
+  },
+  {
     name: "passengers",
     regex:
-      "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/EditMuatamerList/",
+      "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/EditMuatamerList/",
     details: [
       {
         selector: "#NationalityId",
@@ -224,6 +234,10 @@ async function onContentLoaded(res) {
   }
 }
 
+function getCreateGroupUrl() {
+  return "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/CreateGroup";
+}
+
 async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
@@ -259,17 +273,11 @@ async function pageContentHandler(currentConfig) {
     case "groups":
       if (!autoMode) return;
       await page.waitForTimeout(5000);
-      if (global.submission.targetGroupId) {
-        // If a group already created for this submission, go directly to that page
-        await page.goto(
-          `https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/EditMuatamerList/${global.submission.targetGroupId}`
-        );
-      } else {
-        // await page.click("#qa-create-group");
-        await page.goto(
-          "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/CreateGroup"
-        );
-      }
+
+      await page.goto(
+        getCreateGroupUrl(),
+      );
+
       break;
     case "dashboard":
       // put a commander at this selector to change the autoModel to false
@@ -289,13 +297,13 @@ async function pageContentHandler(currentConfig) {
       });
 
       if (global.headless) {
-        await page.goto("https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups");
+        await page.goto(getCreateGroupUrl());
       } else {
         await page.waitForTimeout(5000);
         // if the page is still dashboard after 10 seconds, click on groups
         if (autoMode) {
           await page.goto(
-            "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups"
+            getCreateGroupUrl()
           );
         }
       }
@@ -343,11 +351,19 @@ async function pageContentHandler(currentConfig) {
         // Do nothing
       }
       try {
+        // Click to close modal
         await page.waitForSelector(
           "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled"
         );
         await page.click(
           "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled"
+        );
+        // click add mutamer
+        await page.waitForSelector(
+          "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a"
+        );
+        await page.click(
+          "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a"
         );
       } catch (e) {
         // Do nothing
@@ -423,6 +439,7 @@ async function pageContentHandler(currentConfig) {
       const selectedTraveler = util.getSelectedTraveler();
       if (selectedTraveler >= data.travellers.length) {
         await page.goto("https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups");
+        // #newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a
         return;
       }
       passenger = data.travellers[selectedTraveler];
@@ -610,21 +627,24 @@ async function pageContentHandler(currentConfig) {
                   [anchorTagSelector, nameSelector]
                 )
                 .then((hrefName) => {
-                  return page.evaluate(async (params) => {
-                    const fileName = params[1];
-                    const label = (document.querySelector(
-                      "#kt_content > div > div > div > div.kt-portlet__body.px-0 > div:nth-child(1) > div > div > div > div > div.kt-widget__body > label"
-                    ).textContent = `Downloading ${params[2]} insurance files ...`);
-                    const url = `https://bsp-nusuk.haj.gov.sa${params[0]}`;
+                  return page.evaluate(
+                    async (params) => {
+                      const fileName = params[1];
+                      const label = (document.querySelector(
+                        "#kt_content > div > div > div > div.kt-portlet__body.px-0 > div:nth-child(1) > div > div > div > div > div.kt-widget__body > label"
+                      ).textContent = `Downloading ${params[2]} insurance files ...`);
+                      const url = `https://bsp-nusuk.haj.gov.sa${params[0]}`;
 
-                    const response = await fetch(url);
-                    const blob = await response.blob();
-                    const link = document.createElement("a");
-                    link.href = URL.createObjectURL(blob);
-                    label.textContent = `Downloaded ${fileName}`;
-                    link.download = `${fileName}_insurance.pdf`;
-                    link.click();
-                  }, [...hrefName, tableRowsLength]);
+                      const response = await fetch(url);
+                      const blob = await response.blob();
+                      const link = document.createElement("a");
+                      link.href = URL.createObjectURL(blob);
+                      label.textContent = `Downloaded ${fileName}`;
+                      link.download = `${fileName}_insurance.pdf`;
+                      link.click();
+                    },
+                    [...hrefName, tableRowsLength]
+                  );
                 });
 
               downloadPromises.push(downloadPromise);
