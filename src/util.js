@@ -545,7 +545,7 @@ async function controller(page, structure, travellers) {
         const controller = structureParam.controller;
         const container = document.querySelector(controller.selector);
         const handleMethodName = params[2];
-        const visaPath = params[3];
+        const visaPath = structureParam.controller.visaPath || params[3];
         const htmlContent = params[4];
         const pax = params[5];
         const lastTraveler = params[6];

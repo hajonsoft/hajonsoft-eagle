@@ -52,6 +52,8 @@ let status = "idle";
 
 let retries = 0;
 let countEmbassy = 0;
+const downloadsFolder = path.join(homedir(), "Downloads");
+
 const config = [
   {
     name: "print-visa",
@@ -59,6 +61,7 @@ const config = [
     controller: {
       name: "searchVisa",
       selector: "#content > div > div.page-head > div",
+      visaPath: `Downloading to: ${downloadsFolder}`,
       action: async () => {
         const selectedTraveller = await page.$eval(
           "#hajonsoft_select",
@@ -97,6 +100,10 @@ const config = [
   {
     name: "print-event-visa",
     url: "https://visa.mofa.gov.sa/Home/PrintEventVisa",
+  },
+  {
+    name: "print-tour-visa",
+    url: "https://visa.mofa.gov.sa/Home/PrintTourVisit",
   },
   {
     name: "agreement",
@@ -458,14 +465,15 @@ async function pageContentHandler(currentConfig) {
       await page.goto("https://visa.mofa.gov.sa/visaservices/searchvisa");
       break;
     case "print-event-visa":
+    case "print-tour-visa":
       // make pdfPath, the download folder and append the passport number to it
-      const downloadsFolder = path.join(homedir(), "Downloads");
       const pdfPath = path.join(
-        downloadsFolder,
+        path.join(homedir(), "Downloads"),
         passenger.passportNumber + ".pdf"
       );
       const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
       fs.writeFileSync(pdfPath, pdfBuffer);
+      console.log("pdf saved to: ", pdfPath);
       util.incrementSelectedTraveler();
       await page.goto("https://visa.mofa.gov.sa/visaservices/searchvisa");
       break;
@@ -857,7 +865,7 @@ async function sendNewApplication(selectedTraveller) {
   }
 
   if (selectedTraveller) {
-    let captchaId; 
+    let captchaId;
     try {
       const data = fs.readFileSync(getPath("data.json"), "utf-8");
       var passengersData = JSON.parse(data);
@@ -922,10 +930,7 @@ async function sendNewApplication(selectedTraveller) {
         return dataURL.replace("data:", "").replace(/^.+,/, "");
       });
 
-      const captchaSolver = new RuCaptcha2Captcha(
-        global.captchaKey,
-        2
-      );
+      const captchaSolver = new RuCaptcha2Captcha(global.captchaKey, 2);
 
       captchaId = await captchaSolver.send({
         method: "base64",

@@ -235,9 +235,6 @@ async function onContentLoaded(res) {
 }
 
 function getCreateGroupUrl() {
-  // if https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/CreateGroup gives 404 not found, then use https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/CreateGroup
-
-
   // return "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/CreateGroup";
   return "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/CreateGroup";
 }
