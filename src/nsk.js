@@ -82,7 +82,7 @@ const config = [
   {
     name: "passengers",
     regex:
-      "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/EditMuatamerList/",
+      "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/(ManageSubAgents|Groups)/EditMuatamerList/",
     details: [
       {
         selector: "#NationalityId",
@@ -235,7 +235,11 @@ async function onContentLoaded(res) {
 }
 
 function getCreateGroupUrl() {
-  return "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/CreateGroup";
+  // if https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/CreateGroup gives 404 not found, then use https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/CreateGroup
+
+
+  // return "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/CreateGroup";
+  return "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/CreateGroup";
 }
 
 async function pageContentHandler(currentConfig) {
