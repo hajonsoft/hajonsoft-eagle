@@ -1557,7 +1557,7 @@ const suggestGroupName = (data) => {
     .hostname()
     .substring(0, 8)}${time}_${data.info.run}`;
 
-  return suggestedName.replace(/[^a-zA-Z0-9_]/g, "");
+  return suggestedName.replace(/[^a-zA-Z0-9_]/g, "") + Math.random().toString(36).substring(2, 5);
 };
 
 async function screenShotAndContinue(page, visaElement, visaFileName, url) {
