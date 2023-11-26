@@ -474,6 +474,24 @@ async function pageContentHandler(currentConfig) {
       const pdfBuffer = await page.pdf({ format: "A4", printBackground: true });
       fs.writeFileSync(pdfPath, pdfBuffer);
       console.log("pdf saved to: ", pdfPath);
+      const pageElement2 = await page.$("body");
+      // save screenshot to kea
+      try {
+        await util.screenShotToKea(
+          pageElement2,
+          data.system.accountId,
+          passenger,
+          "Submitted"
+        );
+      } catch (error) {}
+      // save status to kea
+      await kea.updatePassenger(
+        data.system.accountId,
+        passenger.passportNumber,
+        {
+          "submissionData.hsf.status": "Submitted",
+        }
+      );
       util.incrementSelectedTraveler();
       await page.goto("https://visa.mofa.gov.sa/visaservices/searchvisa");
       break;
