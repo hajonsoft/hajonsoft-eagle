@@ -455,7 +455,7 @@ async function pageContentHandler(currentConfig) {
           {
             selector: "#ContactDetailsViewModel_Arrival_TravelIdentifier",
             value: () => "SV123",
-          }
+          },
         ],
         passenger
       );
@@ -493,9 +493,8 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
-      if (fs.existsSync(getPath("loop.txt"))) {
-        await uploadDocuments(util.getSelectedTraveler());
-      }
+      await uploadDocuments(util.getSelectedTraveler());
+
       break;
     case "login":
       clearTimeout(timerHandler);
@@ -633,11 +632,13 @@ function suggestPhoneNumber(selectedTraveler) {
 }
 
 async function checkIfNotChecked(selector) {
-  const isChecked = await page.$eval(selector, (el) => el.checked);
-  if (isChecked) {
-    return;
-  }
-  await page.$eval(selector, (el) => (el.checked = true));
+  try {
+    const isChecked = await page.$eval(selector, (el) => el.checked);
+    if (isChecked) {
+      return;
+    }
+    await page.$eval(selector, (el) => (el.checked = true));
+  } catch {}
 }
 
 async function signup_step1(selectedTraveler) {
@@ -949,43 +950,6 @@ async function loginPassenger(selectedTraveler) {
 
 async function uploadDocuments(selectedTraveler) {
   const passenger = data.travellers[selectedTraveler];
-
-  // await page.$eval("#CompleteViewModel_PassportTypeId", (e) => {
-  //   if (e) {
-  //     e.value = "074240a9-e07f-4959-889d-b163c8743dad";
-  //   }
-  // });
-
-  // await util.commit(
-  //   page,
-  //   [
-  //     {
-  //       selector: "#CompleteViewModel_PassportNumber",
-  //       value: (row) => row.passportNumber,
-  //     },
-
-  //     {
-  //       selector: "#CompleteViewModel_IssueDate",
-  //       value: (row) =>
-  //         `${row.passIssueDt.yyyy}-${row.passIssueDt.mm}-${row.passIssueDt.dd}`,
-  //     },
-  //     {
-  //       selector: "#CompleteViewModel_ExpiryDate",
-  //       value: (row) =>
-  //         `${row.passExpireDt.yyyy}-${row.passExpireDt.mm}-${row.passExpireDt.dd}`,
-  //     },
-  //     {
-  //       selector: "#CompleteViewModel_IssuePlace",
-  //       value: (row) => row.placeOfIssue,
-  //     },
-  //     {
-  //       selector: "#CompleteViewModel_BirthPlace",
-  //       value: (row) => row.nationality.name,
-  //     },
-  //   ],
-  //   passenger
-  // );
-
   // passport upload
   const passportPath = path.join(
     util.passportsFolder,
