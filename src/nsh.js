@@ -36,10 +36,11 @@ const URLS = {
   registrationForward:
     "https://hajj.nusuk.sa/Applicants/Individual/Registration.handler=RegisterApplicant",
   LOGIN: "https://hajj.nusuk.sa/Account/Login",
-  verifyLogin: "https://hajj.nusuk.sa/Account/VerifyOTP/",
   CONTACT: "https://hajj.nusuk.sa/registration/contact/[0-9a-f-]+",
   SUMMARY: "https://hajj.nusuk.sa/registration/form/step1/[0-9a-f-]+",
   SUMMARY2: "https://hajj.nusuk.sa/registration/form/step2/[0-9a-f-]+",
+  PREFERENCES: "https://hajj.nusuk.sa/Registration/Preferences/[0-9a-f-]+",
+  REGISTRATION_SUMMARY: "https://hajj.nusuk.sa/registration/summary/[0-9a-f-]+",
 };
 
 function getLogFile() {
@@ -124,7 +125,15 @@ const config = [
   },
   {
     name: "summary2",
-    regex: URLS.SUMMARY,
+    regex: URLS.SUMMARY2,
+  },
+  {
+    name: "preferences",
+    regex: URLS.PREFERENCES,
+  },
+  {
+    name: "registration-summary",
+    regex: URLS.REGISTRATION_SUMMARY,
   },
   {
     name: "login",
@@ -246,21 +255,46 @@ async function pageContentHandler(currentConfig) {
       );
 
       await util.infoMessage(page, "OTP ...");
-      const signupVerificationCode = await gmail.getNusukCodeByEmail(
-        emailAddress,
-        "Email Activation"
+      // TODO: figure out if the email subject is Email Activation or One Time Password
+      // If the page contain the word Registration, then registration. If it contains "OTP Verification"
+      const pageMode = await page.$eval(
+        "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div > ol > li.breadcrumb-item.small.active",
+        (el) => el.innerText
       );
 
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#otp-inputs > input.form-control.signup-otp.me-1",
-            value: (row) => signupVerificationCode,
-          },
-        ],
-        passenger
-      );
+      if (pageMode.includes("Registration")) {
+        const signupVerificationCode = await gmail.getNusukCodeByEmail(
+          emailAddress,
+          "Email Activation"
+        );
+
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+              value: (row) => signupVerificationCode,
+            },
+          ],
+          passenger
+        );
+      } else {
+        const loginVerificationCode = await gmail.getNusukCodeByEmail(
+          emailAddress,
+          "One Time Password"
+        );
+
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+              value: (row) => loginVerificationCode,
+            },
+          ],
+          passenger
+        );
+      }
       break;
     case "signup-password":
       clearTimeout(timerHandler);
@@ -349,6 +383,29 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked(
         "#PassportSummaryViewModel_ConfirmAccuracyOfData"
       );
+      // TODO: enter arabic names if present
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#PassportSummaryViewModel_FirstNameAr",
+            value: () => passenger.nameArabic.first,
+          },
+          {
+            selector: "#PassportSummaryViewModel_SecondNameAr",
+            value: () => passenger.nameArabic.father,
+          },
+          {
+            selector: "#PassportSummaryViewModel_MiddleNameAr",
+            value: () => passenger.nameArabic.grand,
+          },
+          {
+            selector: "#PassportSummaryViewModel_LastNameAr",
+            value: () => passenger.nameArabic.last,
+          },
+        ],
+        passenger
+      );
       break;
     case "contact":
       // review telephone number
@@ -359,13 +416,77 @@ async function pageContentHandler(currentConfig) {
             selector: "#ContactDetailsViewModel_Contact_MobileNumber",
             value: () => telephoneNumber,
           },
+          {
+            selector: "#ContactDetailsViewModel_Contact_StreetAddress",
+            value: () => "123 main st city state",
+          },
+          {
+            selector: "#ContactDetailsViewModel_Contact_HomeAddress",
+            value: () => "123 main st city state",
+          },
+          {
+            selector: "#ContactDetailsViewModel_Contact_SocialStatusId",
+            value: () => "4",
+          },
+          {
+            selector: "#ContactDetailsViewModel_Contact_ApartmentHouseNumber",
+            value: () => "1",
+          },
+          {
+            selector: "#ContactDetailsViewModel_Occupation_Name",
+            value: () => "unknown",
+          },
+          {
+            selector: "#ContactDetailsViewModel_Occupation_CurrentEmployer",
+            value: () => "unknown",
+          },
+          {
+            selector: "#ContactDetailsViewModel_Occupation_PreviousWork",
+            value: () => "unknown",
+          },
+          {
+            selector: "#ContactDetailsViewModel_Occupation_NameSector",
+            value: () => "Private",
+          },
+          {
+            selector: "#ContactDetailsViewModel_Arrival_EntryTypeId",
+            value: () => "1",
+          },
+          {
+            selector: "#ContactDetailsViewModel_Arrival_TravelIdentifier",
+            value: () => "SV123",
+          }
         ],
         passenger
       );
       break;
     case "summary":
+      await checkIfNotChecked("#HaveValidResidencyNo");
+      await checkIfNotChecked("#PreviouslyReceivedVisaEnterKSANo");
+      await checkIfNotChecked("#PreviousKSAVisaRejectionNo");
+      await checkIfNotChecked("#PassportHasRestrictionForOneTripNo");
+      await checkIfNotChecked("#HaveRelativesResigingInKSANo");
+      await checkIfNotChecked("#HoldOtherNationalitiesNo");
+      await checkIfNotChecked("#TraveledToOtherCountriesNo");
       break;
     case "summary2":
+      await checkIfNotChecked("#DeportedFromAnyCountryBeforeNo");
+      await checkIfNotChecked("#WorkedInMediaOrPoliticsNo");
+      await checkIfNotChecked("#ServedInArmedOrSecurityForcesNo");
+      await checkIfNotChecked("#SentencedToPrisonBeforeNo");
+      await checkIfNotChecked("#ConvictedInSmugglingMoneyLaunderingNo");
+      await checkIfNotChecked("#BelongedToTerroristOrganizationBeforeNo");
+      await checkIfNotChecked("#RequiredVaccinationsBeenTakenNo");
+      await checkIfNotChecked("#HaveAnyPhysicalDisabilityNo");
+
+      break;
+    case "preferences":
+      break;
+    case "registration-summary":
+      await checkIfNotChecked("#summarycheck1");
+      await checkIfNotChecked("#summarycheck2");
+      await checkIfNotChecked("#summarycheck3");
+      await checkIfNotChecked("#summarycheck5");
       break;
     case "upload-documents":
       await util.controller(page, currentConfig, data.travellers);
@@ -496,7 +617,7 @@ function suggestPhoneNumber(selectedTraveler) {
     return passenger.phone;
   }
   const nusukPhone = budgie.get("nusuk-hajj-phone");
-  if (nusukPhone) {
+  if (nusukPhone && nusukPhone !== "nusuk-hajj-phone") {
     // find the number of zeros at the end of the phone number
     const numberOfTrailingZeros = nusukPhone.match(/0*$/)[0].length;
     const generatedNumber = new Date()
@@ -783,7 +904,7 @@ async function loginPassenger(selectedTraveler) {
     [
       {
         selector: "#LogInViewModel_Email",
-        value: (row) => row.email,
+        value: (row) => row.email || emailAddress,
       },
 
       {
