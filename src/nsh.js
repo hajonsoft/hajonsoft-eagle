@@ -478,7 +478,7 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked("#BelongedToTerroristOrganizationBeforeNo");
       await checkIfNotChecked("#RequiredVaccinationsBeenTakenNo");
       await checkIfNotChecked("#HaveAnyPhysicalDisabilityNo");
-
+      await checkIfNotChecked("#ArrestedOrConvictedForTerrorismBeforeNo");
       break;
     case "preferences":
       break;
