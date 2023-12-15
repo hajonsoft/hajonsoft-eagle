@@ -59,7 +59,7 @@ async function loadSavedCredentialsIfExist() {
        d. Enter your email address and click "Save."
     9. You should now have access to the Gmail API for testing purposes.
     
-    Please make sure to keep your "credentials.json" file secure and not share it with others. If you encounter any issues during the process, refer to the Google documentation or contact their developer support for assistance.`)
+    Please make sure to keep your "credentials.json" file secure and not share it with others. If you encounter any issues during the process, refer to the Google documentation or contact their developer support for assistance.`);
   }
 
   if (!fsLegacy.existsSync(TOKEN_PATH)) {
@@ -213,17 +213,21 @@ async function listNusukMessages(auth, recipient, subject) {
       const verificationCode =
         contents.data.snippet.match(/Your OTP is (\d{6})/)?.[1];
       // try arabic here
-      if (!verificationCode) {
-       if (newMessages.length === 0) {
-        newMessages.push({ code: verificationCode, date: messageDate });
-      } else {
-        if (newMessages.find((m) => m.code === verificationCode)) {
-          continue;
+      // if (verificationCode && !newMessages.find((m) => m.code === verificationCode)) {
+      //   newMessages.push({ code: verificationCode, date: messageDate });
+      // }
+      if (verificationCode) {
+        if (newMessages.length === 0) {
+          newMessages.push({ code: verificationCode, date: messageDate });
+        } else {
+          if (newMessages.find((m) => m.code === verificationCode)) {
+            continue;
+          }
         }
       }
-      if (newMessages.length === 0) {
-        continue;
-      }
+    }
+    if (newMessages.length === 0) {
+      continue;
     }
     return newMessages;
   }
