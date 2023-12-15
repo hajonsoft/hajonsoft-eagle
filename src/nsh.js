@@ -18,9 +18,25 @@ let data;
 let counter = 0;
 let passenger;
 let emailAddress;
+let telephoneNumber;
 let manualMode;
 const verifyClicked = {};
 const loginRetries = {};
+
+const URLS = {
+  SIGN_UP: "https://hajj.nusuk.sa/registration/signup",
+  HOME: "https://hajj.nusuk.sa/",
+  PROFILE: "https://hajj.nusuk.sa/Account/Profile",
+  VERIFY_REGISTER_EMAIL: "https://hajj.nusuk.sa/account/verify",
+  REGISTER_PASSWORD: "https://hajj.nusuk.sa/registration/signup/password",
+  INDEX: "https://hajj.nusuk.sa/Index",
+  registrationComplete:
+    "https://hajj.nusuk.sa/Applicants/Individual/Registration/Complete/[0-9a-f-]+",
+  registrationForward:
+    "https://hajj.nusuk.sa/Applicants/Individual/Registration.handler=RegisterApplicant",
+  LOGIN: "https://hajj.nusuk.sa/Account/Login",
+  verifyLogin: "https://hajj.nusuk.sa/Account/VerifyOTP/",
+};
 
 function getLogFile() {
   const logFolder = path.join(getPath("log"), data.info.munazim);
@@ -36,15 +52,40 @@ let timerHandler;
 const config = [
   {
     name: "home",
-    url: "https://hajj.nusuk.sa/",
+    url: URLS.HOME,
+  },
+  {
+    name: "signup-step1",
+    url: URLS.SIGN_UP,
+    controller: {
+      selector: "body > header > nav > div",
+      action: async () => {
+        const selectedTraveler = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
+        if (selectedTraveler) {
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
+          await signup_step1(selectedTraveler);
+        }
+      },
+    },
+  },
+  {
+    name: "verify-register-email",
+    regex: URLS.VERIFY_REGISTER_EMAIL,
+  },
+  {
+    name: "signup-password",
+    url: URLS.REGISTER_PASSWORD,
   },
   {
     name: "profile",
-    url: "https://hajj.nusuk.sa/Account/Profile",
+    url: URLS.PROFILE,
   },
   {
     name: "index",
-    url: "https://hajj.nusuk.sa/Index",
+    url: URLS.INDEX,
   },
   {
     name: "registration-complete",
@@ -67,35 +108,17 @@ const config = [
     },
   },
   {
-    name: "register",
-    regex: "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
-    controller: {
-      selector:
-        "#footerId > div > div:nth-child(1) > div.col-lg-6.col-md-4.text-center.text-md-start",
-      action: async () => {
-        const selectedTraveler = await page.$eval(
-          "#hajonsoft_select",
-          (el) => el.value
-        );
-        if (selectedTraveler) {
-          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
-          await registerPassenger(selectedTraveler);
-        }
-      },
-    },
-  },
-  {
     name: "register-forward",
     regex:
       "https://hajj.nusuk.sa/Applicants/Individual/Registration.handler=RegisterApplicant",
   },
   {
     name: "login",
-    url: "https://hajj.nusuk.sa/Account/Login",
+    url: URLS.LOGIN,
     controller: {
       name: "login",
       selector:
-        "#footerId > div > div:nth-child(1) > div.col-lg-6.col-md-4.text-center.text-md-start",
+        "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.my-5",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -147,16 +170,15 @@ async function pageContentHandler(currentConfig) {
 
         timerHandler = setTimeout(async () => {
           util.registerLoop();
-          await page.goto(
-            "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
-            { waitUntil: "domcontentloaded" }
-          );
+          await page.goto(URLs.SIGN_UP, {
+            waitUntil: "domcontentloaded",
+          });
         }, 30000);
       } else {
         await util.infoMessage(page, "Logging-in 30 seconds");
         timerHandler = setTimeout(async () => {
           util.registerLoop();
-          await page.goto("https://hajj.nusuk.sa/Account/LogIn", {
+          await page.goto(URLs.LOGIN, {
             waitUntil: "domcontentloaded",
           });
         }, 30000);
@@ -164,7 +186,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "index":
       if (manualMode === "login") {
-        await page.goto("https://hajj.nusuk.sa/Account/LogIn");
+        await page.goto(URLS.LOGIN);
       }
       break;
     case "profile":
@@ -188,10 +210,70 @@ async function pageContentHandler(currentConfig) {
         await page.goto("https://hajj.nusuk.sa/Account/Signout");
       }
       break;
+    case "signup-step1":
+      clearTimeout(timerHandler);
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+      if (!manualMode) {
+        manualMode = currentConfig.name;
+      }
+      await util.controller(page, currentConfig, data.travellers);
+      if (fs.existsSync(getPath("loop.txt"))) {
+        await signup_step1(util.getSelectedTraveler());
+      }
+      break;
+    case "verify-register-email":
+      clearTimeout(timerHandler);
+
+      await page.waitForSelector(
+        "#otp-inputs > input.form-control.signup-otp.me-1",
+        { visible: true }
+      );
+
+      await util.infoMessage(page, "OTP ...");
+      const signupVerificationCode = await gmail.getNusukCodeByEmail(
+        emailAddress,
+        "Email Activation"
+      );
+
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+            value: (row) => signupVerificationCode,
+          },
+        ],
+        passenger
+      );
+      break;
+    case "signup-password":
+      clearTimeout(timerHandler);
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#CreatePasswordViewModel_Password",
+            value: () => data.system.password,
+          },
+          {
+            selector: "#CreatePasswordViewModel_PasswordConfirmation",
+            value: () => data.system.password,
+          },
+        ],
+        passenger
+      );
+      await page.waitForTimeout(1000);
+      await page.click(
+        "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > button"
+      );
+      break;
     case "register":
       clearTimeout(timerHandler);
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
+        document.scrollTo(0, document.body.scrollHeight);
       });
       if (!manualMode) {
         manualMode = currentConfig.name;
@@ -335,7 +417,7 @@ async function pageContentHandler(currentConfig) {
             util.infoMessage(page, `OTP error: ${codeError}`);
             util.incrementSelectedTraveler();
             if (manualMode === "login") {
-              await page.goto("https://hajj.nusuk.sa/Account/LogIn");
+              await page.goto(URLS.LOGIN);
             } else {
               await page.goto(
                 "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index"
@@ -351,6 +433,104 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
+function suggestEmail(selectedTraveler) {
+  const passenger = data.travellers[selectedTraveler];
+  if (passenger.email) {
+    return passenger.email;
+  }
+  const domain = data.system.username.includes("@")
+    ? data.system.username.split("@")[1]
+    : data.system.username;
+  const friendlyName = `${passenger.name.first}.${
+    passenger.name.last
+  }.${moment().unix().toString(36)}@${domain}`.toLowerCase();
+  const unfriendlyName = `${passenger.name.first}.${
+    data.system.accountId
+  }.${moment().unix().toString(36)}@${domain}`.toLowerCase();
+  const email = data.system.username.includes("@")
+    ? friendlyName
+    : unfriendlyName;
+  return email;
+}
+
+function suggestPhoneNumber(selectedTraveler) {
+  const passenger = data.travellers[selectedTraveler];
+  if (passenger.phone) {
+    return passenger.phone;
+  }
+  const nusukPhone = budgie.get("nusuk-hajj-phone");
+  if (nusukPhone) {
+    // find the number of zeros at the end of the phone number
+    const numberOfTrailingZeros = nusukPhone.match(/0*$/)[0].length;
+    const generatedNumber = new Date()
+      .valueOf()
+      .toString()
+      .substring(13 - numberOfTrailingZeros, 13);
+
+    // replace the zeros at the end of the phone number with the generated number
+    return nusukPhone.replace(/0*$/, generatedNumber);
+  } else {
+    return "+1949" + new Date().valueOf().toString().substring(6, 13);
+  }
+}
+
+async function checkIfNotChecked(selector) {
+  const isChecked = await page.$eval(selector, (el) => el.checked);
+  if (isChecked) {
+    return;
+  }
+  await page.$eval(selector, (el) => (el.checked = true));
+}
+
+async function signup_step1(selectedTraveler) {
+  util.setSelectedTraveller(selectedTraveler);
+  const passenger = data.travellers[selectedTraveler];
+  emailAddress = suggestEmail(selectedTraveler);
+  const nationality = nationalities.find(
+    (n) =>
+      n.name.toLowerCase().trim() ===
+      passenger.nationality.name.toLowerCase().trim()
+  )?.uuid;
+
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#SignupViewModel_Email",
+        value: (row) => emailAddress,
+      },
+      {
+        selector: "#SignupViewModel_CountryResidenceId",
+        value: () => nationality,
+      },
+    ],
+    passenger
+  );
+  //
+  // wait for all javascript functions to execute
+  await page.waitForTimeout(1000);
+
+  await checkIfNotChecked("#chkResidenceCountry");
+  await checkIfNotChecked("#SignupViewModel_AgreeToTermsAndCondition");
+  await checkIfNotChecked("#SignupViewModel_SubscribeToNewsLetter");
+  await util.infoMessage(page, "Captcha ...");
+  const captchaCode = await util.SolveIamNotARobot(
+    "#g-recaptcha-response",
+    URLS.SIGN_UP,
+    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
+  );
+
+  if (captchaCode) {
+    await page.click(
+      "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.px-5.mt-5.w-100"
+    );
+  }
+
+  if (!captchaCode) {
+    await util.infoMessage(page, "Manual captcha required ...");
+  }
+}
+
 async function registerPassenger(selectedTraveler) {
   util.setSelectedTraveller(selectedTraveler);
   const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
@@ -359,6 +539,7 @@ async function registerPassenger(selectedTraveler) {
   const emailDomain = data.system.username.includes("@")
     ? data.system.username.split("@")[1]
     : data.system.username;
+  console.log("📢[nsh.js:359]: emailDomain: ", emailDomain);
   emailAddress =
     passenger.email ||
     `${passenger.name.first}${data.system.accountId}${moment()
@@ -441,7 +622,7 @@ async function registerPassenger(selectedTraveler) {
         value: (row) => `${row.dob.yyyy}-${row.dob.mm}-${row.dob.dd}`,
       },
       {
-        selector: "#ApplicantRegistrationViewModel_Email",
+        selector: "#SignupViewModel_Email",
         value: (row) => emailAddress,
       },
       {
@@ -515,7 +696,7 @@ async function registerPassenger(selectedTraveler) {
   await util.infoMessage(page, "Captcha ...");
   const captchaCode = await util.SolveIamNotARobot(
     "#g-recaptcha-response",
-    "https://hajj.nusuk.sa/Applicants/Individual/Registration/Index",
+    URLS.SIGN_UP,
     "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
   );
 
@@ -569,7 +750,7 @@ async function loginPassenger(selectedTraveler) {
   util.infoMessage(page, `Captcha ...`);
   const loginCaptchaValue = await util.SolveIamNotARobot(
     "#g-recaptcha-response",
-    "https://hajj.nusuk.sa/Account/Login",
+    URLS.LOGIN,
     "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
   );
   if (!loginCaptchaValue) {

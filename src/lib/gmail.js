@@ -205,20 +205,25 @@ async function listNusukMessages(auth, recipient, subject) {
       const messageDate = moment(
         contents.data.payload.headers.find((h) => h.name === "Date").value
       );
-      // if messageDate is older than 5 minutes, skip it
-      if (messageDate.isBefore(moment().subtract(1, "minutes"))) {
+      // if messageDate is older than 10 hours, skip it
+      if (messageDate.isBefore(moment().subtract(10, "hours"))) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         continue;
       }
       const verificationCode =
-        contents.data.snippet.match(/Your OTP is (\d{4})/)?.[1];
+        contents.data.snippet.match(/Your OTP is (\d{6})/)?.[1];
       // try arabic here
-      if (verificationCode) {
+      if (!verificationCode) {
+       if (newMessages.length === 0) {
         newMessages.push({ code: verificationCode, date: messageDate });
+      } else {
+        if (newMessages.find((m) => m.code === verificationCode)) {
+          continue;
+        }
       }
-    }
-    if (newMessages.length === 0) {
-      continue;
+      if (newMessages.length === 0) {
+        continue;
+      }
     }
     return newMessages;
   }
