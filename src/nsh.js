@@ -982,58 +982,23 @@ async function uploadDocuments(selectedTraveler) {
   );
   await util.commitFile("#personalPhoto", resizedPhotoPath);
 
+  await page.waitForTimeout(5000);
   // residence upload
-  // let residencyPath = path.join(
-  //   util.residencyFolder,
-  //   `${passenger.passportNumber}.jpg`
-  // );
-  // await page.waitForSelector("#CompleteViewModel_ResidencyPhoto", {
-  //   timeout: 0,
-  // });
+  try {
+    let residencyPath = path.join(
+      util.residencyFolder,
+      `${passenger.passportNumber}.jpg`
+    );
+    await page.waitForSelector("#residencyPhoto", {
+      timeout: 0,
+    });
 
-  // await util.downloadImage(
-  //   passenger.images.residency || passenger.images.passport,
-  //   residencyPath
-  // );
-  // await util.commitFile("#CompleteViewModel_ResidencyPhoto", residencyPath);
-
-  // if (!passenger.images.residency) {
-  //   const haveResidence = await page.$("#HaveResidence_No");
-  //   if (haveResidence) {
-  //     await page.$eval("#HaveResidence_No", (e) => {
-  //       if (e) {
-  //         e.checked = true;
-  //       }
-  //     });
-  //   }
-  // } else {
-  //   const haveResidence = await page.$("#HaveResidence_Yes");
-  //   if (haveResidence) {
-  //     await page.$eval("#HaveResidence_Yes", (e) => {
-  //       if (e) {
-  //         e.checked = true;
-  //       }
-  //     });
-  //   }
-  // }
-
-  // try {
-  //   await page.click("body > main > div > form > div.text-center.mt-5 > input");
-  // } catch (e) {
-  //   console.log(e);
-  //   const pageElement = await page.$("body");
-  //   // save screenshot to kea
-  //   try {
-  //     await util.screenShotToKea(
-  //       pageElement,
-  //       data.system.accountId,
-  //       passenger,
-  //       "Embassy"
-  //     );
-  //   } catch (error) {}
-  //   util.incrementSelectedTraveler();
-  //   await page.goto("https://hajj.nusuk.sa/Account/SignOut");
-  // }
+    await util.downloadImage(
+      passenger.images.residency || passenger.images.passport,
+      residencyPath
+    );
+    await util.commitFile("#residencyPhoto", residencyPath);
+  } catch {}
 }
 
 module.exports = { send };
