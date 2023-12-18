@@ -264,7 +264,7 @@ async function pageContentHandler(currentConfig) {
 
       if (pageMode.includes("Registration")) {
         const signupVerificationCode = await gmail.getNusukCodeByEmail(
-          emailAddress,
+          emailAddress.replace("xn--libert-gva.email","liberté.email"),
           "Email Activation"
         );
 
@@ -280,7 +280,7 @@ async function pageContentHandler(currentConfig) {
         );
       } else {
         const loginVerificationCode = await gmail.getNusukCodeByEmail(
-          emailAddress,
+          emailAddress.replace("xn--libert-gva.email","liberté.email"),
           "One Time Password"
         );
 
