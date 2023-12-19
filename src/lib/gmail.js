@@ -210,12 +210,11 @@ async function listNusukMessages(auth, recipient, subject) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
         continue;
       }
-      const verificationCode =
-        contents.data.snippet.match(/Your OTP is (\d{6})/)?.[1];
-      // try arabic here
-      // if (verificationCode && !newMessages.find((m) => m.code === verificationCode)) {
-      //   newMessages.push({ code: verificationCode, date: messageDate });
-      // }
+
+      const isEnglish = /^[a-zA-Z\s]+$/.test(subject);
+
+      const verificationCode = isEnglish ? 
+        contents.data.snippet.match(/Your OTP is (\d{6})/)?.[1] : contents.data.snippet.match(/رمز الدخول لمرة واحدة هو (\d+)/)?.[1];
       if (verificationCode) {
         if (newMessages.length === 0) {
           newMessages.push({ code: verificationCode, date: messageDate });
@@ -234,7 +233,8 @@ async function listNusukMessages(auth, recipient, subject) {
 }
 async function getNusukCodeByEmail(email, subject) {
   const client = await authorize();
-  const messages = await listNusukMessages(client, email, subject);
+  const emailToUse = email.replace("xn--libert-gva.email","liberté.email")
+  const messages = await listNusukMessages(client, emailToUse, subject);
   if (!messages || messages.length === 0) {
     return;
   }
