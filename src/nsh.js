@@ -187,25 +187,25 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "home":
       // check if you should perform a login flow or a register flow
-      if (data.travellers.filter((t) => t.mofaNumber === "").length > 0) {
-        // At least one passenger does not have a mofa number, then we need to register
-        await util.infoMessage(page, "Registering in 30 seconds");
+      // if (data.travellers.filter((t) => t.mofaNumber === "").length > 0) {
+      //   // At least one passenger does not have a mofa number, then we need to register
+      //   await util.infoMessage(page, "Registering in 30 seconds");
 
-        timerHandler = setTimeout(async () => {
-          util.registerLoop();
-          await page.goto(URLs.SIGN_UP, {
-            waitUntil: "domcontentloaded",
-          });
-        }, 30000);
-      } else {
-        await util.infoMessage(page, "Logging-in 30 seconds");
-        timerHandler = setTimeout(async () => {
-          util.registerLoop();
-          await page.goto(URLs.LOGIN, {
-            waitUntil: "domcontentloaded",
-          });
-        }, 30000);
-      }
+      //   timerHandler = setTimeout(async () => {
+      //     util.registerLoop();
+      //     await page.goto(URLS.SIGN_UP, {
+      //       waitUntil: "domcontentloaded",
+      //     });
+      //   }, 30000);
+      // } else {
+      //   await util.infoMessage(page, "Logging-in 30 seconds");
+      //   timerHandler = setTimeout(async () => {
+      //     util.registerLoop();
+      //     await page.goto(URLS.LOGIN, {
+      //       waitUntil: "domcontentloaded",
+      //     });
+      //   }, 30000);
+      // }
       break;
     case "index":
       if (manualMode === "login") {
@@ -263,6 +263,7 @@ async function pageContentHandler(currentConfig) {
       );
 
       if (pageMode.includes("Registration")) {
+        // TODO: Check if arabic and supply the arabic text instead
         const signupVerificationCode = await gmail.getNusukCodeByEmail(
           emailAddress,
           "Email Activation"
@@ -278,7 +279,24 @@ async function pageContentHandler(currentConfig) {
           ],
           passenger
         );
+        } else if (pageMode.includes("التسجيل")) {
+          const signupVerificationCode = await gmail.getNusukCodeByEmail(
+            emailAddress,
+            "تفعيل البريد الالكتروني"
+          );
+  
+          await util.commit(
+            page,
+            [
+              {
+                selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+                value: (row) => signupVerificationCode,
+              },
+            ],
+            passenger
+          );
       } else {
+        // TODO: Check if arabic and supply the arabic text instead
         const loginVerificationCode = await gmail.getNusukCodeByEmail(
           emailAddress,
           "One Time Password"
@@ -406,6 +424,7 @@ async function pageContentHandler(currentConfig) {
         ],
         passenger
       );
+      util.incrementSelectedTraveler();
       break;
     case "contact":
       // review telephone number
@@ -456,6 +475,10 @@ async function pageContentHandler(currentConfig) {
             selector: "#ContactDetailsViewModel_Arrival_TravelIdentifier",
             value: () => "SV123",
           },
+          {
+            selector: "#ContactDetailsViewModel_Arrival_TotalExpectedDays",
+            value: () => "20",
+          }
         ],
         passenger
       );
@@ -494,7 +517,16 @@ async function pageContentHandler(currentConfig) {
         window.scrollTo(0, document.body.scrollHeight);
       });
       await uploadDocuments(util.getSelectedTraveler());
-
+// Close the modal by clicking this element if it is in the DOM
+// #uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span
+      await page.waitForTimeout(1000);
+      try {
+        await page.click(
+          "#uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span"
+        );
+      } catch (e) {
+        // console.log(e);
+      }
       break;
     case "login":
       clearTimeout(timerHandler);
@@ -526,6 +558,7 @@ async function pageContentHandler(currentConfig) {
     case "verify-login":
       const passengerForEmail = data.travellers[util.getSelectedTraveler()];
       util.infoMessage(page, `OTP ...`);
+      // TODO: Check if arabic and supply the arabic text instead
       const code = await gmail.getNusukCodeByEmail(
         passengerForEmail.email,
         "One Time Password"
@@ -600,10 +633,10 @@ function suggestEmail(selectedTraveler) {
     : data.system.username;
   const friendlyName = `${passenger.name.first}.${
     passenger.name.last
-  }.${moment().unix().toString(36)}@${domain}`.toLowerCase();
+  }.${moment().unix().toString(36)}@${domain}`.toLowerCase().replace(/ /g, "");
   const unfriendlyName = `${passenger.name.first}.${
     data.system.accountId
-  }.${moment().unix().toString(36)}@${domain}`.toLowerCase();
+  }.${moment().unix().toString(36)}@${domain}`.toLowerCase().replace(/ /g, "");
   const email = data.system.username.includes("@")
     ? friendlyName
     : unfriendlyName;
@@ -873,6 +906,7 @@ async function registerPassenger(selectedTraveler) {
     await util.infoMessage(page, "Manual captcha required ...");
   }
   await util.infoMessage(page, "OTP ...");
+  // TODO: Check if arabic and supply the arabic text instead
   const code = await gmail.getNusukCodeByEmail(
     emailAddress,
     "Email Activation"
