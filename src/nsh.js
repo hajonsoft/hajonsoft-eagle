@@ -27,6 +27,7 @@ const clicked = {};
 const URLS = {
   SIGN_UP: "https://hajj.nusuk.sa/registration/signup",
   HOME: "https://hajj.nusuk.sa/",
+  HOME2: "https://hajj.nusuk.sa/Index",
   PROFILE: "https://hajj.nusuk.sa/Account/Profile",
   VERIFY_REGISTER_EMAIL: "https://hajj.nusuk.sa/account/verify",
   REGISTER_PASSWORD: "https://hajj.nusuk.sa/registration/signup/password",
@@ -42,6 +43,7 @@ const URLS = {
   SUMMARY2: "https://hajj.nusuk.sa/registration/form/step2/[0-9a-f-]+",
   PREFERENCES: "https://hajj.nusuk.sa/Registration/Preferences/[0-9a-f-]+",
   REGISTRATION_SUMMARY: "https://hajj.nusuk.sa/registration/summary/[0-9a-f-]+",
+  SUCCESS: "https://hajj.nusuk.sa/Registration/Success",
 };
 
 function getLogFile() {
@@ -59,6 +61,25 @@ const config = [
   {
     name: "home",
     url: URLS.HOME,
+    controller: {
+      name: "home",
+      selector:
+        "body > main > div.home-full-bg > div.container-lg.container-fluid.h-100 > div.row.z-1.position-relative.align-content-end.home-full-text > div > h3",
+      action: async () => {
+        const selectedTraveler = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
+        if (selectedTraveler) {
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
+          await loginOrRegister(selectedTraveler);
+        }
+      },
+    },
+  },
+  {
+    name: "home",
+    url: URLS.HOME2,
     controller: {
       name: "home",
       selector:
@@ -173,6 +194,10 @@ const config = [
   {
     name: "verify-login",
     regex: "https://hajj.nusuk.sa/Account/VerifyOTP/",
+  },
+  {
+    name: "success",
+    regex: URLS.SUCCESS,
   },
 ];
 
@@ -313,7 +338,7 @@ async function pageContentHandler(currentConfig) {
             ],
             passenger
           );
-        } else if (pageMode.includes("OTP Verification")){
+        } else if (pageMode.includes("OTP Verification")) {
           // TODO: Check if arabic and supply the arabic text instead
           const loginVerificationCode = await gmail.getNusukCodeByEmail(
             emailAddress || passenger.email,
@@ -350,15 +375,11 @@ async function pageContentHandler(currentConfig) {
         }
       } catch (e) {
         await util.infoMessage(page, "Manual code required!");
+        if (e.code === "ERR_SOCKET_CONNECTION_TIMEOUT") {
+          return;
+        }
         if (fs.existsSync("token.json")) {
-          const creationTime = fs.statSync("token.json").birthtime;
-          const now = new Date();
-          const minutesSinceCreation = Math.floor(
-            (now - creationTime) / (1000 * 60)
-          );
-          if (minutesSinceCreation > 5) {
-            fs.unlinkSync("token.json");
-          }
+          fs.unlinkSync("token.json");
         }
       }
       break;
@@ -495,13 +516,12 @@ async function pageContentHandler(currentConfig) {
           {
             selector: "#PassportSummaryViewModel_IssueDate",
             value: () => passenger.issueDate,
-          }
+          },
         ],
         passenger
       );
       kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
         "submissionData.nsh.status": "Submitted",
-        mofaNumber: "registered",
       });
       util.incrementSelectedTraveler();
       break;
@@ -566,7 +586,7 @@ async function pageContentHandler(currentConfig) {
         passenger
       );
       // select first embassy #ContactDetailsViewModel_Contact_EmbassyId
-const embassySelector = "#ContactDetailsViewModel_Contact_EmbassyId"
+      const embassySelector = "#ContactDetailsViewModel_Contact_EmbassyId";
       const firstOption = await page.$eval(embassySelector, (e) => {
         const options = e.querySelectorAll("option");
         for (const opt of options) {
@@ -645,7 +665,6 @@ const embassySelector = "#ContactDetailsViewModel_Contact_EmbassyId"
         util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
         kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
           "submissionData.nsh.status": "Submitted",
-          mofaNumber: "registered",
         });
         util.incrementSelectedTraveler();
         await page.goto(
@@ -730,6 +749,10 @@ const embassySelector = "#ContactDetailsViewModel_Contact_EmbassyId"
       } catch (e) {
         console.log(e);
       }
+      break;
+    case "success":
+      await page.goto("https://hajj.nusuk.sa/Account/SignOut");
+      break;
     default:
       break;
   }
@@ -820,7 +843,7 @@ async function signup_step1(selectedTraveler) {
   const nationality = nationalities.find(
     (n) =>
       n.name.toLowerCase().trim() ===
-      passenger.nationality.name.toLowerCase().trim()
+      data.system.country.name.toLowerCase().trim()
   )?.uuid;
 
   await util.commit(
