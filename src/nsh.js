@@ -22,6 +22,7 @@ let telephoneNumber;
 let manualMode;
 const verifyClicked = {};
 const loginRetries = {};
+const clicked = {};
 
 const URLS = {
   SIGN_UP: "https://hajj.nusuk.sa/registration/signup",
@@ -58,6 +59,21 @@ const config = [
   {
     name: "home",
     url: URLS.HOME,
+    controller: {
+      name: "home",
+      selector:
+        "body > main > div.home-full-bg > div.container-lg.container-fluid.h-100 > div.row.z-1.position-relative.align-content-end.home-full-text > div > h3",
+      action: async () => {
+        const selectedTraveler = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
+        if (selectedTraveler) {
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
+          await loginOrRegister(selectedTraveler);
+        }
+      },
+    },
   },
   {
     name: "signup-step1",
@@ -186,6 +202,7 @@ async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[util.getSelectedTraveler()];
   switch (currentConfig.name) {
     case "home":
+      await util.controller(page, currentConfig, data.travellers);
       // check if you should perform a login flow or a register flow
       // if (data.travellers.filter((t) => t.mofaNumber === "").length > 0) {
       //   // At least one passenger does not have a mofa number, then we need to register
@@ -261,30 +278,15 @@ async function pageContentHandler(currentConfig) {
         "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div > ol > li.breadcrumb-item.small.active",
         (el) => el.innerText
       );
+      try {
+        if (pageMode.includes("Registration")) {
+          // TODO: Check if arabic and supply the arabic text instead
 
-      if (pageMode.includes("Registration")) {
-        // TODO: Check if arabic and supply the arabic text instead
-        const signupVerificationCode = await gmail.getNusukCodeByEmail(
-          emailAddress,
-          "Email Activation"
-        );
-
-        await util.commit(
-          page,
-          [
-            {
-              selector: "#otp-inputs > input.form-control.signup-otp.me-1",
-              value: (row) => signupVerificationCode,
-            },
-          ],
-          passenger
-        );
-        } else if (pageMode.includes("التسجيل")) {
           const signupVerificationCode = await gmail.getNusukCodeByEmail(
-            emailAddress,
-            "تفعيل البريد الالكتروني"
+            emailAddress || passenger.email,
+            "Email Activation"
           );
-  
+
           await util.commit(
             page,
             [
@@ -295,23 +297,69 @@ async function pageContentHandler(currentConfig) {
             ],
             passenger
           );
-      } else {
-        // TODO: Check if arabic and supply the arabic text instead
-        const loginVerificationCode = await gmail.getNusukCodeByEmail(
-          emailAddress,
-          "One Time Password"
-        );
+        } else if (pageMode.includes("التسجيل")) {
+          const signupVerificationCode = await gmail.getNusukCodeByEmail(
+            emailAddress || passenger.email,
+            "تفعيل البريد الالكتروني"
+          );
 
-        await util.commit(
-          page,
-          [
-            {
-              selector: "#otp-inputs > input.form-control.signup-otp.me-1",
-              value: (row) => loginVerificationCode,
-            },
-          ],
-          passenger
-        );
+          await util.commit(
+            page,
+            [
+              {
+                selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+                value: (row) => signupVerificationCode,
+              },
+            ],
+            passenger
+          );
+        } else if (pageMode.includes("OTP Verification")){
+          // TODO: Check if arabic and supply the arabic text instead
+          const loginVerificationCode = await gmail.getNusukCodeByEmail(
+            emailAddress || passenger.email,
+            "One Time Password"
+          );
+
+          await util.commit(
+            page,
+            [
+              {
+                selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+                value: (row) => loginVerificationCode,
+              },
+            ],
+            passenger
+          );
+        } else if (pageMode.includes("التثبت من رمز التحقق")) {
+          // TOO: Check if arabic and supply the arabic text instead
+          const loginVerificationCode = await gmail.getNusukCodeByEmail(
+            emailAddress || passenger.email,
+            "رمز سري لمرة واحدة"
+          );
+
+          await util.commit(
+            page,
+            [
+              {
+                selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+                value: (row) => loginVerificationCode,
+              },
+            ],
+            passenger
+          );
+        }
+      } catch (e) {
+        await util.infoMessage(page, "Manual code required!");
+        if (fs.existsSync("token.json")) {
+          const creationTime = fs.statSync("token.json").birthtime;
+          const now = new Date();
+          const minutesSinceCreation = Math.floor(
+            (now - creationTime) / (1000 * 60)
+          );
+          if (minutesSinceCreation > 5) {
+            fs.unlinkSync("token.json");
+          }
+        }
       }
       break;
     case "signup-password":
@@ -330,10 +378,13 @@ async function pageContentHandler(currentConfig) {
         ],
         passenger
       );
-      // await page.waitForTimeout(1000);
-      // await page.click(
-      //   "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > button"
-      // );
+      if (!clicked?.[currentConfig.name]?.[passenger.passportNumber]) {
+        await page.waitForTimeout(1000);
+        await page.click(
+          "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > button"
+        );
+        clicked[currentConfig.name][passenger.passportNumber] = true;
+      }
       break;
     case "register":
       clearTimeout(timerHandler);
@@ -421,9 +472,37 @@ async function pageContentHandler(currentConfig) {
             selector: "#PassportSummaryViewModel_LastNameAr",
             value: () => passenger.nameArabic.last,
           },
+          {
+            selector: "#PassportSummaryViewModel_FirstNameEn",
+            value: () => passenger.name.first,
+          },
+          {
+            selector: "#PassportSummaryViewModel_SecondNameEn",
+            value: () => passenger.name.father,
+          },
+          {
+            selector: "#PassportSummaryViewModel_MiddleNameEn",
+            value: () => passenger.name.grand,
+          },
+          {
+            selector: "#PassportSummaryViewModel_LastNameEn",
+            value: () => passenger.name.last,
+          },
+          {
+            selector: "#PassportSummaryViewModel_BirthPlace",
+            value: () => passenger.birthPlace,
+          },
+          {
+            selector: "#PassportSummaryViewModel_IssueDate",
+            value: () => passenger.issueDate,
+          }
         ],
         passenger
       );
+      kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+        "submissionData.nsh.status": "Submitted",
+        mofaNumber: "registered",
+      });
       util.incrementSelectedTraveler();
       break;
     case "contact":
@@ -478,10 +557,32 @@ async function pageContentHandler(currentConfig) {
           {
             selector: "#ContactDetailsViewModel_Arrival_TotalExpectedDays",
             value: () => "20",
-          }
+          },
+          // {
+          //   selector: "#ContactDetailsViewModel_Arrival_ExpectedEntryDate",
+          //   value: () => "2024-06-07",
+          // }
         ],
         passenger
       );
+      // select first embassy #ContactDetailsViewModel_Contact_EmbassyId
+const embassySelector = "#ContactDetailsViewModel_Contact_EmbassyId"
+      const firstOption = await page.$eval(embassySelector, (e) => {
+        const options = e.querySelectorAll("option");
+        for (const opt of options) {
+          if (opt.value && /[0-9]/.test(opt.value)) {
+            return { value: opt.value, label: opt.innerText };
+          }
+        }
+      });
+      if (firstOption) {
+        await page.$eval(
+          "#select2-ContactDetailsViewModel_Contact_EmbassyId-container",
+          (e, val) => (e.innerText = val),
+          firstOption.label
+        );
+        await page.select(embassySelector, firstOption.value);
+      }
       break;
     case "summary":
       await checkIfNotChecked("#HaveValidResidencyNo");
@@ -502,8 +603,12 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked("#RequiredVaccinationsBeenTakenNo");
       await checkIfNotChecked("#HaveAnyPhysicalDisabilityNo");
       await checkIfNotChecked("#ArrestedOrConvictedForTerrorismBeforeNo");
+      // await page.click(
+      //   "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
+      // );
       break;
     case "preferences":
+      // await page.click("body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3")
       break;
     case "registration-summary":
       await checkIfNotChecked("#summarycheck1");
@@ -517,13 +622,12 @@ async function pageContentHandler(currentConfig) {
         window.scrollTo(0, document.body.scrollHeight);
       });
       await uploadDocuments(util.getSelectedTraveler());
-// Close the modal by clicking this element if it is in the DOM
-// #uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span
-      await page.waitForTimeout(1000);
+      // Close the modal by clicking this element if it is in the DOM
+      const documentGuideSelector =
+        "#uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span";
       try {
-        await page.click(
-          "#uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span"
-        );
+        await page.waitForSelector(documentGuideSelector);
+        await page.click(documentGuideSelector);
       } catch (e) {
         // console.log(e);
       }
@@ -605,6 +709,14 @@ async function pageContentHandler(currentConfig) {
           );
           if (codeError) {
             util.infoMessage(page, `OTP error: ${codeError}`);
+            kea.updatePassenger(
+              data.system.accountId,
+              passengerForEmail.passportNumber,
+              {
+                "submissionData.nsh.status": "Rejected",
+                "submissionData.nsh.rejectionReason": codeError,
+              }
+            );
             util.incrementSelectedTraveler();
             if (manualMode === "login") {
               await page.goto(URLS.LOGIN);
@@ -633,10 +745,14 @@ function suggestEmail(selectedTraveler) {
     : data.system.username;
   const friendlyName = `${passenger.name.first}.${
     passenger.name.last
-  }.${moment().unix().toString(36)}@${domain}`.toLowerCase().replace(/ /g, "");
+  }.${moment().unix().toString(36)}@${domain}`
+    .toLowerCase()
+    .replace(/ /g, "");
   const unfriendlyName = `${passenger.name.first}.${
     data.system.accountId
-  }.${moment().unix().toString(36)}@${domain}`.toLowerCase().replace(/ /g, "");
+  }.${moment().unix().toString(36)}@${domain}`
+    .toLowerCase()
+    .replace(/ /g, "");
   const email = data.system.username.includes("@")
     ? friendlyName
     : unfriendlyName;
@@ -672,6 +788,19 @@ async function checkIfNotChecked(selector) {
     }
     await page.$eval(selector, (el) => (el.checked = true));
   } catch {}
+}
+
+async function loginOrRegister(selectedTraveler) {
+  util.setSelectedTraveller(selectedTraveler);
+  const passenger = data.travellers[selectedTraveler];
+  if (passenger.email) {
+    // oo to login
+    await page.goto(URLS.LOGIN);
+    return;
+  }
+
+  // go to register
+  await page.goto(URLS.SIGN_UP);
 }
 
 async function signup_step1(selectedTraveler) {
@@ -967,18 +1096,26 @@ async function loginPassenger(selectedTraveler) {
     }
   } else {
     util.infoMessage(page, `Login ...`);
-    await page.waitForSelector(
-      "body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input",
-      { visible: true }
-    );
-    await page.waitForTimeout(1000); // this takes sometime to be enabled and it throws an error if we don't wait
-    try {
-      await page.click(
-        "body > main > div > form > div:nth-child(2) > div > div.text-center.d-grid.gap-3 > input"
-      );
-    } catch (e) {
-      console.log(e);
-    }
+    // TODO: Check why this is not working. here is the error
+
+    // Error: Node is either not clickable or not an HTMLElement
+    //     at ElementHandle.clickablePoint (/Users/aali/projects/ayman/hajonsoft-eagle/node_modules/puppeteer/lib/cjs/puppeteer/common/JSHandle.js:423:19)
+    //     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    //     at async ElementHandle.click (/Users/aali/projects/ayman/hajonsoft-eagle/node_modules/puppeteer/lib/cjs/puppeteer/common/JSHandle.js:496:26)
+    //     at async DOMWorld.click (/Users/aali/projects/ayman/hajonsoft-eagle/node_modules/puppeteer/lib/cjs/puppeteer/common/DOMWorld.js:288:9)
+    //     at async loginPassenger (/Users/aali/projects/ayman/hajonsoft-eagle/src/nsh.js:1023:7)
+    //     at async action (/Users/aali/projects/ayman/hajonsoft-eagle/src/nsh.js:167:11)
+    //     at async Page._onBindingCalled (/Users/aali/projects/ayman/hajonsoft-eagle/node_modules/puppeteer/lib/cjs/puppeteer/common/Page.js:998:28)
+
+    // const loginButtonSelector = "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.mt-5.w-100";
+    // await page.waitForSelector(loginButtonSelector, { visible: true });
+    // try {
+    //   await page.click(
+    //     loginButtonSelector
+    //   );
+    // } catch (e) {
+    //   console.log(e);
+    // }
   }
 }
 
@@ -993,14 +1130,17 @@ async function uploadDocuments(selectedTraveler) {
   await page.waitForSelector("#passportPhoto", {
     timeout: 0,
   });
-  await util.downloadImage(passenger.images.passport, passportPath);
-  await util.commitFile("#passportPhoto", passportPath);
-
-  // personal photo upload
-  let photoPath = path.join(
-    util.photosFolder,
-    `${passenger.passportNumber}.jpg`
+  const resizedPassportPath = await util.downloadAndResizeImage(
+    passenger,
+    400,
+    800,
+    "passport",
+    400,
+    1024
   );
+
+  await util.commitFile("#passportPhoto", resizedPassportPath);
+
   await page.waitForSelector("#personalPhoto", {
     timeout: 0,
   });

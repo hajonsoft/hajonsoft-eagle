@@ -973,7 +973,7 @@ async function downloadAndResizeImage(
 
   let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
 
-  while (sizeAfter < minKb && quality <= 100) {
+  while (sizeAfter < minKb && quality <= 95) {
     quality += 5;
     await sharp(imagePath)
       .resize(width, height, {
@@ -1392,7 +1392,7 @@ async function SolveIamNotARobot(responseSelector, url, siteKey) {
     const res = await axios.get(
       `http://2captcha.com/res.php?key=${global.captchaKey}&action=get&id=${id}`
     );
-    console.log("solving I am not a robot", id);
+    console.log("solving I am not a robot", id, i);
     if (res.data.split("|")[0] === "OK") {
       const tokenValue = res.data.split("|")[1].replace(/ /g, "");
       console.log(
