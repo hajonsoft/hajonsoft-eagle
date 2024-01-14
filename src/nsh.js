@@ -6,7 +6,6 @@ const fs = require("fs");
 const path = require("path");
 const util = require("./util");
 const { getPath } = util;
-const totp = require("totp-generator");
 const kea = require("./lib/kea");
 const email = require("./email");
 const moment = require("moment");
@@ -16,7 +15,6 @@ const gmail = require("./lib/gmail");
 let page;
 let data;
 let counter = 0;
-let passenger;
 let emailAddress;
 let telephoneNumber;
 let manualMode;
@@ -287,6 +285,7 @@ async function pageContentHandler(currentConfig) {
       if (fs.existsSync(getPath("loop.txt"))) {
         await signup_step1(util.getSelectedTraveler());
       }
+      await signup_step1(util.getSelectedTraveler());
       break;
     case "verify-register-email":
       clearTimeout(timerHandler);
@@ -374,6 +373,7 @@ async function pageContentHandler(currentConfig) {
           );
         }
       } catch (e) {
+        console.log(e);
         await util.infoMessage(page, "Manual code required!");
         if (e.code === "ERR_SOCKET_CONNECTION_TIMEOUT") {
           return;
@@ -400,10 +400,12 @@ async function pageContentHandler(currentConfig) {
         passenger
       );
       if (!clicked?.[currentConfig.name]?.[passenger.passportNumber]) {
-        await page.waitForTimeout(1000);
-        await page.click(
-          "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > button"
-        );
+        const createAccountSelector =
+          "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > button";
+
+        await page.waitForTimeout(2000);
+        await page.click(createAccountSelector);
+        clicked[currentConfig.name] = {};
         clicked[currentConfig.name][passenger.passportNumber] = true;
       }
       break;
@@ -580,8 +582,8 @@ async function pageContentHandler(currentConfig) {
           },
           // {
           //   selector: "#ContactDetailsViewModel_Arrival_ExpectedEntryDate",
-          //   value: () => "2024-06-07",
-          // }
+          //   value: () => "07-Jun-2024",
+          // },
         ],
         passenger
       );
@@ -603,6 +605,9 @@ async function pageContentHandler(currentConfig) {
         );
         await page.select(embassySelector, firstOption.value);
       }
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
       break;
     case "summary":
       await checkIfNotChecked("#HaveValidResidencyNo");
@@ -612,6 +617,11 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked("#HaveRelativesResigingInKSANo");
       await checkIfNotChecked("#HoldOtherNationalitiesNo");
       await checkIfNotChecked("#TraveledToOtherCountriesNo");
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+      await page.waitForTimeout(1000);
+      await page.click("body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3")
       break;
     case "summary2":
       await checkIfNotChecked("#DeportedFromAnyCountryBeforeNo");
@@ -623,18 +633,29 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked("#RequiredVaccinationsBeenTakenNo");
       await checkIfNotChecked("#HaveAnyPhysicalDisabilityNo");
       await checkIfNotChecked("#ArrestedOrConvictedForTerrorismBeforeNo");
-      // await page.click(
-      //   "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
-      // );
+      await page.waitForTimeout(1000);
+      await page.click(
+        "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
+      );
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
       break;
     case "preferences":
-      // await page.click("body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3")
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+      await page.waitForTimeout(1000);
+      await page.click("body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3")
       break;
     case "registration-summary":
       await checkIfNotChecked("#summarycheck1");
       await checkIfNotChecked("#summarycheck2");
       await checkIfNotChecked("#summarycheck3");
       await checkIfNotChecked("#summarycheck5");
+      await page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
       break;
     case "upload-documents":
       await util.controller(page, currentConfig, data.travellers);
@@ -654,7 +675,6 @@ async function pageContentHandler(currentConfig) {
       break;
     case "login":
       clearTimeout(timerHandler);
-
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
@@ -676,7 +696,7 @@ async function pageContentHandler(currentConfig) {
         await loginPassenger(util.getSelectedTraveler());
       }
       await util.controller(page, currentConfig, data.travellers);
-
+      await loginPassenger(util.getSelectedTraveler());
       break;
     case "verify-login":
       const passengerForEmail = data.travellers[util.getSelectedTraveler()];
@@ -751,7 +771,13 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "success":
-      await page.goto("https://hajj.nusuk.sa/Account/SignOut");
+      // logout after 10 seconds if the user did not go to another page
+      setTimeout(async () => {
+        const currentUrl = await page.url();
+        if (currentUrl === URLS.SUCCESS) {
+          await page.goto("https://hajj.nusuk.sa/Account/SignOut");
+        }
+      }, 10000);
       break;
     default:
       break;

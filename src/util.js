@@ -274,6 +274,14 @@ async function storeControls(container, url) {
   createControlsFile(url, container, `//button`);
   createControlsFile(url, container, `//iframe`);
 }
+let lastTime = new Date();
+function timeElapsed() {
+  // find time difference in seconds between now and lastTime, then set lasttime to now
+  const now = new Date();
+  const diff = (now.getTime() - lastTime.getTime()) / 1000;
+  lastTime = now;
+  return diff.toFixed(0);
+}
 
 function findConfig(url, config) {
   let lowerUrl = url?.toLowerCase();
@@ -303,7 +311,7 @@ function findConfig(url, config) {
   if (urlConfig) {
     infoMessage(
       page,
-      `✈️  Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex}`,
+      `✈️  Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex} ${timeElapsed()} seconds`,
       2
     );
     return urlConfig;
@@ -795,10 +803,10 @@ function getSelectedTraveler() {
         process.exit(0);
       }, 2000);
     } else {
-      console.log("Last passenger reached!!. Exiting in 10 seconds...");
+      console.log("Last passenger reached!!. Exiting in 30 seconds...");
       setTimeout(() => {
         process.exit(0);
-      }, 10000);
+      }, 30000);
     }
   }
   return value;
