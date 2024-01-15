@@ -274,6 +274,14 @@ async function storeControls(container, url) {
   createControlsFile(url, container, `//button`);
   createControlsFile(url, container, `//iframe`);
 }
+let lastTime = new Date();
+function timeElapsed() {
+  // find time difference in seconds between now and lastTime, then set lasttime to now
+  const now = new Date();
+  const diff = (now.getTime() - lastTime.getTime()) / 1000;
+  lastTime = now;
+  return diff.toFixed(0);
+}
 
 function findConfig(url, config) {
   let lowerUrl = url?.toLowerCase();
@@ -303,7 +311,9 @@ function findConfig(url, config) {
   if (urlConfig) {
     infoMessage(
       page,
-      `✈️  Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex}`,
+      `✈️  Workflow: ${urlConfig.name} ${
+        urlConfig.url || urlConfig.regex
+      } ${timeElapsed()} seconds`,
       2
     );
     return urlConfig;
@@ -795,10 +805,10 @@ function getSelectedTraveler() {
         process.exit(0);
       }, 2000);
     } else {
-      console.log("Last passenger reached!!. Exiting in 10 seconds...");
+      console.log("Last passenger reached!!. Exiting in 30 seconds...");
       setTimeout(() => {
         process.exit(0);
-      }, 10000);
+      }, 30000);
     }
   }
   return value;
@@ -973,7 +983,7 @@ async function downloadAndResizeImage(
 
   let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
 
-  while (sizeAfter < minKb && quality <= 100) {
+  while (sizeAfter < minKb && quality <= 95) {
     quality += 5;
     await sharp(imagePath)
       .resize(width, height, {
@@ -1261,7 +1271,7 @@ async function commitCaptchaToken(
 ) {
   infoMessage(page, "🔓 Captcha thinking...", 5);
   await pauseMessage(page, 3);
-  let captchaId 
+  let captchaId;
 
   try {
     await page.waitForSelector(textFieldSelector);
@@ -1282,10 +1292,7 @@ async function commitCaptchaToken(
       return;
     }
 
-    const captchaSolver = new RuCaptcha2Captcha(
-      global.captchaKey,
-      2
-    );
+    const captchaSolver = new RuCaptcha2Captcha(global.captchaKey, 2);
     captchaId = await captchaSolver.send({
       method: "base64",
       body: base64,
@@ -1296,7 +1303,6 @@ async function commitCaptchaToken(
     global.currentCaptchaId = captchaId;
 
     const token = await captchaSolver.get(captchaId);
-   
 
     infoMessage(page, `🔓 Captcha solved! ${token}`, 5);
 
@@ -1315,7 +1321,7 @@ async function commitCaptchaToken(
     }
   } catch (err) {
     await captchaSolver.reportBad(captchaId);
-    console.log("BAD CAPTCHA REPORT SENT!!!")
+    console.log("BAD CAPTCHA REPORT SENT!!!");
     infoMessage(page, `🔓 Captcha error!!!`, 5);
   }
 }
@@ -1328,7 +1334,7 @@ async function commitCaptchaTokenWithSelector(
 ) {
   infoMessage(page, "🔓 Captcha thinking...", 5);
   await pauseMessage(page, 3);
-  let captchaId
+  let captchaId;
   await page.waitForSelector(imageSelector);
   const base64 = await page.evaluate((selector) => {
     const image = document.querySelector(selector);
@@ -1344,11 +1350,8 @@ async function commitCaptchaTokenWithSelector(
     return;
   }
 
-  const captchaSolver = new RuCaptcha2Captcha(
-    global.captchaKey,
-    2
-  );
-  
+  const captchaSolver = new RuCaptcha2Captcha(global.captchaKey, 2);
+
   try {
     captchaId = await captchaSolver.send({
       method: "base64",
@@ -1392,7 +1395,7 @@ async function SolveIamNotARobot(responseSelector, url, siteKey) {
     const res = await axios.get(
       `http://2captcha.com/res.php?key=${global.captchaKey}&action=get&id=${id}`
     );
-    console.log("solving I am not a robot", id);
+    console.log("solving I am not a robot", id, i);
     if (res.data.split("|")[0] === "OK") {
       const tokenValue = res.data.split("|")[1].replace(/ /g, "");
       console.log(
@@ -1557,7 +1560,10 @@ const suggestGroupName = (data) => {
     .hostname()
     .substring(0, 8)}${time}_${data.info.run}`;
 
-  return suggestedName.replace(/[^a-zA-Z0-9_]/g, "") + Math.random().toString(36).substring(2, 5);
+  return (
+    suggestedName.replace(/[^a-zA-Z0-9_]/g, "") +
+    Math.random().toString(36).substring(2, 5)
+  );
 };
 
 async function screenShotAndContinue(page, visaElement, visaFileName, url) {
@@ -1641,6 +1647,18 @@ async function getCurrentTime() {
 
 const hijriYear = 44;
 
+async function clickWhenReady(selector, page) {
+  await page.waitForSelector(selector);
+  for (let i = 0; i < 10; i++) {
+    try {
+      await page.click(selector);
+      return;
+    } catch (err) {
+      await page.waitForTimeout(1000);
+    }
+  }
+}
+
 module.exports = {
   getTmpDir,
   getPath,
@@ -1695,4 +1713,5 @@ module.exports = {
   SolveIamNotARobot,
   registerLoop,
   downloadPDF,
+  clickWhenReady,
 };
