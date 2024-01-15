@@ -311,7 +311,9 @@ function findConfig(url, config) {
   if (urlConfig) {
     infoMessage(
       page,
-      `✈️  Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex} ${timeElapsed()} seconds`,
+      `✈️  Workflow: ${urlConfig.name} ${
+        urlConfig.url || urlConfig.regex
+      } ${timeElapsed()} seconds`,
       2
     );
     return urlConfig;
@@ -1269,7 +1271,7 @@ async function commitCaptchaToken(
 ) {
   infoMessage(page, "🔓 Captcha thinking...", 5);
   await pauseMessage(page, 3);
-  let captchaId 
+  let captchaId;
 
   try {
     await page.waitForSelector(textFieldSelector);
@@ -1290,10 +1292,7 @@ async function commitCaptchaToken(
       return;
     }
 
-    const captchaSolver = new RuCaptcha2Captcha(
-      global.captchaKey,
-      2
-    );
+    const captchaSolver = new RuCaptcha2Captcha(global.captchaKey, 2);
     captchaId = await captchaSolver.send({
       method: "base64",
       body: base64,
@@ -1304,7 +1303,6 @@ async function commitCaptchaToken(
     global.currentCaptchaId = captchaId;
 
     const token = await captchaSolver.get(captchaId);
-   
 
     infoMessage(page, `🔓 Captcha solved! ${token}`, 5);
 
@@ -1323,7 +1321,7 @@ async function commitCaptchaToken(
     }
   } catch (err) {
     await captchaSolver.reportBad(captchaId);
-    console.log("BAD CAPTCHA REPORT SENT!!!")
+    console.log("BAD CAPTCHA REPORT SENT!!!");
     infoMessage(page, `🔓 Captcha error!!!`, 5);
   }
 }
@@ -1336,7 +1334,7 @@ async function commitCaptchaTokenWithSelector(
 ) {
   infoMessage(page, "🔓 Captcha thinking...", 5);
   await pauseMessage(page, 3);
-  let captchaId
+  let captchaId;
   await page.waitForSelector(imageSelector);
   const base64 = await page.evaluate((selector) => {
     const image = document.querySelector(selector);
@@ -1352,11 +1350,8 @@ async function commitCaptchaTokenWithSelector(
     return;
   }
 
-  const captchaSolver = new RuCaptcha2Captcha(
-    global.captchaKey,
-    2
-  );
-  
+  const captchaSolver = new RuCaptcha2Captcha(global.captchaKey, 2);
+
   try {
     captchaId = await captchaSolver.send({
       method: "base64",
@@ -1565,7 +1560,10 @@ const suggestGroupName = (data) => {
     .hostname()
     .substring(0, 8)}${time}_${data.info.run}`;
 
-  return suggestedName.replace(/[^a-zA-Z0-9_]/g, "") + Math.random().toString(36).substring(2, 5);
+  return (
+    suggestedName.replace(/[^a-zA-Z0-9_]/g, "") +
+    Math.random().toString(36).substring(2, 5)
+  );
 };
 
 async function screenShotAndContinue(page, visaElement, visaFileName, url) {
@@ -1649,6 +1647,18 @@ async function getCurrentTime() {
 
 const hijriYear = 44;
 
+async function clickWhenReady(selector, page) {
+  await page.waitForSelector(selector);
+  for (let i = 0; i < 10; i++) {
+    try {
+      await page.click(selector);
+      return;
+    } catch (err) {
+      await page.waitForTimeout(1000);
+    }
+  }
+}
+
 module.exports = {
   getTmpDir,
   getPath,
@@ -1703,4 +1713,5 @@ module.exports = {
   SolveIamNotARobot,
   registerLoop,
   downloadPDF,
+  clickWhenReady,
 };

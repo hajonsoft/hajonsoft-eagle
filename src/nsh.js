@@ -42,6 +42,7 @@ const URLS = {
   PREFERENCES: "https://hajj.nusuk.sa/Registration/Preferences/[0-9a-f-]+",
   REGISTRATION_SUMMARY: "https://hajj.nusuk.sa/registration/summary/[0-9a-f-]+",
   SUCCESS: "https://hajj.nusuk.sa/Registration/Success",
+  MEMBERS: "https://hajj.nusuk.sa/profile/members",
 };
 
 function getLogFile() {
@@ -197,6 +198,25 @@ const config = [
     name: "success",
     regex: URLS.SUCCESS,
   },
+  {
+    name: "members",
+    regex: URLS.MEMBERS,
+    controller: {
+      name: "members",
+      selector:
+        "body > main > div > div > div > div.profile-container.p-4.p-md-5 > div.profile-title.ps-4.pe-3",
+      action: async () => {
+        const selectedTraveler = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
+        if (selectedTraveler) {
+          fs.writeFileSync(getPath("selectedTraveller.txt"), selectedTraveler);
+          await addNewMember(selectedTraveler);
+        }
+      },
+    },
+  },
 ];
 
 async function send(sendData) {
@@ -296,92 +316,20 @@ async function pageContentHandler(currentConfig) {
       );
 
       await util.infoMessage(page, "OTP ...");
-      // TODO: figure out if the email subject is Email Activation or One Time Password
-      // If the page contain the word Registration, then registration. If it contains "OTP Verification"
-      const pageMode = await page.$eval(
-        "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div > ol > li.breadcrumb-item.small.active",
-        (el) => el.innerText
-      );
-      try {
-        if (pageMode.includes("Registration")) {
-          // TODO: Check if arabic and supply the arabic text instead
 
-          const signupVerificationCode = await gmail.getNusukCodeByEmail(
-            emailAddress || passenger.email,
-            "Email Activation"
-          );
-
-          await util.commit(
-            page,
-            [
-              {
-                selector: "#otp-inputs > input.form-control.signup-otp.me-1",
-                value: (row) => signupVerificationCode,
-              },
-            ],
-            passenger
-          );
-        } else if (pageMode.includes("التسجيل")) {
-          const signupVerificationCode = await gmail.getNusukCodeByEmail(
-            emailAddress || passenger.email,
-            "تفعيل البريد الالكتروني"
-          );
-
-          await util.commit(
-            page,
-            [
-              {
-                selector: "#otp-inputs > input.form-control.signup-otp.me-1",
-                value: (row) => signupVerificationCode,
-              },
-            ],
-            passenger
-          );
-        } else if (pageMode.includes("OTP Verification")) {
-          // TODO: Check if arabic and supply the arabic text instead
-          const loginVerificationCode = await gmail.getNusukCodeByEmail(
-            emailAddress || passenger.email,
-            "One Time Password"
-          );
-
-          await util.commit(
-            page,
-            [
-              {
-                selector: "#otp-inputs > input.form-control.signup-otp.me-1",
-                value: (row) => loginVerificationCode,
-              },
-            ],
-            passenger
-          );
-        } else if (pageMode.includes("التثبت من رمز التحقق")) {
-          // TOO: Check if arabic and supply the arabic text instead
-          const loginVerificationCode = await gmail.getNusukCodeByEmail(
-            emailAddress || passenger.email,
-            "رمز سري لمرة واحدة"
-          );
-
-          await util.commit(
-            page,
-            [
-              {
-                selector: "#otp-inputs > input.form-control.signup-otp.me-1",
-                value: (row) => loginVerificationCode,
-              },
-            ],
-            passenger
-          );
-        }
-      } catch (e) {
-        console.log(e);
-        await util.infoMessage(page, "Manual code required!");
-        if (e.code === "ERR_SOCKET_CONNECTION_TIMEOUT") {
-          return;
-        }
-        if (fs.existsSync("token.json")) {
-          fs.unlinkSync("token.json");
-        }
-      }
+      await util.commander(page, {
+        controller: {
+          selector:
+            "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > h4",
+          title: "Get Code",
+          arabicTitle: "احصل على الرمز",
+          name: "otp",
+          action: async () => {
+            await getOTPCode();
+          },
+        },
+      });
+      await getOTPCode();
       break;
     case "signup-password":
       clearTimeout(timerHandler);
@@ -403,8 +351,7 @@ async function pageContentHandler(currentConfig) {
         const createAccountSelector =
           "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > button";
 
-        await page.waitForTimeout(2000);
-        await page.click(createAccountSelector);
+        await util.clickWhenReady(createAccountSelector, page);
         clicked[currentConfig.name] = {};
         clicked[currentConfig.name][passenger.passportNumber] = true;
       }
@@ -608,6 +555,22 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
+      await util.clickWhenReady(
+        "#ContactDetailsViewModel_Arrival_ExpectedEntryDate",
+        page
+      );
+      await page.waitForSelector(
+        "body > div.datepick-popup > div > div.datepick-month-row > div > div > select:nth-child(1)"
+      );
+      await page.select(
+        "body > div.datepick-popup > div > div.datepick-month-row > div > div > select:nth-child(1)",
+        "6/2024"
+      );
+      // wait 500 ms for the days to load, then select the day
+      await page.waitForTimeout(500);
+      await page.click(
+        "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
+      );
       break;
     case "summary":
       await checkIfNotChecked("#HaveValidResidencyNo");
@@ -621,7 +584,9 @@ async function pageContentHandler(currentConfig) {
         window.scrollTo(0, document.body.scrollHeight);
       });
       await page.waitForTimeout(1000);
-      await page.click("body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3")
+      await page.click(
+        "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
+      );
       break;
     case "summary2":
       await checkIfNotChecked("#DeportedFromAnyCountryBeforeNo");
@@ -633,20 +598,23 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked("#RequiredVaccinationsBeenTakenNo");
       await checkIfNotChecked("#HaveAnyPhysicalDisabilityNo");
       await checkIfNotChecked("#ArrestedOrConvictedForTerrorismBeforeNo");
-      await page.waitForTimeout(1000);
-      await page.click(
-        "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
-      );
+
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
+      await util.clickWhenReady(
+        "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3",
+        page
+      );
       break;
     case "preferences":
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
-      await page.waitForTimeout(1000);
-      await page.click("body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3")
+      await util.clickWhenReady(
+        "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3",
+        page
+      );
       break;
     case "registration-summary":
       await checkIfNotChecked("#summarycheck1");
@@ -662,16 +630,15 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
-      await uploadDocuments(util.getSelectedTraveler());
+      // in Companion mode do not upload documents
+      if (!passenger.email.includes(".companion")) {
+        await uploadDocuments(util.getSelectedTraveler());
+      }
       // Close the modal by clicking this element if it is in the DOM
       const documentGuideSelector =
         "#uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span";
-      try {
-        await page.waitForSelector(documentGuideSelector);
-        await page.click(documentGuideSelector);
-      } catch (e) {
-        // console.log(e);
-      }
+      await util.clickWhenReady(documentGuideSelector, page);
+
       break;
     case "login":
       clearTimeout(timerHandler);
@@ -696,11 +663,26 @@ async function pageContentHandler(currentConfig) {
         await loginPassenger(util.getSelectedTraveler());
       }
       await util.controller(page, currentConfig, data.travellers);
+
       await loginPassenger(util.getSelectedTraveler());
       break;
     case "verify-login":
       const passengerForEmail = data.travellers[util.getSelectedTraveler()];
       util.infoMessage(page, `OTP ...`);
+
+      await util.commander(page, {
+        controller: {
+          selector:
+            "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > h4",
+          title: "Get Code",
+          arabicTitle: "احصل على الرمز",
+          name: "otp",
+          action: async () => {
+            // Retry getting the code manually, this will fix the gmail authorize
+          },
+        },
+      });
+
       // TODO: Check if arabic and supply the arabic text instead
       const code = await gmail.getNusukCodeByEmail(
         passengerForEmail.email,
@@ -779,12 +761,14 @@ async function pageContentHandler(currentConfig) {
         }
       }, 10000);
       break;
+    case "members":
+      await util.controller(page, currentConfig, data.travellers);
     default:
       break;
   }
 }
 
-function suggestEmail(selectedTraveler) {
+function suggestEmail(selectedTraveler, companion = false) {
   const passenger = data.travellers[selectedTraveler];
   if (passenger.email) {
     return passenger.email;
@@ -792,14 +776,14 @@ function suggestEmail(selectedTraveler) {
   const domain = data.system.username.includes("@")
     ? data.system.username.split("@")[1]
     : data.system.username;
-  const friendlyName = `${passenger.name.first}.${
-    passenger.name.last
-  }.${moment().unix().toString(36)}@${domain}`
+  const friendlyName = `${passenger.name.first}.${passenger.name.last}.${
+    companion ? "companion." : ""
+  }${moment().unix().toString(36)}@${domain}`
     .toLowerCase()
     .replace(/ /g, "");
-  const unfriendlyName = `${passenger.name.first}.${
-    data.system.accountId
-  }.${moment().unix().toString(36)}@${domain}`
+  const unfriendlyName = `${passenger.name.first}.${data.system.accountId}.${
+    companion ? "companion." : ""
+  }${moment().unix().toString(36)}@${domain}`
     .toLowerCase()
     .replace(/ /g, "");
   const email = data.system.username.includes("@")
@@ -852,6 +836,121 @@ async function loginOrRegister(selectedTraveler) {
   await page.goto(URLS.SIGN_UP);
 }
 
+async function getOTPCode() {
+  const passenger = data.travellers[util.getSelectedTraveler()];
+  // If the page contain the word Registration, then registration. If it contains "OTP Verification"
+  const pageMode = await page.$eval(
+    "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div > ol > li.breadcrumb-item.small.active",
+    (el) => el.innerText
+  );
+  try {
+    if (pageMode.includes("Registration")) {
+      // TODO: Check if arabic and supply the arabic text instead
+
+      const signupVerificationCode = await gmail.getNusukCodeByEmail(
+        emailAddress || passenger.email,
+        "Email Activation"
+      );
+      if (codeUsed[signupVerificationCode]) {
+        return;
+      }
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+            value: (row) => signupVerificationCode,
+          },
+        ],
+        passenger
+      );
+    } else if (pageMode.includes("التسجيل")) {
+      const signupVerificationCode = await gmail.getNusukCodeByEmail(
+        emailAddress || passenger.email,
+        "تفعيل البريد الالكتروني"
+      );
+
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+            value: (row) => signupVerificationCode,
+          },
+        ],
+        passenger
+      );
+    } else if (pageMode.includes("OTP Verification")) {
+      // TODO: Check if arabic and supply the arabic text instead
+      const loginVerificationCode = await gmail.getNusukCodeByEmail(
+        emailAddress || passenger.email,
+        "One Time Password"
+      );
+
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+            value: (row) => loginVerificationCode,
+          },
+        ],
+        passenger
+      );
+    } else if (pageMode.includes("التثبت من رمز التحقق")) {
+      // TOO: Check if arabic and supply the arabic text instead
+      const loginVerificationCode = await gmail.getNusukCodeByEmail(
+        emailAddress || passenger.email,
+        "رمز سري لمرة واحدة"
+      );
+
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+            value: (row) => loginVerificationCode,
+          },
+        ],
+        passenger
+      );
+    }
+  } catch (e) {
+    console.log(e);
+    await util.infoMessage(page, "Manual code required!");
+    if (e.code === "ERR_SOCKET_CONNECTION_TIMEOUT" || e.code === "ETIMEDOUT") {
+      return;
+    }
+  }
+}
+
+async function addNewMember(selectedTraveler) {
+  await util.setSelectedTraveller(selectedTraveler);
+  // TODO: check the correct selector. selector changes based on the number of companions
+  try {
+    await page.click(
+      "body > main > div > div > div > div.profile-container.p-4.p-md-5 > div:nth-child(3) > div > div.d-flex.flex-wrap.align-items-end.justify-content-between > div.ms-auto > button"
+    );
+  } catch (e) {}
+  // wait for the popup to appear, then type the email address, also store the email address with the companion text in it
+  const email = suggestEmail(selectedTraveler, true);
+  await page.waitForSelector("#AddMemberViewModel_Email");
+  const passenger = data.travellers[selectedTraveler];
+  passenger.email = email;
+  emailAddress = email;
+  kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+    email: email,
+  });
+  await page.type("#AddMemberViewModel_Email", email);
+}
+const usedCodes = {};
+function codeUsed(code) {
+  if (usedCodes[code]) {
+    return true;
+  }
+  usedCodes[code] = true;
+  return false;
+}
 async function signup_step1(selectedTraveler) {
   util.setSelectedTraveller(selectedTraveler);
   const passenger = data.travellers[selectedTraveler];
@@ -1145,26 +1244,9 @@ async function loginPassenger(selectedTraveler) {
     }
   } else {
     util.infoMessage(page, `Login ...`);
-    // TODO: Check why this is not working. here is the error
-
-    // Error: Node is either not clickable or not an HTMLElement
-    //     at ElementHandle.clickablePoint (/Users/aali/projects/ayman/hajonsoft-eagle/node_modules/puppeteer/lib/cjs/puppeteer/common/JSHandle.js:423:19)
-    //     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    //     at async ElementHandle.click (/Users/aali/projects/ayman/hajonsoft-eagle/node_modules/puppeteer/lib/cjs/puppeteer/common/JSHandle.js:496:26)
-    //     at async DOMWorld.click (/Users/aali/projects/ayman/hajonsoft-eagle/node_modules/puppeteer/lib/cjs/puppeteer/common/DOMWorld.js:288:9)
-    //     at async loginPassenger (/Users/aali/projects/ayman/hajonsoft-eagle/src/nsh.js:1023:7)
-    //     at async action (/Users/aali/projects/ayman/hajonsoft-eagle/src/nsh.js:167:11)
-    //     at async Page._onBindingCalled (/Users/aali/projects/ayman/hajonsoft-eagle/node_modules/puppeteer/lib/cjs/puppeteer/common/Page.js:998:28)
-
-    // const loginButtonSelector = "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.mt-5.w-100";
-    // await page.waitForSelector(loginButtonSelector, { visible: true });
-    // try {
-    //   await page.click(
-    //     loginButtonSelector
-    //   );
-    // } catch (e) {
-    //   console.log(e);
-    // }
+    const loginButtonSelector =
+      "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.mt-5.w-100";
+    await util.clickWhenReady(loginButtonSelector, page);
   }
 }
 

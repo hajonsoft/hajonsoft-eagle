@@ -213,8 +213,9 @@ async function listNusukMessages(auth, recipient, subject) {
 
       const isEnglish = /^[a-zA-Z\s]+$/.test(subject);
 
-      const verificationCode = isEnglish ? 
-        contents.data.snippet.match(/Your OTP is (\d{6})/)?.[1] : contents.data.snippet.match(/رمز الدخول لمرة واحدة هو (\d+)/)?.[1];
+      const verificationCode = isEnglish
+        ? contents.data.snippet.match(/Your OTP is (\d{6})/)?.[1]
+        : contents.data.snippet.match(/رمز الدخول لمرة واحدة هو (\d+)/)?.[1];
       if (verificationCode) {
         if (newMessages.length === 0) {
           newMessages.push({ code: verificationCode, date: messageDate });
@@ -233,15 +234,24 @@ async function listNusukMessages(auth, recipient, subject) {
 }
 async function getNusukCodeByEmail(email, subject) {
   const client = await authorize();
-  const emailToUse = email.replace("xn--libert-gva.email","liberté.email")
-  const messages = await listNusukMessages(client, emailToUse, subject);
-  if (!messages || messages.length === 0) {
+  const emailToUse = email.replace("xn--libert-gva.email", "liberté.email");
+  try {
+    const messages = await listNusukMessages(client, emailToUse, subject);
+    if (!messages || messages.length === 0) {
+      return;
+    }
+    messages.sort((a, b) => b.date - a.date);
+    console.log("📢[gmail.js:197]: messages: ", messages);
+    const message = messages?.[0];
+    return message?.code;
+  } catch (err) {
+    console.log("📢[gmail.js:248]: err: ", err);
+    // Check for Invalid grant only
     return;
+    if (fs.existsSync("token.json")) {
+      fs.unlinkSync("token.json");
+    }
   }
-  messages.sort((a, b) => b.date - a.date);
-  console.log("📢[gmail.js:197]: messages: ", messages);
-  const message = messages?.[0];
-  return message?.code;
 }
 
 const evisaFrom = "no-reply@mofa.gov.sa";
