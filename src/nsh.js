@@ -422,7 +422,6 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked(
         "#PassportSummaryViewModel_ConfirmAccuracyOfData"
       );
-      // TODO: enter arabic names if present
       await util.commit(
         page,
         [
@@ -845,8 +844,6 @@ async function getOTPCode() {
   );
   try {
     if (pageMode.includes("Registration")) {
-      // TODO: Check if arabic and supply the arabic text instead
-
       const signupVerificationCode = await gmail.getNusukCodeByEmail(
         emailAddress || passenger.email,
         "Email Activation"
@@ -869,7 +866,9 @@ async function getOTPCode() {
         emailAddress || passenger.email,
         "تفعيل البريد الالكتروني"
       );
-
+      if (codeUsed[signupVerificationCode]) {
+        return;
+      }
       await util.commit(
         page,
         [
@@ -881,12 +880,13 @@ async function getOTPCode() {
         passenger
       );
     } else if (pageMode.includes("OTP Verification")) {
-      // TODO: Check if arabic and supply the arabic text instead
       const loginVerificationCode = await gmail.getNusukCodeByEmail(
         emailAddress || passenger.email,
         "One Time Password"
       );
-
+      if (codeUsed[loginVerificationCode]) {
+        return;
+      }
       await util.commit(
         page,
         [
@@ -903,7 +903,9 @@ async function getOTPCode() {
         emailAddress || passenger.email,
         "رمز سري لمرة واحدة"
       );
-
+      if (codeUsed[loginVerificationCode]) {
+        return;
+      }
       await util.commit(
         page,
         [
@@ -916,28 +918,27 @@ async function getOTPCode() {
       );
     }
   } catch (e) {
-    console.log(e);
     await util.infoMessage(page, "Manual code required!");
-    if (e.code === "ERR_SOCKET_CONNECTION_TIMEOUT" || e.code === "ETIMEDOUT") {
-      return;
-    }
   }
 }
 
 async function addNewMember(selectedTraveler) {
   await util.setSelectedTraveller(selectedTraveler);
   // TODO: check the correct selector. selector changes based on the number of companions
+  const firstCompanionAdditionSelector = "body > main > div > div > div > div.profile-container.p-4.p-md-5 > div:nth-child(3) > div > div.d-flex.flex-wrap.align-items-end.justify-content-between > div.ms-auto > button";
   try {
     await page.click(
-      "body > main > div > div > div > div.profile-container.p-4.p-md-5 > div:nth-child(3) > div > div.d-flex.flex-wrap.align-items-end.justify-content-between > div.ms-auto > button"
+      firstCompanionAdditionSelector
     );
   } catch (e) {}
   // wait for the popup to appear, then type the email address, also store the email address with the companion text in it
   const email = suggestEmail(selectedTraveler, true);
+  await page.waitForTimeout(1000);
   await page.waitForSelector("#AddMemberViewModel_Email");
   const passenger = data.travellers[selectedTraveler];
   passenger.email = email;
   emailAddress = email;
+
   kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
     email: email,
   });
@@ -1007,6 +1008,13 @@ async function signup_step1(selectedTraveler) {
 
   if (!captchaCode) {
     await util.infoMessage(page, "Manual captcha required ...");
+    if (clicked?.["signup_1"]?.[passenger.passportNumber]) {
+      return;
+    } else {
+      await signup_step1(selectedTraveler);
+      clicked["signup_1"] = {};
+      clicked["signup_1"][passenger.passportNumber] = true;
+    }
   }
 }
 
