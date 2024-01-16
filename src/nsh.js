@@ -63,7 +63,7 @@ const config = [
     controller: {
       name: "home",
       selector:
-        "body > main > div.home-full-bg > div.container-lg.container-fluid.h-100 > div.row.z-1.position-relative.align-content-end.home-full-text > div > h3",
+        "#navbarNav > ul.navbar-nav.align-items-center.flex-lg-grow-1.justify-content-lg-around.mx-4.mx-lg-0",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -177,7 +177,7 @@ const config = [
     controller: {
       name: "login",
       selector:
-        "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.my-5",
+        "#navbarNav > ul.navbar-nav.align-items-center.flex-lg-grow-1.justify-content-lg-around.mx-4.mx-lg-0",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -246,26 +246,6 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "home":
       await util.controller(page, currentConfig, data.travellers);
-      // check if you should perform a login flow or a register flow
-      // if (data.travellers.filter((t) => t.mofaNumber === "").length > 0) {
-      //   // At least one passenger does not have a mofa number, then we need to register
-      //   await util.infoMessage(page, "Registering in 30 seconds");
-
-      //   timerHandler = setTimeout(async () => {
-      //     util.registerLoop();
-      //     await page.goto(URLS.SIGN_UP, {
-      //       waitUntil: "domcontentloaded",
-      //     });
-      //   }, 30000);
-      // } else {
-      //   await util.infoMessage(page, "Logging-in 30 seconds");
-      //   timerHandler = setTimeout(async () => {
-      //     util.registerLoop();
-      //     await page.goto(URLS.LOGIN, {
-      //       waitUntil: "domcontentloaded",
-      //     });
-      //   }, 30000);
-      // }
       break;
     case "index":
       if (manualMode === "login") {
@@ -320,9 +300,9 @@ async function pageContentHandler(currentConfig) {
       await util.commander(page, {
         controller: {
           selector:
-            "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > h4",
+            "#navbarNav > ul.navbar-nav.align-items-center.flex-lg-grow-1.justify-content-lg-around.mx-4.mx-lg-0",
           title: "Get Code",
-          arabicTitle: "احصل على الرمز",
+          arabicTitle: "احصل عالرمز",
           name: "otp",
           action: async () => {
             await getOTPCode();
@@ -526,10 +506,6 @@ async function pageContentHandler(currentConfig) {
             selector: "#ContactDetailsViewModel_Arrival_TotalExpectedDays",
             value: () => "20",
           },
-          // {
-          //   selector: "#ContactDetailsViewModel_Arrival_ExpectedEntryDate",
-          //   value: () => "07-Jun-2024",
-          // },
         ],
         passenger
       );
@@ -641,9 +617,12 @@ async function pageContentHandler(currentConfig) {
       break;
     case "login":
       clearTimeout(timerHandler);
-      await page.evaluate(() => {
-        window.scrollTo(0, document.body.scrollHeight);
-      });
+
+      await page.$eval(
+        "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.mt-5.w-100",
+        (el) => el.scrollIntoView({ behavior: "smooth", block: "start" })
+      );
+
       if (!manualMode) {
         manualMode = currentConfig.name;
       }
@@ -826,7 +805,6 @@ async function loginOrRegister(selectedTraveler) {
   util.setSelectedTraveller(selectedTraveler);
   const passenger = data.travellers[selectedTraveler];
   if (passenger.email) {
-    // oo to login
     await page.goto(URLS.LOGIN);
     return;
   }
@@ -922,15 +900,59 @@ async function getOTPCode() {
   }
 }
 
+async function getCompanionOTPCode() {
+  const passenger = data.travellers[util.getSelectedTraveler()];
+  // If the page contain the word Registration, then registration. If it contains "OTP Verification"
+  const pageMode = "OTP Verification"
+  try {
+     if (pageMode.includes("OTP Verification")) {
+      const loginVerificationCode = await gmail.getNusukCodeByEmail(
+        emailAddress || passenger.email,
+        "One Time Password"
+      );
+      if (codeUsed[loginVerificationCode]) {
+        return;
+      }
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#otp-inputs > input.form-control.form-input-otp.me-1",
+            value: (row) => loginVerificationCode,
+          },
+        ],
+        passenger
+      );
+    } else if (pageMode.includes("التثبت من رمز التحقق")) {
+      // TOO: Check if arabic and supply the arabic text instead
+      const loginVerificationCode = await gmail.getNusukCodeByEmail(
+        emailAddress || passenger.email,
+        "رمز سري لمرة واحدة"
+      );
+      if (codeUsed[loginVerificationCode]) {
+        return;
+      }
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#otp-inputs > input.form-control.form-input-otp.me-1",
+            value: (row) => loginVerificationCode,
+          },
+        ],
+        passenger
+      );
+    }
+  } catch (e) {
+    await util.infoMessage(page, "Manual code required!");
+  }
+}
+
 async function addNewMember(selectedTraveler) {
   await util.setSelectedTraveller(selectedTraveler);
   // TODO: check the correct selector. selector changes based on the number of companions
-  const firstCompanionAdditionSelector = "body > main > div > div > div > div.profile-container.p-4.p-md-5 > div:nth-child(3) > div > div.d-flex.flex-wrap.align-items-end.justify-content-between > div.ms-auto > button";
-  try {
-    await page.click(
-      firstCompanionAdditionSelector
-    );
-  } catch (e) {}
+  const addCompanionSelector = "button[data-bs-target='#addFamilyMemberModal']";
+  await util.clickWhenReady(addCompanionSelector, page);
   // wait for the popup to appear, then type the email address, also store the email address with the companion text in it
   const email = suggestEmail(selectedTraveler, true);
   await page.waitForTimeout(1000);
@@ -942,7 +964,31 @@ async function addNewMember(selectedTraveler) {
   kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
     email: email,
   });
-  await page.type("#AddMemberViewModel_Email", email);
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#AddMemberViewModel_Email",
+        value: () => email,
+      },
+    ],
+    {}
+  );
+
+  await util.clickWhenReady("#verifyEmailBtn", page);
+  
+  await util.commander(page, {
+    controller: {
+      selector:
+        "#OTPModalMsg",
+      title: "Get Code",
+      arabicTitle: "احصل عالرمز",
+      name: "otp",
+      action: async () => {
+        await getCompanionOTPCode();
+      },
+    },
+  });
 }
 const usedCodes = {};
 function codeUsed(code) {
