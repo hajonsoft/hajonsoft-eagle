@@ -844,10 +844,9 @@ async function commitFile(selector, fileName, imgElementSelector) {
     if (imgElementSelector) {
       await page.waitForSelector(imgElementSelector);
     }
-    // This must be an input with type="file"
     const input = await page.$(selector);
     await input.uploadFile(fileName);
-    // await page.$eval(imgElementSelector, e=> e.setAttribute('src', fileName))
+
   } catch (err) {
     console.log(err);
   }

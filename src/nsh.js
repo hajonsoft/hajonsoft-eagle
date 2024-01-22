@@ -177,7 +177,7 @@ const config = [
     controller: {
       name: "login",
       selector:
-        "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.my-5",
+        "#navbarNav > div > ul.navbar-nav.align-items-center.flex-lg-grow-1.justify-content-lg-around",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -359,7 +359,6 @@ async function pageContentHandler(currentConfig) {
     case "register":
       clearTimeout(timerHandler);
       await page.evaluate(() => {
-        window.scrollTo(0, document.body.scrollHeight);
         document.scrollTo(0, document.body.scrollHeight);
       });
       if (!manualMode) {
@@ -626,17 +625,31 @@ async function pageContentHandler(currentConfig) {
       break;
     case "upload-documents":
       await util.controller(page, currentConfig, data.travellers);
+
+      // Close the modal by clicking this element if it is in the DOM
+      const documentGuideSelector =
+        "#uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span";
+      await util.clickWhenReady(documentGuideSelector, page);
+
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
+      });
+      await util.commander(page, {
+        controller: {
+          selector:
+            "body > main > div.system > div > div.sys-page-title.px-3.py-4.mb-4 > div.row > div.align-self-end.col-md-6",
+          title: "Upload Sample",
+          arabicTitle: "تحميل عينات",
+          name: "uploadDocumentsCommander",
+          action: async () => {
+            await uploadFakePassport();
+          },
+        },
       });
       // in Companion mode do not upload documents
       if (!passenger.email.includes(".companion")) {
         await uploadDocuments(util.getSelectedTraveler());
       }
-      // Close the modal by clicking this element if it is in the DOM
-      const documentGuideSelector =
-        "#uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span";
-      await util.clickWhenReady(documentGuideSelector, page);
 
       break;
     case "login":
@@ -644,6 +657,8 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
+      // TODO: // Scroll to this element instead
+      // #LogInViewModel_Password
       if (!manualMode) {
         manualMode = currentConfig.name;
       }
@@ -685,7 +700,8 @@ async function pageContentHandler(currentConfig) {
       // TODO: Check if arabic and supply the arabic text instead
       const code = await gmail.getNusukCodeByEmail(
         passengerForEmail.email,
-        "One Time Password"
+        "One Time Password",
+        page
       );
       if (code) {
         await util.commit(
@@ -846,9 +862,10 @@ async function getOTPCode() {
     if (pageMode.includes("Registration")) {
       const signupVerificationCode = await gmail.getNusukCodeByEmail(
         emailAddress || passenger.email,
-        "Email Activation"
+        "Email Activation",
+        page
       );
-      if (codeUsed[signupVerificationCode]) {
+      if (codeUsed(signupVerificationCode)) {
         return;
       }
       await util.commit(
@@ -864,9 +881,10 @@ async function getOTPCode() {
     } else if (pageMode.includes("التسجيل")) {
       const signupVerificationCode = await gmail.getNusukCodeByEmail(
         emailAddress || passenger.email,
-        "تفعيل البريد الالكتروني"
+        "تفعيل البريد الالكتروني",
+        page
       );
-      if (codeUsed[signupVerificationCode]) {
+      if (codeUsed(signupVerificationCode)) {
         return;
       }
       await util.commit(
@@ -882,9 +900,10 @@ async function getOTPCode() {
     } else if (pageMode.includes("OTP Verification")) {
       const loginVerificationCode = await gmail.getNusukCodeByEmail(
         emailAddress || passenger.email,
-        "One Time Password"
+        "One Time Password",
+        page
       );
-      if (codeUsed[loginVerificationCode]) {
+      if (codeUsed(loginVerificationCode)) {
         return;
       }
       await util.commit(
@@ -901,9 +920,10 @@ async function getOTPCode() {
       // TOO: Check if arabic and supply the arabic text instead
       const loginVerificationCode = await gmail.getNusukCodeByEmail(
         emailAddress || passenger.email,
-        "رمز سري لمرة واحدة"
+        "رمز سري لمرة واحدة",
+        page
       );
-      if (codeUsed[loginVerificationCode]) {
+      if (codeUsed(loginVerificationCode)) {
         return;
       }
       await util.commit(
@@ -925,11 +945,10 @@ async function getOTPCode() {
 async function addNewMember(selectedTraveler) {
   await util.setSelectedTraveller(selectedTraveler);
   // TODO: check the correct selector. selector changes based on the number of companions
-  const firstCompanionAdditionSelector = "body > main > div > div > div > div.profile-container.p-4.p-md-5 > div:nth-child(3) > div > div.d-flex.flex-wrap.align-items-end.justify-content-between > div.ms-auto > button";
+  const firstCompanionAdditionSelector =
+    "body > main > div > div > div > div.profile-container.p-4.p-md-5 > div:nth-child(3) > div > div.d-flex.flex-wrap.align-items-end.justify-content-between > div.ms-auto > button";
   try {
-    await page.click(
-      firstCompanionAdditionSelector
-    );
+    await page.click(firstCompanionAdditionSelector);
   } catch (e) {}
   // wait for the popup to appear, then type the email address, also store the email address with the companion text in it
   const email = suggestEmail(selectedTraveler, true);
@@ -1194,7 +1213,8 @@ async function registerPassenger(selectedTraveler) {
   // TODO: Check if arabic and supply the arabic text instead
   const code = await gmail.getNusukCodeByEmail(
     emailAddress,
-    "Email Activation"
+    "Email Activation",
+    page
   );
 
   await util.commit(
@@ -1260,11 +1280,6 @@ async function loginPassenger(selectedTraveler) {
 
 async function uploadDocuments(selectedTraveler) {
   const passenger = data.travellers[selectedTraveler];
-  // passport upload
-  const passportPath = path.join(
-    util.passportsFolder,
-    `${passenger.passportNumber}.jpg`
-  );
 
   await page.waitForSelector("#passportPhoto", {
     timeout: 0,
@@ -1312,6 +1327,85 @@ async function uploadDocuments(selectedTraveler) {
     );
     await util.commitFile("#residencyPhoto", residencyPath);
   } catch {}
+}
+
+async function uploadFakePassport() {
+  const passenger = data.travellers[util.getSelectedTraveler()];
+  let blankPassportPath = path.join(
+    util.passportsFolder,
+    `${passenger.passportNumber}_mrz.jpg`
+  );
+
+  const resizedPhotoPath = await util.downloadAndResizeImage(
+    passenger,
+    200,
+    200,
+    "photo",
+    5,
+    17
+  );
+
+  // Generate fake passport image using the browser canvas api
+  const dataUrl = await page.evaluate(
+    (params) => {
+      const _passenger = params[0];
+      const resizedPhotoPath = params[1];
+      const ele = document.createElement("canvas");
+      ele.id = "hajonsoftcanvas";
+      ele.style.display = "none";
+      document.body.appendChild(ele);
+      const canvas = document.getElementById("hajonsoftcanvas");
+      canvas.width = 800;
+      canvas.height = 400;
+      const ctx = canvas.getContext("2d");
+      // White background
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "black";
+      // Font must be 11 to fit in the canvas
+      ctx.font = "16px Verdana, Verdana, Geneva, sans-serif";
+      ctx.fillText(
+        _passenger.codeline?.replace(/\n/g, "")?.substring(0, 44),
+        15,
+        canvas.height - 60
+      );
+      ctx.fillText(
+        _passenger.codeline?.replace(/\n/g, "")?.substring(44),
+        15,
+        canvas.height - 30
+      );
+
+      // Photo
+      ctx.lineWidth = 1;
+      ctx.fillStyle = "hsl(240, 25%, 94%)";
+      ctx.fillRect(45, 25, 100, 125);
+
+      const image = new Image();
+      image.src = resizedPhotoPath;
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      // Visible area
+      ctx.fillStyle = "hsl(240, 25%, 94%)";
+      ctx.fillRect(170, 25, 600, 175);
+      for (let i = 0; i < 100; i++) {
+        ctx.fillStyle = `"hsl(${240 - i}, 25%, 94%)"`;
+        ctx.fillRect(170, 25 + i, 600, 1);
+      }
+
+      // under photo area
+      ctx.fillStyle = "hsl(240, 25%, 94%)";
+      ctx.fillRect(45, 165, 100, 35);
+      return canvas.toDataURL("image/jpeg", 1.0);
+    },
+    [passenger, resizedPhotoPath]
+  );
+
+  // Save dataUrl to file
+  const imageData = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+  const buf = Buffer.from(imageData, "base64");
+  fs.writeFileSync(blankPassportPath, buf);
+  await util.commitFile("#passportPhoto", blankPassportPath);
 }
 
 module.exports = { send };

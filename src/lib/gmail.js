@@ -180,12 +180,14 @@ async function getVisitVisaCodeByEmail(email) {
 }
 
 // Read email messages from the user's inbox.
-async function listNusukMessages(auth, recipient, subject) {
+async function listNusukMessages(auth, recipient, subject, page) {
   const newMessages = [];
   const gmail = google.gmail({ version: "v1", auth });
-  const query = `in:inbox from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject} newer_than:5m`;
+  const query = `in:inbox from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject} newer_than:2m`;
   for (let i = 0; i < 50; i++) {
     console.log(`waiting for OTP ${i}/50 ${query}`);
+    await page.evaluate("document.title='" + `OTP ${i}/50` + "'");
+    await page.$eval("#hajonsoft-commander-alert", (el, i) => (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`), i);
     const listResponse = await gmail.users.messages.list({
       userId: "me",
       includeSpamTrash: false,
@@ -207,7 +209,7 @@ async function listNusukMessages(auth, recipient, subject) {
       );
       // if messageDate is older than 10 hours, skip it
       if (messageDate.isBefore(moment().subtract(10, "hours"))) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         continue;
       }
 
@@ -232,11 +234,11 @@ async function listNusukMessages(auth, recipient, subject) {
     return newMessages;
   }
 }
-async function getNusukCodeByEmail(email, subject) {
+async function getNusukCodeByEmail(email, subject, page) {
   const client = await authorize();
   const emailToUse = email.replace("xn--libert-gva.email", "liberté.email");
   try {
-    const messages = await listNusukMessages(client, emailToUse, subject);
+    const messages = await listNusukMessages(client, emailToUse, subject, page);
     if (!messages || messages.length === 0) {
       return;
     }
@@ -246,10 +248,8 @@ async function getNusukCodeByEmail(email, subject) {
     return message?.code;
   } catch (err) {
     console.log("📢[gmail.js:248]: err: ", err);
-    // Check for Invalid grant only
-    return;
-    if (fs.existsSync("token.json")) {
-      fs.unlinkSync("token.json");
+    if (fsLegacy.existsSync("token.json") && err.message.includes("invalid_grant")) {
+      fsLegacy.unlinkSync("token.json");
     }
   }
 }
