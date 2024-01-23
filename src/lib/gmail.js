@@ -245,11 +245,10 @@ async function getNusukCodeByEmail(email, subject) {
     const message = messages?.[0];
     return message?.code;
   } catch (err) {
-    console.log("📢[gmail.js:248]: err: ", err);
-    // Check for Invalid grant only
-    return;
-    if (fs.existsSync("token.json")) {
-      fs.unlinkSync("token.json");
+    if (err.code === "401" || err.code === "403" || err.code === "400") {
+      if (fsLegacy.existsSync("token.json")) {
+        fsLegacy.unlinkSync("token.json");
+      }
     }
   }
 }
