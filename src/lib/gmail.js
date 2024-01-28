@@ -187,7 +187,15 @@ async function listNusukMessages(auth, recipient, subject, page) {
   for (let i = 0; i < 50; i++) {
     console.log(`waiting for OTP ${i}/50 ${query}`);
     await page.evaluate("document.title='" + `OTP ${i}/50` + "'");
-    await page.$eval("#hajonsoft-commander-alert", (el, i) => (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`), i);
+    try {
+      await page.waitForSelector("#hajonsoft-commander-alert");
+      await page.$eval(
+        "#hajonsoft-commander-alert",
+        (el, i) =>
+          (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
+        i
+      );
+    } catch {}
     const listResponse = await gmail.users.messages.list({
       userId: "me",
       includeSpamTrash: false,
@@ -248,7 +256,10 @@ async function getNusukCodeByEmail(email, subject, page) {
     return message?.code;
   } catch (err) {
     console.log("📢[gmail.js:248]: err: ", err);
-    if (fsLegacy.existsSync("token.json") && err.message.includes("invalid_grant")) {
+    if (
+      fsLegacy.existsSync("token.json") &&
+      err.message.includes("invalid_grant")
+    ) {
       fsLegacy.unlinkSync("token.json");
     }
   }

@@ -63,7 +63,7 @@ const config = [
     controller: {
       name: "home",
       selector:
-        "#navbarNav > ul.navbar-nav.align-items-center.flex-lg-grow-1.justify-content-lg-around.mx-4.mx-lg-0",
+        "#navbarNav > div > ul.navbar-nav.align-items-center.flex-lg-grow-1.justify-content-lg-around",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -300,7 +300,7 @@ async function pageContentHandler(currentConfig) {
       await util.commander(page, {
         controller: {
           selector:
-            "#navbarNav > ul.navbar-nav.align-items-center.flex-lg-grow-1.justify-content-lg-around.mx-4.mx-lg-0",
+            "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > p",
           title: "Get Code",
           arabicTitle: "احصل عالرمز",
           name: "otp",
@@ -1326,31 +1326,56 @@ async function uploadDocuments(selectedTraveler) {
   await page.waitForSelector("#passportPhoto", {
     timeout: 0,
   });
-  const resizedPassportPath = await util.downloadAndResizeImage(
-    passenger,
-    400,
-    800,
-    "passport",
-    400,
-    1024
-  );
+  // const resizedPassportPath = await util.downloadAndResizeImage(
+  //   passenger,
+  //   400,
+  //   800,
+  //   "passport",
+  //   400,
+  //   1024
+  // );
 
-  await util.commitFile("#passportPhoto", resizedPassportPath);
+  // await util.commitFile("#passportPhoto", resizedPassportPath);
+
+const passportPath = path.join(
+    util.passportsFolder,
+    `${passenger.passportNumber}.jpg`
+  );
+  await util.downloadImage(
+    passenger.images.passport,
+    passportPath)
+  
+  await util.commitFile("#passportPhoto", passportPath);
+
 
   await page.waitForSelector("#personalPhoto", {
     timeout: 0,
   });
 
   // TODO: image not being resized to 15kb...
-  const resizedPhotoPath = await util.downloadAndResizeImage(
-    passenger,
-    200,
-    200,
-    "photo",
-    5,
-    17
+  // const resizedPhotoPath = await util.downloadAndResizeImage(
+  //   passenger,
+  //   200,
+  //   200,
+  //   "photo",
+  //   5,
+  //   17
+  // );
+  // await util.commitFile("#personalPhoto", resizedPhotoPath);
+
+  const photoPath = path.join(
+    util.photosFolder ,
+    `${passenger.passportNumber}.jpg`
   );
-  await util.commitFile("#personalPhoto", resizedPhotoPath);
+
+  await util.downloadImage(
+    passenger.images.photo,
+    photoPath
+  );
+
+  await util.commitFile("#personalPhoto", photoPath);
+
+
 
   await page.waitForTimeout(5000);
   // residence upload
