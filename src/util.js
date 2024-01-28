@@ -881,7 +881,7 @@ async function downloadImage(url, imagePath) {
     writer.on("error", reject);
   });
 }
-
+// TODO: review https://imageresizer.com/ for a better resize information including size on desk
 async function downloadAndResizeImage(
   passenger,
   width,
