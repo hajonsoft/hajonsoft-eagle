@@ -187,15 +187,7 @@ async function listNusukMessages(auth, recipient, subject, page) {
   for (let i = 0; i < 50; i++) {
     console.log(`waiting for OTP ${i}/50 ${query}`);
     await page.evaluate("document.title='" + `OTP ${i}/50` + "'");
-    try {
-      await page.waitForSelector("#hajonsoft-commander-alert");
-      await page.$eval(
-        "#hajonsoft-commander-alert",
-        (el, i) =>
-          (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
-        i
-      );
-    } catch {}
+    await InformUser(page, i);
     const listResponse = await gmail.users.messages.list({
       userId: "me",
       includeSpamTrash: false,
@@ -242,6 +234,25 @@ async function listNusukMessages(auth, recipient, subject, page) {
     return newMessages;
   }
 }
+async function InformUser(page, i, errorMessage) {
+  try {
+    await page.waitForSelector("#hajonsoft-commander-alert");
+    if (errorMessage) {
+      await page.$eval(
+        "#hajonsoft-commander-alert",
+        (el, message) => (el.innerText = message),
+        errorMessage
+      );
+      return;
+    }
+    await page.$eval(
+      "#hajonsoft-commander-alert",
+      (el, i) => (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
+      i
+    );
+  } catch { }
+}
+
 async function getNusukCodeByEmail(email, subject, page) {
   const client = await authorize();
   const emailToUse = email.replace("xn--libert-gva.email", "liberté.email");
@@ -256,6 +267,7 @@ async function getNusukCodeByEmail(email, subject, page) {
     return message?.code;
   } catch (err) {
     console.log("📢[gmail.js:248]: err: ", err);
+    await InformUser(page, 0, 'Error getting OTP from email خطأ في الحصول على رمز التحقق ');
     if (
       fsLegacy.existsSync("token.json") &&
       err.message.includes("invalid_grant")
