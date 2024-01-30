@@ -623,7 +623,8 @@ async function pageContentHandler(currentConfig) {
         },
       });
       // in Companion mode do not upload documents
-      if (!passenger.email.includes(".companion")) {
+      if (!passenger.email?.includes(".companion") && !clicked[passenger.passportNumber + "documents"]) {
+        clicked[passenger.passportNumber + "documents"] = true
         await uploadDocuments(util.getSelectedTraveler());
       }
 
@@ -919,12 +920,13 @@ async function getOTPCode() {
 async function getCompanionOTPCode() {
   const passenger = data.travellers[util.getSelectedTraveler()];
   // If the page contain the word Registration, then registration. If it contains "OTP Verification"
-  const pageMode = "OTP Verification"
+  const pageMode = "OTP Verification";
   try {
-     if (pageMode.includes("OTP Verification")) {
+    if (pageMode.includes("OTP Verification")) {
       const loginVerificationCode = await gmail.getNusukCodeByEmail(
         emailAddress || passenger.email,
-        "One Time Password"
+        "One Time Password",
+        page
       );
       if (codeUsed[loginVerificationCode]) {
         return;
@@ -943,7 +945,8 @@ async function getCompanionOTPCode() {
       // TOO: Check if arabic and supply the arabic text instead
       const loginVerificationCode = await gmail.getNusukCodeByEmail(
         emailAddress || passenger.email,
-        "رمز سري لمرة واحدة"
+        "رمز سري لمرة واحدة",
+        page
       );
       if (codeUsed[loginVerificationCode]) {
         return;
@@ -991,19 +994,19 @@ async function addNewMember(selectedTraveler) {
   );
 
   await util.clickWhenReady("#verifyEmailBtn", page);
-  
+
   await util.commander(page, {
     controller: {
-      selector:
-        "#OTPModalMsg",
-      title: "Get Code",
+      selector: "#OTPModalMsg",
+      title: "Get Code (Comp)",
       arabicTitle: "احصل عالرمز",
-      name: "otp",
+      name: "otp-companion",
       action: async () => {
         await getCompanionOTPCode();
       },
     },
   });
+  await getCompanionOTPCode();
 }
 const usedCodes = {};
 function codeUsed(code) {
@@ -1337,16 +1340,13 @@ async function uploadDocuments(selectedTraveler) {
 
   // await util.commitFile("#passportPhoto", resizedPassportPath);
 
-const passportPath = path.join(
+  const passportPath = path.join(
     util.passportsFolder,
     `${passenger.passportNumber}.jpg`
   );
-  await util.downloadImage(
-    passenger.images.passport,
-    passportPath)
-  
-  await util.commitFile("#passportPhoto", passportPath);
+  await util.downloadImage(passenger.images.passport, passportPath);
 
+  await util.commitFile("#passportPhoto", passportPath);
 
   await page.waitForSelector("#personalPhoto", {
     timeout: 0,
@@ -1364,25 +1364,20 @@ const passportPath = path.join(
   // await util.commitFile("#personalPhoto", resizedPhotoPath);
 
   const photoPath = path.join(
-    util.photosFolder ,
-    `${passenger.passportNumber}.jpg`
+    util.photosFolder,
+    `${passenger.passportNumber}_photo.jpg`
   );
 
-  await util.downloadImage(
-    passenger.images.photo,
-    photoPath
-  );
+  await util.downloadImage(passenger.images.photo, photoPath);
 
   await util.commitFile("#personalPhoto", photoPath);
-
-
 
   await page.waitForTimeout(5000);
   // residence upload
   try {
     let residencyPath = path.join(
       util.residencyFolder,
-      `${passenger.passportNumber}.jpg`
+      `${passenger.passportNumber}_res.jpg`
     );
     await page.waitForSelector("#residencyPhoto", {
       timeout: 0,
@@ -1397,82 +1392,8 @@ const passportPath = path.join(
 }
 
 async function uploadFakePassport() {
-  const passenger = data.travellers[util.getSelectedTraveler()];
-  let blankPassportPath = path.join(
-    util.passportsFolder,
-    `${passenger.passportNumber}_mrz.jpg`
-  );
-
-  const resizedPhotoPath = await util.downloadAndResizeImage(
-    passenger,
-    200,
-    200,
-    "photo",
-    5,
-    17
-  );
-
-  // Generate fake passport image using the browser canvas api
-  const dataUrl = await page.evaluate(
-    (params) => {
-      const _passenger = params[0];
-      const resizedPhotoPath = params[1];
-      const ele = document.createElement("canvas");
-      ele.id = "hajonsoftcanvas";
-      ele.style.display = "none";
-      document.body.appendChild(ele);
-      const canvas = document.getElementById("hajonsoftcanvas");
-      canvas.width = 800;
-      canvas.height = 400;
-      const ctx = canvas.getContext("2d");
-      // White background
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = "black";
-      // Font must be 11 to fit in the canvas
-      ctx.font = "16px Verdana, Verdana, Geneva, sans-serif";
-      ctx.fillText(
-        _passenger.codeline?.replace(/\n/g, "")?.substring(0, 44),
-        15,
-        canvas.height - 60
-      );
-      ctx.fillText(
-        _passenger.codeline?.replace(/\n/g, "")?.substring(44),
-        15,
-        canvas.height - 30
-      );
-
-      // Photo
-      ctx.lineWidth = 1;
-      ctx.fillStyle = "hsl(240, 25%, 94%)";
-      ctx.fillRect(45, 25, 100, 125);
-
-      const image = new Image();
-      image.src = resizedPhotoPath;
-      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-      // Visible area
-      ctx.fillStyle = "hsl(240, 25%, 94%)";
-      ctx.fillRect(170, 25, 600, 175);
-      for (let i = 0; i < 100; i++) {
-        ctx.fillStyle = `"hsl(${240 - i}, 25%, 94%)"`;
-        ctx.fillRect(170, 25 + i, 600, 1);
-      }
-
-      // under photo area
-      ctx.fillStyle = "hsl(240, 25%, 94%)";
-      ctx.fillRect(45, 165, 100, 35);
-      return canvas.toDataURL("image/jpeg", 1.0);
-    },
-    [passenger, resizedPhotoPath]
-  );
-
-  // Save dataUrl to file
-  const imageData = dataUrl.replace(/^data:image\/\w+;base64,/, "");
-  const buf = Buffer.from(imageData, "base64");
-  fs.writeFileSync(blankPassportPath, buf);
-  await util.commitFile("#passportPhoto", blankPassportPath);
+  await util.commitFile("#passportPhoto", './nusuk-dummy-passport.jpg');
+  await util.commitFile("#personalPhoto", './nusuk-dummy-photo.jpg');
 }
 
 module.exports = { send };
