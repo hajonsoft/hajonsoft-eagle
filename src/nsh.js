@@ -447,6 +447,31 @@ async function pageContentHandler(currentConfig) {
         ],
         passenger
       );
+
+      await page.$eval(
+        "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(16) > div > div.col-md-6.font-semibold.align-self-center",
+        (el, issueDate) => (el.innerText = `Issue Date: ${issueDate}`),
+        passenger.passIssueDt.dmmmy
+      );
+
+      await page.$eval(
+        "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(10) > div > div.col-md-6.font-semibold.align-self-center",
+        (el, birthDate) => (el.innerText = `Birth Date: ${birthDate}`),
+        passenger.dob.dmmmy
+      );
+
+      await page.$eval(
+        "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(17) > div > div.col-md-6.font-semibold.align-self-center",
+        (el, expireDate) => (el.innerText = `Expire Date: ${expireDate}`),
+        passenger.passExpireDt.dmmmy
+      );
+
+      await page.$eval(
+        "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(14) > div > div.col-md-6.font-semibold.align-self-center",
+        (el, passportNumber) => (el.innerText = `Passport No: ${passportNumber}`),
+        passenger.passportNumber
+      );
+
       kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
         "submissionData.nsh.status": "Submitted",
       });
@@ -598,6 +623,11 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
+
+      await util.clickWhenReady(
+        "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-submit.btn-next.font-semibold.text-white.mb-3",
+        page
+      );
       break;
     case "upload-documents":
       await util.controller(page, currentConfig, data.travellers);
@@ -610,6 +640,7 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
+
       await util.commander(page, {
         controller: {
           selector:
@@ -623,8 +654,11 @@ async function pageContentHandler(currentConfig) {
         },
       });
       // in Companion mode do not upload documents
-      if (!passenger.email?.includes(".companion") && !clicked[passenger.passportNumber + "documents"]) {
-        clicked[passenger.passportNumber + "documents"] = true
+      if (
+        !passenger.email?.includes(".companion") &&
+        !clicked[passenger.passportNumber + "documents"]
+      ) {
+        clicked[passenger.passportNumber + "documents"] = true;
         await uploadDocuments(util.getSelectedTraveler());
       }
 
@@ -961,6 +995,8 @@ async function getCompanionOTPCode() {
         ],
         passenger
       );
+      await page.waitForTimeout(1000);
+      await page.click("#OTPModalBtn");
     }
   } catch (e) {
     await util.infoMessage(page, "Manual code required!");
@@ -1392,8 +1428,18 @@ async function uploadDocuments(selectedTraveler) {
 }
 
 async function uploadFakePassport() {
-  await util.commitFile("#passportPhoto", './nusuk-dummy-passport.jpg');
-  await util.commitFile("#personalPhoto", './nusuk-dummy-photo.jpg');
+  await page.waitForSelector("#personalPhoto");
+  const blankPhotoPath = path.join(__dirname, "dummy-nusuk-hajj-photo.jpg");
+  await util.commitFile("#personalPhoto", blankPhotoPath);
+
+  await page.waitForTimeout(1000);
+
+  await page.waitForSelector("#passportPhoto");
+  const blankPassportPath = path.join(
+    __dirname,
+    "dummy-nusuk-hajj-passport.png"
+  );
+  await util.commitFile("#passportPhoto", blankPassportPath);
 }
 
 module.exports = { send };
