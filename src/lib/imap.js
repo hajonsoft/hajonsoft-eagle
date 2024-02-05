@@ -4,6 +4,8 @@ const Imap = require("node-imap"),
 
 const nusukFromEmail = "no_reply@hajj.nusuk.sa";
 
+
+
 // TODO: delete this function once the above function is working
 async function listNusukMessages(auth, recipient, subject, page) {
   const newMessages = [];
@@ -82,15 +84,16 @@ async function InformUser(page, i, errorMessage) {
 async function getNusukOTP(
   recipient,
   password,
+  to,
   subject,
   page,
   otpSelector,
   infoSelector
 ) {
   var imap = new Imap({
-    user: recipient, //  "babatunde@xn--libert-gva.email",
-    password: password, // "Yeshua1234",
-    host: `mail.${recipient.split("@")[1]}`, //  "mail.xn--libert-gva.email",
+    user: recipient, 
+    password: password, 
+    host: `mail.${recipient.split("@")[1]}`,
     port: 993,
     tls: true,
     tlsOptions: { rejectUnauthorized: false },
@@ -105,6 +108,7 @@ async function getNusukOTP(
     openInbox(function (err, box) {
       if (err) throw err;
 
+      // TODO: email should be coming from the no_reply@hajj.nusuk.sa to the parameter to, the subject should be one of the subjects in the array of subjects and the email should be received within the last minute 
       imap.search(['UNSEEN'], function (err, results) {
         if (err) throw err;
 
@@ -133,6 +137,7 @@ async function getNusukOTP(
             stream.once("end", function () {
               if (info.which === "TEXT") {
                 body = buffer;
+                // TODO: extract the OTP code and print only the OTP code
                 console.log(prefix + "Body: %s", body);
               } else {
                 header = Imap.parseHeader(buffer);
@@ -176,6 +181,7 @@ async function getNusukOTP(
 getNusukOTP(
   "admin@xn--libert-gva.email",
   "safarMuslim",
+  "abdelazizboutarbouch@liberté.email"
   ["One time password", "رمز الدخول لمرة واحدة"],
   null,
   null,
