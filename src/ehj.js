@@ -40,11 +40,18 @@ if (fs.existsSync(getPath("passports.txt"))) {
 }
 
 function getLogFile() {
-  const logFolder = path.join(getPath("log"), data.info.munazim).replace(/[^0-9A-Za-z]/g,'');
+  const logFolder = path
+    .join(getPath("log"), data.info.munazim)
+    .replace(/[^0-9A-Za-z]/g, "");
   if (!fs.existsSync(logFolder)) {
     fs.mkdirSync(logFolder, { recursive: true });
   }
-  const logFile = path.join(logFolder, data.info.caravan?.replace(/[^0-9A-Za-z]/g,'') + "_ehj.txt").replace(/ /g, '');
+  const logFile = path
+    .join(
+      logFolder,
+      data.info.caravan?.replace(/[^0-9A-Za-z]/g, "") + "_ehj.txt"
+    )
+    .replace(/ /g, "");
   return logFile;
 }
 
@@ -347,8 +354,7 @@ const config = [
     name: "reservation-data-1",
     regex: "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/hajData.xhtml",
     controller: {
-      selector:
-        "body > div.pre-header > div.col-md-10 > div > div.col-md-6",
+      selector: "body > div.pre-header > div.col-md-10 > div > div.col-md-6",
       name: "makeReservation",
       action: async () => {
         const selectedTraveler = await page.$eval(
@@ -414,7 +420,12 @@ async function rememberValue(selector, budgieKey) {
   }
 }
 async function pasteCodeLine(selectedTraveler, passengersData) {
-  await util.infoMessage(page,`${parseInt(selectedTraveler.toString()) + 1}/${passengersData.travellers.length}`);
+  await util.infoMessage(
+    page,
+    `${parseInt(selectedTraveler.toString()) + 1}/${
+      passengersData.travellers.length
+    }`
+  );
   await page.focus("#passportCaptureStatus");
   if (selectedTraveler == "-1") {
     const browser = await page.browser();
@@ -464,16 +475,8 @@ async function pageContentHandler(currentConfig) {
       }
       await util.commit(page, currentConfig.details, data.system);
       if (data.system.username && data.system.password) {
-        const loginButton = await page.$x(
-          "/html/body/div[2]/div[2]/div/div[2]/div/form/div[4]/div/input"
-        );
-        if (
-          loginButton &&
-          Array.isArray(loginButton) &&
-          loginButton.length > 0
-        ) {
-          loginButton[0].click();
-        }
+        const loginButton = "#yj_idt95";
+        await page.click(loginButton);
       }
       break;
     case "authentication-settings":
@@ -500,11 +503,7 @@ async function pageContentHandler(currentConfig) {
 
       break;
     case "otp":
-      // if ((await page.$(".insecure-form")) !== null) {
-      //   await page.click("#proceed-button");
-      //   await page.waitForNavigation({ waitUntil: "networkidle0" });
-      // }
-      const messageSelector = "#mobileVerForm > h5";
+      const messageSelector = "#loginPanel > h5";
       await page.waitForSelector(messageSelector);
       const message = await page.$eval(messageSelector, (el) => el.innerText);
       if (
@@ -518,22 +517,15 @@ async function pageContentHandler(currentConfig) {
           page,
           [
             {
-              selector: "#code",
+              selector: "#first",
               value: () => token,
             },
           ],
           passenger
         );
-        const submitButton = await page.$x(
-          "/html/body/div[1]/div[2]/div[1]/form/div[2]/div/div/input[1]"
-        );
-        if (
-          submitButton &&
-          Array.isArray(submitButton) &&
-          submitButton.length > 0
-        ) {
-          submitButton[0].click();
-        }
+        const submitButton = "#sj1";
+        await page.waitForSelector(submitButton);
+        await page.click(submitButton);
       }
 
       break;
@@ -918,11 +910,17 @@ async function pageContentHandler(currentConfig) {
             },
             {
               selector: "#iqamaIssueDate",
-              value: (row) => row.idIssueDt.dmy ? getPermitIssueDt(row.idIssueDt.dmy) : row.passIssueDt.dmy,
+              value: (row) =>
+                row.idIssueDt.dmy
+                  ? getPermitIssueDt(row.idIssueDt.dmy)
+                  : row.passIssueDt.dmy,
             },
             {
               selector: "#iqamaExpiryDate",
-              value: (row) => row.idExpireDt.dmy ? getPermitExpireDt(row.idExpireDt.dmy) : row.passExpireDt.dmy,
+              value: (row) =>
+                row.idExpireDt.dmy
+                  ? getPermitExpireDt(row.idExpireDt.dmy)
+                  : row.passExpireDt.dmy,
             },
           ],
           passenger
@@ -934,7 +932,7 @@ async function pageContentHandler(currentConfig) {
           "id",
           30,
           100
-          );
+        );
 
         await util.commitFile("#permit_attmnt_input", resizedId);
       }
@@ -1060,13 +1058,21 @@ async function pageContentHandler(currentConfig) {
       await page.click(
         "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.form-group > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
       );
-      const hasRequiredVaccinationBeenTakenTextSelector = "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(31) > div.ui-outputpanel.ui-widget > div > div > div > div > table > tbody > tr > td > div > textarea"
-      await page.waitForSelector(hasRequiredVaccinationBeenTakenTextSelector)
-      await page.type(hasRequiredVaccinationBeenTakenTextSelector, "covid-19, seasonal flu and others ")
+      const hasRequiredVaccinationBeenTakenTextSelector =
+        "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(31) > div.ui-outputpanel.ui-widget > div > div > div > div > table > tbody > tr > td > div > textarea";
+      await page.waitForSelector(hasRequiredVaccinationBeenTakenTextSelector);
+      await page.type(
+        hasRequiredVaccinationBeenTakenTextSelector,
+        "covid-19, seasonal flu and others "
+      );
 
-      const iPledgeToAbideByTheRulesTextSelector = "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.ui-outputpanel.ui-widget > div > div > div > div > table > tbody > tr > td > div > textarea"
-      await page.waitForSelector(iPledgeToAbideByTheRulesTextSelector)
-      await page.type(iPledgeToAbideByTheRulesTextSelector, "I pledge to abide by the rules")
+      const iPledgeToAbideByTheRulesTextSelector =
+        "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.ui-outputpanel.ui-widget > div > div > div > div > table > tbody > tr > td > div > textarea";
+      await page.waitForSelector(iPledgeToAbideByTheRulesTextSelector);
+      await page.type(
+        iPledgeToAbideByTheRulesTextSelector,
+        "I pledge to abide by the rules"
+      );
 
       // download passport image
       const resizedPassportPath = await util.downloadAndResizeImage(
@@ -1076,10 +1082,17 @@ async function pageContentHandler(currentConfig) {
         "passport"
       );
       try {
-
-        await util.commitFile("body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(33) > div > div > div > div.ui-fileupload-buttonbar.ui-widget-header.ui-corner-top > span > input[type=file]", resizedPassportPath);
-        const labelForPassportImageSelector = "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(33) > div > label"
-        await page.$eval(labelForPassportImageSelector, (el, val) => el.innerText = val, resizedPassportPath)
+        await util.commitFile(
+          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(33) > div > div > div > div.ui-fileupload-buttonbar.ui-widget-header.ui-corner-top > span > input[type=file]",
+          resizedPassportPath
+        );
+        const labelForPassportImageSelector =
+          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(33) > div > label";
+        await page.$eval(
+          labelForPassportImageSelector,
+          (el, val) => (el.innerText = val),
+          resizedPassportPath
+        );
       } catch {}
 
       await page.evaluate(() => {
