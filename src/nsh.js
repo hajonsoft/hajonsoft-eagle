@@ -1365,63 +1365,75 @@ async function uploadDocuments(selectedTraveler) {
   await page.waitForSelector("#passportPhoto", {
     timeout: 0,
   });
-  // const resizedPassportPath = await util.downloadAndResizeImage(
-  //   passenger,
-  //   400,
-  //   800,
-  //   "passport",
-  //   400,
-  //   1024
-  // );
-
-  // await util.commitFile("#passportPhoto", resizedPassportPath);
-
-  const passportPath = path.join(
-    util.passportsFolder,
-    `${passenger.passportNumber}.jpg`
+  const resizedPassportPath = await util.downloadAndResizeImage(
+    passenger,
+    400,
+    800,
+    "passport",
+    400,
+    1024,
+    true
   );
-  await util.downloadImage(passenger.images.passport, passportPath);
 
-  await util.commitFile("#passportPhoto", passportPath);
+  await util.commitFile("#passportPhoto", resizedPassportPath);
+
+  // const passportPath = path.join(
+  //   util.passportsFolder,
+  //   `${passenger.passportNumber}.jpg`
+  // );
+  // await util.downloadImage(passenger.images.passport, passportPath);
+
+  // await util.commitFile("#passportPhoto", passportPath);
 
   await page.waitForSelector("#personalPhoto", {
     timeout: 0,
   });
 
   // TODO: image not being resized to 15kb...
-  // const resizedPhotoPath = await util.downloadAndResizeImage(
-  //   passenger,
-  //   200,
-  //   200,
-  //   "photo",
-  //   5,
-  //   17
-  // );
-  // await util.commitFile("#personalPhoto", resizedPhotoPath);
-
-  const photoPath = path.join(
-    util.photosFolder,
-    `${passenger.passportNumber}_photo.jpg`
+  const resizedPhotoPath = await util.downloadAndResizeImage(
+    passenger,
+    200,
+    200,
+    "photo",
+    5,
+    17,
+    true
   );
+  await util.commitFile("#personalPhoto", resizedPhotoPath);
 
-  await util.downloadImage(passenger.images.photo, photoPath);
+  // const photoPath = path.join(
+  //   util.photosFolder,
+  //   `${passenger.passportNumber}_photo.jpg`
+  // );
 
-  await util.commitFile("#personalPhoto", photoPath);
+  // await util.downloadImage(passenger.images.photo, photoPath);
+
+  // await util.commitFile("#personalPhoto", photoPath);
 
   await page.waitForTimeout(5000);
   // residence upload
   try {
-    let residencyPath = path.join(
-      util.residencyFolder,
-      `${passenger.passportNumber}_res.jpg`
-    );
     await page.waitForSelector("#residencyPhoto", {
       timeout: 0,
     });
+    
+    // let residencyPath = path.join(
+    //   util.residencyFolder,
+    //   `${passenger.passportNumber}_res.jpg`
+    // );
+    // await util.downloadImage(
+    //   passenger.images.residency || passenger.images.passport,
+    //   residencyPath
+    // );
 
-    await util.downloadImage(
-      passenger.images.residency || passenger.images.passport,
-      residencyPath
+    const residencyPath = await util.downloadAndResizeImage(
+      passenger,
+      400,
+      800,
+      "id",
+      400,
+      1024,
+      true
     );
     await util.commitFile("#residencyPhoto", residencyPath);
   } catch {}
