@@ -11,6 +11,8 @@ const email = require("./email");
 const moment = require("moment");
 const budgie = require("./budgie");
 const gmail = require("./lib/gmail");
+const { fetchNusukIMAPOTP } = require("./lib/imap");
+const { get } = require("lodash");
 
 let page;
 let data;
@@ -468,7 +470,8 @@ async function pageContentHandler(currentConfig) {
 
       await page.$eval(
         "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(14) > div > div.col-md-6.font-semibold.align-self-center",
-        (el, passportNumber) => (el.innerText = `Passport No: ${passportNumber}`),
+        (el, passportNumber) =>
+          (el.innerText = `Passport No: ${passportNumber}`),
         passenger.passportNumber
       );
 
@@ -566,13 +569,37 @@ async function pageContentHandler(currentConfig) {
         "6/2024"
       );
       // wait 500 ms for the days to load, then select the day
-      await page.waitForTimeout(500);
-      await page.click(
-        "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
-      );
+      // await page.waitForTimeout(500);
+      // await page.click(
+      //   "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
+      // );
       break;
     case "summary":
-      await checkIfNotChecked("#HaveValidResidencyNo");
+      if (passenger.nationality.code !== data.system.country.code) {
+        await checkIfNotChecked("#HaveValidResidencyYes");
+        await page.waitForTimeout(500);
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#BackgroundStepOneViewModel_ResidencyIdNumber",
+              value: (row) => row.passportNumber,
+            },
+            // {
+            //   selector: "#BackgroundStepOneViewModel_ResidenceIdIssueDate",
+            //   value: (row) => "01/01/2020",
+            // },
+            // {
+            //   selector: "#BackgroundStepOneViewModel_ResidenceIdExpiryDate",
+            //   value: (row) => "01/01/2022",
+            // },
+          ],
+          passenger
+        );
+        // TODO: upload the residency card
+      } else {
+        await checkIfNotChecked("#HaveValidResidencyNo");
+      }
       await checkIfNotChecked("#PreviouslyReceivedVisaEnterKSANo");
       await checkIfNotChecked("#PreviousKSAVisaRejectionNo");
       await checkIfNotChecked("#PassportHasRestrictionForOneTripNo");
@@ -583,9 +610,9 @@ async function pageContentHandler(currentConfig) {
         window.scrollTo(0, document.body.scrollHeight);
       });
       await page.waitForTimeout(1000);
-      await page.click(
-        "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
-      );
+      // await page.click(
+      //   "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
+      // );
       break;
     case "summary2":
       await checkIfNotChecked("#DeportedFromAnyCountryBeforeNo");
@@ -624,10 +651,10 @@ async function pageContentHandler(currentConfig) {
         window.scrollTo(0, document.body.scrollHeight);
       });
 
-      await util.clickWhenReady(
-        "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-submit.btn-next.font-semibold.text-white.mb-3",
-        page
-      );
+      // await util.clickWhenReady(
+      //   "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-submit.btn-next.font-semibold.text-white.mb-3",
+      //   page
+      // );
       break;
     case "upload-documents":
       await util.controller(page, currentConfig, data.travellers);
@@ -799,8 +826,8 @@ function suggestEmail(selectedTraveler, companion = false) {
     return passenger.email;
   }
   const domain = data.system.username.includes("@")
-    ? data.system.username.split("@")[1]
-    : data.system.username;
+    ? data.system.username.split("@")[1].split("/")[0]
+    : data.system.username.split("/")[0];
   const friendlyName = `${passenger.name.first}.${passenger.name.last}.${
     companion ? "companion." : ""
   }${moment().unix().toString(36)}@${domain}`
@@ -868,82 +895,22 @@ async function getOTPCode() {
     (el) => el.innerText
   );
   try {
-    if (pageMode.includes("Registration")) {
-      const signupVerificationCode = await gmail.getNusukCodeByEmail(
-        emailAddress || passenger.email,
-        "Email Activation",
-        page
+    if (pageMode.includes("Registration") || pageMode.includes("التسجيل")) {
+      await fetchNusukIMAPOTP(
+        passenger.email || emailAddress,
+        data.system.username.split("/")?.[1],
+        ["Email Activation", "تفعيل البريد الالكتروني"],
+        pasteOTPCode
       );
-      if (codeUsed(signupVerificationCode)) {
-        return;
-      }
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#otp-inputs > input.form-control.signup-otp.me-1",
-            value: (row) => signupVerificationCode,
-          },
-        ],
-        passenger
-      );
-    } else if (pageMode.includes("التسجيل")) {
-      const signupVerificationCode = await gmail.getNusukCodeByEmail(
-        emailAddress || passenger.email,
-        "تفعيل البريد الالكتروني",
-        page
-      );
-      if (codeUsed(signupVerificationCode)) {
-        return;
-      }
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#otp-inputs > input.form-control.signup-otp.me-1",
-            value: (row) => signupVerificationCode,
-          },
-        ],
-        passenger
-      );
-    } else if (pageMode.includes("OTP Verification")) {
-      const loginVerificationCode = await gmail.getNusukCodeByEmail(
-        emailAddress || passenger.email,
-        "One Time Password",
-        page
-      );
-      if (codeUsed(loginVerificationCode)) {
-        return;
-      }
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#otp-inputs > input.form-control.signup-otp.me-1",
-            value: (row) => loginVerificationCode,
-          },
-        ],
-        passenger
-      );
-    } else if (pageMode.includes("التثبت من رمز التحقق")) {
-      // TOO: Check if arabic and supply the arabic text instead
-      const loginVerificationCode = await gmail.getNusukCodeByEmail(
-        emailAddress || passenger.email,
-        "رمز سري لمرة واحدة",
-        page
-      );
-      if (codeUsed(loginVerificationCode)) {
-        return;
-      }
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#otp-inputs > input.form-control.signup-otp.me-1",
-            value: (row) => loginVerificationCode,
-          },
-        ],
-        passenger
+    } else if (
+      pageMode.includes("OTP Verification") ||
+      pageMode.includes("التثبت من رمز التحقق")
+    ) {
+      await fetchNusukIMAPOTP(
+        passenger.email || emailAddress,
+        data.system.username.split("/")?.[1],
+        ["One Time Password", "رمز سري لمرة واحدة"],
+        pasteOTPCode
       );
     }
   } catch (e) {
@@ -956,48 +923,12 @@ async function getCompanionOTPCode() {
   // If the page contain the word Registration, then registration. If it contains "OTP Verification"
   const pageMode = "OTP Verification";
   try {
-    if (pageMode.includes("OTP Verification")) {
-      const loginVerificationCode = await gmail.getNusukCodeByEmail(
-        emailAddress || passenger.email,
-        "One Time Password",
-        page
-      );
-      if (codeUsed[loginVerificationCode]) {
-        return;
-      }
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#otp-inputs > input.form-control.form-input-otp.me-1",
-            value: (row) => loginVerificationCode,
-          },
-        ],
-        passenger
-      );
-    } else if (pageMode.includes("التثبت من رمز التحقق")) {
-      // TOO: Check if arabic and supply the arabic text instead
-      const loginVerificationCode = await gmail.getNusukCodeByEmail(
-        emailAddress || passenger.email,
-        "رمز سري لمرة واحدة",
-        page
-      );
-      if (codeUsed[loginVerificationCode]) {
-        return;
-      }
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#otp-inputs > input.form-control.form-input-otp.me-1",
-            value: (row) => loginVerificationCode,
-          },
-        ],
-        passenger
-      );
-      await page.waitForTimeout(1000);
-      await page.click("#OTPModalBtn");
-    }
+    await fetchNusukIMAPOTP(
+      passenger.email || emailAddress,
+      data.system.username.split("/")?.[1],
+      ["One Time Password", "رمز سري لمرة واحدة"],
+      pasteOTPCodeCompanion
+    );
   } catch (e) {
     await util.infoMessage(page, "Manual code required!");
   }
@@ -1124,8 +1055,8 @@ async function registerPassenger(selectedTraveler) {
   var data = JSON.parse(rawData);
   const passenger = data.travellers[selectedTraveler];
   const emailDomain = data.system.username.includes("@")
-    ? data.system.username.split("@")[1]
-    : data.system.username;
+    ? data.system.username.split("@")[1].split("/")[0]
+    : data.system.username.split("/")[0];
   console.log("📢[nsh.js:359]: emailDomain: ", emailDomain);
   emailAddress =
     passenger.email ||
@@ -1440,6 +1371,133 @@ async function uploadFakePassport() {
     "dummy-nusuk-hajj-passport.png"
   );
   await util.commitFile("#passportPhoto", blankPassportPath);
+}
+
+let i = 0;
+async function pasteOTPCode(err, code) {
+  if (err === "no-code") {
+    setTimeout(async () => {
+      if (i < 50) {
+        i++;
+        try {
+          await page.waitForSelector("#hajonsoft-commander-alert");
+          if (err.startsWith("Error:")) {
+            await page.$eval(
+              "#hajonsoft-commander-alert",
+              (el, message) => (el.innerText = message),
+              err
+            );
+            return;
+          }
+          await page.$eval(
+            "#hajonsoft-commander-alert",
+            (el, i) =>
+              (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
+            i
+          );
+        } catch {}
+        getOTPCode();
+      }
+    }, 3000);
+    return;
+  }
+  if (err || !code) {
+    try {
+      await page.waitForSelector("#hajonsoft-commander-alert");
+      if (err.startsWith("Error:")) {
+        await page.$eval(
+          "#hajonsoft-commander-alert",
+          (el, message) => (el.innerText = message),
+          err
+        );
+        return;
+      }
+      await page.$eval(
+        "#hajonsoft-commander-alert",
+        (el, i) =>
+          (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
+        i
+      );
+    } catch {}
+
+    return;
+  }
+  if (codeUsed(code)) {
+    return;
+  }
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+        value: () => code,
+      },
+    ],
+    {}
+  );
+}
+
+async function pasteOTPCodeCompanion(err, code) {
+  if (err === "no-code") {
+    setTimeout(async () => {
+      if (i < 50) {
+        i++;
+        try {
+          await page.waitForSelector("#hajonsoft-commander-alert");
+          if (err.startsWith("Error:")) {
+            await page.$eval(
+              "#hajonsoft-commander-alert",
+              (el, message) => (el.innerText = message),
+              err
+            );
+            return;
+          }
+          await page.$eval(
+            "#hajonsoft-commander-alert",
+            (el, i) =>
+              (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
+            i
+          );
+        } catch {}
+        getOTPCode();
+      }
+    }, 3000);
+    return;
+  }
+  if (err || !code) {
+    try {
+      await page.waitForSelector("#hajonsoft-commander-alert");
+      if (err.startsWith("Error:")) {
+        await page.$eval(
+          "#hajonsoft-commander-alert",
+          (el, message) => (el.innerText = message),
+          err
+        );
+        return;
+      }
+      await page.$eval(
+        "#hajonsoft-commander-alert",
+        (el, i) =>
+          (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
+        i
+      );
+    } catch {}
+
+    return;
+  }
+  if (codeUsed(code)) {
+    return;
+  }
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#otp-inputs > input.form-control.form-input-otp.me-1",
+        value: () => code,
+      },
+    ],
+    {}
+  );
 }
 
 module.exports = { send };

@@ -1,98 +1,16 @@
 const moment = require("moment");
 const Imap = require("node-imap"),
   inspect = require("util").inspect;
+const fs = require("fs");
+const cheerio = require('cheerio');
 
 const nusukFromEmail = "no_reply@hajj.nusuk.sa";
+const messages = {};
 
-
-
-// TODO: delete this function once the above function is working
-async function listNusukMessages(auth, recipient, subject, page) {
-  const newMessages = [];
-  const gmail = google.gmail({ version: "v1", auth });
-  const query = `in:inbox from:no_reply@hajj.nusuk.sa is:unread to:${recipient} subject:${subject} newer_than:2m`;
-  for (let i = 0; i < 50; i++) {
-    console.log(`waiting for OTP ${i}/50 ${query}`);
-    await page.evaluate("document.title='" + `OTP ${i}/50` + "'");
-    await InformUser(page, i);
-    const listResponse = await gmail.users.messages.list({
-      userId: "me",
-      includeSpamTrash: false,
-      q: query,
-    });
-    const messages = listResponse.data.messages;
-    if (!messages || messages.length === 0) {
-      // wait 10 seconds and try again
-      await new Promise((resolve) => setTimeout(resolve, 10000));
-      continue;
-    }
-    for (const message of messages) {
-      const contents = await gmail.users.messages.get({
-        userId: "me",
-        id: message.id,
-      });
-      const messageDate = moment(
-        contents.data.payload.headers.find((h) => h.name === "Date").value
-      );
-      // if messageDate is older than 10 hours, skip it
-      if (messageDate.isBefore(moment().subtract(10, "hours"))) {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        continue;
-      }
-
-      const isEnglish = /^[a-zA-Z\s]+$/.test(subject);
-
-      const verificationCode = isEnglish
-        ? contents.data.snippet.match(/Your OTP is (\d{6})/)?.[1]
-        : contents.data.snippet.match(/رمز الدخول لمرة واحدة هو (\d+)/)?.[1];
-      if (verificationCode) {
-        if (newMessages.length === 0) {
-          newMessages.push({ code: verificationCode, date: messageDate });
-        } else {
-          if (newMessages.find((m) => m.code === verificationCode)) {
-            continue;
-          }
-        }
-      }
-    }
-    if (newMessages.length === 0) {
-      continue;
-    }
-    return newMessages;
-  }
-}
-async function InformUser(page, i, errorMessage) {
-  try {
-    await page.waitForSelector("#hajonsoft-commander-alert");
-    if (errorMessage) {
-      await page.$eval(
-        "#hajonsoft-commander-alert",
-        (el, message) => (el.innerText = message),
-        errorMessage
-      );
-      return;
-    }
-    await page.$eval(
-      "#hajonsoft-commander-alert",
-      (el, i) =>
-        (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
-      i
-    );
-  } catch {}
-}
-
-async function getNusukOTP(
-  recipient,
-  password,
-  to,
-  subject,
-  page,
-  otpSelector,
-  infoSelector
-) {
+async function fetchNusukIMAPOTP(recipient, password, subject, callback) {
   var imap = new Imap({
-    user: recipient, 
-    password: password, 
+    user: `admin@${recipient.split("@")[1]}`,
+    password: password,
     host: `mail.${recipient.split("@")[1]}`,
     port: 993,
     tls: true,
@@ -100,35 +18,29 @@ async function getNusukOTP(
   });
 
   function openInbox(cb) {
-    imap.openBox("INBOX", false, cb); // Changed to false for read-only mode
+    imap.openBox("INBOX", false, cb);
   }
-
-  // TODO: Need to keep checking email until the email is received
   imap.once("ready", function () {
     openInbox(function (err, box) {
       if (err) throw err;
-
-      // TODO: email should be coming from the no_reply@hajj.nusuk.sa to the parameter to, the subject should be one of the subjects in the array of subjects and the email should be received within the last minute 
-      imap.search(['UNSEEN'], function (err, results) {
+      imap.search(["UNSEEN"], function (err, results) {
         if (err) throw err;
 
         if (!results || !results.length) {
-          console.log("No unread mails");
           imap.end();
-          return;
+          return callback("no-code");
+        }
+        for (let i = 0; i < Math.min(results.length, 5); i++) {
+          var msgSeqNo = results[i];
+          var f = imap.fetch(msgSeqNo, {
+            bodies: ["HEADER.FIELDS (FROM TO SUBJECT DATE)", "TEXT"],
+            struct: true,
+            markSeen: true,
+          });
         }
 
-        // Fetch the last unread email
-        var lastUnreadMsgSeqNo = results[results.length - 1];
-        var f = imap.fetch(lastUnreadMsgSeqNo, {
-          bodies: ["HEADER.FIELDS (FROM TO SUBJECT DATE)", "TEXT"],
-          struct: true,
-          markSeen: false, // Set to true if you want to mark it as read
-        });
-
         f.on("message", function (msg, seqno) {
-          console.log("Message #%d", seqno);
-          var prefix = "(#" + seqno + ") ";
+          messages[seqno] = {};
           msg.on("body", function (stream, info) {
             var buffer = "";
             stream.on("data", function (chunk) {
@@ -136,29 +48,48 @@ async function getNusukOTP(
             });
             stream.once("end", function () {
               if (info.which === "TEXT") {
-                body = buffer;
-                // TODO: extract the OTP code and print only the OTP code
-                console.log(prefix + "Body: %s", body);
+                const clean = buffer;
+                messages[seqno].body = clean;
+                console.log(
+                  "📢[imap.js:56]: messages[seqno].body: ",
+                  messages[seqno].body
+                );
+
+                const englishOtp = messages[seqno].body.match(
+                  /OTP is (\d{6})/
+                )?.[1];
+                if (englishOtp) {
+                  messages[seqno].otp = englishOtp;
+                } else {
+                  const arabicOtp = messages[seqno].body.match(
+                    / هو (\d+)/
+                  )?.[1];
+                  if (arabicOtp) {
+                  } else {
+                    callback("Error: Manual code required");
+                  }
+                }
               } else {
-                header = Imap.parseHeader(buffer);
-                console.log(prefix + "Parsed header: %s", inspect(header));
+                messages[seqno].header = Imap.parseHeader(buffer);
               }
             });
           });
-          msg.once("attributes", function (attrs) {
-            // console.log(prefix + "Attributes: %s", inspect(attrs, false, 8));
-          });
           msg.once("end", function () {
-            console.log(prefix + "Finished");
+            // Apply the filter here and call the callback
+            if (
+              messages[seqno].header.from[0].includes(nusukFromEmail) &&
+              messages[seqno].header.to[0].includes(recipient) &&
+              subject.includes(messages[seqno].header.subject[0])
+            ) {
+              callback(null, messages[seqno].otp);
+              imap.end();
+            }
           });
         });
         f.once("error", function (err) {
-          // TODO: probably just try again
-          console.log("Fetch error: " + err);
+          callback("Error: " + err);
         });
         f.once("end", function () {
-          // TODO: return the OTP to the user
-          // console.log("Done fetching all messages!");
           imap.end();
         });
       });
@@ -166,28 +97,16 @@ async function getNusukOTP(
   });
 
   imap.once("error", function (err) {
-    // TODO: report error to user and try again
-    console.log(err);
+    callback("Error: " + err);
   });
 
   imap.once("end", function () {
-    // TODO: tell user to check email again
-    console.log("Connection ended");
+    callback("Error: Connection ended");
   });
 
   imap.connect();
 }
 
-getNusukOTP(
-  "admin@xn--libert-gva.email",
-  "safarMuslim",
-  "abdelazizboutarbouch@liberté.email"
-  ["One time password", "رمز الدخول لمرة واحدة"],
-  null,
-  null,
-  null
-);
-
 module.exports = {
-  getNusukOTP,
+  fetchNusukIMAPOTP,
 };
