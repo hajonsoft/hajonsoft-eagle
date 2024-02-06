@@ -23,7 +23,7 @@ let manualMode;
 const verifyClicked = {};
 const loginRetries = {};
 const clicked = {};
-
+let emailCodeCounter = 0;
 const URLS = {
   SIGN_UP: "https://hajj.nusuk.sa/registration/signup",
   HOME: "https://hajj.nusuk.sa/",
@@ -339,6 +339,7 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "register":
+      emailCodeCounter = 0;
       clearTimeout(timerHandler);
       await page.evaluate(() => {
         document.scrollTo(0, document.body.scrollHeight);
@@ -609,10 +610,12 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
-      await page.waitForTimeout(1000);
-      // await page.click(
-      //   "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
-      // );
+      if (passenger.nationality.code === data.system.country.code) {
+        await page.waitForTimeout(1000);
+        await page.click(
+          "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
+        );
+      }
       break;
     case "summary2":
       await checkIfNotChecked("#DeportedFromAnyCountryBeforeNo");
@@ -657,6 +660,7 @@ async function pageContentHandler(currentConfig) {
       // );
       break;
     case "upload-documents":
+      emailCodeCounter = 0;
       await util.controller(page, currentConfig, data.travellers);
 
       // Close the modal by clicking this element if it is in the DOM
@@ -691,6 +695,7 @@ async function pageContentHandler(currentConfig) {
 
       break;
     case "login":
+      emailCodeCounter = 0;
       clearTimeout(timerHandler);
       await page.$eval(
         "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.mt-5.w-100",
@@ -1302,7 +1307,8 @@ async function uploadDocuments(selectedTraveler) {
   //   800,
   //   "passport",
   //   400,
-  //   1024
+  //   1024,
+  //   "png"
   // );
 
   // await util.commitFile("#passportPhoto", resizedPassportPath);
@@ -1373,12 +1379,11 @@ async function uploadFakePassport() {
   await util.commitFile("#passportPhoto", blankPassportPath);
 }
 
-let i = 0;
 async function pasteOTPCode(err, code) {
   if (err === "no-code") {
     setTimeout(async () => {
-      if (i < 50) {
-        i++;
+      if (emailCodeCounter < 50) {
+        emailCodeCounter++;
         try {
           await page.waitForSelector("#hajonsoft-commander-alert");
           if (err.startsWith("Error:")) {
@@ -1393,7 +1398,7 @@ async function pasteOTPCode(err, code) {
             "#hajonsoft-commander-alert",
             (el, i) =>
               (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
-            i
+            emailCodeCounter
           );
         } catch {}
         getOTPCode();
@@ -1416,7 +1421,7 @@ async function pasteOTPCode(err, code) {
         "#hajonsoft-commander-alert",
         (el, i) =>
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
-        i
+        emailCodeCounter
       );
     } catch {}
 
@@ -1440,8 +1445,8 @@ async function pasteOTPCode(err, code) {
 async function pasteOTPCodeCompanion(err, code) {
   if (err === "no-code") {
     setTimeout(async () => {
-      if (i < 50) {
-        i++;
+      if (emailCodeCounter < 50) {
+        emailCodeCounter++;
         try {
           await page.waitForSelector("#hajonsoft-commander-alert");
           if (err.startsWith("Error:")) {
@@ -1456,10 +1461,10 @@ async function pasteOTPCodeCompanion(err, code) {
             "#hajonsoft-commander-alert",
             (el, i) =>
               (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
-            i
+            emailCodeCounter
           );
         } catch {}
-        getOTPCode();
+        getCompanionOTPCode();
       }
     }, 3000);
     return;
@@ -1479,7 +1484,7 @@ async function pasteOTPCodeCompanion(err, code) {
         "#hajonsoft-commander-alert",
         (el, i) =>
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
-        i
+        emailCodeCounter
       );
     } catch {}
 
