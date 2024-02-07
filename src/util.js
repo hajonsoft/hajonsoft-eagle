@@ -882,102 +882,126 @@ async function downloadImage(url, imagePath) {
   });
 }
 // TODO: review https://imageresizer.com/ for a better resize information including size on desk
-
-async function downloadAndResizeImage(passenger, width, height, imageType = 'photo', minKb, maxKb, convertToPNG = false) {
-  let folder;
-  let url;
-
-  switch (imageType) {
-      case 'photo':
-          folder = photosFolder;
-          url = passenger?.images?.photo;
-          break;
-      case 'passport':
-          folder = passportsFolder;
-          url = passenger.images.passport;
-          break;
-      case 'residency':
-          folder = residencyFolder;
-          url = passenger.images.residency ?? passenger.images.passport;
-          break;
-      case 'vaccine':
-          folder = vaccineFolder;
-          url = passenger.images.vaccine;
-          if (url?.includes('placeholder')) return path.join(__dirname, 'covid-1.jpg');
-          break;
-      case 'vaccine2':
-          folder = vaccineFolder;
-          url = passenger.images.vaccine2;
-          if (url?.includes('placeholder')) return path.join(__dirname, 'covid-2.jpg');
-          break;
-      case 'id':
-          folder = idFolder;
-          url = passenger.images.id;
-          if (!url || url?.includes('placeholder')) return path.join(__dirname, 'id.jpg');
-          break;
-      default:
-          throw new Error('Invalid image type');
+async function downloadAndResizeImage(
+  passenger,
+  width,
+  height,
+  imageType = "photo",
+  minKb,
+  maxKb,
+  convertToPNG = false
+) {
+  let folder = photosFolder;
+  let url = passenger?.images?.photo;
+  if (!url && imageType == "photo") {
+    return path.join(__dirname, "./dummy-image.jpg");
   }
 
-  if (!url) return path.join(__dirname, 'dummy-image.jpg');
-  if (url.includes('placeholder')) return path.join(__dirname, 'dummy-image.jpg');
+  if (imageType == "passport") {
+    folder = passportsFolder;
+    url = passenger.images.passport;
+  }
 
-  const imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
-  const resizedPath = path.join(folder, `${passenger.passportNumber}_${width ?? ''}x${height ?? ''}.${convertToPNG ? 'png' : 'jpg'}`);
+  if (imageType == "residency") {
+    folder = residencyFolder;
+    url = passenger.images.residency ?? passenger.images.passport;
+  }
+
+  if (imageType == "vaccine") {
+    folder = vaccineFolder;
+    url = passenger.images.vaccine;
+    if (url?.includes("placeholder")) {
+      return path.join(__dirname, "covid-1.jpg");
+    }
+  }
+
+  if (imageType == "vaccine2") {
+    folder = vaccineFolder;
+    url = passenger.images.vaccine2;
+    if (url?.includes("placeholder")) {
+      return path.join(__dirname, "covid-2.jpg");
+    }
+  }
+
+  if (imageType == "id") {
+    folder = idFolder;
+    url = passenger.images.id;
+    if (!url || url?.includes("placeholder")) {
+      return path.join(__dirname, "id.jpg");
+    }
+  }
+
+  let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
+  const resizedPath = path.join(
+    folder,
+    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.${convertToPNG ? 'png' : 'jpg'}`
+  );
+
+  if (url?.includes("placeholder")) {
+    return path.join(__dirname, "dummy-image.jpg");
+  }
 
   const writer = fs.createWriteStream(imagePath);
-  const response = await axios({
-      url,
-      method: 'GET',
-      responseType: 'stream',
-  });
-  response.data.pipe(writer);
-
-  await new Promise((resolve, reject) => {
-      writer.on('finish', resolve);
-      writer.on('error', reject);
-  });
-
-  if (fs.existsSync(overridePhoto) && imageType === 'photo') {
-      console.log('Override found at: ', overridePhoto);
-      imagePath = overridePhoto;
+  if (!url) {
+    return path.join(__dirname, "dummy-image.jpg");
   }
+  const response = await axios({
+    url,
+    method: "GET",
+    responseType: "stream",
+  });
 
+  response.data.pipe(writer);
+  const result = new Promise((resolve, reject) => {
+    writer.on("finish", resolve);
+    writer.on("error", reject);
+  });
+  await result;
+
+  const overridePhoto = path.join(
+    __dirname,
+    "..",
+    "photos",
+    passenger.passportNumber + ".jpg"
+  );
+  if (imageType == "photo" && fs.existsSync(overridePhoto)) {
+    console.log("override found at: ", overridePhoto);
+    imagePath = overridePhoto;
+  }
   let quality = 80;
   await sharp(imagePath)
-      .resize(width, height, {
-          fit: sharp.fit.contain,
-      })
-      .withMetadata()
-      .toFormat(convertToPNG ? 'png' : 'jpeg', { quality, chromaSubsampling: '4:4:4' })
-      .toFile(resizedPath);
+    .resize(width, height, {
+      fit: sharp.fit.contain,
+    })
+    .withMetadata()
+    .toFormat(convertToPNG ? 'png' : 'jpeg', { quality, chromaSubsampling: '4:4:4' })
+    .toFile(resizedPath);
 
   let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
 
   while (sizeAfter < minKb && quality <= 95) {
-      quality += 5;
-      await sharp(imagePath)
-          .resize(width, height, {
-              fit: sharp.fit.contain,
-          })
-          .withMetadata()
-          .toFormat(convertToPNG ? 'png' : 'jpeg', { quality, chromaSubsampling: '4:4:4' })
-          .toFile(resizedPath);
-      sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
+    quality += 5;
+    await sharp(imagePath)
+      .resize(width, height, {
+        fit: sharp.fit.contain,
+      })
+      .withMetadata()
+      .toFormat(convertToPNG ? 'png' : 'jpeg', { quality, chromaSubsampling: '4:4:4' })
+      .toFile(resizedPath);
+    sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }
 
   while (sizeAfter > maxKb && quality > 10) {
-      quality -= 5;
-      await sharp(imagePath)
-          .resize(width, height, {
-              fit: sharp.fit.contain,
-          })
-          .withMetadata()
-          .toFormat(convertToPNG ? 'png' : 'jpeg', { quality, chromaSubsampling: '4:4:4' })
-          .toFile(resizedPath);
-      sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
+    quality -= 5;
+    await sharp(imagePath)
+      .resize(width, height, {
+        fit: sharp.fit.contain,
+      })
+      .withMetadata()
+      .toFormat(convertToPNG ? 'png' : 'jpeg', { quality, chromaSubsampling: '4:4:4' })
+      .toFile(resizedPath);
+    sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }
-
   return resizedPath;
 }
 
