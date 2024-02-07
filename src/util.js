@@ -888,7 +888,8 @@ async function downloadAndResizeImage(
   height,
   imageType = "photo",
   minKb,
-  maxKb
+  maxKb,
+  convertToPNG = false
 ) {
   let folder = photosFolder;
   let url = passenger?.images?.photo;
@@ -933,7 +934,7 @@ async function downloadAndResizeImage(
   let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
   const resizedPath = path.join(
     folder,
-    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.jpg`
+    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.${convertToPNG ? 'png' : 'jpg'}`
   );
 
   if (url?.includes("placeholder")) {
@@ -973,11 +974,7 @@ async function downloadAndResizeImage(
       fit: sharp.fit.contain,
     })
     .withMetadata()
-    // Make high quality bump up file size
-    .jpeg({
-      quality,
-      chromaSubsampling: "4:4:4",
-    })
+    .toFormat(convertToPNG ? 'png' : 'jpeg', { quality, chromaSubsampling: '4:4:4' })
     .toFile(resizedPath);
 
   let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
@@ -989,11 +986,7 @@ async function downloadAndResizeImage(
         fit: sharp.fit.contain,
       })
       .withMetadata()
-      // Make high quality bump up file size
-      .jpeg({
-        quality,
-        chromaSubsampling: "4:4:4",
-      })
+      .toFormat(convertToPNG ? 'png' : 'jpeg', { quality, chromaSubsampling: '4:4:4' })
       .toFile(resizedPath);
     sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }
@@ -1005,11 +998,7 @@ async function downloadAndResizeImage(
         fit: sharp.fit.contain,
       })
       .withMetadata()
-      // Make high quality bump up file size
-      .jpeg({
-        quality,
-        chromaSubsampling: "4:4:4",
-      })
+      .toFormat(convertToPNG ? 'png' : 'jpeg', { quality, chromaSubsampling: '4:4:4' })
       .toFile(resizedPath);
     sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }

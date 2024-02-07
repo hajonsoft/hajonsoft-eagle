@@ -50,11 +50,6 @@ async function fetchNusukIMAPOTP(recipient, password, subject, callback) {
               if (info.which === "TEXT") {
                 const clean = buffer;
                 messages[seqno].body = clean;
-                console.log(
-                  "📢[imap.js:56]: messages[seqno].body: ",
-                  messages[seqno].body
-                );
-
                 const englishOtp = messages[seqno].body.match(
                   /OTP is (\d{6})/
                 )?.[1];

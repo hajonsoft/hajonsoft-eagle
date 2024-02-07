@@ -464,6 +464,12 @@ async function pageContentHandler(currentConfig) {
       );
 
       await page.$eval(
+        "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(9) > div > div.col-md-6.font-semibold.align-self-center",
+        (el, nationality) => (el.innerText = `Nationality: ${nationality}`),
+        passenger.nationality.name
+      );
+
+      await page.$eval(
         "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(17) > div > div.col-md-6.font-semibold.align-self-center",
         (el, expireDate) => (el.innerText = `Expire Date: ${expireDate}`),
         passenger.passExpireDt.dmmmy
@@ -584,7 +590,7 @@ async function pageContentHandler(currentConfig) {
           [
             {
               selector: "#BackgroundStepOneViewModel_ResidencyIdNumber",
-              value: (row) => row.passportNumber,
+              value: (row) => row.idNumber || row.passportNumber,
             },
             // {
             //   selector: "#BackgroundStepOneViewModel_ResidenceIdIssueDate",
@@ -597,7 +603,24 @@ async function pageContentHandler(currentConfig) {
           ],
           passenger
         );
-        // TODO: upload the residency card
+        await page.$eval(
+          "body > main > div.system > div > div.system-content.p-3 > form > div.row.mb-4 > div:nth-child(2) > div > label",
+          (el, idNumber) => (el.innerText = "Residency ID Number: " + idNumber),
+          passenger.idNumber
+        );
+
+        await page.$eval(
+          "body > main > div.system > div > div.system-content.p-3 > form > div.row.mb-4 > div:nth-child(3) > div > label",
+          (el, issueDate) => (el.innerText = "Residence ID Issue Date: " + issueDate),
+          passenger.idIssueDt.dmmmy
+        );
+
+        await page.$eval(
+          "body > main > div.system > div > div.system-content.p-3 > form > div.row.mb-4 > div:nth-child(4) > div.mb-3.datepicker-input > label",
+          (el, expireDate) => (el.innerText = "Residence ID Expiry Date: " + expireDate),
+          passenger.idExpireDt.dmmmy
+        );
+
       } else {
         await checkIfNotChecked("#HaveValidResidencyNo");
       }
@@ -610,12 +633,12 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
-      if (passenger.nationality.code === data.system.country.code) {
-        await page.waitForTimeout(1000);
-        await page.click(
-          "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
-        );
-      }
+      // if (passenger.nationality.code === data.system.country.code) {
+      //   await page.waitForTimeout(1000);
+      //   await page.click(
+      //     "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
+      //   );
+      // }
       break;
     case "summary2":
       await checkIfNotChecked("#DeportedFromAnyCountryBeforeNo");
@@ -631,10 +654,10 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
-      await util.clickWhenReady(
-        "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3",
-        page
-      );
+      // await util.clickWhenReady(
+      //   "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3",
+      //   page
+      // );
       break;
     case "preferences":
       await page.evaluate(() => {
@@ -903,7 +926,7 @@ async function getOTPCode() {
     if (pageMode.includes("Registration") || pageMode.includes("التسجيل")) {
       await fetchNusukIMAPOTP(
         passenger.email || emailAddress,
-        data.system.username.split("/")?.[1],
+        data.system.adminEmailPassword,
         ["Email Activation", "تفعيل البريد الالكتروني"],
         pasteOTPCode
       );
@@ -913,13 +936,13 @@ async function getOTPCode() {
     ) {
       await fetchNusukIMAPOTP(
         passenger.email || emailAddress,
-        data.system.username.split("/")?.[1],
+        data.system.adminEmailPassword,
         ["One Time Password", "رمز سري لمرة واحدة"],
         pasteOTPCode
       );
     }
   } catch (e) {
-    await util.infoMessage(page, "Manual code required!");
+    await util.infoMessage(page, "Manual code required or try again!");
   }
 }
 
@@ -930,7 +953,7 @@ async function getCompanionOTPCode() {
   try {
     await fetchNusukIMAPOTP(
       passenger.email || emailAddress,
-      data.system.username.split("/")?.[1],
+      data.system.adminEmailPassword,
       ["One Time Password", "رمز سري لمرة واحدة"],
       pasteOTPCodeCompanion
     );
@@ -1297,71 +1320,101 @@ async function loginPassenger(selectedTraveler) {
 
 async function uploadDocuments(selectedTraveler) {
   const passenger = data.travellers[selectedTraveler];
+  const isPassportNotUploaded = await page.$("#passportPhoto");
+  if (isPassportNotUploaded) {
+    // await page.waitForSelector("#passportPhoto", {
+    //   timeout: 0,
+    // });
 
-  await page.waitForSelector("#passportPhoto", {
-    timeout: 0,
-  });
-  // const resizedPassportPath = await util.downloadAndResizeImage(
-  //   passenger,
-  //   400,
-  //   800,
-  //   "passport",
-  //   400,
-  //   1024,
-  //   "png"
+    const resizedPassportPath = await util.downloadAndResizeImage(
+      passenger,
+      400,
+      800,
+      "passport",
+      400,
+      1024,
+      true
+    );
+    await util.commitFile("#passportPhoto", resizedPassportPath);
+  }
+
+  // const passportPath = path.join(
+  //   util.passportsFolder,
+  //   `${passenger.passportNumber}.jpg`
+  // );
+  // await util.downloadImage(passenger.images.passport, passportPath);
+
+  // await util.commitFile("#passportPhoto", passportPath);
+
+  const isPhotoNotUploaded = await page.$("#personalPhoto");
+  if (isPhotoNotUploaded) {
+    // await page.waitForSelector("#personalPhoto", {
+    //   timeout: 0,
+    // });
+
+    // TODO: image not being resized to 15kb...
+    const resizedPhotoPath = await util.downloadAndResizeImage(
+      passenger,
+      200,
+      200,
+      "photo",
+      5,
+      17,
+      true
+    );
+    await util.commitFile("#personalPhoto", resizedPhotoPath);
+  }
+  // const photoPath = path.join(
+  //   util.photosFolder,
+  //   `${passenger.passportNumber}_photo.jpg`
   // );
 
-  // await util.commitFile("#passportPhoto", resizedPassportPath);
+  // await util.downloadImage(passenger.images.photo, photoPath);
 
-  const passportPath = path.join(
-    util.passportsFolder,
-    `${passenger.passportNumber}.jpg`
-  );
-  await util.downloadImage(passenger.images.passport, passportPath);
+  // await util.commitFile("#personalPhoto", photoPath);
 
-  await util.commitFile("#passportPhoto", passportPath);
+  const isResidencyNotUploaded = await page.$("#residencyPhoto");
 
-  await page.waitForSelector("#personalPhoto", {
-    timeout: 0,
-  });
+  if (isResidencyNotUploaded) {
+    // residence upload
+    try {
+      // await page.waitForSelector("#residencyPhoto", {
+      //   timeout: 0,
+      // });
 
-  // TODO: image not being resized to 15kb...
-  // const resizedPhotoPath = await util.downloadAndResizeImage(
-  //   passenger,
-  //   200,
-  //   200,
-  //   "photo",
-  //   5,
-  //   17
-  // );
-  // await util.commitFile("#personalPhoto", resizedPhotoPath);
+      // let residencyPath = path.join(
+      //   util.residencyFolder,
+      //   `${passenger.passportNumber}_res.jpg`
+      // );
+      // await util.downloadImage(
+      //   passenger.images.residency || passenger.images.passport,
+      //   residencyPath
+      // );
 
-  const photoPath = path.join(
-    util.photosFolder,
-    `${passenger.passportNumber}_photo.jpg`
-  );
+      const residencyPath = await util.downloadAndResizeImage(
+        passenger,
+        400,
+        800,
+        "residency",
+        400,
+        1024,
+        true
+      );
+      await util.commitFile("#residencyPhoto", residencyPath);
+    } catch {
+      const residencyPath2 = await util.downloadAndResizeImage(
+        passenger,
+        400,
+        800,
+        "passport",
+        400,
+        1024,
+        true
+      );
 
-  await util.downloadImage(passenger.images.photo, photoPath);
-
-  await util.commitFile("#personalPhoto", photoPath);
-
-  await page.waitForTimeout(5000);
-  // residence upload
-  try {
-    let residencyPath = path.join(
-      util.residencyFolder,
-      `${passenger.passportNumber}_res.jpg`
-    );
-    await page.waitForSelector("#residencyPhoto", {
-      timeout: 0,
-    });
-
-    await util.downloadImage(
-      passenger.images.residency || passenger.images.passport,
-      residencyPath
-    );
-    await util.commitFile("#residencyPhoto", residencyPath);
-  } catch {}
+      await util.commitFile("#residencyPhoto", residencyPath2);
+    }
+  }
 }
 
 async function uploadFakePassport() {
