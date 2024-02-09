@@ -210,7 +210,6 @@ function toPassengers(passengers) {
       slug: `${fullName} ${getAge(passenger) ?? 0} ${passenger.gender ?? ""} ${
         passenger.nationality ?? ""
       }`,
-      writeBack: "",
       nationality:
         passenger.nationality && nationalities[passenger.nationality],
       issuer: issuerCode ? nationalities[issuerCode] : undefined,
