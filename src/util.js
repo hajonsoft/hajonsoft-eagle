@@ -529,6 +529,7 @@ async function controller(page, structure, travellers) {
   let options =
     "<option value='-1'>Select passenger click send حدد الراكب انقر إرسل</option>" +
     travellers
+      // .filter((t) => !t.email.includes(".companion"))
       .map(
         (traveller, cursor) =>
           `<option value="${cursor}" ${
@@ -846,7 +847,6 @@ async function commitFile(selector, fileName, imgElementSelector) {
     }
     const input = await page.$(selector);
     await input.uploadFile(fileName);
-
   } catch (err) {
     console.log(err);
   }
@@ -934,7 +934,9 @@ async function downloadAndResizeImage(
   let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
   const resizedPath = path.join(
     folder,
-    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.${convertToPNG ? 'png' : 'jpg'}`
+    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.${
+      convertToPNG ? "png" : "jpg"
+    }`
   );
 
   if (url?.includes("placeholder")) {
@@ -974,7 +976,10 @@ async function downloadAndResizeImage(
       fit: sharp.fit.contain,
     })
     .withMetadata()
-    .toFormat(convertToPNG ? 'png' : 'jpeg', { quality, chromaSubsampling: '4:4:4' })
+    .toFormat(convertToPNG ? "png" : "jpeg", {
+      quality,
+      chromaSubsampling: "4:4:4",
+    })
     .toFile(resizedPath);
 
   let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
@@ -986,7 +991,10 @@ async function downloadAndResizeImage(
         fit: sharp.fit.contain,
       })
       .withMetadata()
-      .toFormat(convertToPNG ? 'png' : 'jpeg', { quality, chromaSubsampling: '4:4:4' })
+      .toFormat(convertToPNG ? "png" : "jpeg", {
+        quality,
+        chromaSubsampling: "4:4:4",
+      })
       .toFile(resizedPath);
     sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }
@@ -998,7 +1006,10 @@ async function downloadAndResizeImage(
         fit: sharp.fit.contain,
       })
       .withMetadata()
-      .toFormat(convertToPNG ? 'png' : 'jpeg', { quality, chromaSubsampling: '4:4:4' })
+      .toFormat(convertToPNG ? "png" : "jpeg", {
+        quality,
+        chromaSubsampling: "4:4:4",
+      })
       .toFile(resizedPath);
     sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
   }
@@ -1379,26 +1390,28 @@ async function SolveIamNotARobot(responseSelector, url, siteKey) {
     return null;
   }
 
-  for (let i = 0; i < 10; i++) {
-    const res = await axios.get(
-      `http://2captcha.com/res.php?key=${global.captchaKey}&action=get&id=${id}`
-    );
-    console.log("solving I am not a robot", id, i);
-    if (res.data.split("|")[0] === "OK") {
-      const tokenValue = res.data.split("|")[1].replace(/ /g, "");
-      console.log(
-        "📢[util.js:1358]: I am not a robot tokenValue: ",
-        tokenValue
+  try {
+    for (let i = 0; i < 10; i++) {
+      const res = await axios.get(
+        `http://2captcha.com/res.php?key=${global.captchaKey}&action=get&id=${id}`
       );
-      await page.$eval(responseSelector, (el) => {
-        el.style.display = "block";
-      });
-      await page.type(responseSelector, tokenValue);
-      return tokenValue;
+      console.log("solving I am not a robot", id, i);
+      if (res.data.split("|")[0] === "OK") {
+        const tokenValue = res.data.split("|")[1].replace(/ /g, "");
+        console.log(
+          "📢[util.js:1358]: I am not a robot tokenValue: ",
+          tokenValue
+        );
+        await page.$eval(responseSelector, (el) => {
+          el.style.display = "block";
+        });
+        await page.type(responseSelector, tokenValue);
+        return tokenValue;
+      }
+      // wait 5 seconds
+      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
-    // wait 5 seconds
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-  }
+  } catch {}
 }
 const premiumSupportAlert = async (page, selector, data) => {
   await page.waitForSelector(selector);
