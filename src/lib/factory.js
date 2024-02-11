@@ -193,6 +193,7 @@ function toPassengers(passengers) {
   // start kea to eagle translation
   const eagleTravellers = [];
   for (const passenger of sortedTravelers) {
+    console.log("📢[factory.js:196]: passenger: ", passenger);
     const codeLine = passenger.mrz?.trim() ?? toCodeLine(passenger);
     const fullName = `${passenger.givenNames} ${passenger.surname}`;
     if (!codeLine) {
@@ -246,6 +247,7 @@ function toPassengers(passengers) {
       passportNumber: passenger.passportNumber,
       idNumber: passenger.residencyNumber,
       mofaNumber: passenger.mofaNumber,
+      isCompanion: passenger.companionIds?.length > 0 && !passenger.isPartyLeader,
       eNumber: passenger.eNumber,
       placeOfIssue: passenger.passportIssuePlace,
       codeline: codeLine,

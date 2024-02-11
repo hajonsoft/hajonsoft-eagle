@@ -503,7 +503,7 @@ function getOptionNode(passenger, cursor) {
         : passenger.name.full
     } - ${passenger.passportNumber} - ${passenger?.nationality?.name} - ${
     passenger?.gender || "gender"
-  } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(passenger)}
+  } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(passenger)}${passenger.email.includes(".companion") || passenger.isCompanion ? '(companion)' : ''}
     </div>
   </div>
   `;
