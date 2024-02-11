@@ -803,6 +803,7 @@ async function getCompanionOTPCode() {
 }
 
 async function addNewMember(selectedTraveler) {
+  emailCodeCounter = 0;
   await util.setSelectedTraveller(selectedTraveler);
   const addCompanionSelector = "button[data-bs-target='#addFamilyMemberModal']";
   await util.clickWhenReady(addCompanionSelector, page);
