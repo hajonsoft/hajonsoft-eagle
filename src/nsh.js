@@ -579,10 +579,10 @@ async function pageContentHandler(currentConfig) {
         window.scrollTo(0, document.body.scrollHeight);
       });
 
-      // await util.clickWhenReady(
-      //   "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-submit.btn-next.font-semibold.text-white.mb-3",
-      //   page
-      // );
+      await util.clickWhenReady(
+        "body > main > div.system > div > form > div > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button",
+        page
+      );
       break;
     case "upload-documents":
       await util.controller(page, currentConfig, data.travellers);
@@ -723,7 +723,7 @@ async function checkIfNotChecked(selector) {
       radioButton.dispatchEvent(new Event("change"));
     }, selector);
   } catch (error) {
-    console.error("Error:", error);
+    // console.error("Error:", error);
   }
 }
 
@@ -739,7 +739,7 @@ async function uncheckIfChecked(selector) {
       radioButton.dispatchEvent(new Event("change"));
     }, selector);
   } catch (error) {
-    console.error("Error:", error);
+    // console.error("Error:", error);
   }
 }
 
@@ -1201,6 +1201,8 @@ async function pasteOTPCodeCompanion(err, code) {
     ],
     {}
   );
+
+  await util.clickWhenReady("#OTPModalBtn", page);
 }
 
 function getPassword() {
@@ -1285,6 +1287,11 @@ async function completeRegistration(selectedTraveler) {
 
   await checkIfNotChecked("#PassportSummaryViewModel_ConsentToAllAboveData");
   await checkIfNotChecked("#PassportSummaryViewModel_ConfirmAccuracyOfData");
+  const nationality = nationalities.find(
+    (n) =>
+      n.name.toLowerCase().trim() ===
+      passenger.nationality.name.toLowerCase().trim()
+  )?.uuid;
   await util.commit(
     page,
     [
@@ -1336,8 +1343,30 @@ async function completeRegistration(selectedTraveler) {
         selector: "#PassportSummaryViewModel_PassportNumber",
         value: (row) => row.passportNumber,
       },
+      {
+        selector: "#PassportSummaryViewModel_GenderId",
+        value: (row) => (row.gender === "Male" ? "24d70000-4100-0250-c0aa-08da85bad857" : "24d70000-4100-0250-08e6-08da85bae1e6"),
+      },
+      {
+        selector: "#PassportSummaryViewModel_PassportTypeId",
+        value: (row) => "074240a9-e07f-4959-889d-b163c8743dad",
+      },
+      {
+        selector: "#PassportSummaryViewModel_IssuePlace",
+        value: (row) => row.placeOfIssue,
+      },
+      {
+        selector: "#PassportSummaryViewModel_NationalityId",
+        value: (row) => nationality,
+      },
     ],
     passenger
+  );
+
+  await page.$eval(
+    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(11) > div > div.col-md-6.font-semibold.align-self-center",
+    (el, birthPlace) => (el.innerText = `Birth Place: ${birthPlace}`),
+    passenger.birthPlace
   );
 
   await page.$eval(
@@ -1359,6 +1388,12 @@ async function completeRegistration(selectedTraveler) {
   );
 
   await page.$eval(
+    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(12) > div > div.col-md-6.font-semibold.align-self-center",
+    (el, gender) => (el.innerText = `Gender: ${gender}`),
+    passenger.gender
+  );
+
+  await page.$eval(
     "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(17) > div > div.col-md-6.font-semibold.align-self-center",
     (el, expireDate) => (el.innerText = `Expire Date: ${expireDate}`),
     passenger.passExpireDt.dmmmy
@@ -1368,6 +1403,12 @@ async function completeRegistration(selectedTraveler) {
     "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(14) > div > div.col-md-6.font-semibold.align-self-center",
     (el, passportNumber) => (el.innerText = `Passport No: ${passportNumber}`),
     passenger.passportNumber
+  );
+
+  await page.$eval(
+    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(15) > div > div.col-md-6.font-semibold.align-self-center",
+    (el, issuePlace) => (el.innerText = `Issue Place: ${issuePlace}`),
+    passenger.placeOfIssue
   );
 
   kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
