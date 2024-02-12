@@ -757,6 +757,11 @@ async function loginOrRegister(selectedTraveler) {
 
 async function getOTPCode() {
   const passenger = data.travellers[util.getSelectedTraveler()];
+  if (!canGetCode(passenger.email || emailAddress,data.system.username)) {
+    await util.infoMessage(page, "Manual code required or try again!");
+    return;
+  }
+
   // If the page contain the word Registration, then registration. If it contains "OTP Verification"
   const pageMode = await page.$eval(
     "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div > ol > li.breadcrumb-item.small.active",
@@ -788,6 +793,10 @@ async function getOTPCode() {
 
 async function getCompanionOTPCode() {
   const passenger = data.travellers[util.getSelectedTraveler()];
+  if (!canGetCode(passenger.email || emailAddress,data.system.username)) {
+    await util.infoMessage(page, "Manual code required or try again!");
+    return;
+  }
   // If the page contain the word Registration, then registration. If it contains "OTP Verification"
   const pageMode = "OTP Verification";
   try {
@@ -1345,7 +1354,10 @@ async function completeRegistration(selectedTraveler) {
       },
       {
         selector: "#PassportSummaryViewModel_GenderId",
-        value: (row) => (row.gender === "Male" ? "24d70000-4100-0250-c0aa-08da85bad857" : "24d70000-4100-0250-08e6-08da85bae1e6"),
+        value: (row) =>
+          row.gender === "Male"
+            ? "24d70000-4100-0250-c0aa-08da85bad857"
+            : "24d70000-4100-0250-08e6-08da85bae1e6",
       },
       {
         selector: "#PassportSummaryViewModel_PassportTypeId",
@@ -1414,6 +1426,13 @@ async function completeRegistration(selectedTraveler) {
   kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
     "submissionData.nsh.status": "Submitted",
   });
+}
+
+function canGetCode(email, domain) {
+  if (email.includes(domain)) {
+    return true;
+  }
+  return false;
 }
 
 module.exports = { send };
