@@ -3,7 +3,7 @@ const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const util = require("./util");
-const { getPath } = util;
+const { getPath } = require("./lib/getPath");
 
 let page;
 let data;

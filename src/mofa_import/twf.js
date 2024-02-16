@@ -1,6 +1,6 @@
 const { config } = require("../twf");
 const util = require("../util");
-const { getPath } = util;
+const { getPath } = require("../lib/getPath");
 const fs = require("fs");
 const kea = require("../lib/kea");
 const { homedir } = require("os");

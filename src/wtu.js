@@ -6,7 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const kea = require("./lib/kea");
 const util = require("./util");
-const { getPath } = util;
+const { getPath } = require("./lib/getPath");
 const short = require("short-uuid");
 
 let page;

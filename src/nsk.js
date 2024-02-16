@@ -6,7 +6,7 @@ puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const path = require("path");
 const util = require("./util");
-const { getPath } = util;
+const { getPath } = require("./lib/getPath");
 const totp = require("totp-generator");
 const kea = require("./lib/kea");
 const { PDFDocument, rgb } = require("pdf-lib");
