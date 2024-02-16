@@ -50,6 +50,10 @@ async function main() {
     return runInteractive();
   }
 
+  if (process.argv.includes("-p")) {
+    return runParallelRun();
+  }
+
   console.log(
     `https://hajonsoft-kea.web.app/admin/submissions/${
       process.argv
@@ -375,8 +379,8 @@ function runParallelRun() {
       if (arg.startsWith("--passengerIds")) {
         return `--passengerIds=${passengerId}`;
       }
-      if (arg.startsWith("-i")) {
-        return "-auto";
+      if (arg.startsWith("-i") || arg.startsWith("-p")) {
+        return "--auto -windowed";
       }
       return arg;
     });

@@ -277,8 +277,12 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "home":
       await util.controller(page, currentConfig, data.travellers);
-      if (process.argv.includes("-auto")) {
-        await loginOrRegister("0");
+      if (process.argv.includes("--auto")) {
+        if (passenger.email.includes(".companion") || passenger.isCompanion) {
+          await page.browser().close();
+        } else {
+          await loginOrRegister("0");
+        }
       }
       break;
     case "index":
@@ -654,7 +658,7 @@ async function pageContentHandler(currentConfig) {
       // logout after 10 seconds if the user did not go to another page
       setTimeout(async () => {
         const currentUrl = await page.url();
-        if (currentUrl === URLS.SUCCESS) {
+        if (currentUrl === URLS.SUCCESS && !process.argv.includes("--auto")) {
           await page.goto("https://hajj.nusuk.sa/Account/SignOut");
         }
       }, 10000);
@@ -760,7 +764,7 @@ async function loginOrRegister(selectedTraveler) {
 
 async function getOTPCode() {
   const passenger = data.travellers[util.getSelectedTraveler()];
-  if (!canGetCode(passenger.email || emailAddress,data.system.username)) {
+  if (!canGetCode(passenger.email || emailAddress, data.system.username)) {
     await util.infoMessage(page, "Manual code required or try again!");
     return;
   }
@@ -796,7 +800,7 @@ async function getOTPCode() {
 
 async function getCompanionOTPCode() {
   const passenger = data.travellers[util.getSelectedTraveler()];
-  if (!canGetCode(passenger.email || emailAddress,data.system.username)) {
+  if (!canGetCode(passenger.email || emailAddress, data.system.username)) {
     await util.infoMessage(page, "Manual code required or try again!");
     return;
   }
