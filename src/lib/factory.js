@@ -193,7 +193,6 @@ function toPassengers(passengers) {
   // start kea to eagle translation
   const eagleTravellers = [];
   for (const passenger of sortedTravelers) {
-    console.log("📢[factory.js:196]: passenger: ", passenger);
     const codeLine = passenger.mrz?.trim() ?? toCodeLine(passenger);
     const fullName = `${passenger.givenNames} ${passenger.surname}`;
     if (!codeLine) {

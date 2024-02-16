@@ -5,7 +5,7 @@ puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const path = require("path");
 const util = require("./util");
-const { getPath } = util;
+const { getPath } = require("./lib/getPath");
 const kea = require("./lib/kea");
 const moment = require("moment");
 const budgie = require("./budgie");
@@ -277,6 +277,9 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "home":
       await util.controller(page, currentConfig, data.travellers);
+      if (process.argv.includes("-auto")) {
+        await loginOrRegister("0");
+      }
       break;
     case "index":
       if (manualMode === "login") {

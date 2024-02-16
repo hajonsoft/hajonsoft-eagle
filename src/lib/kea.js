@@ -21,6 +21,7 @@ const { storage } = require("./firebase");
 const short = require("short-uuid");
 const sharp = require("sharp");
 const { ref, uploadString, getDownloadURL } = require("firebase/storage");
+const { getPath } = require("./getPath");
 
 function chunkArray(array, perChunk) {
   return array.reduce((accumulator, item, index) => {
@@ -170,7 +171,7 @@ const getAccount = async (accountId) => {
 
 // Get data and write to data.json
 const writeData = async () => {
-  const dataFilePath = path.join(os.tmpdir(), "hajonsoft-eagle", "data.json");
+  const dataFilePath = getPath("data.json");
   console.log(`Wrote data file to ${dataFilePath}`);
   // Generate specific passengers (if specified), or whole submission
   const passengers = await fetchPassengers(

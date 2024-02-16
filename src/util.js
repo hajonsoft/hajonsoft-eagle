@@ -9,6 +9,7 @@ puppeteer.use(StealthPlugin());
 const RecaptchaPlugin = require("puppeteer-extra-plugin-recaptcha");
 // TODO: Copilot suggestion to use recaptcha
 puppeteer.use(RecaptchaPlugin());
+const {getPath} = require("./lib/getPath");
 
 const sharp = require("sharp");
 const budgie = require("./budgie");
@@ -29,6 +30,7 @@ const IMGUR_CLIENT_ID = "0b4827447357d6b";
 const IMGUR_CLIENT_SECRET = "c842b1a08f0748150465ec643c04c0aeb17329c7";
 const kea = require("./lib/kea");
 
+
 // or your client ID
 const imgurClient = new ImgurClient({
   clientId: IMGUR_CLIENT_ID,
@@ -38,29 +40,6 @@ const imgurClient = new ImgurClient({
 let page;
 let browser;
 
-function getTmpDir() {
-  const tmpDir = path.join(os.tmpdir(), "hajonsoft-eagle");
-  // console.log("TMP DIR: " + tmpDir);
-  if (!fs.existsSync(tmpDir)) {
-    fs.mkdirSync(tmpDir, { recursive: true });
-  }
-  return tmpDir;
-}
-
-function getPath(filename) {
-  const isCloudRun = Boolean(process.argv.find((c) => c.startsWith("-cloud")));
-  switch (filename) {
-    case "data.json":
-      let dataFileName = path.join(getTmpDir(), "data.json");
-      // Fallback to current working dir (used by eagle cloud)
-      if (isCloudRun) {
-        dataFileName = path.join(__dirname, "..", "data.json");
-      }
-      return dataFileName;
-    default:
-      return path.join(getTmpDir(), filename);
-  }
-}
 
 function getChromePath() {
   switch (os.platform()) {
@@ -1665,8 +1644,6 @@ async function clickWhenReady(selector, page) {
 }
 
 module.exports = {
-  getTmpDir,
-  getPath,
   hijriYear,
   findConfig,
   commit,

@@ -4,7 +4,7 @@ puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const path = require("path");
 const util = require("./util");
-const { getPath } = util;
+const { getPath } = require("./lib/getPath");
 const moment = require("moment");
 const sharp = require("sharp");
 const os = require("os");

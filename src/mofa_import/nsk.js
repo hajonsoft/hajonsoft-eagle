@@ -1,7 +1,7 @@
 const util = require("../util");
 const kea = require("../lib/kea");
 const axios = require("axios");
-const { getPath } = util;
+const { getPath } = require("../lib/getPath");
 const fs = require("fs");
 const totp = require("totp-generator");
 const { PDFDocument, StandardFonts } = require("pdf-lib");

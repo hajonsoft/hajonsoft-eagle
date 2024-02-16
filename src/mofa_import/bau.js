@@ -1,7 +1,7 @@
 const { config, SERVER_NUMBER } = require("../bau");
 const util = require("../util");
 const kea = require("../lib/kea");
-const { getPath } = util;
+const { getPath } =require("../lib/getPath");
 const fs = require("fs");
 const cheerio = require("cheerio");
 

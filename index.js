@@ -24,7 +24,7 @@ const { send: sendChv } = require("./src/chv");
 const { send: sendEgp } = require("./src/egp");
 
 const util = require("./src/util");
-const { getPath } = util;
+const { getPath } = require("./src/lib/getPath");
 const path = require("path");
 const Cryptr = require("cryptr");
 const fs = require("fs");
@@ -314,6 +314,7 @@ function runInteractive() {
           "3- Update Budgie...",
           `4- Set download folder. [${getDownloadFolder()}]`,
           "5- Get SMS number",
+          "6- Parallel run",
           "0- Exit",
         ],
       },
@@ -348,12 +349,56 @@ function runInteractive() {
         return;
       }
       if (answers.action.startsWith("5-")) {
-        return runGetSMSNumber();
+        return ;
+      }
+      if (answers.action.startsWith("6-")) {
+        return runParallelRun();
       }
       if (answers.action.startsWith("0-")) {
         process.exit(0);
       }
     });
+}
+
+function runParallelRun() {
+  const passengerIds = process.argv.find((c) => c.startsWith("--passengerIds"));
+  if (!passengerIds) {
+    console.log("No passengerIds found");
+    process.exit(1);
+  }
+
+  const passengerIdList = passengerIds.split("=")[1].split(",");
+  // reuse the same command line arguments but set the passenerIds to one at a time
+  let commands = [];
+  passengerIdList.forEach((passengerId) => {
+    const newArgs = process.argv.map((arg) => {
+      if (arg.startsWith("--passengerIds")) {
+        return `--passengerIds=${passengerId}`;
+      }
+      if (arg.startsWith("-i")) {
+        return "-auto";
+      }
+      return arg;
+    });
+    commands.push(`node . ${newArgs.join(" ")}`);
+  });
+
+  const newCommand = commands.join(" & ");
+
+  // execute the command
+  const childProcess = require("child_process");
+  childProcess.exec(newCommand, function (error, stdout, stderr) {
+    if (error) {
+      console.log("Parallel Run Error: " + error.code);
+    }
+    if (stdout) {
+      console.log("Parallel Run: " + stdout);
+    }
+    if (stderr) {
+      console.log("Parallel Run: " + stderr);
+    }
+  });
+
 }
 
 function getDownloadFolder() {
