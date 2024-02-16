@@ -774,6 +774,7 @@ async function getOTPCode() {
     "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div > ol > li.breadcrumb-item.small.active",
     (el) => el.innerText
   );
+  await page.$eval("#otpForm > label", (el, email) => el.innerText = email, passenger.email || emailAddress);
   try {
     if (pageMode.includes("Registration") || pageMode.includes("التسجيل")) {
       await fetchNusukIMAPOTP(
