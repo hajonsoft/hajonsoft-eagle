@@ -14,7 +14,6 @@ const { fetchNusukIMAPOTP } = require("./lib/imap");
 const { nusukNationalities: nationalities } = require("./data/nationalities");
 const childProcess = require("child_process");
 
-
 let page;
 let data;
 let counter = 0;
@@ -286,18 +285,21 @@ async function pageContentHandler(currentConfig) {
           !traveller.email.includes(".companion")
       );
 
-      await util.commander(page, {
-        controller: {
-          selector:
-            "body > main > div.home-full-bg > div.container-lg.container-fluid.h-100 > div.row.z-1.position-relative.align-content-end.home-full-text > div > h3",
-          title: `Login All Passengers (${leads.length})`,
-          arabicTitle: "تسجيل الدخول لجميع الركاب",
-          name: "parallel",
-          action: async () => {
-            await runParallel();
+      if (data.travellers.length > 1) {
+        await util.commander(page, {
+          controller: {
+            selector:
+              "body > main > div.home-full-bg > div.container-lg.container-fluid.h-100 > div.row.z-1.position-relative.align-content-end.home-full-text > div > h3",
+            title: `Login All Passengers (${leads.length})`,
+            arabicTitle: "تسجيل الدخول لجميع الركاب",
+            name: "parallel",
+            action: async () => {
+              await runParallel();
+            },
           },
-        },
-      });
+        });
+      }
+
       if (process.argv.includes("--auto")) {
         if (passenger.email.includes(".companion") || passenger.isCompanion) {
           await page.browser().close();
@@ -797,7 +799,8 @@ async function getOTPCode() {
   );
   await page.$eval(
     "#otpForm > label",
-    (el, email) => (el.innerText = email),
+    (el, email) =>
+      (el.innerText = `${email} from (admin@${email.split("@")[1]})`),
     passenger.email || emailAddress
   );
   try {
@@ -1487,9 +1490,9 @@ async function runParallel() {
       }
       return v;
     });
-    commands.push(newArgs.join(' '))
+    commands.push(newArgs.join(" "));
   }
-  const newCommand = commands.join (' & ')
+  const newCommand = commands.join(" & ");
   console.log("📢[nsh.js:1491]: oneCommand: ", newCommand);
   // run the command using child process
   childProcess.exec(newCommand, function (error, stdout, stderr) {
