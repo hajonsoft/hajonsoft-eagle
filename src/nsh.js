@@ -290,7 +290,7 @@ async function pageContentHandler(currentConfig) {
           controller: {
             selector:
               "body > main > div.home-full-bg > div.container-lg.container-fluid.h-100 > div.row.z-1.position-relative.align-content-end.home-full-text > div > h3",
-            title: `Login All Passengers (${leads.length})`,
+            title: `Login All Passengers (${Math.min(leads.length,15)}/${leads.length})`,
             arabicTitle: "تسجيل الدخول لجميع الركاب",
             name: "parallel",
             action: async () => {
@@ -1479,7 +1479,7 @@ async function runParallel() {
       !traveller.email.includes(".companion")
   );
   const commands = [];
-  for (let index = 0; index < leads.length; index++) {
+  for (let index = 0; index < Math.min(leads.length, 15); index++) {
     const passenger = leads[index];
     const newArgs = process.argv.map((v) => {
       if (v.startsWith("--submissionId")) {
