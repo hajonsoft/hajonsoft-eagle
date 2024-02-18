@@ -207,6 +207,8 @@ function toPassengers(passengers) {
     const issuerCode = codeLine?.substring(2, 5);
 
     const eagleTraveler = {
+      id: passenger.id,
+      submitCount: passenger.submissionIds?.length,
       slug: `${fullName} ${getAge(passenger) ?? 0} ${passenger.gender ?? ""} ${
         passenger.nationality ?? ""
       }`,

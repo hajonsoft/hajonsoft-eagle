@@ -353,7 +353,7 @@ function runInteractive() {
         return;
       }
       if (answers.action.startsWith("5-")) {
-        return ;
+        return;
       }
       if (answers.action.startsWith("6-")) {
         return runParallelRun();
@@ -402,7 +402,6 @@ function runParallelRun() {
       console.log("Parallel Run: " + stderr);
     }
   });
-
 }
 
 function getDownloadFolder() {
