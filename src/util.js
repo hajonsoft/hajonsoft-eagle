@@ -9,7 +9,7 @@ puppeteer.use(StealthPlugin());
 const RecaptchaPlugin = require("puppeteer-extra-plugin-recaptcha");
 // TODO: Copilot suggestion to use recaptcha
 puppeteer.use(RecaptchaPlugin());
-const {getPath} = require("./lib/getPath");
+const { getPath } = require("./lib/getPath");
 
 const sharp = require("sharp");
 const budgie = require("./budgie");
@@ -30,7 +30,6 @@ const IMGUR_CLIENT_ID = "0b4827447357d6b";
 const IMGUR_CLIENT_SECRET = "c842b1a08f0748150465ec643c04c0aeb17329c7";
 const kea = require("./lib/kea");
 
-
 // or your client ID
 const imgurClient = new ImgurClient({
   clientId: IMGUR_CLIENT_ID,
@@ -39,7 +38,6 @@ const imgurClient = new ImgurClient({
 
 let page;
 let browser;
-
 
 function getChromePath() {
   switch (os.platform()) {
@@ -482,7 +480,13 @@ function getOptionNode(passenger, cursor) {
         : passenger.name.full
     } - ${passenger.passportNumber} - ${passenger?.nationality?.name} - ${
     passenger?.gender || "gender"
-  } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(passenger)}${passenger.email.includes(".companion") || passenger.isCompanion ? '(companion)' : ''}
+  } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(
+    passenger
+  )}${
+    passenger.email?.includes(".companion") || passenger.isCompanion
+      ? "(companion)"
+      : ""
+  }
     </div>
   </div>
   `;

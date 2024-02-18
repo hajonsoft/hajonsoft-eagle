@@ -12,6 +12,8 @@ const budgie = require("./budgie");
 const gmail = require("./lib/gmail");
 const { fetchNusukIMAPOTP } = require("./lib/imap");
 const { nusukNationalities: nationalities } = require("./data/nationalities");
+const childProcess = require("child_process");
+
 
 let page;
 let data;
@@ -277,6 +279,25 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "home":
       await util.controller(page, currentConfig, data.travellers);
+      const leads = data.travellers.filter(
+        (traveller) =>
+          !traveller.isCompanion &&
+          traveller.email &&
+          !traveller.email.includes(".companion")
+      );
+
+      await util.commander(page, {
+        controller: {
+          selector:
+            "body > main > div.home-full-bg > div.container-lg.container-fluid.h-100 > div.row.z-1.position-relative.align-content-end.home-full-text > div > h3",
+          title: `Login All Passengers (${leads.length})`,
+          arabicTitle: "تسجيل الدخول لجميع الركاب",
+          name: "parallel",
+          action: async () => {
+            await runParallel();
+          },
+        },
+      });
       if (process.argv.includes("--auto")) {
         if (passenger.email.includes(".companion") || passenger.isCompanion) {
           await page.browser().close();
@@ -774,7 +795,11 @@ async function getOTPCode() {
     "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div > ol > li.breadcrumb-item.small.active",
     (el) => el.innerText
   );
-  await page.$eval("#otpForm > label", (el, email) => el.innerText = email, passenger.email || emailAddress);
+  await page.$eval(
+    "#otpForm > label",
+    (el, email) => (el.innerText = email),
+    passenger.email || emailAddress
+  );
   try {
     if (pageMode.includes("Registration") || pageMode.includes("التسجيل")) {
       await fetchNusukIMAPOTP(
@@ -1441,6 +1466,45 @@ function canGetCode(email, domain) {
     return true;
   }
   return false;
+}
+
+async function runParallel() {
+  const leads = data.travellers.filter(
+    (traveller) =>
+      !traveller.isCompanion &&
+      traveller.email &&
+      !traveller.email.includes(".companion")
+  );
+  const commands = [];
+  for (let index = 0; index < leads.length; index++) {
+    const passenger = leads[index];
+    const newArgs = process.argv.map((v) => {
+      if (v.startsWith("--submissionId")) {
+        return `${v} --passengerIds=${passenger.id} --auto -windowed`;
+      }
+      if (v.startsWith("--passengerId")) {
+        return ``;
+      }
+      return v;
+    });
+    commands.push(newArgs.join(' '))
+  }
+  const newCommand = commands.join (' & ')
+  console.log("📢[nsh.js:1491]: oneCommand: ", newCommand);
+  // run the command using child process
+  childProcess.exec(newCommand, function (error, stdout, stderr) {
+    if (error) {
+      console.log("Parallel Run Error: " + error.code);
+    }
+    if (stdout) {
+      console.log("Parallel Run: " + stdout);
+    }
+    if (stderr) {
+      console.log("Parallel Run: " + stderr);
+    }
+  });
+
+  await page.browser().close();
 }
 
 module.exports = { send };
