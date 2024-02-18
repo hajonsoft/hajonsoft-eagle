@@ -285,7 +285,7 @@ async function pageContentHandler(currentConfig) {
           !traveller.email.includes(".companion")
       );
 
-      if (data.travellers.length > 1) {
+      if (leads.length > 1) {
         await util.commander(page, {
           controller: {
             selector:
