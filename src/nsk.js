@@ -4,6 +4,7 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const axios = require("axios");
 puppeteer.use(StealthPlugin());
 const fs = require("fs");
+const moment = require("moment");
 const path = require("path");
 const util = require("./util");
 const { getPath } = require("./lib/getPath");
@@ -275,9 +276,7 @@ async function pageContentHandler(currentConfig) {
       if (!autoMode) return;
       await page.waitForTimeout(5000);
 
-      await page.goto(
-        getCreateGroupUrl(),
-      );
+      await page.goto(getCreateGroupUrl());
 
       break;
     case "dashboard":
@@ -303,9 +302,7 @@ async function pageContentHandler(currentConfig) {
         await page.waitForTimeout(5000);
         // if the page is still dashboard after 10 seconds, click on groups
         if (autoMode) {
-          await page.goto(
-            getCreateGroupUrl()
-          );
+          await page.goto(getCreateGroupUrl());
         }
       }
       break;
@@ -488,15 +485,19 @@ async function pageContentHandler(currentConfig) {
       // await pasteSimulatedPassport(shouldSimulatePassport, passenger);
 
       await util.commit(page, currentConfig.details, passenger);
+      const email = suggestEmail(passenger);
+      kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+        email: email,
+      });
       await util.commit(
         page,
         [
           {
             selector: "#Email",
-            value: (row) => row.email,
+            value: (row) => email,
           },
         ],
-        data.system
+        {}
       );
       // select the first option in the select
       await page.$eval("#IssueCity", (e) => {
@@ -533,11 +534,20 @@ async function pageContentHandler(currentConfig) {
 
       // is resident
       if (passenger.nationality.code !== data.system.country.code) {
-        await page.type(
-          "#IqamaId",
-          passenger.idNumber || passenger.passportNumber
-        );
-        await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
+        try {
+          await page.type(
+            "#IqamaId",
+            passenger.idNumber || passenger.passportNumber
+          );
+
+          await page.type(
+            "#IqamaExpiryDate",
+            `${passenger.passExpireDt.yyyy}-${passenger.passExpireDt.mm}-${passenger.passExpireDt.dd}`
+          );
+          await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
+        } catch (e) {
+          console.log("Error: ", e);
+        }
       }
 
       // allow photos to settle in the DOM
@@ -589,7 +599,7 @@ async function pageContentHandler(currentConfig) {
         },
       });
 
-      await page.select("#NusukPermitType", "11");
+      // await page.select("#NusukPermitType", "11");
       break;
     case "package-info":
       await util.commander(page, {
@@ -731,6 +741,26 @@ async function pasteSimulatedPassport(shouldSimulatePassport, passenger) {
       console.log("Error: ", err);
     }
   }
+}
+
+function suggestEmail(passenger) {
+  if (passenger.email) {
+    return passenger.email;
+  }
+
+  if (!data.system.email.startsWith("@")) {
+    return data.system.email;
+  }
+
+  const domain = data.system.email.split("@")[1];
+  const friendlyName = `${passenger.name.first}.${passenger.name.last}${moment()
+    .unix()
+    .toString(36)}`
+    .toLowerCase()
+    .replace(/ /g, "").padEnd(50 - 1 - domain.length, "x");
+  const email = `${friendlyName}@${domain}`;
+
+  return email;
 }
 
 module.exports = { send };
