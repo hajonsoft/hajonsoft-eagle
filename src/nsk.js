@@ -555,6 +555,7 @@ async function pageContentHandler(currentConfig) {
       await page.focus("#PassportNumber");
       await page.click("#PassportNumber");
       await page.waitForTimeout(500);
+      await page.waitForSelector("#qa-add-mutamer-save");
       await page.click("#qa-add-mutamer-save");
     case "permits":
       if (!autoMode) return;
