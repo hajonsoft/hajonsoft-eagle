@@ -789,10 +789,14 @@ function getSelectedTraveler() {
         process.exit(0);
       }, 2000);
     } else {
-      console.log("Last passenger reached!!. Exiting in 30 seconds...");
+      let timeoutValue = 30000;
+      if (data.system.name === "nsk") {
+        timeoutValue = 5000;
+      }
+      console.log(`Last passenger reached!!. Exiting in ${timeoutValue/1000} seconds...`);
       setTimeout(() => {
         process.exit(0);
-      }, 30000);
+      }, timeoutValue);
     }
   }
   return value;
