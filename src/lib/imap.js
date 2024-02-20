@@ -2,8 +2,11 @@ const moment = require("moment");
 const Imap = require("node-imap"),
   inspect = require("util").inspect;
 const fs = require("fs");
+const simpleParser = require('mailparser').simpleParser; // To parse email content
 
-const nusukFromEmail = "no_reply@hajj.nusuk.sa";
+
+const nshFromEmail = "no_reply@hajj.nusuk.sa";
+const nskFromEmail = "no-reply@mofa.gov.sa";
 const messages = {};
 
 async function fetchNusukIMAPOTP(recipient, password, subject, callback) {
@@ -37,7 +40,7 @@ async function fetchNusukIMAPOTP(recipient, password, subject, callback) {
         [
           "UNSEEN",
           ["OR", ...subjectArray],
-          ["HEADER", "FROM", nusukFromEmail],
+          ["HEADER", "FROM", nshFromEmail],
           ["HEADER", "TO", recipient],
           ["SINCE", sinceDate],
         ],
@@ -53,7 +56,7 @@ async function fetchNusukIMAPOTP(recipient, password, subject, callback) {
             var f = imap.fetch(msgSeqNo, {
               bodies: ["TEXT"],
               struct: true,
-              markSeen: true, 
+              markSeen: true,
             });
           }
 
@@ -121,6 +124,87 @@ async function fetchNusukIMAPOTP(recipient, password, subject, callback) {
   imap.connect();
 }
 
+async function fetchNusukIMAPPDF(recipient, password, subject, callback) {
+  var imap = new Imap({
+    user: `admin@${recipient.split("@")[1]}`,
+    password: password,
+    host: `mail.${recipient.split("@")[1]}`,
+    port: 993,
+    tls: true,
+    tlsOptions: { rejectUnauthorized: false },
+  });
+
+  function openInbox(cb) {
+    imap.openBox("INBOX", false, cb);
+  }
+  imap.once("ready", function () {
+    openInbox(function (err, box) {
+      if (err) throw err;
+      const subjectArray = subject.map((s) => ["HEADER", "SUBJECT", s]);
+
+      imap.search(
+        [
+          // "UNSEEN",
+          // ["OR", ...subjectArray],
+          ["HEADER", "FROM", nskFromEmail],
+          ["HEADER", "TO", recipient],
+        ],
+        function (err, results) {
+          if (err) throw err;
+
+          if (!results || !results.length) {
+            imap.end();
+            return callback("no-visa-pdf");
+          }
+          for (let i = 0; i < Math.min(results.length, 1); i++) {
+            var msgSeqNo = results[i];
+            var f = imap.fetch(msgSeqNo, {
+              bodies: "",
+              struct: true,
+              markSeen: false,
+            });
+          }
+
+          f.on("message", function (msg, seqno) {
+            msg.on("body", function (stream, info) {
+              simpleParser(stream, {}, (err, parsed) => {
+                if (err) throw err;
+
+                if (parsed.attachments && parsed.attachments.length) {
+                  parsed.attachments.forEach((attachment) => {
+                    if (attachment.contentType === "application/pdf") {
+                      callback(null, attachment);
+                      return;
+                    }
+                  });
+                }
+              });
+            });
+
+            msg.once("end", function () {
+
+            });
+          });
+
+          f.once("error", function (err) {
+            callback("Error: " + err);
+          });
+        }
+      );
+    });
+  });
+
+  imap.once("error", function (err) {
+    callback("Error: " + err);
+  });
+
+  imap.once("end", function () {
+    callback("Error: Connection ended");
+  });
+
+  imap.connect();
+}
+
 function decodeBase64(text) {
   return Buffer.from(text, "base64").toString("utf-8");
 }
@@ -157,4 +241,5 @@ function decodeQuotedPrintable(encodedText) {
 
 module.exports = {
   fetchNusukIMAPOTP,
+  fetchNusukIMAPPDF,
 };

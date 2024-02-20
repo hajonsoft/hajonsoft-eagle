@@ -19,8 +19,12 @@ const { toData } = require("./factory");
 const { query, get, ref: dbRef } = require("firebase/database");
 const { storage } = require("./firebase");
 const short = require("short-uuid");
-const sharp = require("sharp");
-const { ref, uploadString, getDownloadURL } = require("firebase/storage");
+const {
+  ref,
+  uploadString,
+  uploadBytes,
+  getDownloadURL,
+} = require("firebase/storage");
 const { getPath } = require("./getPath");
 
 function chunkArray(array, perChunk) {
@@ -64,7 +68,7 @@ const init = async () => {
 
   // Get captcha key from realtime database
   global.captchaKey = null;
-  const snapshot = await get(dbRef(database, "app-data/2captcha-key")); 
+  const snapshot = await get(dbRef(database, "app-data/2captcha-key"));
   if (snapshot.exists()) {
     global.captchaKey = snapshot.val();
     console.log("Captcha key found in database");
@@ -247,8 +251,21 @@ const updateSubmission = async (payload) => {
 };
 
 const uploadImageToStorage = async (base64, destination) => {
-  const imageRef = ref(storage, destination);
-  const snapshot = await uploadString(imageRef, base64, "base64");
+    const imageRef = ref(storage, destination);
+    const snapshot = await uploadString(imageRef, base64, "base64");
+    return await getDownloadURL(snapshot.ref);
+};
+
+const uploadPDFToStorage = async (filePath, destination, buffer) => {
+  const base64 = fs.readFileSync(filePath, "base64");
+
+  const pdfRef = ref(storage, destination);
+  // const uintData = new Uint8Array(
+  //   buffer ? buffer : Buffer.from(base64, "base64")
+  // );
+  // const snapshot = await uploadBytes(pdfRef, uintData)
+  const snapshot = await uploadString(pdfRef, base64, "base64");
+
   return await getDownloadURL(snapshot.ref);
 };
 
@@ -259,4 +276,5 @@ module.exports = {
   updatePassenger,
   updateSubmission,
   updateTargetSystem,
+  uploadPDFToStorage,
 };
