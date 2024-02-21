@@ -11,7 +11,6 @@ const { getPath } = require("./lib/getPath");
 const totp = require("totp-generator");
 const kea = require("./lib/kea");
 const { fetchNusukIMAPPDF } = require("./lib/imap");
-const { PDFDocument, rgb } = require("pdf-lib");
 
 let page;
 let data;
@@ -217,7 +216,7 @@ async function downloadVisas() {
   // TODO: review the english email subject
   for (let i = 0; i < data.travellers.length; i++) {
     if (data.travellers[i].email) {
-      fetchNusukIMAPPDF(
+      await fetchNusukIMAPPDF(
         data.travellers[i].email,
         data.system.adminEmailPassword,
         ["التأشيرة الإلكترونية", "Electronic Visa"],
@@ -240,10 +239,11 @@ async function saveVisaPDF(err, pdf, passenger, lastPassenger) {
   }
   if (pdf) {
     await util.pdfToKea(pdf.content, data.system.accountId, passenger);
-    console.log(`visa for ${passenger.slug} downloaded successfully`);
     if (lastPassenger) {
-      console.log("All visas downloaded successfully");
-      process.exit(0);
+      setTimeout(() => {
+        console.log("All visas downloaded successfully");
+        process.exit(0);
+      }, 5000);
     }
   }
 }
