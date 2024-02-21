@@ -793,7 +793,9 @@ function getSelectedTraveler() {
       if (data.system.name === "nsk") {
         timeoutValue = 5000;
       }
-      console.log(`Last passenger reached!!. Exiting in ${timeoutValue/1000} seconds...`);
+      console.log(
+        `Last passenger reached!!. Exiting in ${timeoutValue / 1000} seconds...`
+      );
       setTimeout(() => {
         process.exit(0);
       }, timeoutValue);
@@ -1610,6 +1612,37 @@ async function screenShotToKea(
   });
 }
 
+function getDownloadFolder() {
+  if (fs.existsSync(getPath(".downloadFolder"))) {
+    return fs.readFileSync(getPath(".downloadFolder"), "utf-8");
+  }
+  return path.join(homedir, "Downloads");
+}
+
+async function pdfToKea(
+  pdfBuffer,
+  accountId,
+  currentPassenger,
+  status = "visa"
+) {
+
+  const folder = path.join(getDownloadFolder(), "hajonsoft", "pdf");
+  if (!fs.existsSync(folder)) {
+    fs.mkdirSync(folder, { recursive: true });
+  }
+  const pdfFileName = path.join(folder, `visa_${currentPassenger.passportNumber}.pdf`);
+  fs.writeFileSync(pdfFileName, pdfBuffer);
+  const base64 = await pdfBuffer.toString("base64");
+  const pdfFilename = `visa_${currentPassenger.passportNumber}.pdf`;
+  const pdfDestination = `${accountId}/visaImageUrl/${pdfFilename}`;
+  const pdfUrl = await kea.uploadImageToStorage(base64, pdfDestination);
+  await kea.updatePassenger(accountId, currentPassenger.passportNumber, {
+    visaImageUrl: pdfUrl,
+    "submissionData.nsk.status": status,
+  });
+}
+
+
 async function remember(page, selector) {
   const val = await page.$eval(selector, (el) => el.value);
   budgie.save(selector, val);
@@ -1704,4 +1737,5 @@ module.exports = {
   registerLoop,
   downloadPDF,
   clickWhenReady,
+  pdfToKea,
 };

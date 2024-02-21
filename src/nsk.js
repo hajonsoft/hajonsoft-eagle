@@ -10,13 +10,13 @@ const util = require("./util");
 const { getPath } = require("./lib/getPath");
 const totp = require("totp-generator");
 const kea = require("./lib/kea");
+const { fetchNusukIMAPPDF } = require("./lib/imap");
 const { PDFDocument, rgb } = require("pdf-lib");
 
 let page;
 let data;
 let counter = 0;
 let passenger;
-
 function getLogFile() {
   const logFolder = path.join(getPath("log"), util.suggestGroupName(data));
   if (!fs.existsSync(logFolder)) {
@@ -213,8 +213,56 @@ const config = [
   },
 ];
 
+async function downloadVisas() {
+  // TODO: review the english email subject
+  for (let i = 0; i < data.travellers.length; i++) {
+    if (data.travellers[i].email) {
+      fetchNusukIMAPPDF(
+        data.travellers[i].email,
+        data.system.adminEmailPassword,
+        ["التأشيرة الإلكترونية", "Electronic Visa"],
+        (err, pdf) =>
+          saveVisaPDF(
+            err,
+            pdf,
+            data.travellers[i],
+            i === data.travellers.length - 1
+          )
+      );
+    }
+  }
+}
+
+async function saveVisaPDF(err, pdf, passenger, lastPassenger) {
+  if (err) {
+    console.log("Error: ", err);
+    return;
+  }
+  if (pdf) {
+    await util.pdfToKea(pdf.content, data.system.accountId, passenger);
+    console.log(`visa for ${passenger.slug} downloaded successfully`);
+    if (lastPassenger) {
+      console.log("All visas downloaded successfully");
+      process.exit(0);
+    }
+  }
+}
+
+function canActivateVisaDownloadMode(data) {
+  return (
+    data?.travellers?.length > 0 &&
+    data?.system?.adminEmailPassword &&
+    data.travellers.every((t) => t.email)
+  );
+}
+
 async function send(sendData) {
   data = sendData;
+  if (canActivateVisaDownloadMode(data)) {
+    console.log("Visa download mode activated. Downloading visas from email.");
+    await downloadVisas(data);
+    return;
+  }
   page = await util.initPage(config, onContentLoaded);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
@@ -758,7 +806,8 @@ function suggestEmail(passenger) {
     .unix()
     .toString(36)}`
     .toLowerCase()
-    .replace(/ /g, "").padEnd(50 - 1 - domain.length, "x");
+    .replace(/ /g, "")
+    .padEnd(50 - 1 - domain.length, "x");
   const email = `${friendlyName}@${domain}`;
 
   return email;
