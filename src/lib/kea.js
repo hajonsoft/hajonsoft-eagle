@@ -256,19 +256,6 @@ const uploadImageToStorage = async (base64, destination) => {
     return await getDownloadURL(snapshot.ref);
 };
 
-const uploadPDFToStorage = async (filePath, destination, buffer) => {
-  const base64 = fs.readFileSync(filePath, "base64");
-
-  const pdfRef = ref(storage, destination);
-  // const uintData = new Uint8Array(
-  //   buffer ? buffer : Buffer.from(base64, "base64")
-  // );
-  // const snapshot = await uploadBytes(pdfRef, uintData)
-  const snapshot = await uploadString(pdfRef, base64, "base64");
-
-  return await getDownloadURL(snapshot.ref);
-};
-
 module.exports = {
   init,
   updateSelectedTraveller,
@@ -276,5 +263,4 @@ module.exports = {
   updatePassenger,
   updateSubmission,
   updateTargetSystem,
-  uploadPDFToStorage,
 };

@@ -1632,9 +1632,10 @@ async function pdfToKea(
   }
   const pdfFileName = path.join(folder, `visa_${currentPassenger.passportNumber}.pdf`);
   fs.writeFileSync(pdfFileName, pdfBuffer);
-  const filename = `visa_${currentPassenger.passportNumber}.pdf`;
-  const destination = `${accountId}/visaImageUrl/${filename}`;
-  const pdfUrl = await kea.uploadPDFToStorage(pdfFileName, destination, pdfBuffer);
+  const base64 = await pdfBuffer.toString("base64");
+  const pdfFilename = `visa_${currentPassenger.passportNumber}.pdf`;
+  const pdfDestination = `${accountId}/visaImageUrl/${pdfFilename}`;
+  const pdfUrl = await kea.uploadImageToStorage(base64, pdfDestination);
   await kea.updatePassenger(accountId, currentPassenger.passportNumber, {
     visaImageUrl: pdfUrl,
     "submissionData.nsk.status": status,
