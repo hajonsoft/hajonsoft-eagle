@@ -9,9 +9,9 @@ const nshFromEmail = "no_reply@hajj.nusuk.sa";
 const nskFromEmail = "no-reply@mofa.gov.sa";
 const messages = {};
 
-async function fetchNusukIMAPOTP(recipient, password, subject, callback) {
+async function fetchNusukIMAPOTP(recipient, password, subject, callback, isNotVirtualEmail) {
   var imap = new Imap({
-    user: `admin@${recipient.split("@")[1]}`,
+    user: isNotVirtualEmail ? recipient : `admin@${recipient.split("@")[1]}`,
     password: password,
     host: `mail.${recipient.split("@")[1]}`,
     port: 993,

@@ -381,11 +381,11 @@ async function pageContentHandler(currentConfig) {
         [
           {
             selector: "#CreatePasswordViewModel_Password",
-            value: () => getPassword(),
+            value: (row) => getPassword(row),
           },
           {
             selector: "#CreatePasswordViewModel_PasswordConfirmation",
-            value: () => getPassword(),
+            value: (row) => getPassword(row),
           },
         ],
         passenger
@@ -544,10 +544,10 @@ async function pageContentHandler(currentConfig) {
         "6/2024"
       );
       // wait 500 ms for the days to load, then select the day
-      // await page.waitForTimeout(500);
-      // await page.click(
-      //   "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
-      // );
+      await page.waitForTimeout(500);
+      await page.click(
+        "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
+      );
       break;
     case "summary":
       await util.controller(page, currentConfig, data.travellers);
@@ -579,9 +579,20 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked("#SentencedToPrisonBeforeNo");
       await checkIfNotChecked("#ConvictedInSmugglingMoneyLaunderingNo");
       await checkIfNotChecked("#BelongedToTerroristOrganizationBeforeNo");
-      await checkIfNotChecked("#RequiredVaccinationsBeenTakenNo");
+      await checkIfNotChecked("#RequiredVaccinationsBeenTakenYes");
       await checkIfNotChecked("#HaveAnyPhysicalDisabilityNo");
       await checkIfNotChecked("#ArrestedOrConvictedForTerrorismBeforeNo");
+      await page.waitForTimeout(100);
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#BackgroundStepTwoViewModel_RequiredVaccinationsBeenTakenAnswer",
+            value: () => "ACWY",
+          },
+        ],
+        {}
+      );
 
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
@@ -699,19 +710,19 @@ async function pageContentHandler(currentConfig) {
 function suggestEmail(selectedTraveler, companion = false) {
   const passenger = data.travellers[selectedTraveler];
   if (passenger.email) {
-    return passenger.email;
+    return passenger.email.split('/')[0];
   }
   const domain = data.system.username.includes("@")
     ? data.system.username.split("@")[1]
     : data.system.username;
   const friendlyName = `${passenger.name.first}.${passenger.name.last}.${
     companion ? "companion." : ""
-  }${moment().unix().toString(36)}@${domain}`
+  }${passenger.passportNumber}@${domain}`
     .toLowerCase()
     .replace(/ /g, "");
   const unfriendlyName = `${passenger.name.first}.${data.system.accountId}.${
     companion ? "companion." : ""
-  }${moment().unix().toString(36)}@${domain}`
+  }${passenger.passportNumber}@${domain}`
     .toLowerCase()
     .replace(/ /g, "");
   const email = data.system.username.includes("@")
@@ -799,27 +810,31 @@ async function getOTPCode() {
   );
   await page.$eval(
     "#otpForm > label",
-    (el, email) =>
-      (el.innerText = `${email} from (admin@${email.split("@")[1]})`),
-    passenger.email || emailAddress
+    (el, email, fromString) =>
+      (el.innerText = `${email.split('/')[0]} ${fromString}`),
+    passenger.email || emailAddress,
+    (passenger.email || emailAddress).includes('/') ? '' :  `from (admin@${(passenger.email || emailAddress).split("@")[1].split("/")[0]})`
+
   );
   try {
     if (pageMode.includes("Registration") || pageMode.includes("التسجيل")) {
       await fetchNusukIMAPOTP(
-        passenger.email || emailAddress,
-        data.system.adminEmailPassword,
+        (passenger.email || emailAddress).split('/')[0],
+        (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
         ["Email Activation", "تفعيل البريد الالكتروني"],
-        pasteOTPCode
+        pasteOTPCode,
+        (passenger.email || emailAddress).includes('/')
       );
     } else if (
       pageMode.includes("OTP Verification") ||
       pageMode.includes("التثبت من رمز التحقق")
     ) {
       await fetchNusukIMAPOTP(
-        passenger.email || emailAddress,
-        data.system.adminEmailPassword,
+        (passenger.email || emailAddress).split('/')[0],
+        (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
         ["One Time Password", "رمز سري لمرة واحدة"],
-        pasteOTPCode
+        pasteOTPCode,
+        (passenger.email || emailAddress).includes('/')
       );
     }
   } catch (e) {
@@ -837,10 +852,11 @@ async function getCompanionOTPCode() {
   const pageMode = "OTP Verification";
   try {
     await fetchNusukIMAPOTP(
-      passenger.email || emailAddress,
-      data.system.adminEmailPassword,
+      (passenger.email || emailAddress).split('/')[0],
+      (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
       ["One Time Password", "رمز سري لمرة واحدة"],
-      pasteOTPCodeCompanion
+      pasteOTPCodeCompanion,
+      (passenger.email || emailAddress).includes('/')
     );
   } catch (e) {
     await util.infoMessage(page, "Manual code required!");
@@ -868,7 +884,7 @@ async function addNewMember(selectedTraveler) {
     [
       {
         selector: "#AddMemberViewModel_Email",
-        value: () => email,
+        value: () => email.split('/')[0],
       },
     ],
     {}
@@ -888,6 +904,13 @@ async function addNewMember(selectedTraveler) {
       },
     },
   });
+
+  await page.$eval(
+    "#OTPModal > div > div > div > form > label",
+    (el, email) =>
+      (el.innerText = `${email.split('/')[0]} from (admin@${email.split("@")[1].split("/")[0]})`),
+    passenger.email || emailAddress
+  );
   await getCompanionOTPCode();
 }
 const usedCodes = {};
@@ -923,7 +946,7 @@ async function signup_step1(selectedTraveler) {
     [
       {
         selector: "#SignupViewModel_Email",
-        value: (row) => emailAddress,
+        value: (row) => emailAddress.split("/")[0],
       },
       {
         selector: "#SignupViewModel_CountryResidenceId",
@@ -974,12 +997,12 @@ async function loginPassenger(selectedTraveler) {
     [
       {
         selector: "#LogInViewModel_Email",
-        value: (row) => row.email || emailAddress,
+        value: (row) => (row.email || emailAddress).split("/")[0],
       },
 
       {
         selector: "#LogInViewModel_Password",
-        value: () => getPassword(),
+        value: (row) => getPassword(row),
       },
     ],
     passenger
@@ -1250,10 +1273,7 @@ async function pasteOTPCodeCompanion(err, code) {
   await util.clickWhenReady("#OTPModalBtn", page);
 }
 
-function getPassword() {
-  // if (data.system.password.endsWith("+passport")) {
-  //   return `${data.system.password.replace("+passport", "")}${data.travellers[util.getSelectedTraveler()].passportNumber}`;
-  // }
+function getPassword(passenger) {
   return data.system.password;
 }
 
