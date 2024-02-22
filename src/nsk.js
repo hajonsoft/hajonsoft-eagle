@@ -218,7 +218,7 @@ async function downloadVisas() {
     if (data.travellers[i].email) {
       await fetchNusukIMAPPDF(
         data.travellers[i].email,
-        data.system.adminEmailPassword,
+        data.system.adminEmailPassword || "(HajonSoft123)",
         ["التأشيرة الإلكترونية", "Electronic Visa"],
         (err, pdf) =>
           saveVisaPDF(
