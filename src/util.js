@@ -791,7 +791,7 @@ function getSelectedTraveler() {
     } else {
       let timeoutValue = 30000;
       if (data.system.name === "nsk") {
-        timeoutValue = 5000;
+        timeoutValue = 30000;
       }
       console.log(
         `Last passenger reached!!. Exiting in ${timeoutValue / 1000} seconds...`
