@@ -16,6 +16,7 @@ let page;
 let data;
 let counter = 0;
 let passenger;
+let downloadVisaMode = false;
 function getLogFile() {
   const logFolder = path.join(getPath("log"), util.suggestGroupName(data));
   if (!fs.existsSync(logFolder)) {
@@ -104,11 +105,6 @@ const config = [
             : row?.nameArabic?.first,
       },
       {
-        selector: "#FamilyNameAr",
-        value: (row) =>
-          row?.nameArabic?.last?.match(/[a-zA-Z]/) ? "" : row?.nameArabic?.last,
-      },
-      {
         selector: "#ThirdNameAr",
         value: (row) =>
           row?.nameArabic?.grand?.match(/[a-zA-Z]/)
@@ -174,10 +170,6 @@ const config = [
         value: (row) => decodeURI(row.profession) || "Employee",
       },
       {
-        selector: "#PassportNumber",
-        value: (row) => row.passportNumber,
-      },
-      {
         selector: "#PassportType",
         value: (row) => "1",
       },
@@ -213,6 +205,7 @@ const config = [
 ];
 
 async function downloadVisas() {
+  downloadVisaMode = true;
   // TODO: review the english email subject
   for (let i = 0; i < data.travellers.length; i++) {
     if (data.travellers[i].email) {
@@ -240,7 +233,7 @@ async function saveVisaPDF(err, pdf, passenger, lastPassenger) {
   if (pdf) {
     await util.pdfToKea(pdf.content, data.system.accountId, passenger);
     if (lastPassenger) {
-      setTimeout(() => {
+      setTimeout(async () => {
         console.log("All visas downloaded successfully");
         process.exit(0);
       }, 5000);
@@ -258,11 +251,11 @@ function canActivateVisaDownloadMode(data) {
 
 async function send(sendData) {
   data = sendData;
-  if (canActivateVisaDownloadMode(data)) {
-    console.log("Visa download mode activated. Downloading visas from email.");
-    await downloadVisas(data);
-    return;
-  }
+  // if (canActivateVisaDownloadMode(data)) {
+  //   console.log("Visa download mode activated. Downloading visas from email.");
+  //   await downloadVisas(data);
+  //   return;
+  // }
   page = await util.initPage(config, onContentLoaded);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
@@ -292,13 +285,32 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
+      const viasToDownload = data.travellers.filter((t) => t.email);
+      if (viasToDownload.length > 0 && data.system.email.startsWith("@")) {
+        await util.commander(page, {
+          controller: {
+            selector: "#form1 > h1",
+            title: `Download ${viasToDownload.length} Visas`,
+            arabicTitle: "تحميل التأشيرات",
+            name: "downloadVisas",
+            action: async () => {
+              await downloadVisas();
+            },
+          },
+        });
+      }
       const code = await util.commitCaptchaTokenWithSelector(
         page,
         "#img-captcha",
         "#CaptchaCode",
         5
       );
-      if (code && data.system.username && data.system.password) {
+      if (
+        code &&
+        data.system.username &&
+        data.system.password &&
+        !downloadVisaMode
+      ) {
         await page.click("#kt_login_signin_submit");
       }
       break;
@@ -538,71 +550,54 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
-async function pasteSimulatedPassport(shouldSimulatePassport, passenger) {
-  if (shouldSimulatePassport) {
-    const blankPassportPath = getPath(`${passenger.passportNumber}_mrz.jpg`);
-    // Generate simulated passport image using the browser canvas api
-    const dataUrl = await page.evaluate((_passenger) => {
-      const ele = document.createElement("canvas");
-      ele.id = "hajonsoftcanvas";
-      ele.style.display = "none";
-      document.body.appendChild(ele);
-      const canvas = document.getElementById("hajonsoftcanvas");
-      canvas.width = 1060;
-      canvas.height = 1500;
-      const ctx = canvas.getContext("2d");
-      // White background
-      ctx.fillStyle = "white";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+async function pasteSimulatedPassport(passenger) {
+  const blankPassportPath = getPath(`${passenger.passportNumber}_mrz.jpg`);
+  // Generate simulated passport image using the browser canvas api
+  const dataUrl = await page.evaluate((_passenger) => {
+    const ele = document.createElement("canvas");
+    ele.id = "hajonsoftcanvas";
+    ele.style.display = "none";
+    document.body.appendChild(ele);
+    const canvas = document.getElementById("hajonsoftcanvas");
+    canvas.width = 700;
+    canvas.height = 400;
+    const ctx = canvas.getContext("2d");
+    // White background
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.fillStyle = "black";
-      // Font must be 11 to fit in the canvas
-      ctx.font =
-        "bold 18pt Courier New, Menlo, Verdana, Verdana, Geneva, sans-serif";
-      ctx.fillText(
-        _passenger.codeline?.replace(/\n/g, "")?.substring(0, 44),
-        14,
-        canvas.height - 60
-      );
-      ctx.fillText(
-        _passenger.codeline?.replace(/\n/g, "")?.substring(44),
-        14,
-        canvas.height - 25
-      );
+    ctx.fillStyle = "black";
+    ctx.font = "18px OCR-B, monospace";
+    ctx.fillText(
+      _passenger.codeline?.replace(/\n/g, "")?.substring(0, 44),
+      14,
+      canvas.height - 60
+    );
+    ctx.fillText(
+      _passenger.codeline?.replace(/\n/g, "")?.substring(44),
+      14,
+      canvas.height - 25
+    );
 
-      // Photo
-      ctx.lineWidth = 1;
-      ctx.fillStyle = "hsl(240, 25%, 94%)";
-      ctx.fillRect(45, 25, 100, 125);
-      // Visible area
-      ctx.fillStyle = "hsl(240, 25%, 94%)";
-      ctx.fillRect(170, 25, 200, 175);
+    // Photo
+    ctx.lineWidth = 1;
+    ctx.fillStyle = "hsl(240, 25%, 94%)";
+    ctx.fillRect(45, 25, 100, 125);
+    // Visible area
+    ctx.fillStyle = "hsl(240, 25%, 94%)";
+    ctx.fillRect(170, 25, 200, 175);
 
-      // under photo area
-      ctx.fillStyle = "hsl(240, 25%, 94%)";
-      ctx.fillRect(45, 165, 100, 35);
-      return canvas.toDataURL("image/jpeg", 1.0);
-    }, passenger);
+    // under photo area
+    ctx.fillStyle = "hsl(240, 25%, 94%)";
+    ctx.fillRect(45, 165, 100, 35);
+    return canvas.toDataURL("image/jpeg", 1.0);
+  }, passenger);
 
-    // Save dataUrl to file
-    const imageData = dataUrl.replace(/^data:image\/\w+;base64,/, "");
-    const buf = Buffer.from(imageData, "base64");
-    fs.writeFileSync(blankPassportPath, buf);
-    await util.commitFile("#PassportPictureUploader", blankPassportPath);
-    try {
-      await page.waitForFunction(
-        (arg) => {
-          if (document.querySelector(arg).value.length > 0) {
-            return true;
-          }
-        },
-        { timeout: 7000 },
-        "#PassportNumber"
-      );
-    } catch (err) {
-      console.log("Error: ", err);
-    }
-  }
+  // Save dataUrl to file
+  const imageData = dataUrl.replace(/^data:image\/\w+;base64,/, "");
+  const buf = Buffer.from(imageData, "base64");
+  fs.writeFileSync(blankPassportPath, buf);
+  await util.commitFile("#PassportPictureUploader", blankPassportPath);
 }
 
 function suggestEmail(passenger) {
@@ -628,22 +623,22 @@ function suggestEmail(passenger) {
 
 async function sendCurrentPassenger() {
   if (!autoMode) return;
-    try {
-      const groupCreatedOkButtonSelector =
-        "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled";
-      await page.waitForSelector(groupCreatedOkButtonSelector, {
-        timeout: 1000,
-      });
-      await page.click(groupCreatedOkButtonSelector);
-    } catch (e) {}
-    await page.waitForTimeout(500);
-    const addMutamerButtonSelector =
-      "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a";
-    await page.waitForSelector(addMutamerButtonSelector);
-    await page.click(addMutamerButtonSelector);
+  try {
+    const groupCreatedOkButtonSelector =
+      "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled";
+    await page.waitForSelector(groupCreatedOkButtonSelector, {
+      timeout: 1000,
+    });
+    await page.click(groupCreatedOkButtonSelector);
+  } catch (e) {}
+  await page.waitForTimeout(500);
+  const addMutamerButtonSelector =
+    "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a";
+  await page.waitForSelector(addMutamerButtonSelector);
+  await page.click(addMutamerButtonSelector);
 
-    // Add a delay to allow the user to see the list of mutamers added so far
-    await page.waitForTimeout(1000);
+  // Add a delay to allow the user to see the list of mutamers added so far
+  await page.waitForTimeout(1000);
   // Store group id
   if (!global.submission.targetGroupId) {
     const groupId = page
@@ -786,12 +781,13 @@ async function sendCurrentPassenger() {
     },
   });
 
-
   await util.commit(page, passengersConfig.details, passenger);
   const email = suggestEmail(passenger);
-  kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-    email: email,
-  });
+  if (data.system.email.startsWith("@")) {
+    kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+      email: email,
+    });
+  }
   await util.commit(
     page,
     [
@@ -894,17 +890,35 @@ async function sendCurrentPassenger() {
   await page.focus("#PassportNumber");
   await page.click("#PassportNumber");
   await page.waitForTimeout(500);
-  await page.waitForSelector("#qa-add-mutamer-save");
+  const passportNumberInPage = await page.$eval(
+    "#PassportNumber",
+    (e) => e.value
+  );
+  const lastNameInPage = await page.$eval("#FamilyNameEn", (e) => e.value);
+  const preventSave =
+    passportNumberInPage === "" ||
+    lastNameInPage === "" ||
+    passenger.passportNumber !== passportNumberInPage ||
+    passenger.name.last !== lastNameInPage;
+  if (preventSave) {
+    await page.$eval("#qa-add-mutamer-save", (e) => {
+      e.textContent =
+        "Save (Be careful Passport number or Last name is not correct)";
+    });
+  } else {
     try {
+      await page.waitForSelector("#qa-add-mutamer-save");
       await page.click("#qa-add-mutamer-save");
     } catch (e) {
       // console.log("Error: ", e);
     }
+  }
+
   util.incrementSelectedTraveler();
 }
 
 async function openFields() {
-   const details = [
+  const details = [
     {
       selector: "#NationalityId",
     },
@@ -974,7 +988,7 @@ async function openFields() {
     {
       selector: "#MobileNo",
     },
-  ]
+  ];
   // remove readonly attribute for all details array above
   details.forEach((detail) => {
     page.$eval(detail.selector, (e) => {
