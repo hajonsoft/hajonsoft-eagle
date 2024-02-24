@@ -1502,6 +1502,9 @@ async function runParallel() {
   for (let index = 0; index < Math.min(leads.length, 15); index++) {
     const passenger = leads[index];
     const newArgs = process.argv.map((v) => {
+      if (v.includes("/node")) {
+        return `"${v}"`;
+      }
       if (v.startsWith("--submissionId")) {
         return `${v} --passengerIds=${passenger.id} --auto -windowed`;
       }
@@ -1510,22 +1513,25 @@ async function runParallel() {
       }
       return v;
     });
-    commands.push(newArgs.join(" "));
+    const command = newArgs.join(" ");
+    console.log("📢[nsh.js:1517]: command: ", command);
+    commands.push(command);
+    childProcess.exec(command, function (error, stdout, stderr) {
+      if (error) {
+        console.log("Parallel Run Error: " + error.code);
+      }
+      if (stdout) {
+        console.log("Parallel Run: " + stdout);
+      }
+      if (stderr) {
+        console.log("Parallel Run: " + stderr);
+      }
+    });
   }
-  const newCommand = commands.join(" & ");
-  console.log("📢[nsh.js:1491]: oneCommand: ", newCommand);
+  // const newCommand = commands.join(" & ");
+  // console.log("📢[nsh.js:1491]: oneCommand: ", newCommand);
   // run the command using child process
-  childProcess.exec(newCommand, function (error, stdout, stderr) {
-    if (error) {
-      console.log("Parallel Run Error: " + error.code);
-    }
-    if (stdout) {
-      console.log("Parallel Run: " + stdout);
-    }
-    if (stderr) {
-      console.log("Parallel Run: " + stderr);
-    }
-  });
+
 
   await page.browser().close();
 }
