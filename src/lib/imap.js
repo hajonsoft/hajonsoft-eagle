@@ -117,9 +117,9 @@ async function fetchNusukIMAPOTP(recipient, password, subject, callback, isNotVi
     callback("Error: " + err);
   });
 
-  imap.once("end", function () {
-    callback("Error: Connection ended");
-  });
+  // imap.once("end", function () {
+  //   callback("Error: Connection ended");
+  // });
 
   imap.connect();
 }
