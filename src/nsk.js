@@ -550,7 +550,8 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
-async function pasteSimulatedPassport(passenger) {
+async function pasteSimulatedPassport() {
+  const passenger = data.travellers[util.getSelectedTraveler()];
   const blankPassportPath = getPath(`${passenger.passportNumber}_mrz.jpg`);
   // Generate simulated passport image using the browser canvas api
   const dataUrl = await page.evaluate((_passenger) => {
@@ -571,7 +572,7 @@ async function pasteSimulatedPassport(passenger) {
     ctx.fillText(
       _passenger.codeline?.replace(/\n/g, "")?.substring(0, 44),
       14,
-      canvas.height - 60
+      canvas.height - 70
     );
     ctx.fillText(
       _passenger.codeline?.replace(/\n/g, "")?.substring(44),
@@ -777,6 +778,19 @@ async function sendCurrentPassenger() {
       action: async () => {
         // Open name fields for editing
         await openFields();
+      },
+    },
+  });
+
+  await util.commander(page, {
+    controller: {
+      selector: "#mutamerForm > div.modal-body > div:nth-child(3) > h4",
+      title: "Simulate passport",
+      arabicTitle: "محاكاة جواز السفر",
+      name: "simulatePassport",
+      action: async () => {
+        // Open name fields for editing
+        await pasteSimulatedPassport();
       },
     },
   });
