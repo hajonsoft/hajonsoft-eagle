@@ -1,6 +1,6 @@
-const axios = require('axios');
-const { PDFDocument, StandardFonts } = require('pdf-lib');
-const fs = require('fs');
+const axios = require("axios");
+const { PDFDocument, StandardFonts } = require("pdf-lib");
+const fs = require("fs");
 
 // const url = 'https://bsp-nusuk.haj.gov.sa/Home/DownloadInsuranceDocument/?MutamerMofa=105848936';
 
@@ -317,8 +317,6 @@ const fs = require('fs');
 //     }
 // }
 
-
-
 // const folder = path.join(__dirname, "../../..", 'Downloads/liberia', "photos")
 // const files = fs.readdirSync(folder);
 // for (const file of files) {
@@ -344,12 +342,12 @@ const fs = require('fs');
 //         // if (sc.children) {
 //         // fs.writeFileSync('ayman' + i + '.html', JSON.stringify(sc.children))
 //         // }
-        
+
 //         // if (sc.content.includes("bobj.crv.writeWidget")) {
 //         // }
 //     }
-    
-//     // 
+
+//     //
 //     return bauView;
 
 // }
@@ -380,39 +378,72 @@ const fs = require('fs');
 // const data = importMofa(root)
 // console.log('%cMyProject%cline:342%cmofas', 'color:#fff;background:#ee6f57;padding:3px;border-radius:2px', 'color:#fff;background:#1f3c88;padding:3px;border-radius:2px', 'color:#fff;background:rgb(237, 222, 139);padding:3px;border-radius:2px', data)
 
+// const MAILGUN_API_KEY = 'pubkey-1dacae088983b8e14d45ea3e49a79c84';
+// const DOMAIN = 'your-domain.com';
 
-const MAILGUN_API_KEY = 'pubkey-1dacae088983b8e14d45ea3e49a79c84';
-const DOMAIN = 'your-domain.com';
+// const newEmailAddress = 'new-email@example.com';
 
-const newEmailAddress = 'new-email@example.com';
+// const data = {
+//   priority: 0,
+//   description: `Forwarding email to ${newEmailAddress}`,
+//   expression: `match_recipient('${newEmailAddress}')`,
+//   action: `forward('alialiayman@gmail.com')`
+// };
 
-const data = {
-  priority: 0,
-  description: `Forwarding email to ${newEmailAddress}`,
-  expression: `match_recipient('${newEmailAddress}')`,
-  action: `forward('alialiayman@gmail.com')`
-};
+// axios({
+//   method: 'post',
+//   url: `https://api.mailgun.net/v3/${DOMAIN}/routes`,
+//   auth: {
+//     username: 'api',
+//     password: MAILGUN_API_KEY
+//   },
+//   data: data
+// })
+// .then(response => {
+//   console.log(response.data);
+// })
+// .catch(error => {
+//   console.log(error);
+// });
 
-axios({
-  method: 'post',
-  url: `https://api.mailgun.net/v3/${DOMAIN}/routes`,
-  auth: {
-    username: 'api',
-    password: MAILGUN_API_KEY
-  },
-  data: data
-})
-.then(response => {
-  console.log(response.data);
-})
-.catch(error => {
-  console.log(error);
-});
+const sharp = require("sharp");
 
+// Path to the input image
+const imagePath = "input.jpg";
+// Text to be added at the bottom
+const textLine1 = "P<INDKHAN<<VASIM<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+const textLine2 = "Y5252725<2IND9601019M33113072068702785423<02";
+const encodedTextLine1 = textLine1.replace(/</g, '&lt;')
+const encodedTextLine2 = textLine2.replace(/</g, '&lt;');
 
+async function makeImage() {
+  const metaData = await sharp(imagePath).metadata();
+  const height = Math.floor(metaData.height / 4);
+// SVG markup with encoded text
+const mrzImage = `
+<svg width="${metaData.width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background rectangle -->
+  <rect fill="white" x="0" y="0" width="${metaData.width}" height="${height}" />
+  <text x="60" y="140" font-family="Ariel" font-size="50" fill="black">
+  ${encodedTextLine1}
+  </text>
+  <text x="60" y="230" font-family="Ariel" font-size="50" fill="black">
+  ${encodedTextLine2}
+  </text>
+</svg>
+`;
 
+  const mrzBuffer = Buffer.from(mrzImage);
+  await sharp(imagePath)
+    .composite([
+      {
+        input: mrzBuffer,
+        top: metaData.height - height, // Position at the bottom of the image
+        left: 0,
+      },
+    ])
+    .png()
+    .toFile("output.png");
+}
 
-
-
-
-
+makeImage();

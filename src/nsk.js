@@ -112,6 +112,11 @@ const config = [
             : row?.nameArabic?.grand,
       },
       {
+        selector: "#FamilyNameAr",
+        value: (row) =>
+          row?.nameArabic?.last?.match(/[a-zA-Z]/) ? "" : row?.nameArabic?.last,
+      },
+      {
         selector: "#SecondNameAr",
         value: (row) =>
           row?.nameArabic?.father?.match(/[a-zA-Z]/)
@@ -142,11 +147,6 @@ const config = [
       {
         selector: "#IssueCity",
         value: (row) => decodeURI(row.placeOfIssue),
-      },
-      {
-        selector: "#PassportIssueDate",
-        value: (row) =>
-          `${row.passIssueDt.yyyy}-${row.passIssueDt.mm}-${row.passIssueDt.dd}`,
       },
       {
         selector: "#PassportExpiryDate",
@@ -428,6 +428,7 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "passengers":
+      await dismissGroupCreated();
       await sendCurrentPassenger();
       break;
     case "permits":
@@ -601,6 +602,21 @@ async function pasteSimulatedPassport() {
   await util.commitFile("#PassportPictureUploader", blankPassportPath);
 }
 
+async function originalPassport() {
+  const passenger = data.travellers[util.getSelectedTraveler()];
+  const passportPath = await util.downloadImage(
+    passenger,
+    600,
+    400,
+    "passport",
+    400,
+    1024,
+    true
+  );
+
+  await util.commitFile("#PassportPictureUploader", blankPassportPath);
+}
+
 function suggestEmail(passenger) {
   if (passenger.email) {
     return passenger.email;
@@ -624,84 +640,7 @@ function suggestEmail(passenger) {
 
 async function sendCurrentPassenger() {
   if (!autoMode) return;
-  try {
-    const groupCreatedOkButtonSelector =
-      "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled";
-    await page.waitForSelector(groupCreatedOkButtonSelector, {
-      timeout: 1000,
-    });
-    await page.click(groupCreatedOkButtonSelector);
-  } catch (e) {}
-  await page.waitForTimeout(500);
-  const addMutamerButtonSelector =
-    "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a";
-  await page.waitForSelector(addMutamerButtonSelector);
-  await page.click(addMutamerButtonSelector);
-
-  // Add a delay to allow the user to see the list of mutamers added so far
-  await page.waitForTimeout(1000);
-  // Store group id
-  if (!global.submission.targetGroupId) {
-    const groupId = page
-      .url()
-      .match(/EditMuatamerList\/([a-zA-Z0-9\-_]+)/)?.[1];
-    if (groupId) {
-      global.submission.targetGroupId = groupId;
-      kea.updateSubmission({
-        targetGroupId: groupId,
-      });
-    }
-  }
-
-  // Parse modal content for success/error
-  try {
-    const modalContentSelector = "#swal2-content";
-    await page.waitForSelector(modalContentSelector, {
-      timeout: 1000,
-    });
-    const modalContent = await page.$eval(
-      modalContentSelector,
-      (e) => e.textContent
-    );
-    if (
-      modalContent.match(
-        /(Mutamer has been added Successfully)|(This Mutamer has been added before)/
-      )
-    ) {
-      util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
-      kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-        "submissionData.nsk.status": "Submitted",
-      });
-      util.incrementSelectedTraveler();
-    } else {
-      try {
-        // Wait for the error icon to appear
-        await page.waitForSelector(
-          "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-header > div.swal2-icon.swal2-error.swal2-animate-error-icon > span",
-          {
-            visible: true,
-          }
-        );
-
-        // this is an error, mark the passenger rejected and move on
-        util.infoMessage(page, `🧟 passenger ${passenger.slug} rejected`);
-        await kea.updatePassenger(
-          data.system.accountId,
-          passenger.passportNumber,
-          {
-            "submissionData.nsk.status": "Rejected",
-            "submissionData.nsk.rejectionReason": modalContent,
-          }
-        );
-
-        util.incrementSelectedTraveler();
-      } catch (e) {
-        // Do nothing
-      }
-    }
-  } catch (e) {}
-
-  // Submit passengers
+  await addMutamerClick();
   const selectedTraveler = util.getSelectedTraveler();
   if (selectedTraveler >= data.travellers.length) {
     await page.goto("https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups");
@@ -710,95 +649,62 @@ async function sendCurrentPassenger() {
   }
   passenger = data.travellers[selectedTraveler];
   util.infoMessage(page, `🧟 Inputting ${passenger.slug} saved`);
-  await page.waitForSelector("#PassportPictureUploader", { timeout: 0 });
-  // const passportPath = path.join(
-  //   util.passportsFolder,
-  //   `${passenger.passportNumber}.jpg`
-  // );
-  // await util.downloadImage(passenger.images.passport, passportPath);
+  let isPassportScanSuccessful = await pastePassportImage(passenger);
+  if (!isPassportScanSuccessful) {
+    isPassportScanSuccessful = await pastePassportImage(passenger, false);
+  }
+  await pasteRemainingImages(passenger);
+  await showCommanders(passenger);
+  await commitRemainingFields(passenger);
+  await page.waitForTimeout(1000);
+  await page.focus("#PassportNumber");
+  await page.click("#PassportNumber");
+  await page.waitForTimeout(500);
 
-  await page.$eval(
-    "#mutamerForm > div.modal-body > div:nth-child(13) > div:nth-child(1) > label",
-    (e, passIssueDt) => {
-      e.textContent = `Passport Issue Date (${passIssueDt})`;
-    },
-    passenger.passIssueDt.dmmmy
-  );
-
-  // If photo accepted
-  // #PassportImage
-  const isPhotoAccepted = await page.evaluate(() => {
-    const photo = document.querySelector("#PassportImage");
-    if (photo) {
-      return photo.src !== "";
+  if (!isPassportScanSuccessful) {
+    await page.$eval("#qa-add-mutamer-save", (e) => {
+      e.textContent =
+        "Save (Be careful Passport number or Last name is not correct)";
+    });
+    // scroll to this selector 
+    // #qa-add-mutamer-save
+    await page.evaluate((selector) => {
+      const element = document.querySelector(selector);
+      if (element) {
+        element.scrollIntoView();
+      }
+    }, "#qa-add-mutamer-save");
+    
+    openFields();
+    await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+      "submissionData.nsk.status": "Rejected",
+      "submissionData.nsk.rejectionReason":
+        "Passport number or Last name is not correct",
+    });
+    util.incrementSelectedTraveler();
+    if (global.headless) {
+      // Skip the passenger, increment the selected traveler and move on
+      await sendCurrentPassenger();
+      return;
     }
-    return false;
-  });
-  if (!isPhotoAccepted) {
-    const passportPath = await util.downloadAndResizeImage(
-      passenger,
-      600,
-      400,
-      "passport",
-      400,
-      1024,
-      true
-    );
-
-    await util.commitFile("#PassportPictureUploader", passportPath);
+  } else {
+    try {
+      await page.waitForSelector("#qa-add-mutamer-save");
+      await page.click("#qa-add-mutamer-save");
+      recordStatus(passenger);
+    } catch (e) {
+      // console.log("Error: ", e);
+    }
   }
-  // wait until passport number is filled
-  // #PassportNumber
-  let shouldSimulatePassport = false;
-  try {
-    await page.waitForFunction(
-      (arg) => {
-        if (document.querySelector(arg).value.length > 0) {
-          return true;
-        }
-      },
-      { timeout: 15000 },
-      "#PassportNumber"
-    );
-  } catch (err) {
-    // console.log("Passport number not filled, simulating");
-    console.log("Passport number not filled, skipping");
-    shouldSimulatePassport = true;
-  }
+}
 
-  // await pasteSimulatedPassport(shouldSimulatePassport, passenger);
+async function commitRemainingFields(passenger) {
   const passengersConfig = config.find((c) => c.name === "passengers");
-  // await util.controller(page, passengersConfig, data.travellers);
-  await util.commander(page, {
-    controller: {
-      selector: "#mutamerForm > div.modal-body > h1",
-      title: "Open fields",
-      arabicTitle: "فتح الحقول",
-      name: "openfields",
-      action: async () => {
-        // Open name fields for editing
-        await openFields();
-      },
-    },
-  });
-
-  await util.commander(page, {
-    controller: {
-      selector: "#mutamerForm > div.modal-body > div:nth-child(3) > h4",
-      title: "Simulate passport",
-      arabicTitle: "محاكاة جواز السفر",
-      name: "simulatePassport",
-      action: async () => {
-        // Open name fields for editing
-        await pasteSimulatedPassport();
-      },
-    },
-  });
 
   await util.commit(page, passengersConfig.details, passenger);
   const email = suggestEmail(passenger);
   if (data.system.email.startsWith("@")) {
-    kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+    await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
       email: email,
     });
   }
@@ -820,6 +726,59 @@ async function sendCurrentPassenger() {
     }
   });
 
+  await page.$eval(
+    "#mutamerForm > div.modal-body > div:nth-child(13) > div:nth-child(1) > label",
+    (e, passIssueDt) => {
+      e.textContent = `Passport Issue Date (${passIssueDt})`;
+    },
+    passenger.passIssueDt.dmmmy
+  );
+
+  await page.click("#PassportIssueDate");
+  await page.waitForTimeout(500);
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#PassportIssueDate",
+        value: (row) =>
+          `${row.passIssueDt.yyyy}-${row.passIssueDt.mm}-${row.passIssueDt.dd}`,
+      },
+    ],
+    passenger
+  );
+}
+
+async function showCommanders() {
+  await util.commander(page, {
+    controller: {
+      selector: "#mutamerForm > div.modal-body > h1",
+      title: "Open fields",
+      arabicTitle: "فتح الحقول",
+      name: "openfields",
+      action: async () => {
+        // Open name fields for editing
+        await openFields();
+      },
+    },
+  });
+
+  // await util.commander(page, {
+  //   controller: {
+  //     selector: "#mutamerForm > div.modal-body > div:nth-child(3) > h4",
+  //     title: "Simulate passport",
+  //     arabicTitle: "محاكاة جواز السفر",
+  //     name: "simulatePassport",
+  //     action: async () => {
+  //       // Open name fields for editing
+  //       await pasteSimulatedPassport();
+  //       await originalPassport();
+  //     },
+  //   },
+  // });
+}
+
+async function pasteRemainingImages(passenger) {
   let resizedPhotoPath = await util.downloadAndResizeImage(
     passenger,
     100,
@@ -828,7 +787,6 @@ async function sendCurrentPassenger() {
     5,
     20
   );
-
   await util.commitFile("#PersonalPictureUploader", resizedPhotoPath);
 
   if (passenger.images.vaccine) {
@@ -898,37 +856,105 @@ async function sendCurrentPassenger() {
       console.log("Error: ", e);
     }
   }
+}
 
-  // allow photos to settle in the DOM
-  await page.waitForTimeout(1000);
-  await page.focus("#PassportNumber");
-  await page.click("#PassportNumber");
-  await page.waitForTimeout(500);
-  const passportNumberInPage = await page.$eval(
-    "#PassportNumber",
-    (e) => e.value
-  );
-  const lastNameInPage = await page.$eval("#FamilyNameEn", (e) => e.value);
-  const preventSave =
-    passportNumberInPage === "" ||
-    lastNameInPage === "" ||
-    passenger.passportNumber !== passportNumberInPage ||
-    passenger.name.last !== lastNameInPage;
-  if (preventSave) {
-    await page.$eval("#qa-add-mutamer-save", (e) => {
-      e.textContent =
-        "Save (Be careful Passport number or Last name is not correct)";
-    });
+async function pastePassportImage(passenger, resized = true) {
+  await page.waitForSelector("#PassportPictureUploader", { timeout: 0 });
+  if (resized) {
+    const passportPathResized = await util.downloadAndResizeImage(
+      passenger,
+      600,
+      400,
+      "passport",
+      400,
+      1024,
+      true
+    );
+
+    await util.commitFile("#PassportPictureUploader", passportPathResized);
   } else {
-    try {
-      await page.waitForSelector("#qa-add-mutamer-save");
-      await page.click("#qa-add-mutamer-save");
-    } catch (e) {
-      // console.log("Error: ", e);
+    const passportPath = path.join(
+      util.passportsFolder,
+      `${passenger.passportNumber}.jpg`
+    );
+    await util.downloadImage(passenger.images.passport, passportPath);
+    await util.commitFile("#PassportPictureUploader", passportPath);
+  }
+await page.waitForTimeout(1000);
+  try {
+    const modalContentSelector =
+      "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-content";
+    await page.waitForSelector(modalContentSelector, {
+      timeout: 1000,
+    });
+    const modalContent = await page.$eval(
+      modalContentSelector,
+      (e) => e.textContent
+    );
+    if (
+      modalContent.match(
+        /(Please upload a valid passport image)|(Please upload a valid passport image)/
+      )
+    ) {
+      // close the modal
+      const closeButtonSelector =
+        "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled";
+      await page.waitForSelector(closeButtonSelector);
+      await page.click(closeButtonSelector);
+      return false;
     }
+  } catch (e) {
+    // Do nothing
   }
 
-  util.incrementSelectedTraveler();
+  try {
+    // wait for passport number value to appear in the page
+    await page.waitForFunction(
+      `document.querySelector("#PassportNumber").value !== ""`
+    );
+
+    const passportNumberInPage = await page.$eval(
+      "#PassportNumber",
+      (e) => e.value
+    );
+    return (
+      passportNumberInPage !== "" &&
+      passenger.passportNumber === passportNumberInPage
+    );
+  } catch (e) {}
+}
+
+async function addMutamerClick() {
+  const addMutamerButtonSelector =
+    "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a";
+  await page.waitForSelector(addMutamerButtonSelector);
+  await page.click(addMutamerButtonSelector);
+  await page.waitForTimeout(1000);
+}
+
+async function dismissGroupCreated() {
+  try {
+    const groupCreatedOkButtonSelector =
+      "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled";
+    await page.waitForSelector(groupCreatedOkButtonSelector, {
+      timeout: 1000,
+    });
+    await page.click(groupCreatedOkButtonSelector);
+  } catch (e) {}
+
+  await page.waitForTimeout(1000);
+  // Store group id
+  if (!global.submission.targetGroupId) {
+    const groupId = page
+      .url()
+      .match(/EditMuatamerList\/([a-zA-Z0-9\-_]+)/)?.[1];
+    if (groupId) {
+      global.submission.targetGroupId = groupId;
+      kea.updateSubmission({
+        targetGroupId: groupId,
+      });
+    }
+  }
 }
 
 async function openFields() {
@@ -1009,5 +1035,52 @@ async function openFields() {
       e.removeAttribute("readonly");
     });
   });
+}
+
+async function recordStatus(passenger) {
+  try {
+    const modalContentSelector = "#swal2-content";
+    await page.waitForSelector(modalContentSelector, {
+      timeout: 1000,
+    });
+    const modalContent = await page.$eval(
+      modalContentSelector,
+      (e) => e.textContent
+    );
+    if (
+      modalContent.match(
+        /(Mutamer has been added Successfully)|(This Mutamer has been added before)/
+      )
+    ) {
+      util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
+      await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+        "submissionData.nsk.status": "Submitted",
+      });
+    } else {
+      try {
+        // Wait for the error icon to appear
+        await page.waitForSelector(
+          "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-header > div.swal2-icon.swal2-error.swal2-animate-error-icon > span",
+          {
+            visible: true,
+          }
+        );
+
+        // this is an error, mark the passenger rejected and move on
+        util.infoMessage(page, `🧟 passenger ${passenger.slug} rejected`);
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            "submissionData.nsk.status": "Rejected",
+            "submissionData.nsk.rejectionReason": modalContent,
+          }
+        );
+      } catch (e) {
+        // Do nothing
+      }
+    }
+  } catch (e) {}
+  util.incrementSelectedTraveler();
 }
 module.exports = { send };
