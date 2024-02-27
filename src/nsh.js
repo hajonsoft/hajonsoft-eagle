@@ -13,6 +13,8 @@ const gmail = require("./lib/gmail");
 const { fetchNusukIMAPOTP } = require("./lib/imap");
 const { nusukNationalities: nationalities } = require("./data/nationalities");
 const childProcess = require("child_process");
+const sharp = require("sharp");
+
 
 let page;
 let data;
@@ -645,7 +647,7 @@ async function pageContentHandler(currentConfig) {
           arabicTitle: "تحميل عينات",
           name: "uploadDocumentsCommander",
           action: async () => {
-            await uploadFakePassport();
+            await pasteSimulatedPassport();
           },
         },
       });
@@ -1128,6 +1130,55 @@ async function uploadDocuments(selectedTraveler) {
       await util.commitFile("#residencyPhoto", residencyPath2);
     }
   }
+}
+
+async function pasteSimulatedPassport() {
+  const passenger = data.travellers[util.getSelectedTraveler()];
+  await util.downloadImage(
+    passenger.images.passport,
+    getPath(`${passenger.passportNumber}.jpg`)
+  );
+  const fontName = "OCRB";
+  // Text to be added at the bottom
+  const textLine1 = passenger.codeline.split("\n")[0];
+  const textLine2 = passenger.codeline.split("\n")[1];
+  const encodedTextLine1 = textLine1.replace(/</g, "&lt;");
+  const encodedTextLine2 = textLine2.replace(/</g, "&lt;");
+
+  const height = 100;
+  const mrzImage = `
+<svg width="600" height="${height}" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background rectangle -->
+  <rect fill="white" x="0" y="0" width="600" height="${height}" />
+  <text x="40" y="50" font-family="${fontName}" font-size="16" fill="black">
+  ${encodedTextLine1}
+  </text>
+  <text x="40" y="75" font-family="${fontName}" font-size="16" fill="black">
+  ${encodedTextLine2}
+  </text>
+</svg>
+`;
+
+  const passportPathMrz = path.join(
+    util.passportsFolder,
+    `${passenger.passportNumber}_mrz.png`
+  );
+  const mrzBuffer = Buffer.from(mrzImage);
+  await sharp(getPath(`${passenger.passportNumber}.jpg`))
+    .resize(600, 400)
+    .grayscale()
+    .composite([
+      {
+        input: mrzBuffer,
+        top: 300,
+        left: 0,
+      },
+    ])
+    .png()
+    .toFile(passportPathMrz);
+
+  await util.commitFile("#passportPhoto", passportPathMrz);
+
 }
 
 async function uploadFakePassport() {
