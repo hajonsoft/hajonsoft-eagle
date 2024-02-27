@@ -649,7 +649,7 @@ async function sendCurrentPassenger() {
   if (!isPassportScanSuccessful) {
     await page.$eval("#qa-add-mutamer-save", (e) => {
       e.textContent =
-        "Save (Be careful Passport number or Last name is not correct)";
+        "Save (Be careful Passport number or Last name is not correct) - download OCRB font from https://fontsgeek.com/fonts/OCRB-Medium";
     });
     // scroll to this selector
     // #qa-add-mutamer-save
