@@ -11,6 +11,7 @@ const { getPath } = require("./lib/getPath");
 const totp = require("totp-generator");
 const kea = require("./lib/kea");
 const { fetchNusukIMAPPDF } = require("./lib/imap");
+const sharp = require("sharp");
 
 let page;
 let data;
@@ -553,68 +554,52 @@ async function pageContentHandler(currentConfig) {
 
 async function pasteSimulatedPassport() {
   const passenger = data.travellers[util.getSelectedTraveler()];
-  const blankPassportPath = getPath(`${passenger.passportNumber}_mrz.jpg`);
-  // Generate simulated passport image using the browser canvas api
-  const dataUrl = await page.evaluate((_passenger) => {
-    const ele = document.createElement("canvas");
-    ele.id = "hajonsoftcanvas";
-    ele.style.display = "none";
-    document.body.appendChild(ele);
-    const canvas = document.getElementById("hajonsoftcanvas");
-    canvas.width = 700;
-    canvas.height = 400;
-    const ctx = canvas.getContext("2d");
-    // White background
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "black";
-    ctx.font = "18px OCR-B, monospace";
-    ctx.fillText(
-      _passenger.codeline?.replace(/\n/g, "")?.substring(0, 44),
-      14,
-      canvas.height - 70
-    );
-    ctx.fillText(
-      _passenger.codeline?.replace(/\n/g, "")?.substring(44),
-      14,
-      canvas.height - 25
-    );
-
-    // Photo
-    ctx.lineWidth = 1;
-    ctx.fillStyle = "hsl(240, 25%, 94%)";
-    ctx.fillRect(45, 25, 100, 125);
-    // Visible area
-    ctx.fillStyle = "hsl(240, 25%, 94%)";
-    ctx.fillRect(170, 25, 200, 175);
-
-    // under photo area
-    ctx.fillStyle = "hsl(240, 25%, 94%)";
-    ctx.fillRect(45, 165, 100, 35);
-    return canvas.toDataURL("image/jpeg", 1.0);
-  }, passenger);
-
-  // Save dataUrl to file
-  const imageData = dataUrl.replace(/^data:image\/\w+;base64,/, "");
-  const buf = Buffer.from(imageData, "base64");
-  fs.writeFileSync(blankPassportPath, buf);
-  await util.commitFile("#PassportPictureUploader", blankPassportPath);
-}
-
-async function originalPassport() {
-  const passenger = data.travellers[util.getSelectedTraveler()];
-  const passportPath = await util.downloadImage(
-    passenger,
-    600,
-    400,
-    "passport",
-    400,
-    1024,
-    true
+  await util.downloadImage(
+    passenger.images.passport,
+    getPath(`${passenger.passportNumber}.jpg`)
   );
+  const fontName = "OCRB";
+  // Text to be added at the bottom
+  const textLine1 = passenger.codeline.split("\n")[0];
+  const textLine2 = passenger.codeline.split("\n")[1];
+  const encodedTextLine1 = textLine1.replace(/</g, "&lt;");
+  const encodedTextLine2 = textLine2.replace(/</g, "&lt;");
 
-  await util.commitFile("#PassportPictureUploader", blankPassportPath);
+  const height = 100;
+  const mrzImage = `
+<svg width="600" height="${height}" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background rectangle -->
+  <rect fill="white" x="0" y="0" width="600" height="${height}" />
+  <text x="40" y="50" font-family="${fontName}" font-size="16" fill="black">
+  ${encodedTextLine1}
+  </text>
+  <text x="40" y="75" font-family="${fontName}" font-size="16" fill="black">
+  ${encodedTextLine2}
+  </text>
+</svg>
+`;
+
+  const passportPathMrz = path.join(
+    util.passportsFolder,
+    `${passenger.passportNumber}_mrz.png`
+  );
+  const mrzBuffer = Buffer.from(mrzImage);
+  await sharp(getPath(`${passenger.passportNumber}.jpg`))
+    .resize(600, 400)
+    .grayscale()
+    .composite([
+      {
+        input: mrzBuffer,
+        top: 300,
+        left: 0,
+      },
+    ])
+    .png()
+    .toFile(passportPathMrz);
+
+  await util.commitFile("#PassportPictureUploader", passportPathMrz);
+  const isSuccess = await assertPassportImage();
+  return isSuccess;
 }
 
 function suggestEmail(passenger) {
@@ -651,7 +636,7 @@ async function sendCurrentPassenger() {
   util.infoMessage(page, `🧟 Inputting ${passenger.slug} saved`);
   let isPassportScanSuccessful = await pastePassportImage(passenger);
   if (!isPassportScanSuccessful) {
-    isPassportScanSuccessful = await pastePassportImage(passenger, false);
+    isPassportScanSuccessful = await pasteSimulatedPassport(passenger);
   }
   await pasteRemainingImages(passenger);
   await showCommanders(passenger);
@@ -666,7 +651,7 @@ async function sendCurrentPassenger() {
       e.textContent =
         "Save (Be careful Passport number or Last name is not correct)";
     });
-    // scroll to this selector 
+    // scroll to this selector
     // #qa-add-mutamer-save
     await page.evaluate((selector) => {
       const element = document.querySelector(selector);
@@ -674,7 +659,7 @@ async function sendCurrentPassenger() {
         element.scrollIntoView();
       }
     }, "#qa-add-mutamer-save");
-    
+
     openFields();
     await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
       "submissionData.nsk.status": "Rejected",
@@ -821,37 +806,41 @@ async function pasteRemainingImages(passenger) {
           true
         );
         await util.commitFile("#ResidencyPictureUploader", permitPath);
-
-        await util.commit(
-          page,
-          [
-            {
-              selector: "#IqamaExpiryDate",
-              value: (row) =>
-                `${row.idExpireDt.yyyy}-${row.idExpireDt.mm}-${row.idExpireDt.dd}`,
-            },
-          ],
-          passenger
-        );
-
-        await page.$eval(
-          "#dvResidencyExpiryDate > label",
-          (e, idExpireDt) => {
-            e.textContent = `Residency Expiry Date (${idExpireDt})`;
-          },
-          passenger.idExpireDt.dmmmy
-        );
-
-        await page.$eval(
-          "#dvResidencyId > label",
-          (e, residenceId) => {
-            e.textContent = `Residency ID (${residenceId})`;
-          },
-          passenger.idNumber
-        );
       } else {
         await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
       }
+
+
+      await page.click("#IqamaExpiryDate");
+      await page.waitForTimeout(500);
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#IqamaExpiryDate",
+            value: (row) =>
+              `${row.idExpireDt.yyyy || row.passExpireDt.yyyy}-${row.idExpireDt.mm || row.passExpireDt.mm}-${row.idExpireDt.dd || row.passExpireDt.dd}`,
+          },
+        ],
+        passenger
+      );
+
+      await page.$eval(
+        "#dvResidencyExpiryDate > label",
+        (e, idExpireDt) => {
+          e.textContent = `Residency Expiry Date: => (${idExpireDt})`;
+        },
+        passenger.idExpireDt.dmmmy
+      );
+
+      await page.$eval(
+        "#dvResidencyId > label",
+        (e, residenceId) => {
+          e.textContent = `Residency ID: => (${residenceId})`;
+        },
+        passenger.idNumber
+      );
+
     } catch (e) {
       console.log("Error: ", e);
     }
@@ -880,7 +869,12 @@ async function pastePassportImage(passenger, resized = true) {
     await util.downloadImage(passenger.images.passport, passportPath);
     await util.commitFile("#PassportPictureUploader", passportPath);
   }
-await page.waitForTimeout(1000);
+  await page.waitForTimeout(1000);
+  const isSuccess = await assertPassportImage();
+  return isSuccess;
+}
+
+async function assertPassportImage() {
   try {
     const modalContentSelector =
       "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-content";
@@ -922,6 +916,7 @@ await page.waitForTimeout(1000);
       passenger.passportNumber === passportNumberInPage
     );
   } catch (e) {}
+  return false;
 }
 
 async function addMutamerClick() {
@@ -1053,9 +1048,13 @@ async function recordStatus(passenger) {
       )
     ) {
       util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
-      await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-        "submissionData.nsk.status": "Submitted",
-      });
+      await kea.updatePassenger(
+        data.system.accountId,
+        passenger.passportNumber,
+        {
+          "submissionData.nsk.status": "Submitted",
+        }
+      );
     } else {
       try {
         // Wait for the error icon to appear

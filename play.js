@@ -409,25 +409,25 @@ const fs = require("fs");
 const sharp = require("sharp");
 
 // Path to the input image
-const imagePath = "input.jpg";
+const imagePath = "/Users/aali/hajonsoft/passports/CF9361618.jpg";
+const fontName = "OCRB";
 // Text to be added at the bottom
 const textLine1 = "P<INDKHAN<<VASIM<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
 const textLine2 = "Y5252725<2IND9601019M33113072068702785423<02";
-const encodedTextLine1 = textLine1.replace(/</g, '&lt;')
-const encodedTextLine2 = textLine2.replace(/</g, '&lt;');
+const encodedTextLine1 = textLine1.replace(/</g, "&lt;");
+const encodedTextLine2 = textLine2.replace(/</g, "&lt;");
 
 async function makeImage() {
-  const metaData = await sharp(imagePath).metadata();
-  const height = Math.floor(metaData.height / 4);
-// SVG markup with encoded text
-const mrzImage = `
-<svg width="${metaData.width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+  const height = Math.floor(400 / 4);
+  // SVG markup with encoded text
+  const mrzImage = `
+<svg width="600" height="${height}" xmlns="http://www.w3.org/2000/svg">
   <!-- Background rectangle -->
-  <rect fill="white" x="0" y="0" width="${metaData.width}" height="${height}" />
-  <text x="60" y="140" font-family="Ariel" font-size="50" fill="black">
+  <rect fill="white" x="0" y="${height / 8}" width="600" height="${height}" />
+  <text x="40" y="50" font-family="${fontName}" font-size="16" fill="black">
   ${encodedTextLine1}
   </text>
-  <text x="60" y="230" font-family="Ariel" font-size="50" fill="black">
+  <text x="40" y="75" font-family="${fontName}" font-size="16" fill="black">
   ${encodedTextLine2}
   </text>
 </svg>
@@ -435,10 +435,12 @@ const mrzImage = `
 
   const mrzBuffer = Buffer.from(mrzImage);
   await sharp(imagePath)
+    .resize(600, 400)
+    .grayscale()
     .composite([
       {
         input: mrzBuffer,
-        top: metaData.height - height, // Position at the bottom of the image
+        top: 300,
         left: 0,
       },
     ])
