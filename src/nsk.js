@@ -125,22 +125,6 @@ const config = [
             : row?.nameArabic?.father,
       },
       {
-        selector: "#FirstNameEn",
-        value: (row) => row?.name?.first,
-      },
-      {
-        selector: "#FamilyNameEn",
-        value: (row) => row?.name?.last,
-      },
-      {
-        selector: "#ThirdNameEn",
-        value: (row) => row?.name?.grand,
-      },
-      {
-        selector: "#SecondNameEn",
-        value: (row) => row?.name?.father,
-      },
-      {
         selector: "#BirthCity",
         value: (row) =>
           decodeURI(row.birthPlace?.replace(/,/, " ")) || row.nationality.name,
@@ -732,6 +716,50 @@ async function commitRemainingFields(passenger) {
     ],
     passenger
   );
+
+  // read the last name from the page, then subtract this from the passenger name then computer the first, second and third name
+  const lastName = await page.$eval("#FamilyNameEn", (e) => e.value);
+  // here are the first, second and third names
+  const fullName = passenger.name.full;
+  // remove the last name from the full name from its tail using regex
+  const firstSecondThird = fullName.replace(new RegExp(`\\s+${lastName}.*?$`), "").trim();
+ let first = "";
+  let second = "";
+  let third = "";
+  const firstSecondThirdArray = firstSecondThird.split(" ");
+  if (firstSecondThirdArray.length === 1) {
+    first = firstSecondThirdArray[0];
+  } else if (firstSecondThirdArray.length === 2) {
+    first = firstSecondThirdArray[0];
+    second = firstSecondThirdArray[1];
+  } else if (firstSecondThirdArray.length === 3) {
+    first = firstSecondThirdArray[0];
+    second = firstSecondThirdArray[1];
+    third = firstSecondThirdArray[2];
+  } else {
+    first = firstSecondThirdArray[0];
+    second = firstSecondThirdArray[1];
+    third = firstSecondThirdArray.slice(2).join(" ");
+  }
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#FirstNameEn",
+        value: () => first,
+      },
+      {
+        selector: "#SecondNameEn",
+        value: () => second,
+      },
+      {
+        selector: "#ThirdNameEn",
+        value: () => third,
+      },
+    ],
+    {}
+  );
+
 }
 
 async function showCommanders() {
