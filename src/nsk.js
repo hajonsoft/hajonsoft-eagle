@@ -18,6 +18,7 @@ let data;
 let counter = 0;
 let passenger;
 let downloadVisaMode = false;
+let groupCreated = false;
 function getLogFile() {
   const logFolder = path.join(getPath("log"), util.suggestGroupName(data));
   if (!fs.existsSync(logFolder)) {
@@ -352,6 +353,11 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "create-group":
+      // don't create group twice
+      if (groupCreated) {
+        return;
+      }
+      groupCreated = true;
       if (!autoMode) return;
 
       await page.waitForTimeout(5000);
@@ -586,6 +592,18 @@ async function pasteSimulatedPassport() {
   return isSuccess;
 }
 
+async function pasteOriginalPassport() {
+  const passenger = data.travellers[util.getSelectedTraveler()];
+  const passportOriginalPath = getPath(
+    `${passenger.passportNumber}_original.jpg`
+  );
+  await util.downloadImage(passenger.images.passport, passportOriginalPath);
+
+  await util.commitFile("#PassportPictureUploader", passportOriginalPath);
+  const isSuccess = await assertPassportImage();
+  return isSuccess;
+}
+
 function suggestEmail(passenger) {
   if (passenger.email) {
     return passenger.email;
@@ -617,10 +635,23 @@ async function sendCurrentPassenger() {
     return;
   }
   passenger = data.travellers[selectedTraveler];
+  await page.waitForSelector("#mutamerForm > div.modal-body > h1");
+  await page.$eval(
+    "#mutamerForm > div.modal-body > h1",
+    (e, params) => {
+      e.innerText = `Add Mutamer ${parseInt(params[0]) + 1} of ${params[1]} - ${
+        params[2].slug
+      }`;
+    },
+    [selectedTraveler, data.travellers.length, passenger]
+  );
   util.infoMessage(page, `🧟 Inputting ${passenger.slug} saved`);
   let isPassportScanSuccessful = await pastePassportImage(passenger);
   if (!isPassportScanSuccessful) {
-    isPassportScanSuccessful = await pasteSimulatedPassport(passenger);
+    isPassportScanSuccessful = await pasteSimulatedPassport();
+  }
+  if (!isPassportScanSuccessful) {
+    isPassportScanSuccessful = await pasteOriginalPassport();
   }
   await pasteRemainingImages(passenger);
   await showCommanders(passenger);
@@ -722,8 +753,10 @@ async function commitRemainingFields(passenger) {
   // here are the first, second and third names
   const fullName = passenger.name.full;
   // remove the last name from the full name from its tail using regex
-  const firstSecondThird = fullName.replace(new RegExp(`\\s+${lastName}.*?$`), "").trim();
- let first = "";
+  const firstSecondThird = fullName
+    .replace(new RegExp(`\\s+${lastName}.*?$`), "")
+    .trim();
+  let first = "";
   let second = "";
   let third = "";
   const firstSecondThirdArray = firstSecondThird.split(" ");
@@ -759,7 +792,6 @@ async function commitRemainingFields(passenger) {
     ],
     {}
   );
-
 }
 
 async function showCommanders() {
@@ -838,7 +870,6 @@ async function pasteRemainingImages(passenger) {
         await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
       }
 
-
       await page.click("#IqamaExpiryDate");
       await page.waitForTimeout(500);
       await util.commit(
@@ -847,7 +878,9 @@ async function pasteRemainingImages(passenger) {
           {
             selector: "#IqamaExpiryDate",
             value: (row) =>
-              `${row.idExpireDt.yyyy || row.passExpireDt.yyyy}-${row.idExpireDt.mm || row.passExpireDt.mm}-${row.idExpireDt.dd || row.passExpireDt.dd}`,
+              `${row.idExpireDt.yyyy || row.passExpireDt.yyyy}-${
+                row.idExpireDt.mm || row.passExpireDt.mm
+              }-${row.idExpireDt.dd || row.passExpireDt.dd}`,
           },
         ],
         passenger
@@ -868,7 +901,6 @@ async function pasteRemainingImages(passenger) {
         },
         passenger.idNumber
       );
-
     } catch (e) {
       console.log("Error: ", e);
     }
