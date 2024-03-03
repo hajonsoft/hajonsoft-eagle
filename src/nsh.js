@@ -821,7 +821,7 @@ async function getOTPCode() {
   try {
     if (pageMode.includes("Registration") || pageMode.includes("التسجيل")) {
       await fetchNusukIMAPOTP(
-        (passenger.email || emailAddress).split('/')[0],
+        getOTPEmailAddress((passenger.email || emailAddress).split('/')[0])
         (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
         ["Email Activation", "تفعيل البريد الالكتروني"],
         pasteOTPCode,
@@ -832,7 +832,7 @@ async function getOTPCode() {
       pageMode.includes("التثبت من رمز التحقق")
     ) {
       await fetchNusukIMAPOTP(
-        (passenger.email || emailAddress).split('/')[0],
+        getOTPEmailAddress((passenger.email || emailAddress).split('/')[0])
         (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
         ["One Time Password", "رمز سري لمرة واحدة"],
         pasteOTPCode,
@@ -854,7 +854,7 @@ async function getCompanionOTPCode() {
   const pageMode = "OTP Verification";
   try {
     await fetchNusukIMAPOTP(
-      (passenger.email || emailAddress).split('/')[0],
+      getOTPEmailAddress((passenger.email || emailAddress).split('/')[0]),
       (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
       ["One Time Password", "رمز سري لمرة واحدة"],
       pasteOTPCodeCompanion,
@@ -1585,6 +1585,16 @@ async function runParallel() {
 
 
   await page.browser().close();
+}
+
+function getOTPEmailAddress(email) {
+  if (email.includes(".gmail") || email.includes(".yahoo") || email.includes(".outlook")) {
+    const domain = data.system.username.includes("@")
+    ? data.system.username.split("@")[1]
+    : data.system.username;
+    return `admin@${domain}`
+  }
+  return email;
 }
 
 module.exports = { send };

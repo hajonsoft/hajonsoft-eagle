@@ -134,11 +134,11 @@ const config = [
         selector: "#IssueCity",
         value: (row) => decodeURI(row.placeOfIssue),
       },
-      {
-        selector: "#PassportExpiryDate",
-        value: (row) =>
-          `${row.passExpireDt.yyyy}-${row.passExpireDt.mm}-${row.passExpireDt.dd}`,
-      },
+      // {
+      //   selector: "#PassportExpiryDate",
+      //   value: (row) =>
+      //     `${row.passExpireDt.yyyy}-${row.passExpireDt.mm}-${row.passExpireDt.dd}`,
+      // },
       {
         selector: "#MartialStatus",
         value: (row) => "99",
@@ -197,7 +197,7 @@ async function downloadVisas() {
     if (data.travellers[i].email) {
       await fetchNusukIMAPPDF(
         data.travellers[i].email,
-        data.system.adminEmailPassword || "(HajonSoft123)",
+        data.system.adminEmailPassword,
         ["التأشيرة الإلكترونية", "Electronic Visa"],
         (err, pdf) =>
           saveVisaPDF(
@@ -691,7 +691,7 @@ async function sendCurrentPassenger() {
     try {
       await page.waitForSelector("#qa-add-mutamer-save");
       await page.click("#qa-add-mutamer-save");
-      recordStatus(passenger);
+      await recordStatus(passenger);
     } catch (e) {
       // console.log("Error: ", e);
     }
@@ -718,14 +718,6 @@ async function commitRemainingFields(passenger) {
     ],
     {}
   );
-  // select the first option in the select
-  await page.$eval("#IssueCity", (e) => {
-    const options = e.querySelectorAll("option");
-    if (options.length >= 2) {
-      options[1].selected = true;
-    }
-  });
-
   await page.$eval(
     "#mutamerForm > div.modal-body > div:nth-child(13) > div:nth-child(1) > label",
     (e, passIssueDt) => {
@@ -804,6 +796,29 @@ async function showCommanders() {
       action: async () => {
         // Open name fields for editing
         await openFields();
+      },
+    },
+  });
+
+  await util.commander(page, {
+    controller: {
+      selector: "#qa-add-mutamer-close",
+      title: "Close",
+      arabicTitle: "أغلق",
+      name: "close",
+      keepOriginalElement: true,
+      action: async () => {
+        // Close the modal
+        await page.click("#qa-add-mutamer-close");
+        // mark traveller rejected
+        kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          "submissionData.nsk.status": "Rejected",
+          "submissionData.nsk.rejectionReason": "Manual close",
+        });
+        // Increment the selected traveler
+        util.incrementSelectedTraveler();
+        // Send the next passenger
+        await sendCurrentPassenger();
       },
     },
   });
@@ -1096,7 +1111,7 @@ async function recordStatus(passenger) {
   try {
     const modalContentSelector = "#swal2-content";
     await page.waitForSelector(modalContentSelector, {
-      timeout: 1000,
+      timeout: 5000,
     });
     const modalContent = await page.$eval(
       modalContentSelector,
@@ -1136,10 +1151,12 @@ async function recordStatus(passenger) {
           }
         );
       } catch (e) {
-        // Do nothing
+        console.log("Status was not saved: ", e);
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.log("Status was not saved: ", e);
+  }
   util.incrementSelectedTraveler();
 }
 module.exports = { send };
