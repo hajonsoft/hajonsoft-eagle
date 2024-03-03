@@ -675,7 +675,10 @@ async function commander(page, structure, travellers) {
               " " +
               structureParam.controller.arabicTitle
           );
-        container.outerHTML = htmlContent;
+        container.outerHTML = controller.keepOriginalElement? `<div>${container.outerHTML}${htmlContent}</div>`
+        
+        :
+        htmlContent;
       },
       [structure, controllerHandleMethod, isLoop, html]
     );
