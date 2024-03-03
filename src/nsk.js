@@ -655,7 +655,6 @@ async function sendCurrentPassenger() {
   }
   await pasteRemainingImages(passenger);
   await showCommanders(passenger);
-  return
   await commitRemainingFields(passenger);
   await page.waitForTimeout(1000);
   await page.focus("#PassportNumber");
@@ -692,7 +691,7 @@ async function sendCurrentPassenger() {
     try {
       await page.waitForSelector("#qa-add-mutamer-save");
       await page.click("#qa-add-mutamer-save");
-      recordStatus(passenger);
+      await recordStatus(passenger);
     } catch (e) {
       // console.log("Error: ", e);
     }
@@ -1112,7 +1111,7 @@ async function recordStatus(passenger) {
   try {
     const modalContentSelector = "#swal2-content";
     await page.waitForSelector(modalContentSelector, {
-      timeout: 1000,
+      timeout: 5000,
     });
     const modalContent = await page.$eval(
       modalContentSelector,
@@ -1152,10 +1151,12 @@ async function recordStatus(passenger) {
           }
         );
       } catch (e) {
-        // Do nothing
+        console.log("Status was not saved: ", e);
       }
     }
-  } catch (e) {}
+  } catch (e) {
+    console.log("Status was not saved: ", e);
+  }
   util.incrementSelectedTraveler();
 }
 module.exports = { send };
