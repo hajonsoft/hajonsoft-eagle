@@ -50,6 +50,16 @@ const URLS = {
   SIGNOUT: "https://hajj.nusuk.sa/Account/Signout",
 };
 
+function getOTPEmailAddress(email) {
+  if (email.includes(".gmail") || email.includes(".yahoo") || email.includes(".outlook")) {
+    const domain = data.system.username.includes("@")
+    ? data.system.username.split("@")[1]
+    : data.system.username;
+    return `admin@${domain}`
+  }
+  return email;
+}
+
 function getLogFile() {
   const logFolder = path.join(getPath("log"), data.info.munazim);
   if (!fs.existsSync(logFolder)) {
@@ -800,6 +810,12 @@ async function loginOrRegister(selectedTraveler) {
 
 async function getOTPCode() {
   const passenger = data.travellers[util.getSelectedTraveler()];
+  await page.$eval(
+    "#otpForm > label",
+    (el, email) =>
+      (el.innerText = `${email.split('/')[0]}`),
+    passenger.email || emailAddress
+  );
   if (!canGetCode(passenger.email || emailAddress, data.system.username)) {
     await util.infoMessage(page, "Manual code required or try again!");
     return;
@@ -821,7 +837,7 @@ async function getOTPCode() {
   try {
     if (pageMode.includes("Registration") || pageMode.includes("التسجيل")) {
       await fetchNusukIMAPOTP(
-        getOTPEmailAddress((passenger.email || emailAddress).split('/')[0])
+        getOTPEmailAddress((passenger.email || emailAddress).split('/')[0]),
         (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
         ["Email Activation", "تفعيل البريد الالكتروني"],
         pasteOTPCode,
@@ -832,7 +848,7 @@ async function getOTPCode() {
       pageMode.includes("التثبت من رمز التحقق")
     ) {
       await fetchNusukIMAPOTP(
-        getOTPEmailAddress((passenger.email || emailAddress).split('/')[0])
+        getOTPEmailAddress((passenger.email || emailAddress).split('/')[0]),
         (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
         ["One Time Password", "رمز سري لمرة واحدة"],
         pasteOTPCode,
@@ -994,6 +1010,7 @@ async function loginPassenger(selectedTraveler) {
   const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
   var data = JSON.parse(rawData);
   const passenger = data.travellers[selectedTraveler];
+  await page.waitForTimeout(1000);
   await util.commit(
     page,
     [
@@ -1585,16 +1602,6 @@ async function runParallel() {
 
 
   await page.browser().close();
-}
-
-function getOTPEmailAddress(email) {
-  if (email.includes(".gmail") || email.includes(".yahoo") || email.includes(".outlook")) {
-    const domain = data.system.username.includes("@")
-    ? data.system.username.split("@")[1]
-    : data.system.username;
-    return `admin@${domain}`
-  }
-  return email;
 }
 
 module.exports = { send };
