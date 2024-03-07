@@ -188,7 +188,7 @@ const config = [
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml",
     controller: {
-      selector: "#passportImage > p",
+      selector: "#kt_app_content_container > div:nth-child(2) > h1",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -426,7 +426,8 @@ async function pasteCodeLine(selectedTraveler, passengersData) {
       passengersData.travellers.length
     }`
   );
-  await page.focus("#passportCaptureStatus");
+  // #passportComments
+  await page.focus("#passportComments");
   if (selectedTraveler == "-1") {
     const browser = await page.browser();
     browser.disconnect();
