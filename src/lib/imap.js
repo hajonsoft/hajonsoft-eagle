@@ -9,11 +9,18 @@ const nshFromEmail = "no_reply@hajj.nusuk.sa";
 const nskFromEmail = "no-reply@mofa.gov.sa";
 const messages = {};
 
+function getHostName(recipient) {
+  if (recipient.includes("@triamail.com")) {
+    return "mail.privateemail.com";
+  }
+  return `mail.${recipient.split("@")[1]}`;
+}
+
 async function fetchNusukIMAPOTP(recipient, password, subject, callback, isNotVirtualEmail) {
   var imap = new Imap({
     user: isNotVirtualEmail ? recipient : `admin@${recipient.split("@")[1]}`,
     password: password,
-    host: `mail.${recipient.split("@")[1]}`,
+    host: getHostName(recipient),
     port: 993,
     tls: true,
     tlsOptions: { rejectUnauthorized: false },
