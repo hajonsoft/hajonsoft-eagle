@@ -426,8 +426,7 @@ async function pasteCodeLine(selectedTraveler, passengersData) {
       passengersData.travellers.length
     }`
   );
-  // #passportComments
-  await page.focus("#passportComments");
+  await page.focus("#passportCaptureStatus");
   if (selectedTraveler == "-1") {
     const browser = await page.browser();
     browser.disconnect();
