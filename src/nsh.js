@@ -1570,7 +1570,10 @@ async function runParallel() {
   for (let index = 0; index < Math.min(leads.length, 15); index++) {
     const passenger = leads[index];
     const newArgs = process.argv.map((v) => {
-      if (v.includes("/node")) {
+      if (v.includes("/node") || v.includes("\\node")) {
+        return `"${v}"`;
+      }
+      if (v.includes("hajonsoft-eagle")) {
         return `"${v}"`;
       }
       if (v.startsWith("--submissionId")) {
