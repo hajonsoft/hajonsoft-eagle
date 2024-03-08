@@ -1577,7 +1577,7 @@ async function runParallel() {
         return `"${v}"`;
       }
       if (v.startsWith("--submissionId")) {
-        return `${v} --passengerIds=${passenger.id} --auto -windowed`;
+        return `${v} --passengerIds=${passenger.id} --auto -windowed --index=${index}/${Math.min(leads.length, 15)}`;
       }
       if (v.startsWith("--passengerId")) {
         return ``;
