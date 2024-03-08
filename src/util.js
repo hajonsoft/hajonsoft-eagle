@@ -122,10 +122,112 @@ async function initPage(config, onContentLoaded, data) {
     process.argv.find((c) => c.startsWith("--headless"))
   );
 
+  let defaultViewport = null;
+  if (process.argv.includes("--auto")) {
+    const autoIndexArg = process.argv.find((c) => c.startsWith("--index"));
+    if (autoIndexArg) {
+      const indexArray = autoIndexArg.split("=")?.[1]?.split("/");
+      if (indexArray.length === 2) {
+        const monitorWidth = parseInt(process.argv
+          .find((c) => c.startsWith("--monitor-width"))
+          ?.split("=")?.[1]);
+        const monitorHeight = parseInt(process.argv
+          .find((c) => c.startsWith("--monitor-height"))
+          ?.split("=")?.[1]);
+
+        const index = parseInt(indexArray[0]);
+        const total = parseInt(indexArray[1]);
+        let rows = 1;
+        let cols = 1;
+
+        switch (total) {
+          case 2:
+            rows = 1;
+            cols = 2;
+            break;
+          case 3:
+            rows = 2;
+            cols = 2;
+            break;
+          case 4:
+            rows = 2;
+            cols = 2;
+            break;
+          case 5:
+            rows = 2;
+            cols = 3;
+            break;
+          case 6:
+            rows = 2;
+            cols = 3;
+            break;
+          case 7:
+            rows = 2;
+            cols = 4;
+            break;
+          case 8:
+            rows = 2;
+            cols = 4;
+            break;
+          case 9:
+            rows = 3;
+            cols = 3;
+            break;
+          case 10:
+            rows = 3;
+            cols = 4;
+            break;
+          case 11:
+            rows = 3;
+            cols = 4;
+            break;
+          case 12:
+            rows = 3;
+            cols = 4;
+            break;
+          case 13:
+            rows = 3;
+            cols = 5;
+            break;
+          case 14:
+            rows = 3;
+            cols = 5;
+            break;
+          case 15:
+            rows = 3;
+            cols = 5;
+            break;
+          default:
+            rows = 1;
+            cols = 1;
+            break;
+        }
+
+        const boxWidth = Math.floor(monitorWidth / cols);
+        const boxHeight = Math.floor(monitorHeight / rows);
+
+        const row = Math.floor(index / cols);
+        const column = index % cols;
+
+        const xPos = column * boxWidth;
+        const yPos = row * boxHeight;
+
+        args.push(
+          `--window-size=${boxWidth},${boxHeight}`,
+          `--window-position=${xPos},${yPos}`
+        );
+        defaultViewport = {
+          width: monitorWidth,
+          height: monitorHeight,
+        };
+      }
+    }
+  }
+
   const launchOptions = {
     headless: isCloudRun || isHeadless,
     ignoreHTTPSErrors: true,
-    defaultViewport: null,
+    defaultViewport,
     args,
   };
 
@@ -675,10 +777,9 @@ async function commander(page, structure, travellers) {
               " " +
               structureParam.controller.arabicTitle
           );
-        container.outerHTML = controller.keepOriginalElement? `<div>${container.outerHTML}${htmlContent}</div>`
-        
-        :
-        htmlContent;
+        container.outerHTML = controller.keepOriginalElement
+          ? `<div>${container.outerHTML}${htmlContent}</div>`
+          : htmlContent;
       },
       [structure, controllerHandleMethod, isLoop, html]
     );
@@ -1628,12 +1729,14 @@ async function pdfToKea(
   currentPassenger,
   status = "visa"
 ) {
-
   const folder = path.join(getDownloadFolder(), "hajonsoft", "pdf");
   if (!fs.existsSync(folder)) {
     fs.mkdirSync(folder, { recursive: true });
   }
-  const pdfFileName = path.join(folder, `visa_${currentPassenger.passportNumber}.pdf`);
+  const pdfFileName = path.join(
+    folder,
+    `visa_${currentPassenger.passportNumber}.pdf`
+  );
   fs.writeFileSync(pdfFileName, pdfBuffer);
   const base64 = await pdfBuffer.toString("base64");
   const pdfFilename = `visa_${currentPassenger.passportNumber}.pdf`;
@@ -1644,7 +1747,6 @@ async function pdfToKea(
     "submissionData.nsk.status": status,
   });
 }
-
 
 async function remember(page, selector) {
   const val = await page.$eval(selector, (el) => el.value);

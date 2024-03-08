@@ -1566,15 +1566,21 @@ async function runParallel() {
       traveller.email &&
       !traveller.email.includes(".companion")
   );
+  // get screenWidth and height of the page
+  const monitorWidth = await page.evaluate(() => screen.width);
+  const monitorHeight = await page.evaluate(() => screen.height);
   const commands = [];
   for (let index = 0; index < Math.min(leads.length, 15); index++) {
     const passenger = leads[index];
     const newArgs = process.argv.map((v) => {
-      if (v.includes("/node")) {
+      if (v.includes("/node") || v.includes("\\node")) {
+        return `"${v}"`;
+      }
+      if (v.includes("hajonsoft-eagle")) {
         return `"${v}"`;
       }
       if (v.startsWith("--submissionId")) {
-        return `${v} --passengerIds=${passenger.id} --auto -windowed`;
+        return `${v} --passengerIds=${passenger.id} --auto -windowed --index=${index}/${Math.min(leads.length, 15)} --monitor-width=${monitorWidth} --monitor-height=${monitorHeight}`;
       }
       if (v.startsWith("--passengerId")) {
         return ``;
