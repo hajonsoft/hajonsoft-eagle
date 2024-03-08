@@ -1,5 +1,6 @@
 const pdfLib = require("pdf-lib");
 const fs = require("fs");
+const fontkit = require("@pdf-lib/fontkit");
 
 const mergeAndSavePDF = async (buffers) => {
   const mergedPdf = await pdfLib.PDFDocument.create();
@@ -20,7 +21,14 @@ const mergeAndSavePDF = async (buffers) => {
   fs.writeFileSync("./result.pdf", mergedPdfBytes);
 };
 
-const createPDF = async (name, country, passportNumber) => {
+const createPDF = async (
+  name,
+  country,
+  passportNumber,
+  policyNumber,
+  arabicName,
+  arabicNationality
+) => {
   try {
     const templatePdfBytes = fs.readFileSync("../assets/insurance.pdf");
     // Use PDFDocument.load to load the PDF from bytes
@@ -30,10 +38,31 @@ const createPDF = async (name, country, passportNumber) => {
       pdfLib.StandardFonts.Helvetica
     );
 
+    const fontBytes = fs.readFileSync(
+      "../assets/NotoSansArabic-VariableFont_wdth,wght.ttf"
+    );
+    pdfDoc.registerFontkit(fontkit);
+
+    const arabicFont = await pdfDoc.embedFont(fontBytes);
+
     const pages = pdfDoc.getPages();
     const firstPage = pages[0];
 
     const { height } = firstPage.getSize();
+
+    firstPage.drawText(policyNumber, {
+      x: 140,
+      y: height - 135,
+      size: 15,
+      font: helveticaFont,
+    });
+
+    firstPage.drawText(policyNumber, {
+      x: 350,
+      y: height - 135,
+      size: 15,
+      font: helveticaFont,
+    });
 
     firstPage.drawText(name, {
       x: 100,
@@ -56,6 +85,20 @@ const createPDF = async (name, country, passportNumber) => {
       font: helveticaFont,
     });
 
+    firstPage.drawText(arabicNationality, {
+      x: 410,
+      y: height - 175,
+      size: 10,
+      font: arabicFont,
+    });
+
+    firstPage.drawText(arabicName, {
+      x: 410,
+      y: height - 155,
+      size: 10,
+      font: arabicFont,
+    });
+
     const pdfBytes = await pdfDoc.save();
 
     const buffer = Buffer.from(pdfBytes.buffer);
@@ -69,7 +112,14 @@ const createPDF = async (name, country, passportNumber) => {
 const createInsurance = async (userDetails) => {
   try {
     const pdfCreationPromises = userDetails.map((user) =>
-      createPDF(user.name, user.country, user.passportNumber)
+      createPDF(
+        user.name,
+        user.country,
+        user.passportNumber,
+        user.policyNumber,
+        user.arabicName,
+        user.arabicNationality
+      )
     );
 
     const pdfBuffers = await Promise.all(pdfCreationPromises);
@@ -82,18 +132,88 @@ const createInsurance = async (userDetails) => {
 };
 
 createInsurance([
-  { name: "Ayman", country: "Wonderland", passportNumber: "123456789", arabicName: "أيمن", arabicNationality: "مصري", policyNumber: "123456789" },
-  { name: "Babatunde", country: "Builderland", passportNumber: "987654321" , arabicName: "أيمن", arabicNationality: "مصري", policyNumber: "123456789"},
-  { name: "Noorah", country: "Builderland", passportNumber: "987654321" , arabicName: "أيمن", arabicNationality: "مصري", policyNumber: "123456789"},
-  { name: "Hesham", country: "Builderland", passportNumber: "987654321" , arabicName: "أيمن", arabicNationality: "مصري", policyNumber: "123456789"},
-  { name: "Abdullah", country: "Builderland", passportNumber: "987654321" , arabicName: "أيمن", arabicNationality: "مصري", policyNumber: "123456789"},
-  { name: "Lateef", country: "Builderland", passportNumber: "987654321" , arabicName: "أيمن", arabicNationality: "مصري", policyNumber: "123456789"},
-  { name: "Umrah", country: "Builderland", passportNumber: "987654321" , arabicName: "أيمن", arabicNationality: "مصري", policyNumber: "123456789"},
-  { name: "Hajj", country: "Builderland", passportNumber: "987654321" , arabicName: "أيمن", arabicNationality: "مصري", policyNumber: "123456789"},
-  { name: "Bab Umrah", country: "Builderland", passportNumber: "987654321" , arabicName: "أيمن", arabicNationality: "مصري", policyNumber: "123456789"},
-  { name: "Happiness", country: "Builderland", passportNumber: "987654321" , arabicName: "أيمن", arabicNationality: "مصري", policyNumber: "123456789"},
+  {
+    name: "Ayman",
+    country: "Wonderland",
+    passportNumber: "123456789",
+    arabicName: "أيمن",
+    arabicNationality: "مصري",
+    policyNumber: "123456789",
+  },
+  {
+    name: "Babatunde",
+    country: "Builderland",
+    passportNumber: "987654321",
+    arabicName: "أيمن",
+    arabicNationality: "مصري",
+    policyNumber: "123456789",
+  },
+  {
+    name: "Noorah",
+    country: "Builderland",
+    passportNumber: "987654321",
+    arabicName: "أيمن",
+    arabicNationality: "مصري",
+    policyNumber: "123456789",
+  },
+  {
+    name: "Hesham",
+    country: "Builderland",
+    passportNumber: "987654321",
+    arabicName: "أيمن",
+    arabicNationality: "مصري",
+    policyNumber: "123456789",
+  },
+  {
+    name: "Abdullah",
+    country: "Builderland",
+    passportNumber: "987654321",
+    arabicName: "أيمن",
+    arabicNationality: "مصري",
+    policyNumber: "123456789",
+  },
+  {
+    name: "Lateef",
+    country: "Builderland",
+    passportNumber: "987654321",
+    arabicName: "أيمن",
+    arabicNationality: "مصري",
+    policyNumber: "123456789",
+  },
+  {
+    name: "Umrah",
+    country: "Builderland",
+    passportNumber: "987654321",
+    arabicName: "أيمن",
+    arabicNationality: "مصري",
+    policyNumber: "123456789",
+  },
+  {
+    name: "Hajj",
+    country: "Builderland",
+    passportNumber: "987654321",
+    arabicName: "أيمن",
+    arabicNationality: "مصري",
+    policyNumber: "123456789",
+  },
+  {
+    name: "Bab Umrah",
+    country: "Builderland",
+    passportNumber: "987654321",
+    arabicName: "أيمن",
+    arabicNationality: "مصري",
+    policyNumber: "123456789",
+  },
+  {
+    name: "Happiness",
+    country: "Builderland",
+    passportNumber: "987654321",
+    arabicName: "أيمن",
+    arabicNationality: "مصري",
+    policyNumber: "123456789",
+  },
 ]);
 
 module.exports = {
-    createInsurance
-    };
+  createInsurance,
+};

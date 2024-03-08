@@ -13,6 +13,7 @@
   "dependencies": {
     "@google-cloud/local-auth": "^2.1.0",
     "@google-cloud/vision": "^2.4.2",
+    "@pdf-lib/fontkit": "^1.1.1",
     "axios": "^0.25.0",
     "beautify": "^0.0.8",
     "cheerio": "^1.0.0-rc.12",
