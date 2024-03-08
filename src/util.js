@@ -10,7 +10,6 @@ const RecaptchaPlugin = require("puppeteer-extra-plugin-recaptcha");
 // TODO: Copilot suggestion to use recaptcha
 puppeteer.use(RecaptchaPlugin());
 const { getPath } = require("./lib/getPath");
-const robot = require("robotjs");
 
 const sharp = require("sharp");
 const budgie = require("./budgie");
@@ -129,8 +128,12 @@ async function initPage(config, onContentLoaded, data) {
     if (autoIndexArg) {
       const indexArray = autoIndexArg.split("=")?.[1]?.split("/");
       if (indexArray.length === 2) {
-        const { width: monitorWidth, height: monitorHeight } =
-          robot.getScreenSize();
+        const monitorWidth = parseInt(process.argv
+          .find((c) => c.startsWith("--monitor-width"))
+          ?.split("=")?.[1]);
+        const monitorHeight = parseInt(process.argv
+          .find((c) => c.startsWith("--monitor-height"))
+          ?.split("=")?.[1]);
 
         const index = parseInt(indexArray[0]);
         const total = parseInt(indexArray[1]);
@@ -203,7 +206,7 @@ async function initPage(config, onContentLoaded, data) {
         const boxWidth = Math.floor(monitorWidth / cols);
         const boxHeight = Math.floor(monitorHeight / rows);
 
-        const row = Math.ceil(index / cols);
+        const row = Math.floor(index / cols);
         const column = index % cols;
 
         const xPos = column * boxWidth;

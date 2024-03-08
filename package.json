@@ -38,7 +38,6 @@
     "puppeteer-extra": "3.2.3",
     "puppeteer-extra-plugin-recaptcha": "^3.5.0",
     "puppeteer-extra-plugin-stealth": "2.9.0",
-    "robotjs": "^0.6.0",
     "rucaptcha-2captcha": "^2.2.1",
     "sharp": "0.30.7",
     "short-uuid": "^4.2.0",
