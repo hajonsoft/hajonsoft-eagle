@@ -203,7 +203,7 @@ async function initPage(config, onContentLoaded, data) {
         const boxWidth = Math.floor(monitorWidth / cols);
         const boxHeight = Math.floor(monitorHeight / rows);
 
-        const row = Math.floor(index / cols);
+        const row = Math.ceil(index / cols);
         const column = index % cols;
 
         const xPos = column * boxWidth;
