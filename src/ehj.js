@@ -205,6 +205,27 @@ const config = [
     },
   },
   {
+    name: "add-mission-pilgrim-upload",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddPassportUpload.xhtml",
+    controller: {
+      selector: "#kt_app_content_container > div:nth-child(2) > h1",
+      action: async () => {
+        const selectedTraveler = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
+        if (selectedTraveler) {
+          util.setSelectedTraveller(selectedTraveler);
+          if (!fs.existsSync(getPath("loop.txt"))) {
+            fs.writeFileSync(getPath("loop.txt"), "ehaj", "utf-8");
+          }
+          await uploadPilgrimViaPassport(selectedTraveler);
+        }
+      },
+    },
+  },
+  {
     name: "add-company-pilgrim",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/AddMrz.xhtml",
@@ -772,6 +793,9 @@ async function pageContentHandler(currentConfig) {
       });
       await page.waitForTimeout(2000);
       await page.click("#proceedButton > div > input");
+      break;
+    case "add-mission-pilgrim-upload":
+      await util.controller(page, currentConfig, data.travellers);
       break;
     case "add-mission-pilgrim-3":
     case "add-pilgrim-3":
@@ -1599,6 +1623,26 @@ function getPermitExpireDt(expDt) {
     return expDt;
   }
   return moment().add(1, "year").format("DD/MM/YYYY");
+}
+
+async function uploadPilgrimViaPassport(selectedTraveler) {
+  const passenger = data.travellers[selectedTraveler];
+  // input file selector #kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div > div > div > div > div.ui-fileupload-buttonbar.ui-widget-header.ui-corner-top > span > input[type=file]
+  // download passport image
+  const resizedPassportPath = await util.downloadAndResizeImage(
+    passenger,
+    400,
+    300,
+    "passport"
+  );
+  try {
+    await util.commitFile(
+      "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(33) > div > div > div > div.ui-fileupload-buttonbar.ui-widget-header.ui-corner-top > span > input[type=file]",
+      resizedPassportPath
+    );
+  } catch (e) {
+    console.log(e);
+  }
 }
 
 module.exports = { send };
