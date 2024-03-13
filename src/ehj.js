@@ -210,6 +210,7 @@ const config = [
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddPassportUpload.xhtml",
     controller: {
       selector: "#kt_app_content_container > div:nth-child(2) > h1",
+      name: "uploadHajjPassport",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -875,7 +876,7 @@ async function pageContentHandler(currentConfig) {
       await util.commander(page, {
         controller: {
           selector: pageUrl.includes("hajMission")
-            ? "body > div.wrapper > div > div.page-content > div.row > ul > li:nth-child(3)"
+            ? "#j_idt4267_header"
             : "body > div.wrapper > div > div.page-content > div.row > ul > li:nth-child(3)",
           title: "Remember",
           arabicTitle: "تذكر",
@@ -1003,9 +1004,22 @@ async function pageContentHandler(currentConfig) {
           passenger.passIssueDt.dmy
         );
       } catch {}
-      await page.type(
-        "#passportIssueDate",
-        `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`
+      await page.waitForTimeout(1000);
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#passportIssueDate",
+            value: (row) =>
+              `${row.passIssueDt.dd}/${row.passIssueDt.mm}/${row.passIssueDt.yyyy}`,
+          },
+        ],
+        passenger
+      );
+      await page.$eval(
+        "#j_idt4105_content > div > div:nth-child(4) > div > label",
+        (el, val) => (el.innerText = `Passport Issue Date: => ${val}`),
+        passenger.passIssueDt.dmmmy
       );
       try {
         await page.$eval(
@@ -1022,6 +1036,7 @@ async function pageContentHandler(currentConfig) {
       if (!isVaccineClicked) {
         await page.click("#covidVaccines");
       }
+
       const rememberedCountryOfResidence = budgie.get(
         "ehaj_pilgrim_countryOfResidence",
         passenger.nationality.telCode
@@ -1635,11 +1650,15 @@ async function uploadPilgrimViaPassport(selectedTraveler) {
     300,
     "passport"
   );
+  const inputs = await page.$$("input[type=file]");
+  await inputs[0].uploadFile(resizedPassportPath);
+
   try {
-    await util.commitFile(
-      "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(33) > div > div > div > div.ui-fileupload-buttonbar.ui-widget-header.ui-corner-top > span > input[type=file]",
-      resizedPassportPath
-    );
+    await inputs[0].uploadFile(resizedPassportPath);
+    await page.waitForTimeout(3000);
+    await page.waitForSelector("input[type=submit]");
+    const submitButtons = await page.$$("input[type=submit]");
+    await submitButtons[0].click();
   } catch (e) {
     console.log(e);
   }
