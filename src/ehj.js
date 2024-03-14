@@ -8,14 +8,9 @@ const budgie = require("./budgie");
 const util = require("./util");
 const { getPath } = require("./lib/getPath");
 const moment = require("moment");
-const sharp = require("sharp");
-const homedir = require("os").homedir();
-const SMS = require("./sms");
-const email = require("./email");
 const totp = require("totp-generator");
 const kea = require("./lib/kea");
-const { default: axios } = require("axios");
-const { cloneDeep, kebabCase } = require("lodash");
+const { cloneDeep } = require("lodash");
 const { send: sendHsf } = require("./hsf");
 
 let page;
@@ -26,6 +21,7 @@ const housings = [];
 let importClicks = 0;
 let editPassportNumber;
 let liberiaPassports = [];
+const questionnaireClicked = {};
 
 if (fs.existsSync(getPath("passports.txt"))) {
   const rawPassports = fs
@@ -82,31 +78,34 @@ const config = [
     ],
   },
   {
+    name: "add-pilgrim-select-method",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Add1.xhtml",
+  },
+  {
     name: "mission-questionnaire",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Questionnaire.xhtml",
     details: [
       {
         selector:
-          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(3) > div > div > input",
+          "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(3) > div > input",
         value: (row) => new Date().valueOf().toString(),
       },
       {
         selector:
-          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > div > input",
+          "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > input",
         value: (row) =>
-          `${row.name.first}${new Date()
-            .valueOf()
-            .toString(36)}@premiumemail.ca`.toLowerCase(),
+          `${row.name.first}.${row.name.last}.${row.passportNumber}@emailinthecloud.com`.toLowerCase(),
       },
       {
         selector:
-          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(8) > div > div > input",
+          "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(8) > div > input",
         value: () => "Employee",
       },
       {
         selector:
-          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(13) > div > div > select",
+          "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(13) > span > div > div > select",
         value: () => "7",
       },
     ],
@@ -584,6 +583,31 @@ async function pageContentHandler(currentConfig) {
       //   "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml"
       // );
       break;
+    case "add-pilgrim-select-method":
+      const isConfirmationSpan = await page.$(
+        "#stepItemsMSGs > div > div > div > ul > li > span"
+      );
+      if (isConfirmationSpan) {
+        const confirmationMessage = await page.$eval(
+          "#stepItemsMSGs > div > div > div > ul > li > span",
+          (el) => el.innerText
+        );
+        fs.appendFileSync(getLogFile(), confirmationMessage + "\n");
+        if (confirmationMessage.includes(passenger.name.last)) {
+          util.incrementSelectedTraveler();
+          //TODO: get the ehaj id as well and save it
+          kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+            "submissionData.ehj.status": "Submitted",
+          });
+        }
+        // if loop.txt exists then go to the addMrz page
+        if (fs.existsSync(getPath("loop.txt"))) {
+          const url = await page.url();
+          const addMrzUrl = url.replace("Add1", "AddMrz");
+          await page.goto(addMrzUrl);
+        }
+      }
+      break;
     case "edit-pilgrim":
     case "edit-pilgrim-mission":
       await page.waitForSelector("#pass");
@@ -760,23 +784,6 @@ async function pageContentHandler(currentConfig) {
         getLogFile(),
         `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger.codeline}\n`
       );
-      const isConfirmationSpan = await page.$(
-        "#stepItemsMSGs > div > div > div > ul > li > span"
-      );
-      if (isConfirmationSpan) {
-        const confirmationMessage = await page.$eval(
-          "#stepItemsMSGs > div > div > div > ul > li > span",
-          (el) => el.innerText
-        );
-        fs.appendFileSync(getLogFile(), confirmationMessage + "\n");
-        if (confirmationMessage.includes(passenger.name.last)) {
-          util.incrementSelectedTraveler();
-          //TODO: get the ehaj id as well and save it
-          kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-            "submissionData.ehj.status": "Submitted",
-          });
-        }
-      }
 
       await util.toggleBlur(page, false);
       if (fs.existsSync(getPath("loop.txt"))) {
@@ -788,12 +795,12 @@ async function pageContentHandler(currentConfig) {
       } else {
         await util.controller(page, currentConfig, data.travellers);
       }
-      await page.waitForSelector("#proceedButton > div > input", {
+      await page.waitForSelector("#proceedButton > input.btn.btn-primary", {
         visible: true,
         timeout: 0,
       });
       await page.waitForTimeout(2000);
-      await page.click("#proceedButton > div > input");
+      await page.click("#proceedButton > input.btn.btn-primary");
       break;
     case "add-mission-pilgrim-upload":
       await util.controller(page, currentConfig, data.travellers);
@@ -985,7 +992,7 @@ async function pageContentHandler(currentConfig) {
       }
 
       await page.waitForTimeout(1000);
-      await page.click("#attachment_input");
+      // await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
       await util.toggleBlur(page, false);
       // Wait here for 1 second
@@ -1021,13 +1028,13 @@ async function pageContentHandler(currentConfig) {
         (el, val) => (el.innerText = `Passport Issue Date: => ${val}`),
         passenger.passIssueDt.dmmmy
       );
-      try {
-        await page.$eval(
-          "#formData > div:nth-child(12) > div:nth-child(1) > div:nth-child(4) > label",
-          (el, val) => (el.innerText = val),
-          passenger.passIssueDt.dmy
-        );
-      } catch {}
+      // try {
+      //   await page.$eval(
+      //     "#formData > div:nth-child(12) > div:nth-child(1) > div:nth-child(4) > label",
+      //     (el, val) => (el.innerText = val),
+      //     passenger.passIssueDt.dmy
+      //   );
+      // } catch {}
       await page.waitForSelector("#covidVaccines");
       const isVaccineClicked = await page.$eval(
         "#covidVaccines",
@@ -1074,6 +1081,53 @@ async function pageContentHandler(currentConfig) {
       //     await page.click(submitButtonSelector);
       //   }
       // }
+      // scroll into view the passport issue date selector "#j_idt4105_content > div > div:nth-child(4) > div > label"
+      await page.waitForTimeout(1000);
+      await page.evaluate(() => {
+        document
+          .querySelector(
+            "#j_idt4105_content > div > div:nth-child(4) > div > label"
+          )
+          .scrollIntoView();
+      });
+      const submitButtonSelector = "#actionPanel > div > input.btn.btn-primary";
+      // read the passport issue date from the field and compare it with the passport issue date from the data
+      const passportIssueDateFromPage = await page.$eval(
+        "#passportIssueDate",
+        (el) => el.value
+      );
+      const passportIssueDateFromData = `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`;
+      if (passportIssueDateFromPage !== passportIssueDateFromData) {
+        console.log(
+          "passport issue date from page: ",
+          passportIssueDateFromPage
+        );
+        console.log(
+          "passport issue date from data: ",
+          passportIssueDateFromData
+        );
+        console.log(
+          "passport issue date from page is not equal to passport issue date from data"
+        );
+        await page.evaluate(() => {
+          document.querySelector(
+            "#actionPanel > div > input.btn.btn-primary"
+          ).value = "Submit (Passport Issue Date Mismatch)";
+        });
+      } else {
+        // find the submit button and click it
+        if (fs.existsSync(getPath("loop.txt"))) {
+          await page.waitForSelector(submitButtonSelector);
+
+          await page.evaluate(() => {
+            document.querySelector(
+              "#actionPanel > div > input.btn.btn-primary"
+            ).value = "Submit (Ok)";
+          });
+
+          await page.click(submitButtonSelector);
+        }
+      }
 
       break;
     case "package-details":
@@ -1088,23 +1142,48 @@ async function pageContentHandler(currentConfig) {
     case "mission-questionnaire":
       await util.commit(page, currentConfig.details, passenger);
       await page.type(
-        "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(14) > div > div > input",
-        "23/06/2023"
+        "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(14) > span > div > div > input",
+        "01/06/2024"
       );
       await page.click(
-        "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(31) > div.form-group > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
+        "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(31) > div.form-group > div > table > tbody > tr > td:nth-child(2) > div"
+      );
+      await page.waitForSelector(
+        "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(31) > div.ui-outputpanel.ui-widget > div > div > div > table > tbody > tr > td > textarea",
+        { visible: true }
+      );
+      await util.commit(
+        page,
+        [
+          {
+            selector:
+              "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(31) > div.ui-outputpanel.ui-widget > div > div > div > table > tbody > tr > td > textarea",
+            value: () => "COVID, MENINGITIS, FLU, TYPHOID FEVER",
+          },
+        ],
+        passenger
       );
       await page.click(
-        "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.form-group > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
+        "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.form-group > div > table > tbody > tr > td:nth-child(2) > div"
       );
       const hasRequiredVaccinationBeenTakenTextSelector =
-        "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(31) > div.ui-outputpanel.ui-widget > div > div > div > div > table > tbody > tr > td > div > textarea";
+        "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.ui-outputpanel.ui-widget > div > div > div > table > tbody > tr > td > textarea";
       await page.waitForSelector(hasRequiredVaccinationBeenTakenTextSelector);
-      await page.type(
-        hasRequiredVaccinationBeenTakenTextSelector,
-        "covid-19, seasonal flu and others "
+      await util.commit(
+        page,
+        [
+          {
+            selector: hasRequiredVaccinationBeenTakenTextSelector,
+            value: () => "covid-19, seasonal flu and others ",
+          },
+        ],
+        passenger
       );
-
+      if (!questionnaireClicked[passenger.passportNumber]) {
+        questionnaireClicked[passenger.passportNumber] = true;
+        await page.click("#actionPanel > div > input.btn.btn-primary");
+      }
+      return; // The code below does not apply for this year
       const iPledgeToAbideByTheRulesTextSelector =
         "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.ui-outputpanel.ui-widget > div > div > div > div > table > tbody > tr > td > div > textarea";
       await page.waitForSelector(iPledgeToAbideByTheRulesTextSelector);
