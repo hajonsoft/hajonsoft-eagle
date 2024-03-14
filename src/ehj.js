@@ -83,6 +83,11 @@ const config = [
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Add1.xhtml",
   },
   {
+    name: "add-pilgrim-select-method-company",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/Add1.xhtml",
+  },
+  {
     name: "mission-questionnaire",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Questionnaire.xhtml",
@@ -117,25 +122,23 @@ const config = [
     details: [
       {
         selector:
-          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(3) > div > div > input",
+          "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(3) > div > input",
         value: (row) => new Date().valueOf().toString(),
       },
       {
         selector:
-          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > div > input",
+          "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > input",
         value: (row) =>
-          `${row.name.first}${new Date()
-            .valueOf()
-            .toString(36)}@premiumemail.ca`.toLowerCase(),
+          `${row.name.first}.${row.name.last}.${row.passportNumber}@emailinthecloud.com`.toLowerCase(),
       },
       {
         selector:
-          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(8) > div > div > input",
+          "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(8) > div > input",
         value: () => "Employee",
       },
       {
         selector:
-          "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(13) > div > div > select",
+          "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(13) > span > div > div > select",
         value: () => "7",
       },
     ],
@@ -231,7 +234,7 @@ const config = [
       "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/AddMrz.xhtml",
 
     controller: {
-      selector: "#passportImage > p",
+      selector: "#kt_app_content_container > div:nth-child(2) > h1",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -584,6 +587,7 @@ async function pageContentHandler(currentConfig) {
       // );
       break;
     case "add-pilgrim-select-method":
+    case "add-pilgrim-select-method-company":
       const isConfirmationSpan = await page.$(
         "#stepItemsMSGs > div > div > div > ul > li > span"
       );
@@ -884,7 +888,7 @@ async function pageContentHandler(currentConfig) {
         controller: {
           selector: pageUrl.includes("hajMission")
             ? "#j_idt4267_header"
-            : "body > div.wrapper > div > div.page-content > div.row > ul > li:nth-child(3)",
+            : "#formData > div:nth-child(5) > div.ui-panel-titlebar.ui-widget-header.ui-helper-clearfix.ui-corner-all",
           title: "Remember",
           arabicTitle: "تذكر",
           action: async () => {
@@ -1023,11 +1027,19 @@ async function pageContentHandler(currentConfig) {
         ],
         passenger
       );
-      await page.$eval(
-        "#j_idt4105_content > div > div:nth-child(4) > div > label",
-        (el, val) => (el.innerText = `Passport Issue Date: => ${val}`),
-        passenger.passIssueDt.dmmmy
-      );
+      if (pageUrl.includes("hajMission")) {
+        await page.$eval(
+          "#j_idt4105_content > div > div:nth-child(4) > div > label",
+          (el, val) => (el.innerText = `Passport Issue Date: => ${val}`),
+          passenger.passIssueDt.dmmmy
+        );
+      } else {
+        await page.$eval(
+          "#formData > div:nth-child(3) > div.ui-panel-content.ui-widget-content > div > div:nth-child(4) > div > label",
+          (el, val) => (el.innerText = `Passport Issue Date: => ${val}`),
+          passenger.passIssueDt.dmmmy
+        );
+      }
       // try {
       //   await page.$eval(
       //     "#formData > div:nth-child(12) > div:nth-child(1) > div:nth-child(4) > label",
@@ -1083,13 +1095,6 @@ async function pageContentHandler(currentConfig) {
       // }
       // scroll into view the passport issue date selector "#j_idt4105_content > div > div:nth-child(4) > div > label"
       await page.waitForTimeout(1000);
-      await page.evaluate(() => {
-        document
-          .querySelector(
-            "#j_idt4105_content > div > div:nth-child(4) > div > label"
-          )
-          .scrollIntoView();
-      });
       const submitButtonSelector = "#actionPanel > div > input.btn.btn-primary";
       // read the passport issue date from the field and compare it with the passport issue date from the data
       const passportIssueDateFromPage = await page.$eval(
@@ -1115,16 +1120,13 @@ async function pageContentHandler(currentConfig) {
           ).value = "Submit (Passport Issue Date Mismatch)";
         });
       } else {
-        // find the submit button and click it
+        await page.evaluate(() => {
+          document.querySelector(
+            "#actionPanel > div > input.btn.btn-primary"
+          ).value = "Submit (Ok)";
+        });
         if (fs.existsSync(getPath("loop.txt"))) {
           await page.waitForSelector(submitButtonSelector);
-
-          await page.evaluate(() => {
-            document.querySelector(
-              "#actionPanel > div > input.btn.btn-primary"
-            ).value = "Submit (Ok)";
-          });
-
           await page.click(submitButtonSelector);
         }
       }
