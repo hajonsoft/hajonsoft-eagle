@@ -12,6 +12,8 @@ const totp = require("totp-generator");
 const kea = require("./lib/kea");
 const { fetchNusukIMAPPDF } = require("./lib/imap");
 const sharp = require("sharp");
+const { nationalities } = require("./data/nationalities");
+const { createInsurance } = require("./lib/insurance");
 
 let page;
 let data;
@@ -532,6 +534,91 @@ async function pageContentHandler(currentConfig) {
 
             console.log("PDF downloads initiated in parallel");
             // TODO: Get the first page only and merge all the pages in only one pdf
+          },
+        },
+      });
+      //
+      await util.commander(page, {
+        controller: {
+          selector:
+            "#kt_content > div > div > div > div.kt-portlet__body.px-0 > div:nth-child(1) > div > div > div > div > div.kt-widget__head > div.kt-widget__info > div.kt-widget__username",
+          title: "Create One PDF",
+          arabicTitle: "إنشاء ملف PDF واحد",
+          name: "createallpdf",
+          alert: `One file will be created at ${getPath('')}\n
+      سيتم إنشاء ملف واحد بناءً على المعلومات المخزنة `,
+          action: async () => {
+            // get the table selector
+            const tableSelector =
+              "#kt_content > div > div > div > div.kt-portlet__body.px-0 > div:nth-child(1) > div > div > div > div > div.kt-widget__body > table";
+            // get the table rows selector
+            const tableRowsSelector = `${tableSelector} > tbody > tr`;
+            // get the table rows length
+            const tableRows = await page.$$(tableRowsSelector);
+            const tableRowsLength = tableRows.length;
+            // loop through the table rows
+
+            const userDetails = [];
+            for (let i = 1; i <= tableRowsLength; i++) {
+              const nameSelector = `${tableRowsSelector}:nth-child(${i}) > td:nth-child(1)`;
+              const nameRaw = await page.$eval(nameSelector, (e) => e.textContent);
+              const name = nameRaw?.replace(/  /g, " ");
+              const countrySelector = `${tableRowsSelector}:nth-child(${i}) > td:nth-child(2)`;
+              const countryRaw = await page.$eval(
+                countrySelector,
+                (e) => e.textContent
+              );
+              const country = countryRaw?.replace(/^[A-Za-z ]/g, "")?.replace(/\n/g,'') ?? '';
+              const passportNumberSelector = `${tableRowsSelector}:nth-child(${i}) > td:nth-child(3)`;
+              const passportNumber = await page.$eval(
+                passportNumberSelector,
+                (e) => e.textContent
+              );
+              const policyNumberSelector = `${tableRowsSelector}:nth-child(${i}) > td:nth-child(9)`;
+              const policyNumber = await page.$eval(
+                policyNumberSelector,
+                (e) => e.textContent
+              );
+              const arabicNationality = nationalities.find(
+                (n) => n.name === country
+              )?.arabicName;
+              const arabicName = data.travellers.find(
+                (t) => t.passportNumber === passportNumber
+              )?.nameArabic?.full ?? '';
+              userDetails.push({
+                name,
+                country,
+                passportNumber,
+                policyNumber,
+                arabicName,
+                arabicNationality,
+              });
+            }
+
+            const resultFileName = getPath(
+              userDetails[0].name.replace(/\s/g, "_") + "_insurance.pdf"
+            );
+            await createInsurance(userDetails, resultFileName);
+            // todo , create an a link to open the file in the browser at this selector location
+            // #kt_content > div > div > div > div.kt-portlet__body.px-0 > div:nth-child(1) > div > div > div > div > div.kt-widget__head > div.kt-widget__info > div.kt-widget__subhead.mt-2 > div:nth-child(1)
+            await page.evaluate((resultFileName) => {
+              const label = (document.querySelector(
+                "#kt_content > div > div > div > div.kt-portlet__body.px-0 > div:nth-child(1) > div > div > div > div > div.kt-widget__head > div.kt-widget__info > div.kt-widget__subhead.mt-2 > div:nth-child(1)"
+              ).textContent = `Downloaded ${resultFileName}`);
+              const link = document.createElement("a");
+              link.href = resultFileName;
+              link.download = resultFileName;
+              link.click();
+            }
+            , resultFileName);
+            // open the PDF file so the user can see it
+            const pdfBuffer = fs.readFileSync(resultFileName);
+            const pdfDataUri = `data:application/pdf;base64,${pdfBuffer.toString(
+              "base64"
+            )}`;
+            await page.goto(pdfDataUri, {
+              waitUntil: 'networkidle0' // Wait for network activity to be idle
+            });
           },
         },
       });
