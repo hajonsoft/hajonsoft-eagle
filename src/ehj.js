@@ -56,12 +56,18 @@ let startTime;
 const config = [
   {
     name: "home",
-    url: "https://ehaj.haj.gov.sa/",
+    url: global.headless
+      ? "https://ehaj.haj.gov.sa/EH/login.xhtml"
+      : "https://ehaj.haj.gov.sa/",
     regex: "https://ehaj.haj.gov.sa/$",
   },
   {
     name: "index",
     regex: "https://ehaj.haj.gov.sa/EH/index.xhtml;jsessionid=",
+  },
+  {
+    name: "index2",
+    regex: "https://ehaj.haj.gov.sa/EH/index.xhtml?dswid=",
   },
   {
     name: "login",
@@ -100,8 +106,10 @@ const config = [
       {
         selector:
           "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > input",
-        value: (row) =>
-          `${row.name.first}.${row.name.last}.${row.passportNumber}@emailinthecloud.com`.toLowerCase(),
+        value: (row) => {
+          const name = `${row.name.first}.${row.name.last}`.substring(0, 20);
+          return `${name}.${row.passportNumber}@emailinthecloud.com`.toLowerCase();
+        },
       },
       {
         selector:
@@ -128,8 +136,10 @@ const config = [
       {
         selector:
           "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > input",
-        value: (row) =>
-          `${row.name.first}.${row.name.last}.${row.passportNumber}@emailinthecloud.com`.toLowerCase(),
+        value: (row) => {
+          const name = `${row.name.first}.${row.name.last}`.substring(0, 20);
+          return `${name}.${row.passportNumber}@emailinthecloud.com`.toLowerCase();
+        },
       },
       {
         selector:
@@ -486,11 +496,7 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "home":
     case "index":
-      try {
-        const anchors = await page.$$eval("a", (els) => {
-          return els.map((el) => el.removeAttribute("target"));
-        });
-      } catch {}
+    case "index2":
       break;
     case "login":
       const isError = await page.$("#stepItemsMSGs > div > div");
@@ -582,9 +588,44 @@ async function pageContentHandler(currentConfig) {
       await page.click("#verifyGAuthToken > div > div.col-lg-4 > a");
       break;
     case "dashboard":
-      // await page.goto(
-      //   "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml"
-      // );
+      // find if it is a mission account or a company account
+      // hajMission/lookup/hajData
+
+      try {
+        const quota = await page.$eval(
+          "#form > div > div > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > h4",
+          (el) => el.innerText
+        );
+
+        if (global.headless && quota.includes("Mission")) {
+          const url = await page.url();
+          // get dswid value from the url
+          const dswid = url.split("dswid=")[1];
+          await page.goto(
+            `https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml?dswid=${dswid}`
+          );
+        }
+      } catch (err) {
+        // console.log(err);
+      }
+      try {
+        const companyQuota = await page.$eval(
+          "#j_idt4630 > div > div > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > h4",
+          (el) => el.innerText
+        );
+
+        if (global.headless && companyQuota.includes("Default")) {
+          const url2 = await page.url();
+          // get dswid value from the url
+          const dswid2 = url2.split("dswid=")[1];
+          await page.goto(
+            `https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/AddMrz.xhtml?dswid=${dswid2}`
+          );
+        }
+      } catch (err) {
+        // console.log(err);
+      }
+      // Default
       break;
     case "add-pilgrim-select-method":
     case "add-pilgrim-select-method-company":
@@ -789,6 +830,9 @@ async function pageContentHandler(currentConfig) {
         `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger.codeline}\n`
       );
 
+      if (global.headless) {
+        fs.writeFileSync(getPath("loop.txt"), "ehaj", "utf-8");
+      }
       await util.toggleBlur(page, false);
       if (fs.existsSync(getPath("loop.txt"))) {
         await sendPassenger(util.getSelectedTraveler());
@@ -1016,17 +1060,29 @@ async function pageContentHandler(currentConfig) {
         );
       } catch {}
       await page.waitForTimeout(1000);
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#passportIssueDate",
-            value: (row) =>
-              `${row.passIssueDt.dd}/${row.passIssueDt.mm}/${row.passIssueDt.yyyy}`,
-          },
-        ],
-        passenger
-      );
+      // try issue date 5 times
+      const passportIssueDateFromData = `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`;
+      for (let i = 1; i <= 5; i++) {
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#passportIssueDate",
+              value: (row) =>
+                `${row.passIssueDt.dd}/${row.passIssueDt.mm}/${row.passIssueDt.yyyy}`,
+            },
+          ],
+          passenger
+        );
+        await page.waitForTimeout(500);
+        const passportIssueDateFromPage1 = await page.$eval(
+          "#passportIssueDate",
+          (el) => el.value
+        );
+        if (passportIssueDateFromPage1 === passportIssueDateFromData) {
+          break;
+        }
+      }
       if (pageUrl.includes("hajMission")) {
         await page.$eval(
           "#j_idt4105_content > div > div:nth-child(4) > div > label",
@@ -1101,7 +1157,6 @@ async function pageContentHandler(currentConfig) {
         "#passportIssueDate",
         (el) => el.value
       );
-      const passportIssueDateFromData = `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`;
       if (passportIssueDateFromPage !== passportIssueDateFromData) {
         console.log(
           "passport issue date from page: ",

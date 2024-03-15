@@ -225,7 +225,8 @@ async function initPage(config, onContentLoaded, data) {
   }
 
   const launchOptions = {
-    headless: isCloudRun || isHeadless,
+    headless: false,
+    // headless: isCloudRun || isHeadless,
     ignoreHTTPSErrors: true,
     defaultViewport,
     args,
