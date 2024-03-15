@@ -225,8 +225,7 @@ async function initPage(config, onContentLoaded, data) {
   }
 
   const launchOptions = {
-    headless: false,
-    // headless: isCloudRun || isHeadless,
+    headless: process.argv.includes("--debug") ? false :  isCloudRun || isHeadless,
     ignoreHTTPSErrors: true,
     defaultViewport,
     args,

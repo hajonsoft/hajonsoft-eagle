@@ -56,9 +56,7 @@ let startTime;
 const config = [
   {
     name: "home",
-    url: global.headless
-      ? "https://ehaj.haj.gov.sa/EH/login.xhtml"
-      : "https://ehaj.haj.gov.sa/",
+    url: "https://ehaj.haj.gov.sa/",
     regex: "https://ehaj.haj.gov.sa/$",
   },
   {
@@ -67,7 +65,7 @@ const config = [
   },
   {
     name: "index2",
-    regex: "https://ehaj.haj.gov.sa/EH/index.xhtml?dswid=",
+    regex: "https://ehaj.haj.gov.sa/EH/index.xhtml.dswid=",
   },
   {
     name: "login",
@@ -497,6 +495,10 @@ async function pageContentHandler(currentConfig) {
     case "home":
     case "index":
     case "index2":
+      console.log("index");
+      if (global.headless) {
+        await page.goto("https://ehaj.haj.gov.sa/EH/login.xhtml");
+      }
       break;
     case "login":
       const isError = await page.$("#stepItemsMSGs > div > div");
@@ -692,7 +694,7 @@ async function pageContentHandler(currentConfig) {
                 passportNumber: t.passportNumber,
               };
             });
-            for (let i = 1; i <= 100; i++) {
+            for (let i = 1; i <= 200; i++) {
               const isRowValid = await page.$(
                 `tbody > tr:nth-child(${i}) > td:nth-child(1)`
               );
@@ -745,6 +747,7 @@ async function pageContentHandler(currentConfig) {
                   mofaNumber,
                   ehajNumber,
                   status,
+                  "submissionData.ehj.status": "Submitted",
                 });
               }
 
@@ -813,6 +816,24 @@ async function pageContentHandler(currentConfig) {
       break;
     case "add-mission-pilgrim":
     case "add-company-pilgrim":
+      if (!passenger || !passenger.codeline) {
+        return;
+      }
+      // If the last pilgrim failed move on to the next one
+      // #stepItemsMSGs > div > div > div > ul > li > span
+      try {
+        const errorMessage = await page.$eval(
+          "#stepItemsMSGs > div > div > div > ul > li > span",
+          (el) => el.innerText
+        );
+        if (errorMessage.includes("active Haj Data")) {
+          util.incrementSelectedTraveler();
+          await sendPassenger(util.getSelectedTraveler());
+          return;
+        }
+      } catch (err) {
+        // console.log(err);
+      }
       console.log(passenger.codeline);
       if (startTime) {
         fs.appendFileSync(
@@ -936,10 +957,6 @@ async function pageContentHandler(currentConfig) {
             rememberValue("#embassy", "ehaj_pilgrim_embassy");
             rememberValue("#packge2", "ehaj_pilgrim_package");
             rememberValue("#roomType", "ehaj_pilgrim_roomType");
-            rememberValue(
-              "#countryOfResidence",
-              "ehaj_pilgrim_countryOfResidence"
-            );
             rememberValue("#hajType", "ehaj_pilgrim_hajType");
           },
         },
@@ -1108,10 +1125,7 @@ async function pageContentHandler(currentConfig) {
         await page.click("#covidVaccines");
       }
 
-      const rememberedCountryOfResidence = budgie.get(
-        "ehaj_pilgrim_countryOfResidence",
-        passenger.nationality.telCode
-      );
+      const rememberedCountryOfResidence = data.system.country.telCode;
       if (rememberedCountryOfResidence) {
         const countryOfResidenceText = await page.$$eval(
           "#countryOfResidence > option",
@@ -1176,10 +1190,8 @@ async function pageContentHandler(currentConfig) {
             "#actionPanel > div > input.btn.btn-primary"
           ).value = "Submit (Ok)";
         });
-        if (fs.existsSync(getPath("loop.txt"))) {
-          await page.waitForSelector(submitButtonSelector);
-          await page.click(submitButtonSelector);
-        }
+        await page.waitForSelector(submitButtonSelector);
+        await page.click(submitButtonSelector);
       }
 
       break;
