@@ -590,16 +590,14 @@ async function pageContentHandler(currentConfig) {
     case "dashboard":
       // find if it is a mission account or a company account
       // hajMission/lookup/hajData
-
+      const url = await page.url();
       try {
-        const quota = await page.$eval(
+        const missionQuota = await page.$eval(
           "#form > div > div > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > h4",
           (el) => el.innerText
         );
 
-        if (global.headless && quota.includes("Mission")) {
-          const url = await page.url();
-          // get dswid value from the url
+        if (global.headless && missionQuota.includes("Mission")) {
           const dswid = url.split("dswid=")[1];
           await page.goto(
             `https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/AddMrz.xhtml?dswid=${dswid}`
@@ -615,17 +613,15 @@ async function pageContentHandler(currentConfig) {
         );
 
         if (global.headless && companyQuota.includes("Default")) {
-          const url2 = await page.url();
           // get dswid value from the url
-          const dswid2 = url2.split("dswid=")[1];
+          const companydswid = url.split("dswid=")[1];
           await page.goto(
-            `https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/AddMrz.xhtml?dswid=${dswid2}`
+            `https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/AddMrz.xhtml?dswid=${companydswid}`
           );
         }
       } catch (err) {
         // console.log(err);
       }
-      // Default
       break;
     case "add-pilgrim-select-method":
     case "add-pilgrim-select-method-company":
