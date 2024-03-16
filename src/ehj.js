@@ -847,7 +847,7 @@ async function pageContentHandler(currentConfig) {
         `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger.codeline}\n`
       );
 
-      if (global.headless) {
+      if (global.headless && !fs.existsSync(getPath("loop.txt"))) {
         fs.writeFileSync(getPath("loop.txt"), "ehaj", "utf-8");
       }
       await util.toggleBlur(page, false);
