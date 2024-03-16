@@ -231,7 +231,7 @@ async function initPage(config, onContentLoaded, data) {
     args,
   };
 
-  if (!isCloudRun && !isHeadless) {
+  if (process.argv.includes("--debug") || (!isCloudRun && !isHeadless)) {
     launchOptions.executablePath = getChromePath();
   }
   browser = await puppeteer.launch(launchOptions);
