@@ -1190,8 +1190,10 @@ async function pageContentHandler(currentConfig) {
             "#actionPanel > div > input.btn.btn-primary"
           ).value = "Submit (Ok)";
         });
-        await page.waitForSelector(submitButtonSelector);
-        await page.click(submitButtonSelector);
+        if (fs.existsSync(getPath("loop.txt"))) {
+          await page.waitForSelector(submitButtonSelector);
+          await page.click(submitButtonSelector);
+        }
       }
 
       break;
