@@ -847,7 +847,7 @@ async function pageContentHandler(currentConfig) {
         `\n${counter} - ${startTime} - ${passenger?.slug}\n${passenger.codeline}\n`
       );
 
-      if (global.headless) {
+      if (global.headless && !fs.existsSync(getPath("loop.txt"))) {
         fs.writeFileSync(getPath("loop.txt"), "ehaj", "utf-8");
       }
       await util.toggleBlur(page, false);
@@ -860,12 +860,31 @@ async function pageContentHandler(currentConfig) {
       } else {
         await util.controller(page, currentConfig, data.travellers);
       }
-      await page.waitForSelector("#proceedButton > input.btn.btn-primary", {
-        visible: true,
-        timeout: 0,
-      });
-      await page.waitForTimeout(2000);
-      await page.click("#proceedButton > input.btn.btn-primary");
+      try {
+        await page.waitForSelector("#proceedButton > input.btn.btn-primary", {
+          visible: true,
+          timeout: 5000,
+        });
+        await page.click("#proceedButton > input.btn.btn-primary");
+      } catch (err) {
+        const error = await page.$eval("#passportCaptureStatus", (el) => {
+          return el.innerText;
+        });
+        if (error.includes("try again")) {
+          await kea.updatePassenger(
+            data.system.accountId,
+            passenger.passportNumber,
+            {
+              "submissionData.ehj.status": "Rejected",
+              "submissionData.ehj.RejectedReason": error,
+            }
+          );
+
+          util.incrementSelectedTraveler();
+          await page.reload();
+          return false;
+        }
+      }
       break;
     case "add-mission-pilgrim-upload":
       await util.controller(page, currentConfig, data.travellers);
