@@ -860,12 +860,29 @@ async function pageContentHandler(currentConfig) {
       } else {
         await util.controller(page, currentConfig, data.travellers);
       }
-      await page.waitForSelector("#proceedButton > input.btn.btn-primary", {
-        visible: true,
-        timeout: 0,
-      });
-      await page.waitForTimeout(2000);
-      await page.click("#proceedButton > input.btn.btn-primary");
+      try {
+        await page.waitForSelector("#proceedButton > input.btn.btn-primary", {
+          visible: true,
+          timeout: 5000,
+        });
+        await page.click("#proceedButton > input.btn.btn-primary");
+      } catch (err) {
+        const error = await page.$eval("#passportCaptureStatus", (el) => {
+          return el.innerText;
+        });
+        if (error && error.includes("try again")) {
+          util.incrementSelectedTraveler();
+          await kea.updatePassenger(
+            data.system.accountId,
+            passenger.passportNumber,
+            {
+              "submissionData.ehj.status": "Rejected",
+            }
+          );
+          await page.reload();
+          return false;
+        }
+      }
       break;
     case "add-mission-pilgrim-upload":
       await util.controller(page, currentConfig, data.travellers);
