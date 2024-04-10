@@ -870,15 +870,17 @@ async function pageContentHandler(currentConfig) {
         const error = await page.$eval("#passportCaptureStatus", (el) => {
           return el.innerText;
         });
-        if (error && error.includes("try again")) {
-          util.incrementSelectedTraveler();
+        if (error.includes("try again")) {
           await kea.updatePassenger(
             data.system.accountId,
             passenger.passportNumber,
             {
               "submissionData.ehj.status": "Rejected",
+              "submissionData.ehj.RejectedReason": error,
             }
           );
+
+          util.incrementSelectedTraveler();
           await page.reload();
           return false;
         }
