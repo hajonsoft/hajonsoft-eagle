@@ -12,6 +12,7 @@ const totp = require("totp-generator");
 const kea = require("./lib/kea");
 const { cloneDeep } = require("lodash");
 const { send: sendHsf } = require("./hsf");
+const { fetchNusukIMAPPDF } = require("./lib/imap");
 
 let page;
 let data;
@@ -87,6 +88,11 @@ const config = [
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Add1.xhtml",
   },
   {
+    name: "haj-mission-group-details",
+    regex:
+      "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajGroup/View.xhtml",
+  },
+  {
     name: "add-pilgrim-select-method-company",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/Add1.xhtml",
@@ -130,14 +136,6 @@ const config = [
         selector:
           "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(3) > div > input",
         value: (row) => new Date().valueOf().toString(),
-      },
-      {
-        selector:
-          "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > input",
-        value: (row) => {
-          const name = `${row.name.first}.${row.name.last}`.substring(0, 20);
-          return `${name}.${row.passportNumber}@emailinthecloud.com`.toLowerCase();
-        },
       },
       {
         selector:
@@ -505,6 +503,11 @@ async function pageContentHandler(currentConfig) {
       if (isError) {
         return;
       }
+
+      const isCaptcha = await page.$("#exampleCaptcha_CaptchaImage");
+      if (isCaptcha) {
+        return;
+      }
       await util.commit(page, currentConfig.details, data.system);
       if (data.system.username && data.system.password) {
         const loginButton = "#yj_idt95";
@@ -624,6 +627,20 @@ async function pageContentHandler(currentConfig) {
       } catch (err) {
         // console.log(err);
       }
+      break;
+    case "haj-mission-group-details":
+      // add commander at
+      await util.commander(page, {
+        controller: {
+          selector: "#kt_app_content_container > div:nth-child(2) > form > h1",
+          title: `Download Visas`,
+          arabicTitle: "تحميل التأشيرات",
+          name: "downloadmissionvisa",
+          action: async () => {
+            await downloadVisas();
+          },
+        },
+      });
       break;
     case "add-pilgrim-select-method":
     case "add-pilgrim-select-method-company":
@@ -876,7 +893,7 @@ async function pageContentHandler(currentConfig) {
             passenger.passportNumber,
             {
               "submissionData.ehj.status": "Rejected",
-              "submissionData.ehj.RejectedReason": error,
+              "submissionData.ehj.rejectionReason": error,
             }
           );
 
@@ -1209,8 +1226,10 @@ async function pageContentHandler(currentConfig) {
             "#actionPanel > div > input.btn.btn-primary"
           ).value = "Submit (Ok)";
         });
-        await page.waitForSelector(submitButtonSelector);
-        await page.click(submitButtonSelector);
+        if (fs.existsSync(getPath("loop.txt"))) {
+          await page.waitForSelector(submitButtonSelector);
+          await page.click(submitButtonSelector);
+        }
       }
 
       break;
@@ -1224,7 +1243,55 @@ async function pageContentHandler(currentConfig) {
       break;
     case "company-questionnaire":
     case "mission-questionnaire":
+      // check if this selector is present, #kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-titlebar.ui-widget-header.ui-helper-clearfix.ui-corner-all
+      const isFormTitlePresentCompany = await page.$(
+        "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-titlebar.ui-widget-header.ui-helper-clearfix.ui-corner-all"
+      );
+
+      if (isFormTitlePresentCompany) {
+        // Add commander at this selector to remember the values
+        await util.commander(page, {
+          controller: {
+            selector:
+              "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-titlebar.ui-widget-header.ui-helper-clearfix.ui-corner-all",
+            title: "Remember",
+            arabicTitle: "تذكر",
+            name: "rememberquestionnarevalues",
+            action: async () => {
+              rememberValue(
+                "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > input",
+                "ehaj_questionnaire_email"
+              );
+            },
+          },
+        });
+      }
+
+      // {
+      //   selector:
+      //     "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > input",
+      //   value: (row) => {
+      //     const name = `${row.name.first}.${row.name.last}`.substring(0, 20);
+      //     return `${name}.${row.passportNumber}@emailinthecloud.com`.toLowerCase();
+      //   },
+      // },
+
       await util.commit(page, currentConfig.details, passenger);
+      // get the email from budgie ot use emailinthecloud
+      const name = `${passenger.name.first}.${passenger.name.last}`.substring(0, 20);
+      const email = budgie.get("ehaj_questionnaire_email", `${name}.${passenger.passportNumber}@emailinthecloud.com`.toLowerCase());
+      // commit the email to this selector "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > input"
+      await util.commit(
+        page,
+        [
+          {
+            selector:
+              "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > input",
+            value: () => email,
+          },
+        ],
+        passenger
+      );
       await page.type(
         "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(14) > span > div > div > input",
         "01/06/2024"
@@ -1263,9 +1330,11 @@ async function pageContentHandler(currentConfig) {
         ],
         passenger
       );
-      if (!questionnaireClicked[passenger.passportNumber]) {
-        questionnaireClicked[passenger.passportNumber] = true;
-        await page.click("#actionPanel > div > input.btn.btn-primary");
+      if (fs.existsSync(getPath("loop.txt"))) {
+        if (!questionnaireClicked[passenger.passportNumber]) {
+          questionnaireClicked[passenger.passportNumber] = true;
+          await page.click("#actionPanel > div > input.btn.btn-primary");
+        }
       }
       return; // The code below does not apply for this year
       const iPledgeToAbideByTheRulesTextSelector =
@@ -1824,6 +1893,42 @@ async function uploadPilgrimViaPassport(selectedTraveler) {
     await submitButtons[0].click();
   } catch (e) {
     console.log(e);
+  }
+}
+
+async function downloadVisas() {
+  // TODO: review the english email subject
+  for (let i = 0; i < data.travellers.length; i++) {
+    if (data.travellers[i].email) {
+      await fetchNusukIMAPPDF(
+        data.travellers[i].email,
+        "(HajonSoft123)",
+        ["التأشيرة الإلكترونية", "Electronic Visa"],
+        (err, pdf) =>
+          saveVisaPDF(
+            err,
+            pdf,
+            data.travellers[i],
+            i === data.travellers.length - 1
+          )
+      );
+    }
+  }
+}
+
+async function saveVisaPDF(err, pdf, passenger, lastPassenger) {
+  if (err) {
+    console.log("Error: ", err);
+    return;
+  }
+  if (pdf) {
+    await util.pdfToKea(pdf.content, data.system.accountId, passenger);
+    if (lastPassenger) {
+      setTimeout(async () => {
+        console.log("All visas downloaded successfully");
+        process.exit(0);
+      }, 5000);
+    }
   }
 }
 
