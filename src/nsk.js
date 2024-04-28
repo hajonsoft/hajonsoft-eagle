@@ -190,6 +190,10 @@ const config = [
     regex:
       "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/ViewPackage/.*",
   },
+  {
+    name: "umrah-operator-create-package",
+    regex: "https://bsp-nusuk.haj.gov.sa/UmrahOperators/Home/CreatePackage",
+  },
 ];
 
 async function downloadVisas() {
@@ -545,7 +549,7 @@ async function pageContentHandler(currentConfig) {
           title: "Create One PDF",
           arabicTitle: "إنشاء ملف PDF واحد",
           name: "createallpdf",
-          alert: `One file will be created at ${getPath('')}\n
+          alert: `One file will be created at ${getPath("")}\n
       سيتم إنشاء ملف واحد بناءً على المعلومات المخزنة `,
           action: async () => {
             // get the table selector
@@ -561,14 +565,19 @@ async function pageContentHandler(currentConfig) {
             const userDetails = [];
             for (let i = 1; i <= tableRowsLength; i++) {
               const nameSelector = `${tableRowsSelector}:nth-child(${i}) > td:nth-child(1)`;
-              const nameRaw = await page.$eval(nameSelector, (e) => e.textContent);
+              const nameRaw = await page.$eval(
+                nameSelector,
+                (e) => e.textContent
+              );
               const name = nameRaw?.replace(/  /g, " ");
               const countrySelector = `${tableRowsSelector}:nth-child(${i}) > td:nth-child(2)`;
               const countryRaw = await page.$eval(
                 countrySelector,
                 (e) => e.textContent
               );
-              const country = countryRaw?.replace(/^[A-Za-z ]/g, "")?.replace(/\n/g,'') ?? '';
+              const country =
+                countryRaw?.replace(/^[A-Za-z ]/g, "")?.replace(/\n/g, "") ??
+                "";
               const passportNumberSelector = `${tableRowsSelector}:nth-child(${i}) > td:nth-child(3)`;
               const passportNumber = await page.$eval(
                 passportNumberSelector,
@@ -582,9 +591,9 @@ async function pageContentHandler(currentConfig) {
               const arabicNationality = nationalities.find(
                 (n) => n.name === country
               )?.arabicName;
-              const arabicName = data.travellers.find(
-                (t) => t.passportNumber === passportNumber
-              )?.nameArabic?.full ?? '';
+              const arabicName =
+                data.travellers.find((t) => t.passportNumber === passportNumber)
+                  ?.nameArabic?.full ?? "";
               userDetails.push({
                 name,
                 country,
@@ -609,19 +618,90 @@ async function pageContentHandler(currentConfig) {
               link.href = resultFileName;
               link.download = resultFileName;
               link.click();
-            }
-            , resultFileName);
+            }, resultFileName);
             // open the PDF file so the user can see it
             const pdfBuffer = fs.readFileSync(resultFileName);
             const pdfDataUri = `data:application/pdf;base64,${pdfBuffer.toString(
               "base64"
             )}`;
             await page.goto(pdfDataUri, {
-              waitUntil: 'networkidle0' // Wait for network activity to be idle
+              waitUntil: "networkidle0", // Wait for network activity to be idle
             });
           },
         },
       });
+
+      break;
+    case "umrah-operator-create-package":
+      page
+        .waitForSelector(
+          "#kt_form > div:nth-child(8) > div.kt-form__section.kt-form__section--first > div > div > div > div.form-group > div > label:nth-child(1) > input[type=radio]", {visible: true}
+        )
+        .then(() =>
+          page.evaluate(() => {
+            const radio = document.querySelector(
+              "#kt_form > div:nth-child(8) > div.kt-form__section.kt-form__section--first > div > div > div > div.form-group > div > label:nth-child(1) > input[type=radio]"
+            );
+            if (radio) {
+              radio.checked = true;
+            }
+          })
+        )
+        // .then(() =>
+        //   page.click(
+        //     "#kt_form > div.kt-form__actions > button.btn.btn-brand.btn-md.btn-tall.btn-wide.kt-font-bold.kt-font-transform-u.js-next-btn"
+        //   )
+        // )
+        .catch((err) => console.error(err));
+
+      const date = new Date();
+      const checkInDate = new Date(date.setDate(date.getDate() + 3))
+        .toISOString()
+        .split("T")[0];
+      const checkOutDate = new Date(date.setDate(date.getDate() + 7))
+        .toISOString()
+        .split("T")[0];
+
+      page
+        .waitForSelector("#BRN", {visible: true})
+        .then(() => page.type("#BRN", "123"))
+        .then(() => page.waitForSelector("#None_GDS_NoOfRooms"))
+        .then(() => page.type("#None_GDS_NoOfRooms", "4"))
+        .then(() => page.waitForSelector("#None_GDS_Hotel_Makkah"))
+        .then(() => page.select("#None_GDS_Hotel_Makkah", "1"))
+        .then(() => page.waitForSelector("#None_GDS_PurchasingPrice"))
+        .then(() => page.type("#None_GDS_PurchasingPrice", "1"))
+        .then(() => page.waitForSelector("#None_GDS_CheckIn"))
+        .then(() => page.type("#None_GDS_CheckIn", checkInDate))
+        .then(() => page.waitForSelector("#None_GDS_CheckOut"))
+        .then(() => page.type("#None_GDS_CheckOut", checkOutDate))
+        // .then(() =>
+        //   page.click(
+        //     "#kt_form > div.kt-form__actions > button.btn.btn-brand.btn-md.btn-tall.btn-wide.kt-font-bold.kt-font-transform-u.js-next-btn"
+        //   )
+        // )
+        .catch((err) => console.error(err));
+
+      page
+        .waitForSelector("#None_GDS_Transportation_BRN", {visible: true})
+        .then(() => page.type("#None_GDS_Transportation_BRN", "1234"))
+        .then(() => page.waitForSelector("#None_GDS_Transportation_Date"))
+        .then(() => page.type("#None_GDS_Transportation_Date", checkInDate))
+        .then(() => page.waitForSelector("#None_GDS_Transportation_Company"))
+        .then(() => page.select("#None_GDS_Transportation_Company", "1"))
+        .then(() => page.waitForSelector("#None_GDS_TransPurchasingPrice"))
+        .then(() => page.type("#None_GDS_TransPurchasingPrice", "1"))
+        .catch((err) => console.error(err));
+
+      page
+        .waitForSelector("#Search_ArrivalFlightNo", {visible: true})
+        .then(() => page.type("#Search_ArrivalFlightNo", "173"))
+        .then(() =>
+          page.click(
+            "#kt_form > div:nth-child(11) > div.kt-form__section.kt-form__section--first > div > div > div:nth-child(2) > div:nth-child(3) > div > button"
+          )
+        )
+        .catch((err) => console.error(err));
 
       break;
     default:
@@ -1004,7 +1084,7 @@ async function pasteRemainingImages(passenger) {
         passenger.idNumber
       );
     } catch (e) {
-      console.log("Error: ", e);
+      // console.log("Error: ", e);
     }
   }
 }
