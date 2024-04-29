@@ -30,6 +30,8 @@ const IMGUR_CLIENT_ID = "0b4827447357d6b";
 const IMGUR_CLIENT_SECRET = "c842b1a08f0748150465ec643c04c0aeb17329c7";
 const kea = require("./lib/kea");
 
+const MRZ_TD3_LINE_LENGTH = 44;
+
 // or your client ID
 const imgurClient = new ImgurClient({
   clientId: IMGUR_CLIENT_ID,
@@ -1789,6 +1791,103 @@ async function clickWhenReady(selector, page) {
   }
 }
 
+function generateMRZ(passenger) {
+  console.log(passenger);
+  try {
+    // LINE 1
+    const codeLine1 = `P<${passenger.nationality.code}${passenger.name.last.replace(
+      / /g,
+      "<"
+    )}<<${passenger.name.given.replace(/ /g, "<")}`
+      .padEnd(MRZ_TD3_LINE_LENGTH, "<")
+      .substring(0, MRZ_TD3_LINE_LENGTH);
+    // LINE 2
+    const icaoPassportNumber = passenger.passportNumber.padEnd(9, "<");
+    const birthDate = `${passenger.dob.yyyy.substring(2)}${passenger.dob.mm}${passenger.dob.dd}`;
+    const expiryDate = `${passenger.passExpireDt.yyyy.substring(2)}${passenger.passExpireDt.mm}${passenger.passExpireDt.dd}`;
+    const gender = passenger.gender.substring(0, 1).toUpperCase();
+    let codeLine2 = `${icaoPassportNumber}${checkDigit(
+      icaoPassportNumber
+    )}${passenger.nationality.code}${birthDate}${checkDigit(
+      birthDate
+    )}${gender}${expiryDate}${checkDigit(expiryDate)}`;
+
+    if (codeLine2.length) {
+      const filler = "<".repeat(MRZ_TD3_LINE_LENGTH - 2 - codeLine2.length);
+      codeLine2 += filler;
+      codeLine2 += checkDigit(filler);
+
+      // Composite check digit for characters of machine readable data of the lower line in positions 1 to 10, 14 to 20 and 22 to 43, including values for
+      // letters that are a part of the number fields and their check digits.
+      const compositeCheckDigit = checkDigit(
+        codeLine2.substring(0, 10) +
+          codeLine2.substring(13, 20) +
+          codeLine2.substring(21, 43)
+      );
+      codeLine2 += compositeCheckDigit.replace(/[-]/g, "<");
+    }
+
+    return `${codeLine1}\n${codeLine2}`.toUpperCase();
+  } catch (error) {
+    console.warn(error);
+    return null;
+  }
+};
+
+function checkDigit(inputData) {
+  // http://www.highprogrammer.com/alan/numbers/mrp.html#checkdigit
+  let multiplier = 7;
+  let total = 0;
+  for (const char of inputData) {
+    total += checkDigitDiagram[char] * multiplier;
+    if (multiplier === 7) multiplier = 3;
+    else if (multiplier === 3) multiplier = 1;
+    else if (multiplier === 1) multiplier = 7;
+  }
+
+  const result = total % 10;
+  return result.toString();
+}
+
+const checkDigitDiagram = {
+  "<": 0,
+  0: 0,
+  1: 1,
+  2: 2,
+  3: 3,
+  4: 4,
+  5: 5,
+  6: 6,
+  7: 7,
+  8: 8,
+  9: 9,
+  A: 10,
+  B: 11,
+  C: 12,
+  D: 13,
+  E: 14,
+  F: 15,
+  G: 16,
+  H: 17,
+  I: 18,
+  J: 19,
+  K: 20,
+  L: 21,
+  M: 22,
+  N: 23,
+  O: 24,
+  P: 25,
+  Q: 26,
+  R: 27,
+  S: 28,
+  T: 29,
+  U: 30,
+  V: 31,
+  W: 32,
+  X: 33,
+  Y: 34,
+  Z: 35
+};
 module.exports = {
   hijriYear,
   findConfig,
@@ -1843,4 +1942,5 @@ module.exports = {
   downloadPDF,
   clickWhenReady,
   pdfToKea,
+  generateMRZ,
 };
