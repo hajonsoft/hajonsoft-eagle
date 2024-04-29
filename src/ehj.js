@@ -898,7 +898,9 @@ async function pageContentHandler(currentConfig) {
           // try again once using generated MRZ, do not log error unless it is the second time around
           if (sent[passenger.passportNumber] === undefined) {
             sent[passenger.passportNumber] = 1;
-            fs.writeFileSync(getPath("loop.txt"), "ehaj", "utf-8");
+            if (fs.existsSync(getPath("loop.txt"))) {
+              fs.writeFileSync(getPath("loop.txt"), "", "utf-8");
+            }
             await page.reload();
             return;
           }
