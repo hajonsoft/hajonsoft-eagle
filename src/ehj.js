@@ -23,6 +23,7 @@ let importClicks = 0;
 let editPassportNumber;
 let liberiaPassports = [];
 const questionnaireClicked = {};
+let sent = {};
 
 if (fs.existsSync(getPath("passports.txt"))) {
   const rawPassports = fs
@@ -462,7 +463,13 @@ async function pasteCodeLine(selectedTraveler, passengersData) {
     browser.disconnect();
   }
   var passenger = passengersData.travellers[selectedTraveler];
-  await page.keyboard.type(passenger.codeline);
+  if (sent[passenger.passportNumber] === undefined) {
+    await page.keyboard.type(passenger.codeline);
+  } else {
+    const newCodeLine = util.generateMRZ(passenger);
+    console.log("📢[ehj.js:470]: newCodeLine: ", newCodeLine);
+    await page.keyboard.type(newCodeLine);
+  }
 }
 
 async function send(sendData) {
@@ -888,6 +895,13 @@ async function pageContentHandler(currentConfig) {
           return el.innerText;
         });
         if (error.includes("try again")) {
+          // try again once using generated MRZ, do not log error unless it is the second time around
+          if (sent[passenger.passportNumber] === undefined) {
+            sent[passenger.passportNumber] = 1;
+            fs.writeFileSync(getPath("loop.txt"), "ehaj", "utf-8");
+            await page.reload();
+            return;
+          }
           await kea.updatePassenger(
             data.system.accountId,
             passenger.passportNumber,
@@ -1278,8 +1292,14 @@ async function pageContentHandler(currentConfig) {
 
       await util.commit(page, currentConfig.details, passenger);
       // get the email from budgie ot use emailinthecloud
-      const name = `${passenger.name.first}.${passenger.name.last}`.substring(0, 20);
-      const email = budgie.get("ehaj_questionnaire_email", `${name}.${passenger.passportNumber}@emailinthecloud.com`.toLowerCase());
+      const name = `${passenger.name.first}.${passenger.name.last}`.substring(
+        0,
+        20
+      );
+      const email = budgie.get(
+        "ehaj_questionnaire_email",
+        `${name}.${passenger.passportNumber}@emailinthecloud.com`.toLowerCase()
+      );
       // commit the email to this selector "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(4) > div > input"
       await util.commit(
         page,
