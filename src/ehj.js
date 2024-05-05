@@ -1044,43 +1044,6 @@ async function pageContentHandler(currentConfig) {
       if (roomTypeVisible) {
         await page.select("#roomType", budgie.get("ehaj_pilgrim_roomType", ""));
       }
-      const isIqamaVisible = await page.$("#iqamaNo");
-      if (isIqamaVisible) {
-        await util.commit(
-          page,
-          [
-            {
-              selector: "#iqamaNo",
-              value: (row) => row.idNumber || moment().valueOf(),
-            },
-            {
-              selector: "#iqamaIssueDate",
-              value: (row) =>
-                row.idIssueDt.dmy
-                  ? getPermitIssueDt(row.idIssueDt.dmy)
-                  : row.passIssueDt.dmy,
-            },
-            {
-              selector: "#iqamaExpiryDate",
-              value: (row) =>
-                row.idExpireDt.dmy
-                  ? getPermitExpireDt(row.idExpireDt.dmy)
-                  : row.passExpireDt.dmy,
-            },
-          ],
-          passenger
-        );
-        const resizedId = await util.downloadAndResizeImage(
-          passenger,
-          350,
-          500,
-          "id",
-          30,
-          100
-        );
-
-        await util.commitFile("#permit_attmnt_input", resizedId);
-      }
 
       let resizedPhotoPath = await util.downloadAndResizeImage(
         passenger,
@@ -1108,6 +1071,46 @@ async function pageContentHandler(currentConfig) {
       // await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
       await util.toggleBlur(page, false);
+      const isIqamaVisible = await page.$("#iqamaNo");
+      if (isIqamaVisible) {
+        const resizedId = await util.downloadAndResizeImage(
+          passenger,
+          350,
+          500,
+          "id",
+          30,
+          100
+        );
+
+        await util.commitFile("#permit_attmnt_input", resizedId);
+
+        await page.waitForTimeout(1000);
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#iqamaNo",
+              value: (row) => row.idNumber || moment().valueOf(),
+            },
+            {
+              selector: "#iqamaIssueDate",
+              value: (row) =>
+                row.idIssueDt.dmy
+                  ? getPermitIssueDt(row.idIssueDt.dmy)
+                  : row.passIssueDt.dmy,
+            },
+            {
+              selector: "#iqamaExpiryDate",
+              value: (row) =>
+                row.idExpireDt.dmy
+                  ? getPermitExpireDt(row.idExpireDt.dmy)
+                  : row.passExpireDt.dmy,
+            },
+          ],
+          passenger
+        );
+
+      }
       // Wait here for 1 second
       await page.waitForTimeout(1000);
       try {
@@ -1144,6 +1147,7 @@ async function pageContentHandler(currentConfig) {
           "#passportIssueDate",
           (el) => el.value
         );
+
         if (passportIssueDateFromPage1 === passportIssueDateFromData) {
           break;
         }
@@ -1358,6 +1362,32 @@ async function pageContentHandler(currentConfig) {
           await page.click("#actionPanel > div > input.btn.btn-primary");
         }
       }
+      // If passport upload is required, then upload the passport picture again.
+      // passport upload is required if the this selector is in the DOM
+      // #kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(33) > div > div > div > div.ui-fileupload-buttonbar.ui-widget-header.ui-corner-top > span > input[type=file]
+      const isPassportUploadRequired = await page.$(
+        "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(33) > div > div > div > div.ui-fileupload-buttonbar.ui-widget-header.ui-corner-top > span > input[type=file]"
+      );
+      if (isPassportUploadRequired) {
+        const resizedPassportPath = await util.downloadAndResizeImage(
+          passenger,
+          400,
+          300,
+          "passport"
+        );
+        await util.commitFile(
+          "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(33) > div > div > div > div.ui-fileupload-buttonbar.ui-widget-header.ui-corner-top > span > input[type=file]",
+          resizedPassportPath
+        );
+        const labelForPassportImageSelector =
+          "#kt_app_content_container > div:nth-child(2) > form > div.ui-panel.ui-widget.ui-widget-content.ui-corner-all > div.ui-panel-content.ui-widget-content > div:nth-child(33) > div > label";
+        await page.$eval(
+          labelForPassportImageSelector,
+          (el, val) => (el.innerText = val),
+          resizedPassportPath
+        );
+      }
+
       return; // The code below does not apply for this year
       const iPledgeToAbideByTheRulesTextSelector =
         "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.ui-outputpanel.ui-widget > div > div > div > div > table > tbody > tr > td > div > textarea";
