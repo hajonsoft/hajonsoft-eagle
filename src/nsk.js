@@ -32,11 +32,12 @@ function getLogFile() {
 
 let startTime;
 let autoMode = true;
+const defaultDomain = "https://umrah.nusuk.sa/bsp";
 const config = [
   {
     name: "login",
-    url: "https://bsp-nusuk.haj.gov.sa/Identity",
-    regex: "https://bsp-nusuk.haj.gov.sa/Identity",
+    url: `${defaultDomain}/Identity/Index`,
+    regex: `${defaultDomain}/Identity/Index`,
     details: [
       {
         selector: "#userName",
@@ -50,23 +51,23 @@ const config = [
   },
   {
     name: "dashboard",
-    regex: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Dashboard",
+    regex: `${defaultDomain}/ExternalAgencies/Dashboard`,
   },
   {
     name: "otp",
-    regex: "https://bsp-nusuk.haj.gov.sa/OTP/GoogleAuth",
+    regex: `${defaultDomain}/OTP/GoogleAuth`,
   },
   {
     name: "groups",
-    url: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups",
+    url: `${defaultDomain}/ExternalAgencies/Groups`,
   },
   {
     name: "groups",
-    url: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/",
+    url: `${defaultDomain}/ExternalAgencies/Groups/`,
   },
   {
     name: "create-group",
-    url: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/CreateGroup",
+    url: `${defaultDomain}/ExternalAgencies/Groups/CreateGroup`,
     details: [
       {
         selector: "#GroupNameEn",
@@ -76,7 +77,7 @@ const config = [
   },
   {
     name: "create-group",
-    url: "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/CreateGroup",
+    url: `${defaultDomain}/ExternalAgencies/ManageSubAgents/CreateGroup`,
     details: [
       {
         selector: "#GroupNameEn",
@@ -87,7 +88,7 @@ const config = [
   {
     name: "passengers",
     regex:
-      "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/(ManageSubAgents|Groups)/EditMuatamerList/",
+      `${defaultDomain}/ExternalAgencies/(ManageSubAgents|Groups)/EditMuatamerList/`,
     details: [
       {
         selector: "#NationalityId",
@@ -174,25 +175,25 @@ const config = [
   },
   {
     name: "permits-home",
-    url: "https://bsp-nusuk.haj.gov.sa/UmrahOperators/Nusuk/",
+    url: `${defaultDomain}/UmrahOperators/Nusuk/`,
   },
   {
     name: "permits",
-    url: "https://bsp-nusuk.haj.gov.sa/UmrahOperators/Nusuk/SubmitPermit",
+    url: `${defaultDomain}/UmrahOperators/Nusuk/SubmitPermit`,
   },
   {
     name: "package-info",
     regex:
-      "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/ViewPackage/.*",
+      `${defaultDomain}/ExternalAgencies/Groups/ViewPackage/.*`,
   },
   {
     name: "package-info",
     regex:
-      "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/ViewPackage/.*",
+      `${defaultDomain}/ExternalAgencies/ManageSubAgents/ViewPackage/.*`,
   },
   {
     name: "umrah-operator-create-package",
-    regex: "https://bsp-nusuk.haj.gov.sa/UmrahOperators/Home/CreatePackage",
+    regex: `${defaultDomain}/UmrahOperators/Home/CreatePackage`,
   },
 ];
 
@@ -269,8 +270,8 @@ async function onContentLoaded(res) {
 }
 
 function getCreateGroupUrl() {
-  // return "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/ManageSubAgents/CreateGroup";
-  return "https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups/CreateGroup";
+  // return `${defaultDomain}/ExternalAgencies/ManageSubAgents/CreateGroup`;
+  return `${defaultDomain}/ExternalAgencies/Groups/CreateGroup`;
 }
 
 async function pageContentHandler(currentConfig) {
@@ -797,14 +798,15 @@ async function sendCurrentPassenger() {
   await addMutamerClick();
   const selectedTraveler = util.getSelectedTraveler();
   if (selectedTraveler >= data.travellers.length) {
-    await page.goto("https://bsp-nusuk.haj.gov.sa/ExternalAgencies/Groups");
+    await page.goto(`${defaultDomain}/ExternalAgencies/Groups`);
     // #newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a
     return;
   }
   passenger = data.travellers[selectedTraveler];
-  await page.waitForSelector("#mutamerForm > div.modal-body > h1");
+  // #mutamerForm > div.modal-body > div:nth-child(2) > h4
+  await page.waitForSelector("#mutamerForm > div.modal-body > div:nth-child(2) > h4");
   await page.$eval(
-    "#mutamerForm > div.modal-body > h1",
+    "#mutamerForm > div.modal-body > div:nth-child(2) > h4",
     (e, params) => {
       e.innerText = `Add Mutamer ${parseInt(params[0]) + 1} of ${params[1]} - ${
         params[2].slug
