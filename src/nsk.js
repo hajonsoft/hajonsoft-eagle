@@ -877,6 +877,7 @@ async function commitRemainingFields(passenger) {
       email: email,
     });
   }
+
   await util.commit(
     page,
     [
@@ -887,8 +888,9 @@ async function commitRemainingFields(passenger) {
     ],
     {}
   );
+
   await page.$eval(
-    "#mutamerForm > div.modal-body > div:nth-child(13) > div:nth-child(1) > label",
+    "#mutamerForm > div.modal-body > div:nth-child(12) > div:nth-child(1) > label",
     (e, passIssueDt) => {
       e.textContent = `Passport Issue Date (${passIssueDt})`;
     },
@@ -956,41 +958,41 @@ async function commitRemainingFields(passenger) {
 }
 
 async function showCommanders() {
-  await util.commander(page, {
-    controller: {
-      selector: "#mutamerForm > div.modal-body > h1",
-      title: "Open fields",
-      arabicTitle: "فتح الحقول",
-      name: "openfields",
-      action: async () => {
-        // Open name fields for editing
-        await openFields();
-      },
-    },
-  });
+  // await util.commander(page, {
+  //   controller: {
+  //     selector: "#mutamerForm > div.modal-body > h1",
+  //     title: "Open fields",
+  //     arabicTitle: "فتح الحقول",
+  //     name: "openfields",
+  //     action: async () => {
+  //       // Open name fields for editing
+  //       await openFields();
+  //     },
+  //   },
+  // });
 
-  await util.commander(page, {
-    controller: {
-      selector: "#qa-add-mutamer-close",
-      title: "Close",
-      arabicTitle: "أغلق",
-      name: "close",
-      keepOriginalElement: true,
-      action: async () => {
-        // Close the modal
-        await page.click("#qa-add-mutamer-close");
-        // mark traveller rejected
-        kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-          "submissionData.nsk.status": "Rejected",
-          "submissionData.nsk.rejectionReason": "Manual close",
-        });
-        // Increment the selected traveler
-        util.incrementSelectedTraveler();
-        // Send the next passenger
-        await sendCurrentPassenger();
-      },
-    },
-  });
+  // await util.commander(page, {
+  //   controller: {
+  //     selector: "#qa-add-mutamer-close",
+  //     title: "Close",
+  //     arabicTitle: "أغلق",
+  //     name: "close",
+  //     keepOriginalElement: true,
+  //     action: async () => {
+  //       // Close the modal
+  //       await page.click("#qa-add-mutamer-close");
+  //       // mark traveller rejected
+  //       kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+  //         "submissionData.nsk.status": "Rejected",
+  //         "submissionData.nsk.rejectionReason": "Manual close",
+  //       });
+  //       // Increment the selected traveler
+  //       util.incrementSelectedTraveler();
+  //       // Send the next passenger
+  //       await sendCurrentPassenger();
+  //     },
+  //   },
+  // });
 
   // await util.commander(page, {
   //   controller: {
