@@ -32,7 +32,7 @@ function getLogFile() {
 
 let startTime;
 let autoMode = true;
-const defaultDomain = "https://umrah.nusuk.sa/bsp";
+const defaultDomain = "https://umrahmasar.nusuk.sa/bsp";
 const config = [
   {
     name: "login",
@@ -815,7 +815,8 @@ async function sendCurrentPassenger() {
     [selectedTraveler, data.travellers.length, passenger]
   );
   util.infoMessage(page, `🧟 Inputting ${passenger.slug} saved`);
-  let isPassportScanSuccessful = await pastePassportImage(passenger);
+  // let isPassportScanSuccessful = await pastePassportImage(passenger);
+  let isPassportScanSuccessful = false;
   if (!isPassportScanSuccessful) {
     isPassportScanSuccessful = await pasteSimulatedPassport();
   }
