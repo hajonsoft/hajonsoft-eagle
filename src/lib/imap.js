@@ -13,6 +13,9 @@ function getHostName(recipient) {
   if (recipient.includes("@triamail.com")) {
     return "mail.privateemail.com";
   }
+  if (recipient.includes("hajonsoft.net")) {
+    return "giow1026.siteground.us";
+  }
   return `mail.${recipient.split("@")[1]}`;
 }
 

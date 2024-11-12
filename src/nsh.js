@@ -15,7 +15,6 @@ const { nusukNationalities: nationalities } = require("./data/nationalities");
 const childProcess = require("child_process");
 const sharp = require("sharp");
 
-
 let page;
 let data;
 let counter = 0;
@@ -31,7 +30,7 @@ const URLS = {
   HOME: "https://hajj.nusuk.sa/",
   HOME2: "https://hajj.nusuk.sa/Index",
   PROFILE: "https://hajj.nusuk.sa/Account/Profile",
-  VERIFY_REGISTER_EMAIL: "https://hajj.nusuk.sa/account/verify",
+  VERIFY_REGISTER_EMAIL: "https://hajj.nusuk.sa/account/authorize/otp/verify",
   REGISTER_PASSWORD: "https://hajj.nusuk.sa/registration/signup/password",
   INDEX: "https://hajj.nusuk.sa/Index",
   UPLOAD_DOCUMENTS: "https://hajj.nusuk.sa/registration/documents/[0-9a-f-]+",
@@ -51,11 +50,15 @@ const URLS = {
 };
 
 function getOTPEmailAddress(email) {
-  if (email.includes(".gmail") || email.includes(".yahoo") || email.includes(".outlook")) {
+  if (
+    email.includes(".gmail") ||
+    email.includes(".yahoo") ||
+    email.includes(".outlook")
+  ) {
     const domain = data.system.username.includes("@")
-    ? data.system.username.split("@")[1]
-    : data.system.username;
-    return `admin@${domain}`
+      ? data.system.username.split("@")[1]
+      : data.system.username;
+    return `admin@${domain}`;
   }
   return email;
 }
@@ -277,7 +280,9 @@ async function onContentLoaded(res) {
       fs.unlinkSync(getPath("loop.txt"));
     }
   }
-  const currentConfig = util.findConfig(await page.url(), config);
+  const pageUrl = await page.url();
+  console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ pageUrl", pageUrl);
+  const currentConfig = util.findConfig(pageUrl, config);
   try {
     await pageContentHandler(currentConfig);
   } catch (err) {
@@ -302,7 +307,9 @@ async function pageContentHandler(currentConfig) {
           controller: {
             selector:
               "body > main > div.home-full-bg > div.container-lg.container-fluid.h-100 > div.row.z-1.position-relative.align-content-end.home-full-text > div > h3",
-            title: `Login All Passengers (${Math.min(leads.length,15)}/${leads.length})`,
+            title: `Login All Passengers (${Math.min(leads.length, 15)}/${
+              leads.length
+            })`,
             arabicTitle: "تسجيل الدخول لجميع الركاب",
             name: "parallel",
             action: async () => {
@@ -599,7 +606,8 @@ async function pageContentHandler(currentConfig) {
         page,
         [
           {
-            selector: "#BackgroundStepTwoViewModel_RequiredVaccinationsBeenTakenAnswer",
+            selector:
+              "#BackgroundStepTwoViewModel_RequiredVaccinationsBeenTakenAnswer",
             value: () => "ACWY",
           },
         ],
@@ -722,24 +730,17 @@ async function pageContentHandler(currentConfig) {
 function suggestEmail(selectedTraveler, companion = false) {
   const passenger = data.travellers[selectedTraveler];
   if (passenger.email) {
-    return passenger.email.split('/')[0];
+    return passenger.email.split("/")[0];
   }
   const domain = data.system.username.includes("@")
     ? data.system.username.split("@")[1]
     : data.system.username;
-  const friendlyName = `${passenger.name.first}.${passenger.name.last}.${
+  const friendlyName = `${passenger.name.first}.${
     companion ? "companion." : ""
   }${passenger.passportNumber}@${domain}`
     .toLowerCase()
     .replace(/ /g, "");
-  const unfriendlyName = `${passenger.name.first}.${data.system.accountId}.${
-    companion ? "companion." : ""
-  }${passenger.passportNumber}@${domain}`
-    .toLowerCase()
-    .replace(/ /g, "");
-  const email = data.system.username.includes("@")
-    ? friendlyName
-    : unfriendlyName;
+  const email = friendlyName;
   return email;
 }
 
@@ -812,8 +813,7 @@ async function getOTPCode() {
   const passenger = data.travellers[util.getSelectedTraveler()];
   await page.$eval(
     "#otpForm > label",
-    (el, email) =>
-      (el.innerText = `${email.split('/')[0]}`),
+    (el, email) => (el.innerText = `${email.split("/")[0]}`),
     passenger.email || emailAddress
   );
   if (!canGetCode(passenger.email || emailAddress, data.system.username)) {
@@ -829,30 +829,37 @@ async function getOTPCode() {
   await page.$eval(
     "#otpForm > label",
     (el, email, fromString) =>
-      (el.innerText = `${email.split('/')[0]} ${fromString}`),
+      (el.innerText = `${email.split("/")[0]} ${fromString}`),
     passenger.email || emailAddress,
-    (passenger.email || emailAddress).includes('/') ? '' :  `from (admin@${(passenger.email || emailAddress).split("@")[1].split("/")[0]})`
-
+    (passenger.email || emailAddress).includes("/")
+      ? ""
+      : `from (admin@${
+          (passenger.email || emailAddress).split("@")[1].split("/")[0]
+        })`
   );
   try {
     if (pageMode.includes("Registration") || pageMode.includes("التسجيل")) {
       await fetchNusukIMAPOTP(
-        getOTPEmailAddress((passenger.email || emailAddress).split('/')[0]),
-        (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
+        getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
+        (passenger.email || emailAddress).includes("/")
+          ? (passenger.email || emailAddress).split("/")[1]
+          : data.system.adminEmailPassword,
         ["Email Activation", "تفعيل البريد الالكتروني"],
         pasteOTPCode,
-        (passenger.email || emailAddress).includes('/')
+        (passenger.email || emailAddress).includes("/")
       );
     } else if (
       pageMode.includes("OTP Verification") ||
       pageMode.includes("التثبت من رمز التحقق")
     ) {
       await fetchNusukIMAPOTP(
-        getOTPEmailAddress((passenger.email || emailAddress).split('/')[0]),
-        (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
+        getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
+        (passenger.email || emailAddress).includes("/")
+          ? (passenger.email || emailAddress).split("/")[1]
+          : data.system.adminEmailPassword,
         ["One Time Password", "رمز سري لمرة واحدة"],
         pasteOTPCode,
-        (passenger.email || emailAddress).includes('/')
+        (passenger.email || emailAddress).includes("/")
       );
     }
   } catch (e) {
@@ -870,11 +877,13 @@ async function getCompanionOTPCode() {
   const pageMode = "OTP Verification";
   try {
     await fetchNusukIMAPOTP(
-      getOTPEmailAddress((passenger.email || emailAddress).split('/')[0]),
-      (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
+      getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
+      (passenger.email || emailAddress).includes("/")
+        ? (passenger.email || emailAddress).split("/")[1]
+        : data.system.adminEmailPassword,
       ["One Time Password", "رمز سري لمرة واحدة"],
       pasteOTPCodeCompanion,
-      (passenger.email || emailAddress).includes('/')
+      (passenger.email || emailAddress).includes("/")
     );
   } catch (e) {
     await util.infoMessage(page, "Manual code required!");
@@ -902,7 +911,7 @@ async function addNewMember(selectedTraveler) {
     [
       {
         selector: "#AddMemberViewModel_Email",
-        value: () => email.split('/')[0],
+        value: () => email.split("/")[0],
       },
     ],
     {}
@@ -926,7 +935,9 @@ async function addNewMember(selectedTraveler) {
   await page.$eval(
     "#OTPModal > div > div > div > form > label",
     (el, email) =>
-      (el.innerText = `${email.split('/')[0]} from (admin@${email.split("@")[1].split("/")[0]})`),
+      (el.innerText = `${email.split("/")[0]} from (admin@${
+        email.split("@")[1].split("/")[0]
+      })`),
     passenger.email || emailAddress
   );
   await getCompanionOTPCode();
@@ -1195,7 +1206,6 @@ async function pasteSimulatedPassport() {
     .toFile(passportPathMrz);
 
   await util.commitFile("#passportPhoto", passportPathMrz);
-
 }
 
 async function uploadFakePassport() {
@@ -1580,7 +1590,12 @@ async function runParallel() {
         return `"${v}"`;
       }
       if (v.startsWith("--submissionId")) {
-        return `${v} --passengerIds=${passenger.id} --auto -windowed --index=${index}/${Math.min(leads.length, 15)} --monitor-width=${monitorWidth} --monitor-height=${monitorHeight}`;
+        return `${v} --passengerIds=${
+          passenger.id
+        } --auto -windowed --index=${index}/${Math.min(
+          leads.length,
+          15
+        )} --monitor-width=${monitorWidth} --monitor-height=${monitorHeight}`;
       }
       if (v.startsWith("--passengerId")) {
         return ``;
@@ -1605,7 +1620,6 @@ async function runParallel() {
   // const newCommand = commands.join(" & ");
   // console.log("📢[nsh.js:1491]: oneCommand: ", newCommand);
   // run the command using child process
-
 
   await page.browser().close();
 }
