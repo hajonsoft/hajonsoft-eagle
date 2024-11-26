@@ -564,7 +564,7 @@ async function pageContentHandler(currentConfig) {
       // wait 500 ms for the days to load, then select the day
       await page.waitForFunction(() => {
         return new Promise(resolve => setTimeout(resolve, 500));
-    });
+      });
       await page.click(
         "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
       );
@@ -604,7 +604,7 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked("#ArrestedOrConvictedForTerrorismBeforeNo");
       await page.waitForFunction(() => {
         return new Promise(resolve => setTimeout(resolve, 100));
-    });
+      });
       await util.commit(
         page,
         [
@@ -901,7 +901,7 @@ async function addNewMember(selectedTraveler) {
   const email = suggestEmail(selectedTraveler, true);
   await page.waitForFunction(() => {
     return new Promise(resolve => setTimeout(resolve, 1000));
-});
+  });
   await page.waitForSelector("#AddMemberViewModel_Email");
   const passenger = data.travellers[selectedTraveler];
   passenger.email = email;
@@ -986,10 +986,7 @@ async function signup_step1(selectedTraveler) {
   );
   //
   // wait for all javascript functions to execute
-  await page.waitForFunction(() => {
-    return new Promise(resolve => setTimeout(resolve, 1000));
-});
-
+  await new Promise(resolve => setTimeout(resolve, 1000));
   await checkIfNotChecked("#chkResidenceCountry");
   await checkIfNotChecked("#SignupViewModel_AgreeToTermsAndCondition");
   await checkIfNotChecked("#SignupViewModel_SubscribeToNewsLetter");
@@ -1025,7 +1022,7 @@ async function loginPassenger(selectedTraveler) {
   const passenger = data.travellers[selectedTraveler];
   await page.waitForFunction(() => {
     return new Promise(resolve => setTimeout(resolve, 1000));
-});
+  });
   await util.commit(
     page,
     [
@@ -1219,7 +1216,7 @@ async function uploadFakePassport() {
 
   await page.waitForFunction(() => {
     return new Promise(resolve => setTimeout(resolve, 1000));
-});
+  });
 
   await page.waitForSelector("#passportPhoto");
   const blankPassportPath = path.join(
@@ -1372,7 +1369,7 @@ async function closeAccountCreatedSuccessModal() {
       );
       await page.waitForFunction(() => {
         return new Promise(resolve => setTimeout(resolve, 500));
-    });
+      });
     }
   } catch (e) {
     console.log(e);
