@@ -327,7 +327,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "groups":
       if (!autoMode) return;
-      await page.waitForTimeout(5000);
+      await page.waitFor(5000);
 
       await page.goto(getCreateGroupUrl());
 
@@ -352,7 +352,7 @@ async function pageContentHandler(currentConfig) {
       if (global.headless) {
         await page.goto(getCreateGroupUrl());
       } else {
-        await page.waitForTimeout(5000);
+        await page.waitFor(5000);
         // if the page is still dashboard after 10 seconds, click on groups
         if (autoMode) {
           await page.goto(getCreateGroupUrl());
@@ -367,7 +367,7 @@ async function pageContentHandler(currentConfig) {
       groupCreated = true;
       if (!autoMode) return;
 
-      await page.waitForTimeout(5000);
+      await page.waitFor(5000);
       await util.commit(page, currentConfig.details, data);
       await page.$eval(
         "#EmbassyId",
@@ -462,12 +462,12 @@ async function pageContentHandler(currentConfig) {
                 element.scrollIntoView();
               }
             }, "#SelectedTimeSlot");
-            await page.waitForTimeout(500);
+            await page.waitFor(500);
             await page.type(
               "#SelectedTimeSlot",
               moment().add(1, "day").format("YYYY-MM-DD")
             );
-            await page.waitForTimeout(500);
+            await page.waitFor(500);
           },
         },
       });
@@ -826,10 +826,10 @@ async function sendCurrentPassenger() {
   await pasteRemainingImages(passenger);
   await showCommanders(passenger);
   await commitRemainingFields(passenger);
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
   await page.focus("#PassportNumber");
   await page.click("#PassportNumber");
-  await page.waitForTimeout(500);
+  await page.waitFor(500);
 
   if (!isPassportScanSuccessful) {
     await page.$eval("#qa-add-mutamer-save", (e) => {
@@ -899,7 +899,7 @@ async function commitRemainingFields(passenger) {
   );
 
   await page.click("#PassportIssueDate");
-  await page.waitForTimeout(500);
+  await page.waitFor(500);
   await util.commit(
     page,
     [
@@ -1058,7 +1058,7 @@ async function pasteRemainingImages(passenger) {
       }
 
       await page.click("#IqamaExpiryDate");
-      await page.waitForTimeout(500);
+      await page.waitFor(500);
       await util.commit(
         page,
         [
@@ -1116,7 +1116,7 @@ async function pastePassportImage(passenger, resized = true) {
     await util.downloadImage(passenger.images.passport, passportPath);
     await util.commitFile("#PassportPictureUploader", passportPath);
   }
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
   const isSuccess = await assertPassportImage();
   return isSuccess;
 }
@@ -1171,7 +1171,7 @@ async function addMutamerClick() {
     "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a";
   await page.waitForSelector(addMutamerButtonSelector);
   await page.click(addMutamerButtonSelector);
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
 }
 
 async function dismissGroupCreated() {
@@ -1184,7 +1184,7 @@ async function dismissGroupCreated() {
     await page.click(groupCreatedOkButtonSelector);
   } catch (e) {}
 
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
   // Store group id
   if (!global.submission.targetGroupId) {
     const groupId = page

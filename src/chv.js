@@ -365,7 +365,7 @@ const config = [
               "7"
             );
             await page.select("#countryKey", budgieCountryCode.toString());
-            await page.waitForTimeout(1000);
+            await page.waitFor(1000);
           }
 
           // const newSMSNumber = await SMS.getNewNumber();
@@ -794,7 +794,7 @@ async function pageContentHandler(currentConfig) {
         visible: true,
         timeout: 0,
       });
-      await page.waitForTimeout(2000);
+      await page.waitFor(2000);
       await page.click("#proceedButton > div > input");
       break;
     case "add-mission-pilgrim-3":
@@ -975,12 +975,12 @@ async function pageContentHandler(currentConfig) {
         );
       }
 
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
       await util.toggleBlur(page, false);
       // Wait here for 1 second
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       try {
         await page.$eval(
           "#formData > div:nth-child(9) > div:nth-child(1) > div:nth-child(4) > label",
@@ -1074,7 +1074,7 @@ async function pageContentHandler(currentConfig) {
       await page.click(
         "body > div.wrapper > div > div.page-content > div.row > form > div > div.ui-panel-content.ui-widget-content > div:nth-child(32) > div.form-group > div > table > tbody > tr > td:nth-child(2) > input[type=radio]"
       );
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       await page.evaluate(() => {
         document
           .querySelector("#actionPanel > div > div > input.btn.btn-primary")
@@ -1213,12 +1213,12 @@ async function pageContentHandler(currentConfig) {
         "#makHouseContract",
         budgie.get("ehaj-package-hotel-1")
       );
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       await page.select(
         "#madHouseContract",
         budgie.get("ehaj-package-hotel-2")
       );
-      await page.waitForTimeout(2000);
+      await page.waitFor(2000);
 
       await page.select(
         "#houseContractMakRoomType",
@@ -1358,7 +1358,7 @@ async function pageContentHandler(currentConfig) {
       //     "color:#fff;background:rgb(178, 190, 126);padding:3px;border-radius:2px",
       //     code
       //   );
-      //   await page.waitForTimeout(1000);
+      //   await page.waitFor(1000);
       // }
 
       break;
@@ -1367,7 +1367,7 @@ async function pageContentHandler(currentConfig) {
         "#confirmationPanel > div.portlet-body > form > div.reservation-button > div > div > div > input"
       );
 
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       await page.waitForSelector("#submitResvBtn");
       await page.click("#submitResvBtn");
 

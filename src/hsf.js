@@ -761,7 +761,7 @@ async function pageContentHandler(currentConfig) {
       }
       const printButtonSelector =
         "#myform > div.form-actions.fluid.right > div > div > a.btn.btn-default.green";
-      await page.waitForTimeout(2000);
+      await page.waitFor(2000);
 
       const isPrintButton = await page.$(printButtonSelector);
       if (isPrintButton) {
@@ -784,7 +784,7 @@ async function pageContentHandler(currentConfig) {
         //   fs.mkdirSync(saveFolder, { recursive: true });
         // }
 
-        await page.waitForTimeout(7000);
+        await page.waitFor(7000);
         await page.waitForSelector("#btnPrevious");
         await util.commander(page, {
           controller: {
@@ -937,7 +937,7 @@ async function sendNewApplication(selectedTraveller) {
       await page.waitForSelector(captchaSelector);
       await page.focus(captchaSelector);
       // Wait for image to load.
-      await page.waitForTimeout(3000);
+      await page.waitFor(3000);
       const base64 = await page.evaluate(() => {
         const image = document.getElementById("imgCaptcha");
         const canvas = document.createElement("canvas");
@@ -1031,7 +1031,7 @@ async function sendPassenger(index) {
     });
     if (isCookies) {
       await page.click("button.acceptcookies");
-      page.waitForTimeout(2000);
+      page.waitFor(2000);
     }
   } catch {}
 
@@ -1237,9 +1237,9 @@ async function setHSFDate(dateSelector, year, month, day) {
       [monthSelector, `${parseInt(month)}/${year}`]
     );
 
-    await page.waitForTimeout(2000);
+    await page.waitFor(2000);
     await page.select(monthSelector, `${parseInt(month)}/${year}`);
-    await page.waitForTimeout(2000);
+    await page.waitFor(2000);
     const dayTds = await page.$$("td");
     for (const dayTd of dayTds) {
       const dayAnchor = await dayTd.$("a");
@@ -1254,7 +1254,7 @@ async function setHSFDate(dateSelector, year, month, day) {
       }
     }
 
-    await page.waitForTimeout(1000);
+    await page.waitFor(1000);
   } catch (err) {
     console.log("Eagle error: Date select error", err);
   }

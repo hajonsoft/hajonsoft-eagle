@@ -1608,7 +1608,7 @@ const pauseMessage = async (page, seconds = 3) => {
         await page.evaluate(
           "document.title='Eagle: pause for " + seconds + " seconds'"
         );
-        await page.waitForTimeout(1000);
+        await page.waitFor(1000);
         await pauseMessage(page, seconds - 1);
       }
     }
@@ -1620,7 +1620,7 @@ const pauseMessage = async (page, seconds = 3) => {
 
 const pauseForInteraction = async (page, seconds) => {
   if (global.headless) {
-    await page.waitForTimeout(1000);
+    await page.waitFor(1000);
     return;
   }
   await pauseMessage(page, seconds);
@@ -1786,7 +1786,7 @@ async function clickWhenReady(selector, page) {
       await page.click(selector);
       return;
     } catch (err) {
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
     }
   }
 }

@@ -200,7 +200,7 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      await page.waitForTimeout(3000);
+      await page.waitFor(3000);
       token = await util.commitCaptchaTokenWithSelector(
         page,
         "#Panel1 > div:nth-child(6) > div > img",
@@ -213,9 +213,9 @@ async function pageContentHandler(currentConfig) {
         return;
       }
 
-      await page.waitForTimeout(5000);
+      await page.waitFor(5000);
       await page.click("#cmdlogin");
-      await page.waitForTimeout(2000);
+      await page.waitFor(2000);
       const isIDo = await page.$("#Button4");
       if (isIDo) {
         await page.click('aria/button[name="Yes, I DO"]');
@@ -519,7 +519,7 @@ async function sendPassenger(passenger) {
         passenger
       );
 
-      await page.waitForTimeout(5000);
+      await page.waitFor(5000);
       // Handle filling in the issue date
       await page.waitForSelector("#ddlppissmm");
       if (passenger.passIssueDt.mm.startsWith("0")) {
@@ -557,7 +557,7 @@ async function sendPassenger(passenger) {
       // Upload photo
       await page.click("#btn_uploadImage");
       util.infoMessage(page, "🌄 Uploading photo", 5);
-      await page.waitForTimeout(2000);
+      await page.waitFor(2000);
       await util.commitFile("#file_photo_upload", resizedPhotoPath);
       nextAction = "commit-passport-image";
       try {
@@ -595,7 +595,7 @@ async function sendPassenger(passenger) {
           100
         );
         util.infoMessage(page, "🏠 Uploading residence id", 5);
-        await page.waitForTimeout(2000);
+        await page.waitFor(2000);
         await util.commitFile("#furesidenceidimg", residencyImagePath);
         return;
       }

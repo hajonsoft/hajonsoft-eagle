@@ -59,9 +59,9 @@ async function onWTUPageLoad(res) {
       page.evaluate("document.title='Eagle: Captcha Failed'");
       return;
     }
-    await page.waitForTimeout(5000);
+    await page.waitFor(5000);
     await page.click("#cmdlogin");
-    await page.waitForTimeout(2000);
+    await page.waitFor(2000);
     const isIDo = await page.$("#Button4");
     if (isIDo) {
       await page.click('aria/button[name="Yes, I DO"]');

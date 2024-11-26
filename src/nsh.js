@@ -10,11 +10,10 @@ const kea = require("./lib/kea");
 const moment = require("moment");
 const budgie = require("./budgie");
 const gmail = require("./lib/gmail");
-const { fetchNusukIMAPOTP } = require("./lib/imap");
+const { fetchOTPFromNusuk } = require("./lib/imap");
 const { nusukNationalities: nationalities } = require("./data/nationalities");
 const childProcess = require("child_process");
 const sharp = require("sharp");
-
 
 let page;
 let data;
@@ -31,7 +30,7 @@ const URLS = {
   HOME: "https://hajj.nusuk.sa/",
   HOME2: "https://hajj.nusuk.sa/Index",
   PROFILE: "https://hajj.nusuk.sa/Account/Profile",
-  VERIFY_REGISTER_EMAIL: "https://hajj.nusuk.sa/account/verify",
+  VERIFY_REGISTER_EMAIL: "https://hajj.nusuk.sa/account/authorize/otp/verify",
   REGISTER_PASSWORD: "https://hajj.nusuk.sa/registration/signup/password",
   INDEX: "https://hajj.nusuk.sa/Index",
   UPLOAD_DOCUMENTS: "https://hajj.nusuk.sa/registration/documents/[0-9a-f-]+",
@@ -39,7 +38,7 @@ const URLS = {
     "https://hajj.nusuk.sa/registration/documents/summary/[0-9a-f-]+",
   registrationForward:
     "https://hajj.nusuk.sa/Applicants/Individual/Registration.handler=RegisterApplicant",
-  LOGIN: "https://hajj.nusuk.sa/Account/Login",
+  LOGIN: "https://hajj.nusuk.sa/account/authorize",
   CONTACT: "https://hajj.nusuk.sa/registration/contact/[0-9a-f-]+",
   SUMMARY: "https://hajj.nusuk.sa/registration/form/step1/[0-9a-f-]+",
   SUMMARY2: "https://hajj.nusuk.sa/registration/form/step2/[0-9a-f-]+",
@@ -51,11 +50,15 @@ const URLS = {
 };
 
 function getOTPEmailAddress(email) {
-  if (email.includes(".gmail") || email.includes(".yahoo") || email.includes(".outlook")) {
+  if (
+    email.includes(".gmail") ||
+    email.includes(".yahoo") ||
+    email.includes(".outlook")
+  ) {
     const domain = data.system.username.includes("@")
-    ? data.system.username.split("@")[1]
-    : data.system.username;
-    return `admin@${domain}`
+      ? data.system.username.split("@")[1]
+      : data.system.username;
+    return `admin@${domain}`;
   }
   return email;
 }
@@ -277,7 +280,9 @@ async function onContentLoaded(res) {
       fs.unlinkSync(getPath("loop.txt"));
     }
   }
-  const currentConfig = util.findConfig(await page.url(), config);
+  const pageUrl = await page.url();
+  console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ pageUrl", pageUrl);
+  const currentConfig = util.findConfig(pageUrl, config);
   try {
     await pageContentHandler(currentConfig);
   } catch (err) {
@@ -302,7 +307,8 @@ async function pageContentHandler(currentConfig) {
           controller: {
             selector:
               "body > main > div.home-full-bg > div.container-lg.container-fluid.h-100 > div.row.z-1.position-relative.align-content-end.home-full-text > div > h3",
-            title: `Login All Passengers (${Math.min(leads.length,15)}/${leads.length})`,
+            title: `Login All Passengers (${Math.min(leads.length, 15)}/${leads.length
+              })`,
             arabicTitle: "تسجيل الدخول لجميع الركاب",
             name: "parallel",
             action: async () => {
@@ -336,7 +342,7 @@ async function pageContentHandler(currentConfig) {
           passenger,
           "Embassy"
         );
-      } catch (error) {}
+      } catch (error) { }
       util.incrementSelectedTraveler();
       kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
         "submissionData.nsh.status": "Submitted",
@@ -556,7 +562,9 @@ async function pageContentHandler(currentConfig) {
         "6/2024"
       );
       // wait 500 ms for the days to load, then select the day
-      await page.waitForTimeout(500);
+      await page.waitForFunction(() => {
+        return new Promise(resolve => setTimeout(resolve, 500));
+      });
       await page.click(
         "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
       );
@@ -578,7 +586,7 @@ async function pageContentHandler(currentConfig) {
         window.scrollTo(0, document.body.scrollHeight);
       });
       // if (passenger.nationality.code === data.system.country.code) {
-      //   await page.waitForTimeout(1000);
+      //   await page.waitFor(1000);
       //   await page.click(
       //     "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
       //   );
@@ -594,12 +602,15 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked("#RequiredVaccinationsBeenTakenYes");
       await checkIfNotChecked("#HaveAnyPhysicalDisabilityNo");
       await checkIfNotChecked("#ArrestedOrConvictedForTerrorismBeforeNo");
-      await page.waitForTimeout(100);
+      await page.waitForFunction(() => {
+        return new Promise(resolve => setTimeout(resolve, 100));
+      });
       await util.commit(
         page,
         [
           {
-            selector: "#BackgroundStepTwoViewModel_RequiredVaccinationsBeenTakenAnswer",
+            selector:
+              "#BackgroundStepTwoViewModel_RequiredVaccinationsBeenTakenAnswer",
             value: () => "ACWY",
           },
         ],
@@ -685,6 +696,7 @@ async function pageContentHandler(currentConfig) {
         util.infoMessage(page, `🧟 passenger ${passenger.slug} saved`);
         kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
           "submissionData.nsh.status": "Submitted",
+          email: passenger.email,
         });
         util.incrementSelectedTraveler();
         await page.goto(
@@ -722,24 +734,16 @@ async function pageContentHandler(currentConfig) {
 function suggestEmail(selectedTraveler, companion = false) {
   const passenger = data.travellers[selectedTraveler];
   if (passenger.email) {
-    return passenger.email.split('/')[0];
+    return passenger.email.split("/")[0];
   }
   const domain = data.system.username.includes("@")
     ? data.system.username.split("@")[1]
     : data.system.username;
-  const friendlyName = `${passenger.name.first}.${passenger.name.last}.${
-    companion ? "companion." : ""
-  }${passenger.passportNumber}@${domain}`
+  const friendlyName = `${passenger.name.first}.${companion ? "companion." : ""
+    }${passenger.passportNumber}@${domain}`
     .toLowerCase()
     .replace(/ /g, "");
-  const unfriendlyName = `${passenger.name.first}.${data.system.accountId}.${
-    companion ? "companion." : ""
-  }${passenger.passportNumber}@${domain}`
-    .toLowerCase()
-    .replace(/ /g, "");
-  const email = data.system.username.includes("@")
-    ? friendlyName
-    : unfriendlyName;
+  const email = friendlyName;
   return email;
 }
 
@@ -812,8 +816,7 @@ async function getOTPCode() {
   const passenger = data.travellers[util.getSelectedTraveler()];
   await page.$eval(
     "#otpForm > label",
-    (el, email) =>
-      (el.innerText = `${email.split('/')[0]}`),
+    (el, email) => (el.innerText = `${email.split("/")[0]}`),
     passenger.email || emailAddress
   );
   if (!canGetCode(passenger.email || emailAddress, data.system.username)) {
@@ -829,30 +832,36 @@ async function getOTPCode() {
   await page.$eval(
     "#otpForm > label",
     (el, email, fromString) =>
-      (el.innerText = `${email.split('/')[0]} ${fromString}`),
+      (el.innerText = `${email.split("/")[0]} ${fromString}`),
     passenger.email || emailAddress,
-    (passenger.email || emailAddress).includes('/') ? '' :  `from (admin@${(passenger.email || emailAddress).split("@")[1].split("/")[0]})`
-
+    (passenger.email || emailAddress).includes("/")
+      ? ""
+      : `from (admin@${(passenger.email || emailAddress).split("@")[1].split("/")[0]
+      })`
   );
   try {
     if (pageMode.includes("Registration") || pageMode.includes("التسجيل")) {
-      await fetchNusukIMAPOTP(
-        getOTPEmailAddress((passenger.email || emailAddress).split('/')[0]),
-        (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
+      await fetchOTPFromNusuk(
+        getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
+        (passenger.email || emailAddress).includes("/")
+          ? (passenger.email || emailAddress).split("/")[1]
+          : data.system.adminEmailPassword,
         ["Email Activation", "تفعيل البريد الالكتروني"],
         pasteOTPCode,
-        (passenger.email || emailAddress).includes('/')
+        (passenger.email || emailAddress).includes("/")
       );
     } else if (
       pageMode.includes("OTP Verification") ||
       pageMode.includes("التثبت من رمز التحقق")
     ) {
-      await fetchNusukIMAPOTP(
-        getOTPEmailAddress((passenger.email || emailAddress).split('/')[0]),
-        (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
+      await fetchOTPFromNusuk(
+        getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
+        (passenger.email || emailAddress).includes("/")
+          ? (passenger.email || emailAddress).split("/")[1]
+          : data.system.adminEmailPassword,
         ["One Time Password", "رمز سري لمرة واحدة"],
         pasteOTPCode,
-        (passenger.email || emailAddress).includes('/')
+        (passenger.email || emailAddress).includes("/")
       );
     }
   } catch (e) {
@@ -869,12 +878,14 @@ async function getCompanionOTPCode() {
   // If the page contain the word Registration, then registration. If it contains "OTP Verification"
   const pageMode = "OTP Verification";
   try {
-    await fetchNusukIMAPOTP(
-      getOTPEmailAddress((passenger.email || emailAddress).split('/')[0]),
-      (passenger.email || emailAddress).includes('/') ? (passenger.email || emailAddress).split('/')[1] : data.system.adminEmailPassword,
+    await fetchOTPFromNusuk(
+      getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
+      (passenger.email || emailAddress).includes("/")
+        ? (passenger.email || emailAddress).split("/")[1]
+        : data.system.adminEmailPassword,
       ["One Time Password", "رمز سري لمرة واحدة"],
       pasteOTPCodeCompanion,
-      (passenger.email || emailAddress).includes('/')
+      (passenger.email || emailAddress).includes("/")
     );
   } catch (e) {
     await util.infoMessage(page, "Manual code required!");
@@ -888,21 +899,20 @@ async function addNewMember(selectedTraveler) {
   await util.clickWhenReady(addCompanionSelector, page);
   // wait for the popup to appear, then type the email address, also store the email address with the companion text in it
   const email = suggestEmail(selectedTraveler, true);
-  await page.waitForTimeout(1000);
+  await page.waitForFunction(() => {
+    return new Promise(resolve => setTimeout(resolve, 1000));
+  });
   await page.waitForSelector("#AddMemberViewModel_Email");
   const passenger = data.travellers[selectedTraveler];
   passenger.email = email;
   emailAddress = email;
 
-  kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-    email: email,
-  });
   await util.commit(
     page,
     [
       {
         selector: "#AddMemberViewModel_Email",
-        value: () => email.split('/')[0],
+        value: () => email.split("/")[0],
       },
     ],
     {}
@@ -926,7 +936,8 @@ async function addNewMember(selectedTraveler) {
   await page.$eval(
     "#OTPModal > div > div > div > form > label",
     (el, email) =>
-      (el.innerText = `${email.split('/')[0]} from (admin@${email.split("@")[1].split("/")[0]})`),
+    (el.innerText = `${email.split("/")[0]} from (admin@${email.split("@")[1].split("/")[0]
+      })`),
     passenger.email || emailAddress
   );
   await getCompanionOTPCode();
@@ -975,8 +986,7 @@ async function signup_step1(selectedTraveler) {
   );
   //
   // wait for all javascript functions to execute
-  await page.waitForTimeout(1000);
-
+  await new Promise(resolve => setTimeout(resolve, 1000));
   await checkIfNotChecked("#chkResidenceCountry");
   await checkIfNotChecked("#SignupViewModel_AgreeToTermsAndCondition");
   await checkIfNotChecked("#SignupViewModel_SubscribeToNewsLetter");
@@ -1010,7 +1020,7 @@ async function loginPassenger(selectedTraveler) {
   const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
   var data = JSON.parse(rawData);
   const passenger = data.travellers[selectedTraveler];
-  await page.waitForTimeout(1000);
+  await new Promise(resolve => setTimeout(resolve, 1000));
   await util.commit(
     page,
     [
@@ -1195,7 +1205,6 @@ async function pasteSimulatedPassport() {
     .toFile(passportPathMrz);
 
   await util.commitFile("#passportPhoto", passportPathMrz);
-
 }
 
 async function uploadFakePassport() {
@@ -1203,7 +1212,9 @@ async function uploadFakePassport() {
   const blankPhotoPath = path.join(__dirname, "dummy-nusuk-hajj-photo.jpg");
   await util.commitFile("#personalPhoto", blankPhotoPath);
 
-  await page.waitForTimeout(1000);
+  await page.waitForFunction(() => {
+    return new Promise(resolve => setTimeout(resolve, 1000));
+  });
 
   await page.waitForSelector("#passportPhoto");
   const blankPassportPath = path.join(
@@ -1234,7 +1245,7 @@ async function pasteOTPCode(err, code) {
               (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
             emailCodeCounter
           );
-        } catch {}
+        } catch { }
         getOTPCode();
       }
     }, 3000);
@@ -1257,7 +1268,7 @@ async function pasteOTPCode(err, code) {
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
         emailCodeCounter
       );
-    } catch {}
+    } catch { }
 
     return;
   }
@@ -1297,7 +1308,7 @@ async function pasteOTPCodeCompanion(err, code) {
               (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
             emailCodeCounter
           );
-        } catch {}
+        } catch { }
         getCompanionOTPCode();
       }
     }, 3000);
@@ -1320,7 +1331,7 @@ async function pasteOTPCodeCompanion(err, code) {
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
         emailCodeCounter
       );
-    } catch {}
+    } catch { }
 
     return;
   }
@@ -1354,7 +1365,9 @@ async function closeAccountCreatedSuccessModal() {
       await page.click(
         "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button"
       );
-      await page.waitForTimeout(500);
+      await page.waitForFunction(() => {
+        return new Promise(resolve => setTimeout(resolve, 500));
+      });
     }
   } catch (e) {
     console.log(e);
@@ -1580,7 +1593,11 @@ async function runParallel() {
         return `"${v}"`;
       }
       if (v.startsWith("--submissionId")) {
-        return `${v} --passengerIds=${passenger.id} --auto -windowed --index=${index}/${Math.min(leads.length, 15)} --monitor-width=${monitorWidth} --monitor-height=${monitorHeight}`;
+        return `${v} --passengerIds=${passenger.id
+          } --auto -windowed --index=${index}/${Math.min(
+            leads.length,
+            15
+          )} --monitor-width=${monitorWidth} --monitor-height=${monitorHeight}`;
       }
       if (v.startsWith("--passengerId")) {
         return ``;
@@ -1605,7 +1622,6 @@ async function runParallel() {
   // const newCommand = commands.join(" & ");
   // console.log("📢[nsh.js:1491]: oneCommand: ", newCommand);
   // run the command using child process
-
 
   await page.browser().close();
 }

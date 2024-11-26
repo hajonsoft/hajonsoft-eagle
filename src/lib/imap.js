@@ -1,11 +1,11 @@
 const moment = require("moment");
-const Imap = require("node-imap"),
-  inspect = require("util").inspect;
+const Imap = require("node-imap");
+const inspect = require("util").inspect;
 const fs = require("fs");
-const simpleParser = require('mailparser').simpleParser; // To parse email content
+const { simpleParser } = require("mailparser");
+const cheerio = require('cheerio');
 
-
-const nshFromEmail = "no_reply@hajj.nusuk.sa";
+const NUSUK_FROM_EMAIL = "no_reply@notification.nusuk.sa";
 const nskFromEmail = "no-reply@mofa.gov.sa";
 const messages = {};
 
@@ -13,10 +13,47 @@ function getHostName(recipient) {
   if (recipient.includes("@triamail.com")) {
     return "mail.privateemail.com";
   }
+  if (recipient.includes("hajonsoft.net")) {
+    return "giow1026.siteground.us";
+  }
   return `mail.${recipient.split("@")[1]}`;
 }
 
-async function fetchNusukIMAPOTP(recipient, password, subject, callback, isNotVirtualEmail) {
+function decodeBase64(text) {
+  return Buffer.from(text, "base64").toString("utf-8");
+}
+
+
+function extractOtpFromHtml(body) {
+  const $ = cheerio.load(body);
+
+  // Normalize the body text to handle line breaks and line continuation artifacts like '='
+  let normalizedHtml = body.replace(/=\n/g, "").replace(/=\s*/g, "");
+
+  const $normalized = cheerio.load(normalizedHtml);
+
+  // For English OTP: Look for <h2> containing digits near the "Your OTP is" context
+  const englishOtpContext = $normalized("p:contains('Your OTP is')");
+  let englishOtp = englishOtpContext.next("h2").text().trim();
+
+  if (!englishOtp) {
+    // Fallback: Extract any 6-digit OTP from <h2> if context-specific extraction fails
+    const otpText = $normalized("h2").text().trim();
+    const otpMatch = otpText.match(/\d{6}/);
+    englishOtp = otpMatch ? otpMatch[0] : null;
+  }
+
+  // For Arabic OTP: Match the "رمز الدخول لمرة واحدة هو" context and extract digits
+  const arabicOtpMatch = normalizedHtml.match(/رمز الدخول لمرة واحدة هو.*?<h2.*?>(\d{6})<\/h2>/);
+  const arabicOtp = arabicOtpMatch ? arabicOtpMatch[1] : null;
+
+  // Return the first found OTP (English preferred over Arabic, or fallback to null)
+  return englishOtp || arabicOtp || null;
+}
+
+
+
+async function fetchOTPFromNusuk(recipient, password, subject, callback, isNotVirtualEmail) {
   var imap = new Imap({
     user: isNotVirtualEmail ? recipient : `admin@${recipient.split("@")[1]}`,
     password: password,
@@ -32,14 +69,23 @@ async function fetchNusukIMAPOTP(recipient, password, subject, callback, isNotVi
   imap.once("ready", function () {
     openInbox(function (err, box) {
       if (err) throw err;
-      const oneMinuteAgo = new Date();
-      oneMinuteAgo.setMinutes(oneMinuteAgo.getMinutes() - 1);
+      const now = new Date();
+      const oneMinuteAgo = new Date(now.getTime() - 60 * 1000); // 1 minute ago in milliseconds
+      const oneMinuteAgoUTC = new Date(
+        oneMinuteAgo.getUTCFullYear(),
+        oneMinuteAgo.getUTCMonth(),
+        oneMinuteAgo.getUTCDate(),
+        oneMinuteAgo.getUTCHours(),
+        oneMinuteAgo.getUTCMinutes(),
+        oneMinuteAgo.getUTCSeconds()
+      );
 
-      // Convert the date to a formatted string in the IMAP date format
-      const sinceDate = oneMinuteAgo
+      // Convert to IMAP-compatible date format (e.g., "26-Nov-2024 15:02:08")
+      const sinceDate = oneMinuteAgoUTC
         .toISOString()
-        .slice(0, -5)
-        .replace(/T/g, " ");
+        .replace("T", " ")
+        .split(".")[0] + " +0000"; // Ensuring the timezone is in UTC
+
 
       const subjectArray = subject.map((s) => ["HEADER", "SUBJECT", s]);
 
@@ -47,7 +93,7 @@ async function fetchNusukIMAPOTP(recipient, password, subject, callback, isNotVi
         [
           "UNSEEN",
           ["OR", ...subjectArray],
-          ["HEADER", "FROM", nshFromEmail],
+          ["HEADER", "FROM", NUSUK_FROM_EMAIL],
           ["HEADER", "TO", recipient],
           ["SINCE", sinceDate],
         ],
@@ -90,17 +136,36 @@ async function fetchNusukIMAPOTP(recipient, password, subject, callback, isNotVi
                   messages[seqno].body = buffer;
                   break;
               }
+              // Check if the body is HTML
+              if (/<\/?[a-z][\s\S]*>/i.test(messages[seqno].body)) {
+                try {
+                  const otp = extractOtpFromHtml(messages[seqno].body); // Use Cheerio if it's HTML
+                  if (otp) {
+                    messages[seqno].otp = otp;
+                    messages.codeFound = true;
+                    callback(null, otp);
+                    imap.end();
+                    return; // Stop further processing since OTP is found
+                  }
+                } catch (error) {
+                  console.error("Failed to parse HTML with cheerio:", error);
+                }
+              }
+
+              // Fallback to existing regex-based parsing for plain text
               const englishOtp =
-                messages[seqno].body.match(/OTP is (\d{6})/)?.[1];
+                messages[seqno].body.match(/Your OTP is\s*\n?\s*(\d{6})/)?.[1];
               if (englishOtp) {
                 messages[seqno].otp = englishOtp;
               } else {
-                const arabicOtp =
-                  messages[seqno].body.match(/;&#x648; (\d+)/)?.[1];
+                const arabicOtp = messages[seqno].body.match(
+                  /رمز الدخول لمرة واحدة هو\s*\n?\s*(\d{6})/
+                )?.[1];
                 if (arabicOtp) {
                   messages[seqno].otp = arabicOtp;
                 }
               }
+
               if (messages[seqno].otp) {
                 messages.codeFound = true;
                 callback(null, messages[seqno].otp);
@@ -212,10 +277,6 @@ async function fetchNusukIMAPPDF(recipient, password, subject, callback) {
   imap.connect();
 }
 
-function decodeBase64(text) {
-  return Buffer.from(text, "base64").toString("utf-8");
-}
-
 function decodeQuotedPrintable(encodedText) {
   // Replace soft line breaks (encoded as '=') followed by newline characters with empty string
   let text = encodedText.replace(/=\n/g, "");
@@ -237,7 +298,7 @@ function decodeQuotedPrintable(encodedText) {
 }
 
 // test code
-// fetchNusukIMAPOTP(
+// fetchOTPFromNusuk(
 //   "HAJJ.ABUOMAR@YOIGOMAIL.COM",
 //   "replace with correct passsword",
 //   ["One Time Password", "رمز سري لمرة واحدة"],
@@ -247,6 +308,6 @@ function decodeQuotedPrintable(encodedText) {
 // );
 
 module.exports = {
-  fetchNusukIMAPOTP,
+  fetchOTPFromNusuk,
   fetchNusukIMAPPDF,
 };

@@ -282,7 +282,7 @@ async function pageContentHandler(currentConfig) {
       if (!autoMode) return;
       await page.click("#application_frm > div > div.row > div > button");
       return;
-      await page.waitForTimeout(5000);
+      await page.waitFor(5000);
       if (global.submission.targetGroupId) {
         // If a group already created for this submission, go directly to that page
         await page.goto(
@@ -299,7 +299,7 @@ async function pageContentHandler(currentConfig) {
       case "create-group":
       if (!autoMode) return;
 
-      await page.waitForTimeout(5000);
+      await page.waitFor(5000);
       await util.commit(page, currentConfig.details, data);
       await page.$eval(
         "#EmbassyId",
@@ -353,7 +353,7 @@ async function pageContentHandler(currentConfig) {
       if (!autoMode) return;
 
       // Add a delay to allow the user to see the list of mutamers added so far
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       // Store group id
       if (!global.submission.targetGroupId) {
         const groupId = page
@@ -432,7 +432,7 @@ async function pageContentHandler(currentConfig) {
         });
         await page.click(groupCreatedOkButtonSelector);
       } catch (e) {}
-      await page.waitForTimeout(500);
+      await page.waitFor(500);
       const addMutamerButtonSelector =
         "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a";
       await page.waitForSelector(addMutamerButtonSelector);
@@ -519,10 +519,10 @@ async function pageContentHandler(currentConfig) {
       }
 
       // allow photos to settle in the DOM
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       await page.focus("#PassportNumber");
       await page.click("#PassportNumber");
-      await page.waitForTimeout(500);
+      await page.waitFor(500);
       await page.click("#qa-add-mutamer-save");
     case "permits":
       if (!autoMode) return;
@@ -557,12 +557,12 @@ async function pageContentHandler(currentConfig) {
                 element.scrollIntoView();
               }
             }, "#SelectedTimeSlot");
-            await page.waitForTimeout(500);
+            await page.waitFor(500);
             await page.type(
               "#SelectedTimeSlot",
               moment().add(1, "day").format("YYYY-MM-DD")
             );
-            await page.waitForTimeout(500);
+            await page.waitFor(500);
           },
         },
       });

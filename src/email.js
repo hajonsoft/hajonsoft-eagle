@@ -78,7 +78,7 @@ async function readCode(id = 2) {
       const code = await page.$eval(selector, (el) => el.innerText);
       return code;
     
-    await page.waitForTimeout(2000);
+    await page.waitFor(2000);
   }
 }
 

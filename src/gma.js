@@ -142,7 +142,7 @@ async function passengerExists(passenger) {
     const searchSelector = "#tableGroupMutamers_filter input[type='search']";
     await page.focus(searchSelector);
     await page.type(searchSelector, passenger.passportNumber);
-    await page.waitForTimeout(2000);
+    await page.waitFor(2000);
     const filterResults = await page.$eval(
       "#tableGroupMutamers_info",
       (el) => el.innerText
@@ -153,7 +153,7 @@ async function passengerExists(passenger) {
     const input = await page.$(searchSelector);
     await input.click({ clickCount: 3 });
     await page.keyboard.press("Backspace");
-    await page.waitForTimeout(2000);
+    await page.waitFor(2000);
 
     return Boolean(exists);
   } catch {
@@ -208,7 +208,7 @@ async function sendPassenger(passenger) {
     parseInt(util.getSelectedTraveler()) + 1
   }/${data.travellers.length}-${passenger?.name?.last}`;
   util.infoMessage(page, titleMessage);
-  await page.waitForTimeout(5000);
+  await page.waitFor(5000);
   await util.commit(page, mutamerConfig.details, passenger);
   for (const field of mutamerConfig.details) {
     await page.$eval(field.selector, (e) => {
@@ -275,10 +275,10 @@ async function captchaAndSave(page) {
     await page.click(
       "#tab1_1 > div:nth-child(4) > div > div > button.btn.btn-success"
     );
-    await page.waitForTimeout(2000);
+    await page.waitFor(2000);
     util.infoMessage(page, "Save clicked", 2, false, true);
   }
-  await page.waitForTimeout(5000);
+  await page.waitFor(5000);
 
   const hasSaved = await passengerExists(passenger);
 
@@ -384,7 +384,7 @@ async function runPageConfiguration(currentConfig) {
         // If submission has group id, go to that group
         // Get more groups in table
         await page.select("select[name='table_Groups_length']", "100");
-        await page.waitForTimeout(5000);
+        await page.waitFor(5000);
 
         editGroupRowIndex = await page.$$eval(
           "#table_Groups tbody tr",
@@ -431,7 +431,7 @@ async function runPageConfiguration(currentConfig) {
         // #ddl_Consulates
         if (data.system.embassy) {
           const embassySelector = "#ddl_Consulates";
-          await page.waitForTimeout(5000);
+          await page.waitFor(5000);
           const optionsEmbassy = await page.$eval(
             embassySelector,
             (e) => e.innerHTML

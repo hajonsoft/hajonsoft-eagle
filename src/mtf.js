@@ -373,7 +373,7 @@ async function sendContactInfo(selectedTraveler) {
   fs.appendFileSync(getPath("emails.txt"), newEmail + "\n");
   await page.type("#txtEmail", newEmail);
   await page.click("#send_otp_btn");
-  await page.waitForTimeout(2000);
+  await page.waitFor(2000);
   const code = await email.readCode();
   console.log(code);
 }
@@ -615,7 +615,7 @@ async function setMotawifDate(dateSelector, year, month, day) {
     [monthSelector, `${parseInt(month)}/${year}`]
   );
   await page.select(monthSelector, `${parseInt(month)}/${year}`);
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
   const dayTds = await page.$$("td");
   for (const dayTd of dayTds) {
     const dayAnchor = await dayTd.$("a");
@@ -628,7 +628,7 @@ async function setMotawifDate(dateSelector, year, month, day) {
     }
   }
 
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
 }
 
 async function send(sendData) {
@@ -755,7 +755,7 @@ async function pageContentHandler(currentConfig) {
         getPath("emails.txt"),
         "ticket: " + ticketNumber + "\n"
       );
-      await page.waitForTimeout(2000);
+      await page.waitFor(2000);
       await page.screenshot({
         path: path.join(__dirname, ticketNumber) + ".png",
         type: "png",
