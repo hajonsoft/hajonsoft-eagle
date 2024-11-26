@@ -315,7 +315,7 @@ async function pasteMofaData(mofaData) {
     ]);
   }
 
-  await page.waitForTimeout(2000);
+  await page.waitFor(2000);
   await util.selectByValue("#EmbassyCode", `${mofaData.embassy}`);
   await page.click("#PerformUmrahNo");
 
@@ -323,14 +323,14 @@ async function pasteMofaData(mofaData) {
     { selector: "#NUMBER_OF_ENTRIES", txt: (row) => `${numberOfEntries}` },
   ]);
 
-  await page.waitForTimeout(2000);
+  await page.waitFor(2000);
   await util.commit(page, [
     {
       selector: "#Number_Entry_Day",
       value: (row) => `${validityDuration.match(/[0-9]+/)}`,
     },
   ]);
-  await page.waitForTimeout(2000);
+  await page.waitFor(2000);
   await util.commit(page, [
     { selector: "#RESIDENCY_IN_KSA", value: (row) => `${mofaData.duration}` },
   ]);
@@ -476,7 +476,7 @@ async function setEnjazDate(dateSelector, year, month, day) {
     [monthSelector, `${parseInt(month)}/${year}`]
   );
   await page.select(monthSelector, `${parseInt(month)}/${year}`);
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
   const dayTds = await page.$$("td");
   for (const dayTd of dayTds) {
     const dayAnchor = await dayTd.$("a");
@@ -489,6 +489,6 @@ async function setEnjazDate(dateSelector, year, month, day) {
     }
   }
 
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
 }
 module.exports = { send };

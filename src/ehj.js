@@ -406,7 +406,7 @@ const config = [
               "7"
             );
             await page.select("#countryKey", budgieCountryCode.toString());
-            await page.waitForTimeout(1000);
+            await page.waitFor(1000);
           }
 
           // const newSMSNumber = await SMS.getNewNumber();
@@ -1067,7 +1067,7 @@ async function pageContentHandler(currentConfig) {
         );
       }
 
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       // await page.click("#attachment_input");
       await util.commitFile("#attachment_input", resizedPhotoPath);
       await util.toggleBlur(page, false);
@@ -1084,7 +1084,7 @@ async function pageContentHandler(currentConfig) {
 
         await util.commitFile("#permit_attmnt_input", resizedId);
 
-        await page.waitForTimeout(1000);
+        await page.waitFor(1000);
         await util.commit(
           page,
           [
@@ -1112,7 +1112,7 @@ async function pageContentHandler(currentConfig) {
 
       }
       // Wait here for 1 second
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       try {
         await page.$eval(
           "#formData > div:nth-child(9) > div:nth-child(1) > div:nth-child(4) > label",
@@ -1127,7 +1127,7 @@ async function pageContentHandler(currentConfig) {
           passenger.passIssueDt.dmy
         );
       } catch {}
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       // try issue date 5 times
       const passportIssueDateFromData = `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`;
       for (let i = 1; i <= 5; i++) {
@@ -1142,7 +1142,7 @@ async function pageContentHandler(currentConfig) {
           ],
           passenger
         );
-        await page.waitForTimeout(500);
+        await page.waitFor(500);
         const passportIssueDateFromPage1 = await page.$eval(
           "#passportIssueDate",
           (el) => el.value
@@ -1216,7 +1216,7 @@ async function pageContentHandler(currentConfig) {
       //   }
       // }
       // scroll into view the passport issue date selector "#j_idt4105_content > div > div:nth-child(4) > div > label"
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       const submitButtonSelector = "#actionPanel > div > input.btn.btn-primary";
       // read the passport issue date from the field and compare it with the passport issue date from the data
       const passportIssueDateFromPage = await page.$eval(
@@ -1556,12 +1556,12 @@ async function pageContentHandler(currentConfig) {
         "#makHouseContract",
         budgie.get("ehaj-package-hotel-1")
       );
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       await page.select(
         "#madHouseContract",
         budgie.get("ehaj-package-hotel-2")
       );
-      await page.waitForTimeout(2000);
+      await page.waitFor(2000);
 
       await page.select(
         "#houseContractMakRoomType",
@@ -1701,7 +1701,7 @@ async function pageContentHandler(currentConfig) {
       //     "color:#fff;background:rgb(178, 190, 126);padding:3px;border-radius:2px",
       //     code
       //   );
-      //   await page.waitForTimeout(1000);
+      //   await page.waitFor(1000);
       // }
 
       break;
@@ -1710,7 +1710,7 @@ async function pageContentHandler(currentConfig) {
         "#confirmationPanel > div.portlet-body > form > div.reservation-button > div > div > div > input"
       );
 
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       await page.waitForSelector("#submitResvBtn");
       await page.click("#submitResvBtn");
 
@@ -1939,7 +1939,7 @@ async function uploadPilgrimViaPassport(selectedTraveler) {
 
   try {
     await inputs[0].uploadFile(resizedPassportPath);
-    await page.waitForTimeout(3000);
+    await page.waitFor(3000);
     await page.waitForSelector("input[type=submit]");
     const submitButtons = await page.$$("input[type=submit]");
     await submitButtons[0].click();

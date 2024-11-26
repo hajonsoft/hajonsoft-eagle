@@ -26,7 +26,7 @@ async function injectBAUEagleButton() {
   try {
     const tdSelector = "#form1 > div:nth-child(1)";
     const eagleButtonSelector = "#eagleImportButton";
-    await page.waitForTimeout(1000);
+    await page.waitFor(1000);
     const nodeExists = await page.$(tdSelector);
     if (!nodeExists) {
       return;
@@ -61,7 +61,7 @@ async function injectBAUEagleButton2() {
   try {
     const tdSelector = "#LblReportTitle";
     const eagleButtonSelector = "#eagleImportButton";
-    await page.waitForTimeout(1000);
+    await page.waitFor(1000);
     const nodeExists = await page.$(tdSelector);
     if (!nodeExists) {
       return;
@@ -96,7 +96,7 @@ async function injectBAUEagleButton3() {
   try {
     const tdSelector = "#ctl00_ContentHolder_MYLABEL12";
     const eagleButtonSelector = "#eagleImportButton";
-    await page.waitForTimeout(1000);
+    await page.waitFor(1000);
     const nodeExists = await page.$(tdSelector);
     if (!nodeExists) {
       return;
@@ -155,7 +155,7 @@ async function onBAUPageLoad(res) {
       "#rdCap_CaptchaTextBox",
       5
     );
-    await page.waitForTimeout(5000);
+    await page.waitFor(5000);
     try {
       await page.waitForFunction(
         "document.querySelector('#rdCap_CaptchaTextBox').value.length === 5",

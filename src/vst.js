@@ -541,7 +541,7 @@ async function runPageConfiguration(currentConfig) {
 
       // If no username and password provided, then go to print visa
       await util.infoMessage(page, "Printing in 90 seconds");
-      await page.waitForTimeout(90000);
+      await page.waitFor(90000);
       if (status === "idle") {
         await page.goto(config.find((c) => c.name === "print-visa").url);
       }
