@@ -210,7 +210,7 @@ async function runPageConfiguration(currentConfig) {
       });
 
       if (!data.info?.caravan.startsWith("CLOUD_")) {
-        await page.waitForTimeout(10000);
+        await page.waitFor(10000);
       }
 
       try {
@@ -234,7 +234,7 @@ async function runPageConfiguration(currentConfig) {
 
       if (fs.existsSync(getPath("loop.txt"))) {
         // Pause to allow for confirmation dialog
-        await page.waitForTimeout(5000);
+        await page.waitFor(5000);
 
         let passenger = data.travellers[parseInt(util.getSelectedTraveler())];
 
@@ -273,7 +273,7 @@ async function runPageConfiguration(currentConfig) {
       } else {
         if (!data.info.caravan.startsWith("CLOUD_")) {
           util.infoMessage(page, `pausing for 10 seconds`);
-          await page.waitForTimeout(10000);
+          await page.waitFor(10000);
         }
         fs.writeFileSync(getPath("loop.txt"), "loop");
         await page.reload();
@@ -294,7 +294,7 @@ async function sendPassenger(passenger) {
   if (passportNumber) {
     return;
   }
-  await page.waitForTimeout(3000);
+  await page.waitFor(3000);
   await page.waitForSelector("#btnclick");
   await page.evaluate(() => {
     const scanButton = document.querySelector("#btnclick");
@@ -310,7 +310,7 @@ async function sendPassenger(passenger) {
     delay: 0,
   });
   // Wait for the input field to receieve the value
-  await page.waitForTimeout(10000);
+  await page.waitFor(10000);
   await util.commit(
     page,
     [
@@ -513,7 +513,7 @@ async function sendPassenger(passenger) {
           // click upload button
           await page.click("#ctl00_ContentHolder_btnpp");
           // Wait for the input field to receieve the value
-          await page.waitForTimeout(10000);
+          await page.waitFor(10000);
           util.infoMessage(
             page,
             `🧟 passenger ${passenger.passportNumber} residence permit uploaded`

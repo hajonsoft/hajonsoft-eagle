@@ -454,9 +454,9 @@ async function sendNewApplication(selectedTraveler) {
     try {
       var passenger = data.travellers[selectedTraveler];
       await util.recall(page, "#VisaKind");
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       await util.recall(page, "#COMING_THROUGH");
-      await page.waitForTimeout(1000);
+      await page.waitFor(1000);
       await util.recall(page, "#EmbassyCode");
       await util.recall(page, "#car_number");
       await util.recall(page, "#ENTRY_POINT");
@@ -510,7 +510,7 @@ async function sendNewApplication(selectedTraveler) {
       await page.waitForSelector(captchaSelector);
       await page.focus(captchaSelector);
       // Wait for image to load.
-      await page.waitForTimeout(3000);
+      await page.waitFor(3000);
       const base64 = await page.evaluate(() => {
         const image = document.getElementById("imgCaptcha");
         const canvas = document.createElement("canvas");
@@ -563,9 +563,9 @@ async function setHSFDate(dateSelector, year, month, day) {
       [monthSelector, `${parseInt(month)}/${year}`]
     );
 
-    await page.waitForTimeout(2000);
+    await page.waitFor(2000);
     await page.select(monthSelector, `${parseInt(month)}/${year}`);
-    await page.waitForTimeout(2000);
+    await page.waitFor(2000);
     const dayTds = await page.$$("td");
     for (const dayTd of dayTds) {
       const dayAnchor = await dayTd.$("a");
@@ -580,7 +580,7 @@ async function setHSFDate(dateSelector, year, month, day) {
       }
     }
 
-    await page.waitForTimeout(1000);
+    await page.waitFor(1000);
   } catch (err) {
     console.log("Eagle error: Date select error", err);
   }

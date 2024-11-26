@@ -556,7 +556,7 @@ async function pageContentHandler(currentConfig) {
         "6/2024"
       );
       // wait 500 ms for the days to load, then select the day
-      await page.waitForTimeout(500);
+      await page.waitFor(500);
       await page.click(
         "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
       );
@@ -578,7 +578,7 @@ async function pageContentHandler(currentConfig) {
         window.scrollTo(0, document.body.scrollHeight);
       });
       // if (passenger.nationality.code === data.system.country.code) {
-      //   await page.waitForTimeout(1000);
+      //   await page.waitFor(1000);
       //   await page.click(
       //     "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
       //   );
@@ -594,7 +594,7 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked("#RequiredVaccinationsBeenTakenYes");
       await checkIfNotChecked("#HaveAnyPhysicalDisabilityNo");
       await checkIfNotChecked("#ArrestedOrConvictedForTerrorismBeforeNo");
-      await page.waitForTimeout(100);
+      await page.waitFor(100);
       await util.commit(
         page,
         [
@@ -888,7 +888,7 @@ async function addNewMember(selectedTraveler) {
   await util.clickWhenReady(addCompanionSelector, page);
   // wait for the popup to appear, then type the email address, also store the email address with the companion text in it
   const email = suggestEmail(selectedTraveler, true);
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
   await page.waitForSelector("#AddMemberViewModel_Email");
   const passenger = data.travellers[selectedTraveler];
   passenger.email = email;
@@ -975,7 +975,7 @@ async function signup_step1(selectedTraveler) {
   );
   //
   // wait for all javascript functions to execute
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
 
   await checkIfNotChecked("#chkResidenceCountry");
   await checkIfNotChecked("#SignupViewModel_AgreeToTermsAndCondition");
@@ -1010,7 +1010,7 @@ async function loginPassenger(selectedTraveler) {
   const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
   var data = JSON.parse(rawData);
   const passenger = data.travellers[selectedTraveler];
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
   await util.commit(
     page,
     [
@@ -1203,7 +1203,7 @@ async function uploadFakePassport() {
   const blankPhotoPath = path.join(__dirname, "dummy-nusuk-hajj-photo.jpg");
   await util.commitFile("#personalPhoto", blankPhotoPath);
 
-  await page.waitForTimeout(1000);
+  await page.waitFor(1000);
 
   await page.waitForSelector("#passportPhoto");
   const blankPassportPath = path.join(
@@ -1354,7 +1354,7 @@ async function closeAccountCreatedSuccessModal() {
       await page.click(
         "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button"
       );
-      await page.waitForTimeout(500);
+      await page.waitFor(500);
     }
   } catch (e) {
     console.log(e);

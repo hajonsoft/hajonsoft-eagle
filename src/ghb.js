@@ -36,7 +36,7 @@ async function runPageConfiguration(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      await page.waitForTimeout(10000);
+      await page.waitFor(10000);
       setTimeout(async () => {
         await page.reload({ waitUntil: "domcontentloaded" });
       }, 10000);
