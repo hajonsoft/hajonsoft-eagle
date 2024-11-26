@@ -28,10 +28,3 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    # Verify Node.js version
-    - name: Verify Node.js version
-      run: node -v
-
-    # Run your script (replace 'node .' with your actual command)
-    - name: Run script
-      run: node . # Adjust this to the script/command you want to execute
