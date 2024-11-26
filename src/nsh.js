@@ -10,7 +10,7 @@ const kea = require("./lib/kea");
 const moment = require("moment");
 const budgie = require("./budgie");
 const gmail = require("./lib/gmail");
-const { fetchNusukIMAPOTP } = require("./lib/imap");
+const { fetchOTPFromNusuk } = require("./lib/imap");
 const { nusukNationalities: nationalities } = require("./data/nationalities");
 const childProcess = require("child_process");
 const sharp = require("sharp");
@@ -841,7 +841,7 @@ async function getOTPCode() {
   );
   try {
     if (pageMode.includes("Registration") || pageMode.includes("التسجيل")) {
-      await fetchNusukIMAPOTP(
+      await fetchOTPFromNusuk(
         getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
         (passenger.email || emailAddress).includes("/")
           ? (passenger.email || emailAddress).split("/")[1]
@@ -854,7 +854,7 @@ async function getOTPCode() {
       pageMode.includes("OTP Verification") ||
       pageMode.includes("التثبت من رمز التحقق")
     ) {
-      await fetchNusukIMAPOTP(
+      await fetchOTPFromNusuk(
         getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
         (passenger.email || emailAddress).includes("/")
           ? (passenger.email || emailAddress).split("/")[1]
@@ -878,7 +878,7 @@ async function getCompanionOTPCode() {
   // If the page contain the word Registration, then registration. If it contains "OTP Verification"
   const pageMode = "OTP Verification";
   try {
-    await fetchNusukIMAPOTP(
+    await fetchOTPFromNusuk(
       getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
       (passenger.email || emailAddress).includes("/")
         ? (passenger.email || emailAddress).split("/")[1]
@@ -1020,9 +1020,7 @@ async function loginPassenger(selectedTraveler) {
   const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
   var data = JSON.parse(rawData);
   const passenger = data.travellers[selectedTraveler];
-  await page.waitForFunction(() => {
-    return new Promise(resolve => setTimeout(resolve, 1000));
-  });
+  await new Promise(resolve => setTimeout(resolve, 1000));
   await util.commit(
     page,
     [
