@@ -653,7 +653,7 @@ async function pageContentHandler(currentConfig) {
 
       // Close the modal by clicking this element if it is in the DOM
       const documentGuideSelector =
-        "#uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span";
+        "#proceedUploadDocuments";
       await util.clickWhenReady(documentGuideSelector, page);
 
       await page.evaluate(() => {
@@ -1242,7 +1242,7 @@ async function pasteOTPCode(err, code) {
           await page.$eval(
             "#hajonsoft-commander-alert",
             (el, i) =>
-              (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
+              (el.innerText = `Checking email 00:00:${i*30}/00:02:30  فحص البريد `),
             emailCodeCounter
           );
         } catch { }
@@ -1365,9 +1365,8 @@ async function closeAccountCreatedSuccessModal() {
       await page.click(
         "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button"
       );
-      await page.waitForFunction(() => {
-        return new Promise(resolve => setTimeout(resolve, 500));
-      });
+      return new Promise(resolve => setTimeout(resolve, 500));
+
     }
   } catch (e) {
     console.log(e);
