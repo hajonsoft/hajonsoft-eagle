@@ -653,7 +653,7 @@ async function pageContentHandler(currentConfig) {
 
       // Close the modal by clicking this element if it is in the DOM
       const documentGuideSelector =
-        "#proceedUploadDocuments";
+        "#uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span";
       await util.clickWhenReady(documentGuideSelector, page);
 
       await page.evaluate(() => {
@@ -892,6 +892,24 @@ async function getCompanionOTPCode() {
   }
 }
 
+// Utility function to handle country adjustments
+function adjustCountryName(countryName) {
+  // New logic: Change India to Canada
+  if (countryName.toLowerCase().trim() === "india") {
+    return "Canada";
+  }
+  return countryName;
+}
+
+// Function to find the nationality UUID
+function getNationalityUUID(nationalities, countryName) {
+  const adjustedCountryName = adjustCountryName(countryName);
+  return nationalities.find(
+    (n) => n.name.toLowerCase().trim() === adjustedCountryName.toLowerCase().trim()
+  )?.uuid;
+}
+
+
 async function addNewMember(selectedTraveler) {
   emailCodeCounter = 0;
   await util.setSelectedTraveller(selectedTraveler);
@@ -964,11 +982,7 @@ async function signup_step1(selectedTraveler) {
     email: emailAddress,
     phone: telephoneNumber,
   });
-  const nationality = nationalities.find(
-    (n) =>
-      n.name.toLowerCase().trim() ===
-      data.system.country.name.toLowerCase().trim()
-  )?.uuid;
+  const nationality = getNationalityUUID(nationalities, data.system.country.name);
 
   await util.commit(
     page,
