@@ -14,6 +14,7 @@ const { fetchOTPFromNusuk } = require("./lib/imap");
 const { nusukNationalities: nationalities } = require("./data/nationalities");
 const childProcess = require("child_process");
 const sharp = require("sharp");
+const abortController = new AbortController();
 
 let page;
 let data;
@@ -369,6 +370,8 @@ async function pageContentHandler(currentConfig) {
     case "verify-register-email":
       emailCodeCounter = 0;
       clearTimeout(timerHandler);
+      // stop captcha attempts
+      abortController.abort();
 
       await page.waitForSelector(
         "#otp-inputs > input.form-control.signup-otp.me-1",
@@ -413,6 +416,11 @@ async function pageContentHandler(currentConfig) {
           "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > button";
 
         await util.clickWhenReady(createAccountSelector, page);
+        // save the email only at this stage
+        kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          email: passenger.email,
+          phone: passenger.phone,
+        });
         clicked[currentConfig.name] = {};
         clicked[currentConfig.name][passenger.passportNumber] = true;
       }
@@ -973,15 +981,9 @@ async function signup_step1(selectedTraveler) {
   const passenger = data.travellers[selectedTraveler];
   emailAddress = suggestEmail(selectedTraveler);
   telephoneNumber = suggestPhoneNumber(selectedTraveler);
-  console.log(
-    "📢[nsh.js:489]: emailAddress and Telephone: ",
-    emailAddress,
-    telephoneNumber
-  );
-  await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-    email: emailAddress,
-    phone: telephoneNumber,
-  });
+  // store temporarily in the passenger object
+  passenger.email = emailAddress;
+  passenger.phone = telephoneNumber;
   const nationality = getNationalityUUID(nationalities, data.system.country.name);
 
   await util.commit(
@@ -1008,7 +1010,8 @@ async function signup_step1(selectedTraveler) {
   const captchaCode = await util.SolveIamNotARobot(
     "#g-recaptcha-response",
     URLS.SIGN_UP,
-    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
+    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek",
+    abortController.signal
   );
 
   if (captchaCode) {
@@ -1055,7 +1058,8 @@ async function loginPassenger(selectedTraveler) {
   const loginCaptchaValue = await util.SolveIamNotARobot(
     "#g-recaptcha-response",
     URLS.LOGIN,
-    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
+    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek",
+    abortController.signal
   );
   if (!loginCaptchaValue) {
     util.infoMessage(page, `Manual captcha required`);
@@ -1238,6 +1242,12 @@ async function uploadFakePassport() {
   await util.commitFile("#passportPhoto", blankPassportPath);
 }
 
+function formatTime(seconds) {
+  const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const secs = (seconds % 60).toString().padStart(2, "0");
+  return `00:${minutes}:${secs}`;
+}
+
 async function pasteOTPCode(err, code) {
   if (err === "no-code") {
     setTimeout(async () => {
@@ -1256,8 +1266,8 @@ async function pasteOTPCode(err, code) {
           await page.$eval(
             "#hajonsoft-commander-alert",
             (el, i) =>
-              (el.innerText = `Checking email 00:00:${i*30}/00:02:30  فحص البريد `),
-            emailCodeCounter
+              (el.innerText = `Checking email ${i}/00:02:30 فحص البريد`),
+            formatTime(emailCodeCounter * 3)
           );
         } catch { }
         getOTPCode();

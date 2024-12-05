@@ -40,7 +40,6 @@ const imgurClient = new ImgurClient({
 
 let page;
 let browser;
-
 function getChromePath() {
   switch (os.platform()) {
     case "darwin":
@@ -227,7 +226,7 @@ async function initPage(config, onContentLoaded, data) {
   }
 
   const launchOptions = {
-    headless: process.argv.includes("--debug") ? false :  isCloudRun || isHeadless,
+    headless: process.argv.includes("--debug") ? false : isCloudRun || isHeadless,
     ignoreHTTPSErrors: true,
     defaultViewport,
     args,
@@ -246,7 +245,7 @@ async function initPage(config, onContentLoaded, data) {
     await pauseMessage(page, 5);
     try {
       await dialog.accept();
-    } catch {}
+    } catch { }
   });
 
   if (process.argv.length > 2) {
@@ -279,7 +278,7 @@ async function initPage(config, onContentLoaded, data) {
   } else {
     fs.readdir(vaccineFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(vaccineFolder, file), (err) => {});
+        fs.unlink(path.join(vaccineFolder, file), (err) => { });
       }
     });
   }
@@ -302,7 +301,7 @@ async function createControlsFile(
   url,
   container,
   xPath,
-  fieldFunction = async () => {}
+  fieldFunction = async () => { }
 ) {
   const logFolder = getPath("log");
   if (!fs.existsSync(logFolder)) {
@@ -392,8 +391,7 @@ function findConfig(url, config) {
   if (urlConfig) {
     infoMessage(
       page,
-      `✈️  Workflow: ${urlConfig.name} ${
-        urlConfig.url || urlConfig.regex
+      `✈️  Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex
       } ${timeElapsed()} seconds`,
       2
     );
@@ -569,7 +567,7 @@ function getMofaImportString(passenger) {
       const importJSON = JSON.parse(importContent);
       return " - MOFA: " + importJSON?.status;
     }
-  } catch {}
+  } catch { }
   return "";
 }
 
@@ -578,19 +576,16 @@ function getOptionNode(passenger, cursor) {
   <div style="width: 100%; display: flex; align-items: center; gap: 1rem; background-color: yellow; height: 200px;">
     <div>${cursor + 1}- </div>
     <div>
-    ${
-      passenger.nationality?.isArabic
-        ? passenger?.nameArabic?.given + " " + passenger.nameArabic.last
-        : passenger.name.full
-    } - ${passenger.passportNumber} - ${passenger?.nationality?.name} - ${
-    passenger?.gender || "gender"
-  } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(
-    passenger
-  )}${
-    passenger.email?.includes(".companion") || passenger.isCompanion
+    ${passenger.nationality?.isArabic
+      ? passenger?.nameArabic?.given + " " + passenger.nameArabic.last
+      : passenger.name.full
+    } - ${passenger.passportNumber} - ${passenger?.nationality?.name} - ${passenger?.gender || "gender"
+    } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(
+      passenger
+    )}${passenger.email?.includes(".companion") || passenger.isCompanion
       ? "(companion)"
       : ""
-  }
+    }
     </div>
   </div>
   `;
@@ -619,8 +614,7 @@ async function controller(page, structure, travellers) {
       // .filter((t) => !t.email.includes(".companion"))
       .map(
         (traveller, cursor) =>
-          `<option value="${cursor}" ${
-            cursor == lastTraveler ? "selected" : ""
+          `<option value="${cursor}" ${cursor == lastTraveler ? "selected" : ""
           }>
           ${getOptionNode(traveller, cursor)}
           </option>`
@@ -629,9 +623,8 @@ async function controller(page, structure, travellers) {
 
   try {
     await page.waitForSelector(structure.controller.selector);
-    const controllerHandleMethod = `handleEagle${
-      structure.controller.name || "Send"
-    }Click`;
+    const controllerHandleMethod = `handleEagle${structure.controller.name || "Send"
+      }Click`;
     const htmlFileName = path.join(__dirname, "assets", "controller.html");
     let html = fs.readFileSync(htmlFileName, "utf8");
 
@@ -654,9 +647,9 @@ async function controller(page, structure, travellers) {
           .replace(/{pax}/, pax.length)
           .replace(/{current}/, (parseInt(lastTraveler) + 1).toString())
           .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`.replace(
-          /{sendall}/,
-          "Continuous مستمر"
-        );
+            /{sendall}/,
+            "Continuous مستمر"
+          );
       },
       [
         structure,
@@ -688,19 +681,19 @@ async function controller(page, structure, travellers) {
       await page.exposeFunction("getVisaCount", getVisaCount);
       await page.exposeFunction(
         "handleWTUClick",
-        structure.controller.wtuAction || (() => {})
+        structure.controller.wtuAction || (() => { })
       );
       await page.exposeFunction(
         "handleGMAClick",
-        structure.controller.gmaAction || (() => {})
+        structure.controller.gmaAction || (() => { })
       );
       await page.exposeFunction(
         "handleBAUClick",
-        structure.controller.bauAction || (() => {})
+        structure.controller.bauAction || (() => { })
       );
       await page.exposeFunction(
         "handleTWFClick",
-        structure.controller.twfAction || (() => {})
+        structure.controller.twfAction || (() => { })
       );
       await page.exposeFunction(
         "handleLoadImportedOnlyClick",
@@ -708,7 +701,7 @@ async function controller(page, structure, travellers) {
       );
       await page.exposeFunction(
         "handleNSKClick",
-        structure.controller.nskAction || (() => {})
+        structure.controller.nskAction || (() => { })
       );
       await page.exposeFunction("closeBrowser", closeBrowser);
     }
@@ -723,7 +716,7 @@ function registerLoop() {
 }
 function unregisterLoop() {
   if (fs.existsSync(getPath("loop.txt"))) {
-    fs.unlink(getPath("loop.txt"), (err) => {});
+    fs.unlink(getPath("loop.txt"), (err) => { });
   }
 }
 function getVisaCount() {
@@ -750,9 +743,8 @@ async function commander(page, structure, travellers) {
 
   try {
     await page.waitForSelector(structure.controller.selector);
-    const controllerHandleMethod = `handleEagle${
-      structure.controller.name || "Budgie"
-    }Click`;
+    const controllerHandleMethod = `handleEagle${structure.controller.name || "Budgie"
+      }Click`;
     const isLoop = fs.existsSync(getPath("loop.txt"));
 
     const htmlFileName = path.join(__dirname, "assets", "commander.html");
@@ -776,8 +768,8 @@ async function commander(page, structure, travellers) {
           .replace(
             /{title}/g,
             structureParam.controller.title +
-              " " +
-              structureParam.controller.arabicTitle
+            " " +
+            structureParam.controller.arabicTitle
           );
         container.outerHTML = controller.keepOriginalElement
           ? `<div>${container.outerHTML}${htmlContent}</div>`
@@ -842,7 +834,7 @@ async function handleLoadImportedOnlyClick() {
           passportNumber: jsonData.passportNumber,
         });
       }
-    } catch {}
+    } catch { }
   }
 
   const data = {
@@ -1029,8 +1021,7 @@ async function downloadAndResizeImage(
   let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
   const resizedPath = path.join(
     folder,
-    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.${
-      convertToPNG ? "png" : "jpg"
+    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.${convertToPNG ? "png" : "jpg"
     }`
   );
 
@@ -1476,7 +1467,7 @@ async function commitCaptchaTokenWithSelector(
   }
 }
 
-async function SolveIamNotARobot(responseSelector, url, siteKey) {
+async function SolveIamNotARobot(responseSelector, url, siteKey, signal) {
   const data = await axios.get(
     `http://2captcha.com/in.php?key=${global.captchaKey}&method=userrecaptcha&googlekey=${siteKey}&pageurl=${url}`
   );
@@ -1487,6 +1478,10 @@ async function SolveIamNotARobot(responseSelector, url, siteKey) {
 
   try {
     for (let i = 0; i < 10; i++) {
+      if (signal?.aborted) {
+        console.log("Captcha solving aborted.");
+        throw new Error("Captcha solving was cancelled.");
+      }
       const res = await axios.get(
         `http://2captcha.com/res.php?key=${global.captchaKey}&action=get&id=${id}`
       );
@@ -1506,7 +1501,7 @@ async function SolveIamNotARobot(responseSelector, url, siteKey) {
       // wait 5 seconds
       await new Promise((resolve) => setTimeout(resolve, 5000));
     }
-  } catch {}
+  } catch { }
 }
 const premiumSupportAlert = async (page, selector, data) => {
   await page.waitForSelector(selector);
@@ -1821,8 +1816,8 @@ function generateMRZ(passenger) {
       // letters that are a part of the number fields and their check digits.
       const compositeCheckDigit = checkDigit(
         codeLine2.substring(0, 10) +
-          codeLine2.substring(13, 20) +
-          codeLine2.substring(21, 43)
+        codeLine2.substring(13, 20) +
+        codeLine2.substring(21, 43)
       );
       codeLine2 += compositeCheckDigit.replace(/[-]/g, "<");
     }
