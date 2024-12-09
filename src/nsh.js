@@ -44,6 +44,7 @@ const URLS = {
   SUMMARY: "https://hajj.nusuk.sa/registration/form/step1/[0-9a-f-]+",
   SUMMARY2: "https://hajj.nusuk.sa/registration/form/step2/[0-9a-f-]+",
   PREFERENCES: "https://hajj.nusuk.sa/Registration/Preferences/[0-9a-f-]+",
+  PREFERENCES_YOURS: "https://hajj.nusuk.sa/Registration/Preferences/yours/[0-9a-f-]+",
   REGISTRATION_SUMMARY: "https://hajj.nusuk.sa/registration/summary/[0-9a-f-]+",
   SUCCESS: "https://hajj.nusuk.sa/Registration/Success",
   MEMBERS: "https://hajj.nusuk.sa/profile/members",
@@ -218,6 +219,10 @@ const config = [
   {
     name: "preferences",
     regex: URLS.PREFERENCES,
+  },
+  {
+    name: "preferences_yours",
+    regex: URLS.PREFERENCES_YOURS,
   },
   {
     name: "registration-summary",
@@ -534,6 +539,14 @@ async function pageContentHandler(currentConfig) {
             selector: "#ContactDetailsViewModel_Arrival_TotalExpectedDays",
             value: () => "20",
           },
+          {
+            selector: "#ContactDetailsViewModel_Contact_PoBox",
+            value: () => "123",
+          },
+          {
+            selector: "#ContactDetailsViewModel_Contact_ZipCode",
+            value: () => "123",
+          }
         ],
         passenger
       );
@@ -570,9 +583,8 @@ async function pageContentHandler(currentConfig) {
         "6/2024"
       );
       // wait 500 ms for the days to load, then select the day
-      await page.waitForFunction(() => {
-        return new Promise(resolve => setTimeout(resolve, 500));
-      });
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       await page.click(
         "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
       );
@@ -610,9 +622,8 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked("#RequiredVaccinationsBeenTakenYes");
       await checkIfNotChecked("#HaveAnyPhysicalDisabilityNo");
       await checkIfNotChecked("#ArrestedOrConvictedForTerrorismBeforeNo");
-      await page.waitForFunction(() => {
-        return new Promise(resolve => setTimeout(resolve, 100));
-      });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       await util.commit(
         page,
         [
@@ -624,7 +635,6 @@ async function pageContentHandler(currentConfig) {
         ],
         {}
       );
-
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
@@ -642,6 +652,34 @@ async function pageContentHandler(currentConfig) {
         page
       );
       break;
+      case "preferences_yours":
+        await util.clickWhenReady(
+          "#HasChronicDiseasesOrAllergiesNo",
+          page
+        );
+        await util.clickWhenReady(
+          "#HasMentalIllnessNo",
+          page
+        );
+        await util.clickWhenReady(
+          "#HasSpecialNeedsNo",
+          page
+        );
+        await util.clickWhenReady(
+          "#HasUndergoneSurgeryNo",
+          page
+        );
+        await util.commit(
+          page,
+          [
+            {
+              selector: "#PreferenceAnswerViewModel_BloodType",
+              value: () => "1",
+            },
+          ],
+          {}
+        );
+        break;
     case "registration-summary":
       await checkIfNotChecked("#summarycheck1");
       await checkIfNotChecked("#summarycheck2");
@@ -688,7 +726,9 @@ async function pageContentHandler(currentConfig) {
         clicked[passenger.passportNumber + "documents"] = true;
         await uploadDocuments(util.getSelectedTraveler());
       }
-
+      // Do you have residence Id
+      // #HaveValidResidencyNo
+      util.clickWhenReady("#HaveValidResidencyNo", page);
       break;
     case "login":
       clearTimeout(timerHandler);
@@ -925,9 +965,7 @@ async function addNewMember(selectedTraveler) {
   await util.clickWhenReady(addCompanionSelector, page);
   // wait for the popup to appear, then type the email address, also store the email address with the companion text in it
   const email = suggestEmail(selectedTraveler, true);
-  await page.waitForFunction(() => {
-    return new Promise(resolve => setTimeout(resolve, 1000));
-  });
+  await new Promise(resolve => setTimeout(resolve, 1000));
   await page.waitForSelector("#AddMemberViewModel_Email");
   const passenger = data.travellers[selectedTraveler];
   passenger.email = email;
@@ -1230,9 +1268,8 @@ async function uploadFakePassport() {
   const blankPhotoPath = path.join(__dirname, "dummy-nusuk-hajj-photo.jpg");
   await util.commitFile("#personalPhoto", blankPhotoPath);
 
-  await page.waitForFunction(() => {
-    return new Promise(resolve => setTimeout(resolve, 1000));
-  });
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
 
   await page.waitForSelector("#passportPhoto");
   const blankPassportPath = path.join(
