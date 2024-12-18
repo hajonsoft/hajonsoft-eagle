@@ -324,7 +324,7 @@ async function pageContentHandler(currentConfig) {
         });
       }
 
-      if (process.argv.includes("--auto")) {
+      if (process.argv.includes("--auto") || global.headless) {
         if (passenger.email.includes(".companion") || passenger.isCompanion) {
           await page.browser().close();
         } else {
@@ -652,34 +652,34 @@ async function pageContentHandler(currentConfig) {
         page
       );
       break;
-      case "preferences_yours":
-        await util.clickWhenReady(
-          "#HasChronicDiseasesOrAllergiesNo",
-          page
-        );
-        await util.clickWhenReady(
-          "#HasMentalIllnessNo",
-          page
-        );
-        await util.clickWhenReady(
-          "#HasSpecialNeedsNo",
-          page
-        );
-        await util.clickWhenReady(
-          "#HasUndergoneSurgeryNo",
-          page
-        );
-        await util.commit(
-          page,
-          [
-            {
-              selector: "#PreferenceAnswerViewModel_BloodType",
-              value: () => "1",
-            },
-          ],
-          {}
-        );
-        break;
+    case "preferences_yours":
+      await util.clickWhenReady(
+        "#HasChronicDiseasesOrAllergiesNo",
+        page
+      );
+      await util.clickWhenReady(
+        "#HasMentalIllnessNo",
+        page
+      );
+      await util.clickWhenReady(
+        "#HasSpecialNeedsNo",
+        page
+      );
+      await util.clickWhenReady(
+        "#HasUndergoneSurgeryNo",
+        page
+      );
+      await util.commit(
+        page,
+        [
+          {
+            selector: "#PreferenceAnswerViewModel_BloodType",
+            value: () => "1",
+          },
+        ],
+        {}
+      );
+      break;
     case "registration-summary":
       await checkIfNotChecked("#summarycheck1");
       await checkIfNotChecked("#summarycheck2");
