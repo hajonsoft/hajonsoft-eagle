@@ -592,6 +592,9 @@ function getOptionNode(passenger, cursor) {
 }
 
 async function controller(page, structure, travellers) {
+  if (global.headless) {
+    return;
+  }
   if (
     !structure.controller ||
     !structure.controller.selector ||
@@ -733,6 +736,9 @@ async function closeBrowser() {
   await browser.close();
 }
 async function commander(page, structure, travellers) {
+  if (global.headless) {
+    return;
+  }
   if (
     !structure.controller ||
     !structure.controller.selector ||
@@ -1479,7 +1485,7 @@ async function SolveIamNotARobot(responseSelector, url, siteKey, signal) {
   try {
     for (let i = 0; i < 10; i++) {
       if (signal?.aborted) {
-        console.log("Captcha solving aborted.");
+        console.log("Solving Captcha aborted.");
         throw new Error("Captcha solving was cancelled.");
       }
       const res = await axios.get(

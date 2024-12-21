@@ -7,14 +7,14 @@ const path = require("path");
 const util = require("./util");
 const { getPath } = require("./lib/getPath");
 const kea = require("./lib/kea");
-const moment = require("moment");
 const budgie = require("./budgie");
-const gmail = require("./lib/gmail");
 const { fetchOTPFromNusuk } = require("./lib/imap");
 const { nusukNationalities: nationalities } = require("./data/nationalities");
 const childProcess = require("child_process");
 const sharp = require("sharp");
-const abortController = new AbortController();
+const registerCaptchaAbortController = new AbortController();
+const loginCaptchaAbortController = new AbortController();
+
 
 let page;
 let data;
@@ -324,12 +324,14 @@ async function pageContentHandler(currentConfig) {
         });
       }
 
-      if (process.argv.includes("--auto") || global.headless) {
-        if (passenger.email.includes(".companion") || passenger.isCompanion) {
+      if (process.argv.includes("--auto")) {
+        if (passenger.email?.includes(".companion") || passenger.isCompanion) {
           await page.browser().close();
         } else {
           await loginOrRegister("0");
         }
+      } else if (global.headless) {
+        await loginOrRegister("0");
       }
       break;
     case "index":
@@ -376,7 +378,8 @@ async function pageContentHandler(currentConfig) {
       emailCodeCounter = 0;
       clearTimeout(timerHandler);
       // stop captcha attempts
-      abortController.abort();
+      registerCaptchaAbortController.abort();
+      loginCaptchaAbortController.abort();
 
       await page.waitForSelector(
         "#otp-inputs > input.form-control.signup-otp.me-1",
@@ -422,7 +425,7 @@ async function pageContentHandler(currentConfig) {
 
         await util.clickWhenReady(createAccountSelector, page);
         // save the email only at this stage
-        kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
           email: passenger.email,
           phone: passenger.phone,
         });
@@ -731,6 +734,11 @@ async function pageContentHandler(currentConfig) {
       util.clickWhenReady("#HaveValidResidencyNo", page);
       break;
     case "login":
+      if (global.headless) {
+        await page.browser().close();
+        process.exit(0);
+        return;
+      }
       clearTimeout(timerHandler);
       await closeAccountCreatedSuccessModal();
       await page.$eval(
@@ -1049,7 +1057,7 @@ async function signup_step1(selectedTraveler) {
     "#g-recaptcha-response",
     URLS.SIGN_UP,
     "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek",
-    abortController.signal
+    registerCaptchaAbortController.signal
   );
 
   if (captchaCode) {
@@ -1097,7 +1105,7 @@ async function loginPassenger(selectedTraveler) {
     "#g-recaptcha-response",
     URLS.LOGIN,
     "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek",
-    abortController.signal
+    loginCaptchaAbortController.signal
   );
   if (!loginCaptchaValue) {
     util.infoMessage(page, `Manual captcha required`);
