@@ -77,7 +77,7 @@ const init = async () => {
   // Gorilla is the package selection configuration. it looks like this
 const gorillaSample = {
   enabled: true,
-  accounts: ['jgfhjsgfhjs','jhfgsdjhfgdjshf'],
+  accounts: ['tuTskCqZJBXtYWmPu7MufF','tuTskCqZJBXtYWmPu7MufF'],
   goto: 'https://nusuk.hajj.sa/packages/selected/',
   actions: [
     {
