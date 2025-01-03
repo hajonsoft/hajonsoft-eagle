@@ -296,11 +296,16 @@ async function onContentLoaded(res) {
   }
 }
 
+// TODO: Refactor instead of a big switch case, see what other options you could utilize. 
 async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[util.getSelectedTraveler()];
+  // TODO: Create configHandler function that checks if there is a controller and execute it, if screen shot is expected, 
+  // if a scroll is expected
+  if (currentConfig.controller) {
+    await util.controller(page, currentConfig, data.travellers);
+  }
   switch (currentConfig.name) {
     case "home":
-      await util.controller(page, currentConfig, data.travellers);
       const leads = data.travellers.filter(
         (traveller) =>
           !traveller.isCompanion &&
@@ -323,15 +328,14 @@ async function pageContentHandler(currentConfig) {
           },
         });
       }
-
-      if (process.argv.includes("--auto")) {
-        if (passenger.email?.includes(".companion") || passenger.isCompanion) {
+      if (global.headless) {
+        if (passenger.isCompanion) {
+          console.log("can not login as a companion")
           await page.browser().close();
-        } else {
-          await loginOrRegister("0");
+          return;
         }
-      } else if (global.headless) {
-        await loginOrRegister("0");
+        await loginOrRegister(util.getSelectedTraveler());
+        return;
       }
       break;
     case "index":
@@ -368,7 +372,6 @@ async function pageContentHandler(currentConfig) {
       if (!manualMode) {
         manualMode = currentConfig.name;
       }
-      await util.controller(page, currentConfig, data.travellers);
       if (fs.existsSync(getPath("loop.txt"))) {
         await signup_step1(util.getSelectedTraveler());
       }
@@ -441,7 +444,6 @@ async function pageContentHandler(currentConfig) {
       if (!manualMode) {
         manualMode = currentConfig.name;
       }
-      await util.controller(page, currentConfig, data.travellers);
       await util.commander(page, {
         controller: {
           selector:
@@ -486,8 +488,7 @@ async function pageContentHandler(currentConfig) {
         });
         util.incrementSelectedTraveler();
       }
-      await util.controller(page, currentConfig, data.travellers);
-      completeRegistration(util.getSelectedTraveler());
+      await completeRegistration(util.getSelectedTraveler());
       break;
     case "contact":
       // review telephone number
@@ -593,7 +594,6 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "summary":
-      await util.controller(page, currentConfig, data.travellers);
       if (passenger.nationality.code !== data.system.country.code) {
         await summaryResidence(util.getSelectedTraveler());
       } else {
@@ -698,8 +698,6 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "upload-documents":
-      await util.controller(page, currentConfig, data.travellers);
-
       // Close the modal by clicking this element if it is in the DOM
       const documentGuideSelector =
         "#uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span";
@@ -734,11 +732,6 @@ async function pageContentHandler(currentConfig) {
       util.clickWhenReady("#HaveValidResidencyNo", page);
       break;
     case "login":
-      if (global.headless) {
-        await page.browser().close();
-        process.exit(0);
-        return;
-      }
       clearTimeout(timerHandler);
       await closeAccountCreatedSuccessModal();
       await page.$eval(
@@ -763,7 +756,6 @@ async function pageContentHandler(currentConfig) {
       if (fs.existsSync(getPath("loop.txt"))) {
         await loginPassenger(util.getSelectedTraveler());
       }
-      await util.controller(page, currentConfig, data.travellers);
 
       await loginPassenger(util.getSelectedTraveler());
       break;
@@ -778,7 +770,6 @@ async function pageContentHandler(currentConfig) {
       }, 10000);
       break;
     case "members":
-      await util.controller(page, currentConfig, data.travellers);
       break;
     case "signout":
       util.incrementSelectedTraveler();
@@ -824,6 +815,7 @@ function suggestPhoneNumber(selectedTraveler) {
   }
 }
 
+// TODO: Make it accept an array and recall itself in case of array. paralleize when possible
 async function checkIfNotChecked(selector) {
   try {
     const isChecked = await page.$eval(selector, (el) => el.checked);
@@ -1694,4 +1686,46 @@ async function runParallel() {
   await page.browser().close();
 }
 
+async function executeGorilla() {
+  const gorilla = global.gorilla;
+  if (!gorilla || !gorilla.enabled) {
+    return;
+  }
+
+  if (!gorilla.accounts?.find(a => a === data.system.accountId)) {
+    return;
+  }
+
+  if (gorilla.goto) {
+    await page.goto(gorilla.goto)
+  }
+
+  for (const action of gorilla.actions) {
+    if (action.wait) {
+      await page.waitForSelector(action.selector)
+    }
+    if (action.click) {
+      await page.click(action.selector)
+    }
+  }
+}
+
 module.exports = { send };
+
+
+// TODO: Gorilla
+// 1- After logging succesfully
+// 2- Check which page the passenger lands in and check the following
+//    - the passenger has been registered succesfully
+//    - There is gorilla script
+//    - this user account is in the gorilla accounts
+//    - start executing the gorilla
+// TODO: Refactor opprtunities
+//  1- Create a common function for all page views to install the controller or any commanders asynchronously when not headless
+//  2- modularize the code on seaparate files
+//  3- handle errors and retries to gurantee registration
+//  4- implement new captcha mouse click
+//  5- add scroll to element in config and scroll to it
+// TODO: Chunk-ing
+//  1- Take all the travellers and divide them into leader and its companions
+//  2- for each leader and the associated companion get a machine to register them

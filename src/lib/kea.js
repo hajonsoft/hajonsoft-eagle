@@ -74,6 +74,26 @@ const init = async () => {
     console.log("Captcha key found in database");
   }
 
+  // Gorilla is the package selection configuration. it looks like this
+const gorillaSample = {
+  enabled: true,
+  accounts: ['jgfhjsgfhjs','jhfgsdjhfgdjshf'],
+  goto: 'https://nusuk.hajj.sa/packages/selected/',
+  actions: [
+    {
+      selector: '#controlID',
+      wait: true,
+      click: false,
+    }
+  ]
+}
+  global.gorilla = null;
+  const gorillaSnapshot = await get(dbRef(database, "app-data/gorilla"));
+  if (gorillaSnapshot.exists()) {
+    global.gorilla = gorillaSnapshot.val();
+    console.log("Gorilla code found in database");
+  }
+
   await getSubmission(submissionId);
 
   if (!runId) {
