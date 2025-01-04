@@ -14,6 +14,7 @@ const childProcess = require("child_process");
 const sharp = require("sharp");
 const registerCaptchaAbortController = new AbortController();
 const loginCaptchaAbortController = new AbortController();
+const { labeler } = require('./lib/labeler')
 
 
 let page;
@@ -1572,59 +1573,14 @@ async function completeRegistration(selectedTraveler) {
     passenger
   );
 
-  await page.$eval(
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(11) > div > div.col-md-6.font-semibold.align-self-center",
-    (el, birthDate) => (el.innerText = `Birth Date: ${birthDate}`),
-    passenger.birthPlace
-  );
+  await labeler(page, passenger.dob.dmmmy, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(11) > div > div.col-md-6.font-semibold.align-self-center")
+  await labeler(page, passenger.gender, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(13) > div > div.col-md-6.font-semibold.align-self-center")
+  await labeler(page, passenger.passportNumber, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(15) > div > div.col-md-6.font-semibold.align-self-center")
 
-  await page.$eval(
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(16) > div > div.col-md-6.font-semibold.align-self-center",
-    (el, issuePlace) => (el.innerText = `Issue Place: ${issuePlace}`),
-    passenger.passIssueDt.dmmmy
-  );
+  await labeler(page, passenger.passIssueDt.dmmmy, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(17) > div > div.col-md-6.font-semibold.align-self-center")
+  await labeler(page, passenger.passExpireDt.dmmmy, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(18) > div > div.col-md-6.font-semibold.align-self-center")
+  await labeler(page, passenger.placeOfIssue, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(16) > div > div.col-md-6.font-semibold.align-self-center")
 
-  // await page.$eval(
-  //   "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(10) > div > div.col-md-6.font-semibold.align-self-center",
-  //   (el, birthDate) => (el.innerText = `Birth Date: ${birthDate}`),
-  //   passenger.dob.dmmmy
-  // );
-
-  // await page.$eval(
-  //   "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(9) > div > div.col-md-6.font-semibold.align-self-center",
-  //   (el, nationality) => (el.innerText = `Nationality: ${nationality}`),
-  //   passenger.nationality.name
-  // );
-
-  // await page.$eval(
-  //   "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(12) > div > div.col-md-6.font-semibold.align-self-center",
-  //   (el, gender) => (el.innerText = `Gender: ${gender}`),
-  //   passenger.gender
-  // );
-
-  await page.$eval(
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(17) > div > div.col-md-6.font-semibold.align-self-center",
-    (el, issueDate) => (el.innerText = `Issue Date: ${issueDate}`),
-    passenger.passExpireDt.dmmmy
-  );
-
-  await page.$eval(
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(17) > div > div.col-md-6.font-semibold.align-self-center",
-    (el, expireDate) => (el.innerText = `Expire Date: ${expireDate}`),
-    passenger.passExpireDt.dmmmy
-  );
-  // await page.$eval(
-  //   "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(18) > div > div.col-md-6.font-semibold.align-self-center",
-  //   (el, issuePlace) => (el.innerText = `Issue Place: ${issuePlace}`),
-  //   passenger.passportNumber
-  // );
-
-  await page.$eval(
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(15) > div > div.col-md-6.font-semibold.align-self-center",
-    (el, passportNumber) => (el.innerText = `Passport No: ${passportNumber}`),
-
-    passenger.placeOfIssue
-  );
 
   kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
     "submissionData.nsh.status": "Submitted",
