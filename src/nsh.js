@@ -731,38 +731,39 @@ async function pageContentHandler(currentConfig) {
       ) {
         clicked[passenger.passportNumber + "documents"] = true;
         await uploadDocuments(util.getSelectedTraveler());
-        const modalContentSelector = "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text";
-        await page.waitForSelector(modalContentSelector, {
-          timeout: 5000,
-        });
-        const modalContent = await page.$eval(
-          modalContentSelector,
-          (e) => e.textContent
-        );
-        if (modalContent) {
-          console.log(modalContent)
-          await kea.updatePassenger(
-            data.system.accountId,
-            passenger.passportNumber,
-            {
-              "submissionData.nsk.status": "Rejected",
-              "submissionData.nsk.rejectionReason": modalContent,
-            }
+        try {
+          const modalContentSelector = "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text";
+          await page.waitForSelector(modalContentSelector, {
+            timeout: 5000,
+          });
+          const modalContent = await page.$eval(
+            modalContentSelector,
+            (e) => e.textContent
           );
-          await util.clickWhenReady("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button", page)
-        }
+          if (modalContent) {
+            console.log(modalContent)
+            await kea.updatePassenger(
+              data.system.accountId,
+              passenger.passportNumber,
+              {
+                "submissionData.nsk.status": "Rejected",
+                "submissionData.nsk.rejectionReason": modalContent,
+              }
+            );
+            await util.clickWhenReady("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button", page)
+          }
+          // TODO: Check what to do in case of error and headless, please notice the headless logic below
+        } catch { }
       }
       if (global.headless) {
-        console.log("Save and continue")
         // wait for 5 seconds
         await new Promise(resolve => setTimeout(resolve, 5000));
         await page.click("#save-btn")
+        console.log("Saved to continue later.")
         // wait for 5 seconds
         await new Promise(resolve => setTimeout(resolve, 5000));
         await page.browser().close();
-
-
-        return;
+        process.exit(0)
       }
       // Do you have residence Id
       // #HaveValidResidencyNo
