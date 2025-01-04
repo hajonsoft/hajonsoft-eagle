@@ -382,8 +382,8 @@ async function pageContentHandler(currentConfig) {
       emailCodeCounter = 0;
       clearTimeout(timerHandler);
       // stop captcha attempts
-      registerCaptchaAbortController.abort();
-      loginCaptchaAbortController.abort();
+      // registerCaptchaAbortController.abort();
+      // loginCaptchaAbortController.abort();
 
       await page.waitForSelector(
         "#otp-inputs > input.form-control.signup-otp.me-1",
@@ -609,12 +609,16 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
-      // if (passenger.nationality.code === data.system.country.code) {
-      //   await page.waitFor(1000);
-      //   await page.click(
-      //     "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3"
-      //   );
-      // }
+      // choose city 3ccb61fc-5947-4469-915f-884ed1b9666d
+      await util.commit(
+        page,
+        [{
+          selector: "#PassportSummaryViewModel_CityId",
+          value: () => "#PassportSummaryViewModel_CityId"
+        }],
+        {}
+      )
+      { }
       break;
     case "summary2":
       await checkIfNotChecked("#DeportedFromAnyCountryBeforeNo");
@@ -727,6 +731,38 @@ async function pageContentHandler(currentConfig) {
       ) {
         clicked[passenger.passportNumber + "documents"] = true;
         await uploadDocuments(util.getSelectedTraveler());
+        const modalContentSelector = "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text";
+        await page.waitForSelector(modalContentSelector, {
+          timeout: 5000,
+        });
+        const modalContent = await page.$eval(
+          modalContentSelector,
+          (e) => e.textContent
+        );
+        if (modalContent) {
+          console.log(modalContent)
+          await kea.updatePassenger(
+            data.system.accountId,
+            passenger.passportNumber,
+            {
+              "submissionData.nsk.status": "Rejected",
+              "submissionData.nsk.rejectionReason": modalContent,
+            }
+          );
+          await util.clickWhenReady("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button", page)
+        }
+      }
+      if (global.headless) {
+        console.log("Save and continue")
+        // wait for 5 seconds
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        await page.click("#save-btn")
+        // wait for 5 seconds
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        await page.browser().close();
+
+
+        return;
       }
       // Do you have residence Id
       // #HaveValidResidencyNo
@@ -1689,5 +1725,8 @@ module.exports = { send };
 //  4- implement new captcha mouse click
 //  5- add scroll to element in config and scroll to it
 // TODO: Chunk-ing
+// Phase 1
+// Click Save and continue later
+// Phase 2
 //  1- Take all the travellers and divide them into leader and its companions
 //  2- for each leader and the associated companion get a machine to register them
