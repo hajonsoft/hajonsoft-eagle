@@ -47,7 +47,7 @@ const URLS = {
   PREFERENCES_YOURS: "https://hajj.nusuk.sa/Registration/Preferences/yours/[0-9a-f-]+",
   REGISTRATION_SUMMARY: "https://hajj.nusuk.sa/registration/summary/[0-9a-f-]+",
   SUCCESS: "https://hajj.nusuk.sa/Registration/Success",
-  MEMBERS: "https://hajj.nusuk.sa/profile/members",
+  MEMBERS: "https://hajj.nusuk.sa/profile/myfamily/members",
   SIGNOUT: "https://hajj.nusuk.sa/Account/Signout",
 };
 
@@ -1574,32 +1574,38 @@ async function completeRegistration(selectedTraveler) {
 
   await page.$eval(
     "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(11) > div > div.col-md-6.font-semibold.align-self-center",
-    (el, birthPlace) => (el.innerText = `Birth Place: ${birthPlace}`),
+    (el, birthDate) => (el.innerText = `Birth Date: ${birthDate}`),
     passenger.birthPlace
   );
 
   await page.$eval(
     "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(16) > div > div.col-md-6.font-semibold.align-self-center",
-    (el, issueDate) => (el.innerText = `Issue Date: ${issueDate}`),
+    (el, issuePlace) => (el.innerText = `Issue Place: ${issuePlace}`),
     passenger.passIssueDt.dmmmy
   );
 
-  await page.$eval(
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(10) > div > div.col-md-6.font-semibold.align-self-center",
-    (el, birthDate) => (el.innerText = `Birth Date: ${birthDate}`),
-    passenger.dob.dmmmy
-  );
+  // await page.$eval(
+  //   "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(10) > div > div.col-md-6.font-semibold.align-self-center",
+  //   (el, birthDate) => (el.innerText = `Birth Date: ${birthDate}`),
+  //   passenger.dob.dmmmy
+  // );
+
+  // await page.$eval(
+  //   "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(9) > div > div.col-md-6.font-semibold.align-self-center",
+  //   (el, nationality) => (el.innerText = `Nationality: ${nationality}`),
+  //   passenger.nationality.name
+  // );
+
+  // await page.$eval(
+  //   "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(12) > div > div.col-md-6.font-semibold.align-self-center",
+  //   (el, gender) => (el.innerText = `Gender: ${gender}`),
+  //   passenger.gender
+  // );
 
   await page.$eval(
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(9) > div > div.col-md-6.font-semibold.align-self-center",
-    (el, nationality) => (el.innerText = `Nationality: ${nationality}`),
-    passenger.nationality.name
-  );
-
-  await page.$eval(
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(12) > div > div.col-md-6.font-semibold.align-self-center",
-    (el, gender) => (el.innerText = `Gender: ${gender}`),
-    passenger.gender
+    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(17) > div > div.col-md-6.font-semibold.align-self-center",
+    (el, issueDate) => (el.innerText = `Issue Date: ${issueDate}`),
+    passenger.passExpireDt.dmmmy
   );
 
   await page.$eval(
@@ -1607,16 +1613,16 @@ async function completeRegistration(selectedTraveler) {
     (el, expireDate) => (el.innerText = `Expire Date: ${expireDate}`),
     passenger.passExpireDt.dmmmy
   );
-
-  await page.$eval(
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(14) > div > div.col-md-6.font-semibold.align-self-center",
-    (el, passportNumber) => (el.innerText = `Passport No: ${passportNumber}`),
-    passenger.passportNumber
-  );
+  // await page.$eval(
+  //   "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(18) > div > div.col-md-6.font-semibold.align-self-center",
+  //   (el, issuePlace) => (el.innerText = `Issue Place: ${issuePlace}`),
+  //   passenger.passportNumber
+  // );
 
   await page.$eval(
     "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(15) > div > div.col-md-6.font-semibold.align-self-center",
-    (el, issuePlace) => (el.innerText = `Issue Place: ${issuePlace}`),
+    (el, passportNumber) => (el.innerText = `Passport No: ${passportNumber}`),
+
     passenger.placeOfIssue
   );
 
