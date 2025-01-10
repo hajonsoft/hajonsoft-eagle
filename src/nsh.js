@@ -47,7 +47,7 @@ const URLS = {
   PREFERENCES: "https://hajj.nusuk.sa/Registration/Preferences/[0-9a-f-]+",
   PREFERENCES_YOURS: "https://hajj.nusuk.sa/Registration/Preferences/yours/[0-9a-f-]+",
   REGISTRATION_SUMMARY: "https://hajj.nusuk.sa/registration/summary/[0-9a-f-]+",
-  SUCCESS: "https://hajj.nusuk.sa/Registration/Success",
+  SUCCESS: "https://hajj.nusuk.sa/registration/completed",
   MEMBERS: "https://hajj.nusuk.sa/profile/myfamily/members",
   SIGNOUT: "https://hajj.nusuk.sa/Account/Signout",
 };
@@ -136,6 +136,7 @@ const config = [
   {
     name: "verify-register-email",
     regex: URLS.VERIFY_REGISTER_EMAIL,
+    focus: "#rc-anchor-container > div.rc-anchor-content"
   },
   {
     name: "signup-password",
@@ -247,6 +248,7 @@ const config = [
         }
       },
     },
+    focus: "#rc-anchor-container > div.rc-anchor-content"
   },
   {
     name: "success",
@@ -304,6 +306,12 @@ async function pageContentHandler(currentConfig) {
   // if a scroll is expected
   if (currentConfig.controller) {
     await util.controller(page, currentConfig, data.travellers);
+  }
+  if (currentConfig.focus) {
+    await page.$eval(
+      currentConfig.focus,
+      (el) => el.scrollIntoView({ behavior: "smooth", block: "start" })
+    );
   }
   switch (currentConfig.name) {
     case "home":
@@ -576,10 +584,10 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
-      await util.clickWhenReady(
-        "#ContactDetailsViewModel_Arrival_ExpectedEntryDate",
-        page
-      );
+      // await util.clickWhenReady(
+      //   "#ContactDetailsViewModel_Arrival_ExpectedEntryDate",
+      //   page
+      // );
       await page.waitForSelector(
         "body > div.datepick-popup > div > div.datepick-month-row > div > div > select:nth-child(1)"
       );
@@ -662,19 +670,19 @@ async function pageContentHandler(currentConfig) {
       break;
     case "preferences_yours":
       await util.clickWhenReady(
-        "#HasChronicDiseasesOrAllergiesNo",
+        "body > main > div.system > div > form > div.system-content > div.row.mb-4 > div:nth-child(1) > div.col-md-6.col-12.mb-3 > div > div > div > div:nth-child(2)",
         page
       );
       await util.clickWhenReady(
-        "#HasMentalIllnessNo",
+        "body > main > div.system > div > form > div.system-content > div.row.mb-4 > div:nth-child(2) > div.col-md-6.col-12.mb-3 > div > div > div > div:nth-child(2)",
         page
       );
       await util.clickWhenReady(
-        "#HasSpecialNeedsNo",
+        "body > main > div.system > div > form > div.system-content > div.row.mb-4 > div:nth-child(3) > div.col-md-6.col-12.mb-3 > div > div > div > div:nth-child(2)",
         page
       );
       await util.clickWhenReady(
-        "#HasUndergoneSurgeryNo",
+        "body > main > div.system > div > form > div.system-content > div.row.mb-4 > div:nth-child(4) > div.col-md-6.col-12.mb-3 > div > div > div > div:nth-child(2)",
         page
       );
       await util.commit(
@@ -1573,7 +1581,7 @@ async function completeRegistration(selectedTraveler) {
       },
       {
         selector: "#PassportSummaryViewModel_BirthPlace",
-        value: (row) => row.birthPlace,
+        value: (row) => row.birthPlace || row.nationality.name,
       },
       {
         selector: "#PassportSummaryViewModel_IssueDate",
@@ -1606,6 +1614,10 @@ async function completeRegistration(selectedTraveler) {
         selector: "#PassportSummaryViewModel_NationalityId",
         value: (row) => nationality,
       },
+      {
+        selector: "#PassportSummaryViewModel_CityId",
+        value: () => "3ccb61fc-5947-4469-915f-884ed1b9666d"
+      }
     ],
     passenger
   );
