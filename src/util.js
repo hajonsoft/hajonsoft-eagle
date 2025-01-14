@@ -7,8 +7,8 @@ const RuCaptcha2Captcha = require("rucaptcha-2captcha");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const RecaptchaPlugin = require("puppeteer-extra-plugin-recaptcha");
-// TODO: Copilot suggestion to use recaptcha
-puppeteer.use(RecaptchaPlugin());
+// TODO: Find out the best way to use this plugin
+// puppeteer.use(RecaptchaPlugin());
 const { getPath } = require("./lib/getPath");
 
 const sharp = require("sharp");

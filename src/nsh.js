@@ -248,7 +248,7 @@ const config = [
         }
       },
     },
-    focus: "#rc-anchor-container > div.rc-anchor-content"
+    focus: "#LogInViewModel_Password"
   },
   {
     name: "success",
@@ -442,7 +442,7 @@ async function pageContentHandler(currentConfig) {
         // save the email only at this stage
         await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
           email: passenger.email,
-          phone: passenger.phone,
+          phone: passenger.mobileNumber,
         });
         clicked[currentConfig.name] = {};
         clicked[currentConfig.name][passenger.passportNumber] = true;
@@ -509,7 +509,7 @@ async function pageContentHandler(currentConfig) {
         [
           {
             selector: "#ContactDetailsViewModel_Contact_MobileNumber",
-            value: () => telephoneNumber,
+            value: () => telephoneNumber || passenger.mobileNumber,
           },
           {
             selector: "#ContactDetailsViewModel_Contact_StreetAddress",
@@ -672,22 +672,15 @@ async function pageContentHandler(currentConfig) {
       );
       break;
     case "preferences_yours":
-      await util.clickWhenReady(
-        "body > main > div.system > div > form > div.system-content > div.row.mb-4 > div:nth-child(1) > div.col-md-6.col-12.mb-3 > div > div > div > div:nth-child(2)",
-        page
-      );
-      await util.clickWhenReady(
-        "body > main > div.system > div > form > div.system-content > div.row.mb-4 > div:nth-child(2) > div.col-md-6.col-12.mb-3 > div > div > div > div:nth-child(2)",
-        page
-      );
-      await util.clickWhenReady(
-        "body > main > div.system > div > form > div.system-content > div.row.mb-4 > div:nth-child(3) > div.col-md-6.col-12.mb-3 > div > div > div > div:nth-child(2)",
-        page
-      );
-      await util.clickWhenReady(
-        "body > main > div.system > div > form > div.system-content > div.row.mb-4 > div:nth-child(4) > div.col-md-6.col-12.mb-3 > div > div > div > div:nth-child(2)",
-        page
-      );
+      await page.evaluate(() => {
+        // Get all elements with an ID ending in "No"
+        const radioButtons = document.querySelectorAll('[id$="No"]');
+        
+        // Iterate over each element and click it
+        radioButtons.forEach((radioButton) => {
+          radioButton.click();
+        });
+      });
       await util.commit(
         page,
         [
@@ -845,23 +838,11 @@ function suggestEmail(selectedTraveler, companion = false) {
 
 function suggestPhoneNumber(selectedTraveler) {
   const passenger = data.travellers[selectedTraveler];
-  if (passenger.phone) {
-    return passenger.phone;
+  if (passenger.mobileNumber) {
+    return passenger.mobileNumber;
   }
-  const nusukPhone = budgie.get("nusuk-hajj-phone");
-  if (nusukPhone && nusukPhone !== "nusuk-hajj-phone") {
-    // find the number of zeros at the end of the phone number
-    const numberOfTrailingZeros = nusukPhone.match(/0*$/)[0].length;
-    const generatedNumber = new Date()
-      .valueOf()
-      .toString()
-      .substring(13 - numberOfTrailingZeros, 13);
 
-    // replace the zeros at the end of the phone number with the generated number
-    return nusukPhone.replace(/0*$/, generatedNumber);
-  } else {
-    return "+1949" + new Date().valueOf().toString().substring(6, 13);
-  }
+  return `+${data.system.country.telCode}${new Date().getFullYear().toString().slice(-2)}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}${new Date().getMinutes().toString().padStart(2, '0')}${new Date().getSeconds().toString().padStart(2, '0')}`;
 }
 
 // TODO: Make it accept an array and recall itself in case of array. paralleize when possible
@@ -1070,7 +1051,7 @@ async function signup_step1(selectedTraveler) {
   telephoneNumber = suggestPhoneNumber(selectedTraveler);
   // store temporarily in the passenger object
   passenger.email = emailAddress;
-  passenger.phone = telephoneNumber;
+  passenger.mobileNumber = telephoneNumber;
   const nationality = getNationalityUUID(nationalities, data.system.country.name);
 
   await util.commit(
