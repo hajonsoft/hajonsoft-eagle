@@ -308,10 +308,13 @@ async function pageContentHandler(currentConfig) {
     await util.controller(page, currentConfig, data.travellers);
   }
   if (currentConfig.focus) {
-    await page.$eval(
-      currentConfig.focus,
-      (el) => el.scrollIntoView({ behavior: "smooth", block: "start" })
-    );
+    try {
+      await page.$eval(
+        currentConfig.focus,
+        (el) => el.scrollIntoView({ behavior: "smooth", block: "start" })
+      );
+    } catch {
+    }
   }
   switch (currentConfig.name) {
     case "home":

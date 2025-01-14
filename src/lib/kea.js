@@ -65,7 +65,6 @@ const init = async () => {
   }
 
   global.user = await logInWithRefreshToken(token, apiKey);
-
   // Get captcha key from realtime database
   global.captchaKey = null;
   const snapshot = await get(dbRef(database, "app-data/2captcha-key"));
@@ -75,18 +74,19 @@ const init = async () => {
   }
 
   // Gorilla is the package selection configuration. it looks like this
-const gorillaSample = {
-  enabled: true,
-  accounts: ['tuTskCqZJBXtYWmPu7MufF','tuTskCqZJBXtYWmPu7MufF'],
-  goto: 'https://nusuk.hajj.sa/packages/selected/',
-  actions: [
-    {
-      selector: '#controlID',
-      wait: true,
-      click: false,
-    }
-  ]
-}
+  const gorillaSample = {
+    enabled: true,
+    accounts: ['tuTskCqZJBXtYWmPu7MufF', 'tuTskCqZJBXtYWmPu7MufF'],
+    goto: 'https://nusuk.hajj.sa/packages/selected/',
+    actions: [
+      {
+        selector: '#controlID',
+        wait: true,
+        click: false,
+      }
+    ]
+  }
+
   global.gorilla = null;
   const gorillaSnapshot = await get(dbRef(database, "app-data/gorilla"));
   if (gorillaSnapshot.exists()) {
@@ -253,8 +253,7 @@ const updatePassenger = async (accountId, passportNumber, payload) => {
   snaps.docs.forEach(async (doc) => {
     const data = doc.data();
     console.log(
-      `🦜 Updating passenger ${data.givenNames.toUpperCase()} ${data.surname.toUpperCase()}  in Group: ${
-        data.groupId
+      `🦜 Updating passenger ${data.givenNames.toUpperCase()} ${data.surname.toUpperCase()}  in Group: ${data.groupId
       }`,
       { payload }
     );
@@ -271,9 +270,9 @@ const updateSubmission = async (payload) => {
 };
 
 const uploadImageToStorage = async (base64, destination) => {
-    const imageRef = ref(storage, destination);
-    const snapshot = await uploadString(imageRef, base64, "base64");
-    return await getDownloadURL(snapshot.ref);
+  const imageRef = ref(storage, destination);
+  const snapshot = await uploadString(imageRef, base64, "base64");
+  return await getDownloadURL(snapshot.ref);
 };
 
 module.exports = {
