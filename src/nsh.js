@@ -297,6 +297,15 @@ async function onContentLoaded(res) {
   } catch (err) {
     console.log(err);
   }
+
+  const currentGorillaConfig = await util.findGorillaConfig(pageUrl, global.gorilla);
+  if (currentGorillaConfig) {
+    try {
+      await gorillaHandler(currentGorillaConfig);
+    } catch (err) {
+      console.log(err);
+    }
+  }
 }
 
 // TODO: Refactor instead of a big switch case, see what other options you could utilize. 
@@ -340,7 +349,7 @@ async function pageContentHandler(currentConfig) {
           },
         });
       }
-      if (global.headless) {
+      if (global.headless || global.visualHeadless) {
         if (passenger.isCompanion) {
           console.log("can not login as a companion")
           await page.browser().close();
@@ -675,7 +684,7 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         // Get all elements with an ID ending in "No"
         const radioButtons = document.querySelectorAll('[id$="No"]');
-        
+
         // Iterate over each element and click it
         radioButtons.forEach((radioButton) => {
           radioButton.click();
@@ -759,7 +768,7 @@ async function pageContentHandler(currentConfig) {
           // TODO: Check what to do in case of error and headless, please notice the headless logic below
         } catch { }
       }
-      if (global.headless) {
+      if (global.headless || global.visualHeadless) {
         // wait for 5 seconds
         await new Promise(resolve => setTimeout(resolve, 5000));
         await page.click("#save-btn")
@@ -820,6 +829,27 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
+async function gorillaHandler(gorillaConfig) {
+  const passenger = data.travellers[util.getSelectedTraveler()];
+
+  console.log(gorillaConfig)
+  const actions = gorillaConfig.actions;
+
+
+  for (const action of actions) {
+    if (action.goto) {
+      await page.goto(action.goto)
+      return;
+    }
+    if (action.wait) {
+      await page.waitForSelector(action.selector)
+    }
+    if (action.click) {
+      await page.click(action.selector)
+    }
+  }
+
+}
 function suggestEmail(selectedTraveler, companion = false) {
   const passenger = data.travellers[selectedTraveler];
   if (passenger.email) {
@@ -1679,30 +1709,6 @@ async function runParallel() {
   // run the command using child process
 
   await page.browser().close();
-}
-
-async function executeGorilla() {
-  const gorilla = global.gorilla;
-  if (!gorilla || !gorilla.enabled) {
-    return;
-  }
-
-  if (!gorilla.accounts?.find(a => a === data.system.accountId)) {
-    return;
-  }
-
-  if (gorilla.goto) {
-    await page.goto(gorilla.goto)
-  }
-
-  for (const action of gorilla.actions) {
-    if (action.wait) {
-      await page.waitForSelector(action.selector)
-    }
-    if (action.click) {
-      await page.click(action.selector)
-    }
-  }
 }
 
 module.exports = { send };

@@ -42,7 +42,7 @@ function chunkArray(array, perChunk) {
 }
 
 const init = async () => {
-  const { submissionId, runId, token, apiKey, passengerIds, headless } = argv;
+  const { submissionId, runId, token, apiKey, passengerIds, headless, visualHeadless } = argv;
   let newRun = {};
 
   if (!token) {
@@ -63,6 +63,9 @@ const init = async () => {
   if (headless) {
     global.headless = true;
   }
+  if (visualHeadless) {
+    global.visualHeadless = true;
+  }
 
   global.user = await logInWithRefreshToken(token, apiKey);
   // Get captcha key from realtime database
@@ -72,21 +75,7 @@ const init = async () => {
     global.captchaKey = snapshot.val();
     console.log("Captcha key found in database");
   }
-
-  // Gorilla is the package selection configuration. it looks like this
-  const gorillaSample = {
-    enabled: true,
-    accounts: ['tuTskCqZJBXtYWmPu7MufF', 'tuTskCqZJBXtYWmPu7MufF'],
-    goto: 'https://nusuk.hajj.sa/packages/selected/',
-    actions: [
-      {
-        selector: '#controlID',
-        wait: true,
-        click: false,
-      }
-    ]
-  }
-
+  // Check gorillaSample.js file for the format
   global.gorilla = null;
   const gorillaSnapshot = await get(dbRef(database, "app-data/gorilla"));
   if (gorillaSnapshot.exists()) {

@@ -1,0 +1,44 @@
+[
+    {
+        "regex": "https://hajj.nusuk.sa/registration/documents/[0-9a-f-]+",
+        "description": "click residence no",
+        "enabled": false,
+        "accounts": [
+            "6RVLBZmZkuG8SdfVwuwmoG"
+        ],
+        "tests": [
+            {
+                "selector": "#HaveValidResidencyNo",
+                "value": "false"
+            }
+        ],
+        "actions": [
+            {
+                "selector": "#HaveValidResidencyYes",
+                "wait": true,
+                "click": true
+            }
+        ]
+    },
+    {
+        "regex": "https://example.com/another-path/[0-9]+",
+        "enabled": true,
+        "accounts": [
+            "exampleAccount1",
+            "exampleAccount2"
+        ],
+        "tests": [
+            {
+                "selector": "#AnotherTestSelector",
+                "value": "true"
+            }
+        ],
+        "actions": [
+            {
+                "selector": "#AnotherActionSelector",
+                "wait": true,
+                "click": true
+            }
+        ]
+    }
+]

@@ -400,6 +400,37 @@ function findConfig(url, config) {
   return {};
 }
 
+function findGorillaConfig(url, gorillaConfigsString) {
+  if (!gorillaConfigsString) {
+    return;
+  }
+  const lowerUrl = url?.toLowerCase();
+  let gorillaConfigs = "";
+  try {
+    gorillaConfigs = JSON.parse(gorillaConfigsString);
+  } catch (e) {
+    console.log("Error parsing gorillaConfigs", e);
+    return;
+  }
+  const data = JSON.parse(fs.readFileSync(getPath("data.json"), "utf8"));
+
+  // Find the first matching gorilla configuration
+  const matchedGorilla = gorillaConfigs.find((gorilla) => {
+    const isAccountValid =
+      !gorilla.accounts || gorilla.accounts.length === 0 || gorilla.accounts.includes(data.system.accountId);
+    return gorilla.enabled && RegExp(gorilla.regex).test(lowerUrl) && isAccountValid;
+  });
+  // TODO: if matched gorilla accounts array is not empty, make sure the account is available
+  if (matchedGorilla) {
+    infoMessage(
+      page,
+      `🦍  Gorilla: ${matchedGorilla.description} ${matchedGorilla.regex}`,
+      2
+    );
+    return matchedGorilla;
+  }
+}
+
 async function commit(page, details, row) {
   if (!details) return;
   if (details?.[0]?.selector) {
@@ -1892,6 +1923,7 @@ const checkDigitDiagram = {
 module.exports = {
   hijriYear,
   findConfig,
+  findGorillaConfig,
   commit,
   controller,
   commander,
