@@ -1808,19 +1808,21 @@ async function getCurrentTime() {
 const hijriYear = 44;
 
 async function clickWhenReady(selector, page) {
-  await page.waitForSelector(selector);
-  await page.$eval(selector, (el) =>
-    el.scrollIntoView({ behavior: "smooth", block: "start" })
-  );
+  try {
+    await page.waitForSelector(selector);
+    await page.$eval(selector, (el) =>
+      el.scrollIntoView({ behavior: "smooth", block: "start" })
+    );
 
-  for (let i = 0; i < 10; i++) {
-    try {
-      await page.click(selector);
-      return;
-    } catch (err) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+    for (let i = 0; i < 10; i++) {
+      try {
+        await page.click(selector);
+        return;
+      } catch (err) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
     }
-  }
+  } catch { }
 }
 
 function generateMRZ(passenger) {
