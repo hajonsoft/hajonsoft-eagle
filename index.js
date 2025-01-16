@@ -6,22 +6,14 @@ const version = pjson.version;
 console.log(`=== Eagle v${version} ===`);
 
 const { send: sendEhj } = require("./src/ehj");
-const { send: sendBau } = require("./src/bau");
-const { send: sendWtu } = require("./src/wtu");
-const { send: sendGma } = require("./src/gma");
 const { send: sendVst } = require("./src/vst");
 const { send: sendEnj } = require("./src/enj");
-const { send: sendTwf } = require("./src/twf");
 const { send: sendHsf } = require("./src/hsf");
 const { send: sendSfi } = require("./src/sfi");
-const { send: sendSbr } = require("./src/sbr");
-const { send: sendMtf } = require("./src/mtf");
 const { send: sendGhb } = require("./src/ghb");
 const { send: sendNsk } = require("./src/nsk");
 const { send: sendNsh } = require("./src/nsh");
-const { send: sendTrk } = require("./src/trk");
 const { send: sendChv } = require("./src/chv");
-const { send: sendEgp } = require("./src/egp");
 
 const util = require("./src/util");
 const { getPath } = require("./src/lib/getPath");
@@ -55,10 +47,9 @@ async function main() {
   }
 
   console.log(
-    `https://hajonsoft-kea.web.app/admin/submissions/${
-      process.argv
-        .find((arg) => arg.startsWith("--submissionId"))
-        ?.split("=")?.[1]
+    `https://hajonsoft-kea.web.app/admin/submissions/${process.argv
+      .find((arg) => arg.startsWith("--submissionId"))
+      ?.split("=")?.[1]
     }/edit`
   );
   // Authenticate firebase
@@ -110,15 +101,13 @@ async function sendToCloud(data) {
     ?.replace(",", "-");
   data.info.stamp = moment().format("YYYY-MM-DD hh:mm:ss a");
   fs.writeFileSync(getPath("data.json"), JSON.stringify(data));
-  const command = `git add . && git commit -m "${data.system?.country?.code} ${
-    data.travellers?.length
-  } Pax ${data.system?.name} ${data.system?.username}.0${moment().format(
-    "mm"
-  )} ${
-    process.argv
+  const command = `git add . && git commit -m "${data.system?.country?.code} ${data.travellers?.length
+    } Pax ${data.system?.name} ${data.system?.username}.0${moment().format(
+      "mm"
+    )} ${process.argv
       .find((arg) => arg.toLowerCase().startsWith("range"))
       ?.replace(",", "-") ?? ""
-  }" && git push origin main:job --force`;
+    }" && git push origin main:job --force`;
   const childProcess = require("child_process");
 
   childProcess.exec(command, function (error, stdout, stderr) {
@@ -157,8 +146,7 @@ async function submitToProvider() {
   // }
   console.log(
     "\x1b[32m",
-    `starting process ...[${data.system.name} ${
-      data.travellers.length
+    `starting process ...[${data.system.name} ${data.travellers.length
     } PAX => ${util.getSelectedTraveler()}]`,
     "\x1b[0m"
   );
@@ -176,18 +164,8 @@ async function submitToProvider() {
       return sendEhj(data);
     case "chv":
       return sendChv(data);
-    case "bau":
-      return sendBau(data);
-    case "wtu":
-      return sendWtu(data);
     case "ghb":
       return sendGhb(data);
-    case "gma":
-      return sendGma(data);
-    case "twf":
-      return sendTwf(data);
-    // case "mot":
-    //   return sendMot(data);
     case "vst":
       return sendVst(data);
     case "enj":
@@ -196,18 +174,10 @@ async function submitToProvider() {
       return sendHsf(data);
     case "sfi":
       return sendSfi(data);
-    case "sbr":
-      return sendSbr(data);
-    case "mtf":
-      return sendMtf(data);
     case "nsk":
       return sendNsk(data);
     case "nsh":
       return sendNsh(data);
-    case "trk":
-      return sendTrk(data);
-    case "egp":
-      return sendEgp(data);
     default:
       console.log("unknown system");
   }
@@ -225,7 +195,7 @@ async function unzipFile(source, outputDir) {
     )) {
       fs.unlinkSync(path.join(dir, file));
     }
-  } catch {}
+  } catch { }
 
   try {
     await extract(source, { dir: dir });
