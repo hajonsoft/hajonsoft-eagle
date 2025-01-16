@@ -76,7 +76,6 @@ function getLogFile() {
 }
 
 let startTime;
-let timerHandler;
 const config = [
   {
     name: "home",
@@ -308,10 +307,10 @@ async function onContentLoaded(res) {
   }
 }
 
-// TODO: Refactor instead of a big switch case, see what other options you could utilize. 
+// TODO: Refactor instead of a big switch case, see what other options you could utilize.
 async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[util.getSelectedTraveler()];
-  // TODO: Create configHandler function that checks if there is a controller and execute it, if screen shot is expected, 
+  // TODO: Create configHandler function that checks if there is a controller and execute it, if screen shot is expected,
   // if a scroll is expected
   if (currentConfig.controller) {
     await util.controller(page, currentConfig, data.travellers);
@@ -386,7 +385,6 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "signup-step1":
-      clearTimeout(timerHandler);
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
@@ -400,7 +398,6 @@ async function pageContentHandler(currentConfig) {
       break;
     case "verify-register-email":
       emailCodeCounter = 0;
-      clearTimeout(timerHandler);
       // stop captcha attempts
       // registerCaptchaAbortController.abort();
       // loginCaptchaAbortController.abort();
@@ -428,7 +425,6 @@ async function pageContentHandler(currentConfig) {
       await getOTPCode();
       break;
     case "signup-password":
-      clearTimeout(timerHandler);
       await util.commit(
         page,
         [
@@ -458,7 +454,6 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "register":
-      clearTimeout(timerHandler);
       await page.evaluate(() => {
         document.scrollTo(0, document.body.scrollHeight);
       });
@@ -613,6 +608,13 @@ async function pageContentHandler(currentConfig) {
       await page.click(
         "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
       );
+      if (global.headless || global.visualHeadless) {
+        const nextSelector = "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
+        try {
+          await page.waitForSelector(nextSelector)
+          await page.click(nextSelector);
+        } catch {}
+      }
       break;
     case "summary":
       if (passenger.nationality.code !== data.system.country.code) {
@@ -639,6 +641,14 @@ async function pageContentHandler(currentConfig) {
         {}
       )
       { }
+
+      if (global.headless || global.visualHeadless) {
+        const nextSelector = "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
+        try {
+          await page.waitForSelector(nextSelector)
+          await page.click(nextSelector);
+        } catch {}
+      }
       break;
     case "summary2":
       await checkIfNotChecked("#DeportedFromAnyCountryBeforeNo");
@@ -666,10 +676,13 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
-      // await util.clickWhenReady(
-      //   "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3",
-      //   page
-      // );
+      if (global.headless || global.visualHeadless) {
+        const nextSelector = "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
+        try {
+          await page.waitForSelector(nextSelector)
+          await page.click(nextSelector);
+        } catch {}
+      }
       break;
     case "preferences":
       await page.evaluate(() => {
@@ -744,46 +757,22 @@ async function pageContentHandler(currentConfig) {
       ) {
         clicked[passenger.passportNumber + "documents"] = true;
         await uploadDocuments(util.getSelectedTraveler());
-        try {
-          const modalContentSelector = "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text";
-          await page.waitForSelector(modalContentSelector, {
-            timeout: 5000,
-          });
-          const modalContent = await page.$eval(
-            modalContentSelector,
-            (e) => e.textContent
-          );
-          if (modalContent) {
-            console.log(modalContent)
-            await kea.updatePassenger(
-              data.system.accountId,
-              passenger.passportNumber,
-              {
-                "submissionData.nsk.status": "Rejected",
-                "submissionData.nsk.rejectionReason": modalContent,
-              }
-            );
-            await util.clickWhenReady("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button", page)
-          }
-          // TODO: Check what to do in case of error and headless, please notice the headless logic below
-        } catch { }
+        const rejectionReason = await handleDialogBox(passenger);
+        if (rejectionReason) {
+          // retry uploading documents to open manual mode
+          await uploadDocuments(util.getSelectedTraveler());
+          await handleDialogBox(passenger);
+        }
       }
       if (global.headless || global.visualHeadless) {
         // wait for 5 seconds
         await new Promise(resolve => setTimeout(resolve, 5000));
-        await page.click("#save-btn")
-        console.log("Saved to continue later.")
-        // wait for 5 seconds
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        await page.browser().close();
-        process.exit(0)
+        await page.click("#next-btn")
       }
       // Do you have residence Id
-      // #HaveValidResidencyNo
-      util.clickWhenReady("#HaveValidResidencyNo", page);
+      // await util.clickWhenReady("#HaveValidResidencyNo", page);
       break;
     case "login":
-      clearTimeout(timerHandler);
       await closeAccountCreatedSuccessModal();
       await page.$eval(
         "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.mt-5.w-100",
@@ -804,10 +793,6 @@ async function pageContentHandler(currentConfig) {
         );
         return;
       }
-      if (fs.existsSync(getPath("loop.txt"))) {
-        await loginPassenger(util.getSelectedTraveler());
-      }
-
       await loginPassenger(util.getSelectedTraveler());
       break;
 
@@ -850,6 +835,58 @@ async function gorillaHandler(gorillaConfig) {
   }
 
 }
+
+async function handleDialogBox(passenger, saveReason = true) {
+  try {
+    // Define selectors for modal text, title, and the OK button
+    const modalContentSelector = "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text";
+    const modalTitleSelector = "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-title";
+    const okButtonSelector = "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button";
+
+    // Wait for the OK button to appear (indicating the dialog is present)
+    await page.waitForSelector(okButtonSelector, { timeout: 5000 }).catch(() => {
+      console.warn("Dialog box did not appear.");
+      return null;
+    });
+
+    // Check for text content
+    const modalContent = await page.$eval(modalContentSelector, (e) => e.textContent.trim()).catch(() => null);
+
+    // Check for title content if the text is empty
+    const modalTitle = !modalContent
+      ? await page.$eval(modalTitleSelector, (e) => e.textContent.trim()).catch(() => null)
+      : null;
+
+    // Determine the rejection reason
+    const rejectionReason = modalContent || modalTitle;
+
+    if (rejectionReason) {
+      console.log(`Rejection Reason: ${rejectionReason}`);
+
+      // Update passenger status and rejection reason
+      await kea.updatePassenger(
+        data.system.accountId,
+        passenger.passportNumber,
+        {
+          "submissionData.nsk.status": "Rejected",
+          "submissionData.nsk.rejectionReason": rejectionReason,
+        }
+      );
+    } else {
+      console.warn("No rejection reason found in the dialog box.");
+      return null;
+    }
+
+    // Click the "OK" button to close the dialog
+    await page.click(okButtonSelector);
+    return rejectionReason;
+  } catch (error) {
+    console.error("Error handling dialog box:", error);
+  }
+}
+
+
+
 function suggestEmail(selectedTraveler, companion = false) {
   const passenger = data.travellers[selectedTraveler];
   if (passenger.email) {
@@ -1132,6 +1169,10 @@ async function signup_step1(selectedTraveler) {
 
 async function loginPassenger(selectedTraveler) {
   util.setSelectedTraveller(selectedTraveler);
+  const url = await page.url();
+  if (url.toLowerCase() !== URLS.LOGIN.toLowerCase()) {
+    return;
+  }
   const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
   var data = JSON.parse(rawData);
   const passenger = data.travellers[selectedTraveler];
@@ -1159,7 +1200,8 @@ async function loginPassenger(selectedTraveler) {
     "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek",
     loginCaptchaAbortController.signal
   );
-  if (!loginCaptchaValue) {
+
+  if (!loginCaptchaValue && url.toLowerCase() !== URLS.LOGIN.toLowerCase()) {
     util.infoMessage(page, `Manual captcha required`);
     if ((loginRetries[selectedTraveler] || 0) < 3) {
       if (!loginRetries[selectedTraveler]) {
@@ -1644,10 +1686,36 @@ async function completeRegistration(selectedTraveler) {
   await labeler(page, passenger.passExpireDt.dmmmy, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(18) > div > div.col-md-6.font-semibold.align-self-center")
   await labeler(page, passenger.placeOfIssue, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(16) > div > div.col-md-6.font-semibold.align-self-center")
 
+  await enterDate("#PassportSummaryViewModel_BirthDate", passenger.dob.dmmmy)
+  await enterDate("#PassportSummaryViewModel_IssueDate", passenger.passIssueDt.dmmmy)
+  await enterDate("#PassportSummaryViewModel_ExpiryDate", passenger.passExpireDt.dmmmy)
 
   kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
     "submissionData.nsh.status": "Submitted",
   });
+
+  if (global.headless || global.visualHeadless) {
+    await page.click("#submitBtn")
+    try {
+      await page.waitForSelector("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div:nth-child(2) > button");
+      await page.click("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div:nth-child(2) > button");
+    } catch { }
+  }
+}
+
+async function enterDate(selector, value) {
+  const elementValue = await page.$eval(
+    selector,
+    (el) => el.value
+  );
+
+  if (!elementValue) {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await page.evaluate((params) => {
+      const ele = document.querySelector(params[0]);
+      ele.value = params[1];
+    }, [selector, value]);
+  }
 }
 
 function canGetCode(email, domain) {
