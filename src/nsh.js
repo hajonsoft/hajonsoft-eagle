@@ -892,6 +892,11 @@ async function handleDialogBox(passenger, saveReason = true) {
           "submissionData.nsk.rejectionReason": rejectionReason,
         }
       );
+      if (rejectionReason === "The applicant already has pending application.") {
+        // close the browser and exit
+        await page.browser().close();
+        process.exit(0);
+      }
     } else {
       console.warn("No rejection reason found in the dialog box.");
       return null;
