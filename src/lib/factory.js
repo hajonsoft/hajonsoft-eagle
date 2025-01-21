@@ -34,6 +34,7 @@ async function toSystem(integration, account) {
     name: integration?.targetSystemId,
     accountId: integration?.accountId,
     email: integration?.email,
+    gorillaScript: integration?.gorillaScript,
   };
 }
 

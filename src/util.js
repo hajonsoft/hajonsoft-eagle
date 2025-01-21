@@ -409,18 +409,14 @@ function findGorillaConfig(url, gorillaConfigsString) {
   try {
     gorillaConfigs = JSON.parse(gorillaConfigsString);
   } catch (e) {
-    console.log("Error parsing gorillaConfigs", e);
+    console.log("Invalid Gorilla Script, skipping gorilla...");
     return;
   }
-  const data = JSON.parse(fs.readFileSync(getPath("data.json"), "utf8"));
 
   // Find the first matching gorilla configuration
   const matchedGorilla = gorillaConfigs.find((gorilla) => {
-    const isAccountValid =
-      !gorilla.accounts || gorilla.accounts.length === 0 || gorilla.accounts.includes(data.system.accountId);
-    return gorilla.enabled && RegExp(gorilla.regex).test(lowerUrl) && isAccountValid;
+    return RegExp(gorilla.regex).test(lowerUrl);
   });
-  // TODO: if matched gorilla accounts array is not empty, make sure the account is available
   if (matchedGorilla) {
     infoMessage(
       page,

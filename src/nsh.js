@@ -1,6 +1,7 @@
 const puppeteer = require("puppeteer-extra");
 // Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+
 puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const path = require("path");
@@ -290,6 +291,14 @@ async function onContentLoaded(res) {
   }
   const pageUrl = await page.url();
   console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ pageUrl", pageUrl);
+  const beforeGorillaConfig = await util.findGorillaConfig(pageUrl, data.system.gorillaScript);
+  if (beforeGorillaConfig?.executeBefore) {
+    try {
+      await gorillaHandler(beforeGorillaConfig);
+    } catch (err) {
+      console.log(err);
+    }
+  }
   const currentConfig = util.findConfig(pageUrl, config);
   try {
     await pageContentHandler(currentConfig);
@@ -297,10 +306,10 @@ async function onContentLoaded(res) {
     console.log(err);
   }
 
-  const currentGorillaConfig = await util.findGorillaConfig(pageUrl, global.gorilla);
-  if (currentGorillaConfig) {
+  const afterGorillaConfig = await util.findGorillaConfig(pageUrl, data.system.gorillaScript);
+  if (afterGorillaConfig && !afterGorillaConfig.executeBefore) {
     try {
-      await gorillaHandler(currentGorillaConfig);
+      await gorillaHandler(afterGorillaConfig);
     } catch (err) {
       console.log(err);
     }
@@ -513,7 +522,7 @@ async function pageContentHandler(currentConfig) {
         [
           {
             selector: "#ContactDetailsViewModel_Contact_MobileNumber",
-            value: () => telephoneNumber || passenger.mobileNumber,
+            value: () => telephoneNumber || passenger.mobileNumber || suggestPhoneNumber(util.getSelectedTraveler()),
           },
           {
             selector: "#ContactDetailsViewModel_Contact_StreetAddress",
@@ -595,25 +604,25 @@ async function pageContentHandler(currentConfig) {
       //   "#ContactDetailsViewModel_Arrival_ExpectedEntryDate",
       //   page
       // );
-      await page.waitForSelector(
-        "body > div.datepick-popup > div > div.datepick-month-row > div > div > select:nth-child(1)"
-      );
-      await page.select(
-        "body > div.datepick-popup > div > div.datepick-month-row > div > div > select:nth-child(1)",
-        "6/2024"
-      );
+      // await page.waitForSelector(
+      //   "body > div.datepick-popup > div > div.datepick-month-row > div > div > select:nth-child(1)"
+      // );
+      // await page.select(
+      //   "body > div.datepick-popup > div > div.datepick-month-row > div > div > select:nth-child(1)",
+      //   "6/2024"
+      // );
       // wait 500 ms for the days to load, then select the day
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      await page.click(
-        "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
-      );
+      // await page.click(
+      //   "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
+      // );
       if (global.headless || global.visualHeadless) {
         const nextSelector = "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
         try {
           await page.waitForSelector(nextSelector)
           await page.click(nextSelector);
-        } catch {}
+        } catch { }
       }
       break;
     case "summary":
@@ -631,23 +640,14 @@ async function pageContentHandler(currentConfig) {
       await page.evaluate(() => {
         window.scrollTo(0, document.body.scrollHeight);
       });
-      // choose city 3ccb61fc-5947-4469-915f-884ed1b9666d
-      await util.commit(
-        page,
-        [{
-          selector: "#PassportSummaryViewModel_CityId",
-          value: () => "#PassportSummaryViewModel_CityId"
-        }],
-        {}
-      )
-      { }
 
       if (global.headless || global.visualHeadless) {
+      await new Promise(resolve => setTimeout(resolve, 2000));
         const nextSelector = "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
         try {
           await page.waitForSelector(nextSelector)
           await page.click(nextSelector);
-        } catch {}
+        } catch { }
       }
       break;
     case "summary2":
@@ -681,7 +681,7 @@ async function pageContentHandler(currentConfig) {
         try {
           await page.waitForSelector(nextSelector)
           await page.click(nextSelector);
-        } catch {}
+        } catch { }
       }
       break;
     case "preferences":
@@ -713,6 +713,14 @@ async function pageContentHandler(currentConfig) {
         ],
         {}
       );
+      if (global.headless || global.visualHeadless) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const nextSelector = "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
+        try {
+          await page.waitForSelector(nextSelector)
+          await page.click(nextSelector);
+        } catch { }
+      }
       break;
     case "registration-summary":
       await checkIfNotChecked("#summarycheck1");
@@ -727,6 +735,14 @@ async function pageContentHandler(currentConfig) {
         "body > main > div.system > div > form > div > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button",
         page
       );
+      if (global.headless || global.visualHeadless) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const nextSelector = "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-submit.font-semibold.text-white.mb-3";
+        try {
+          await page.waitForSelector(nextSelector)
+          await page.click(nextSelector);
+        } catch { }
+      }
       break;
     case "upload-documents":
       // Close the modal by clicking this element if it is in the DOM
@@ -797,6 +813,12 @@ async function pageContentHandler(currentConfig) {
       break;
 
     case "success":
+      if (global.headless || global.visualHeadless) {
+        // close the browser and exist
+        await page.browser().close();
+        process.exit(0);
+        return;
+      }
       // logout after 10 seconds if the user did not go to another page
       setTimeout(async () => {
         const currentUrl = await page.url();
@@ -815,10 +837,8 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function gorillaHandler(gorillaConfig) {
-  const passenger = data.travellers[util.getSelectedTraveler()];
-
   console.log(gorillaConfig)
-  const actions = gorillaConfig.actions;
+  const actions = gorillaConfig?.actions;
 
 
   for (const action of actions) {
@@ -902,16 +922,49 @@ function suggestEmail(selectedTraveler, companion = false) {
   const email = friendlyName;
   return email;
 }
-
+// Function to generate a valid phone number
 function suggestPhoneNumber(selectedTraveler) {
   const passenger = data.travellers[selectedTraveler];
+
+  // If the traveler already has a mobile number, return it
   if (passenger.mobileNumber) {
     return passenger.mobileNumber;
   }
 
-  return `+${data.system.country.telCode}${new Date().getFullYear().toString().slice(-2)}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}${new Date().getMinutes().toString().padStart(2, '0')}${new Date().getSeconds().toString().padStart(2, '0')}`;
+  // Get the USA area code 949 (as an example)
+  const areaCode = '949';
+
+  // Generate a valid phone number based on the current time
+  let generatedPhoneNumber = generateSequentialPhoneNumber(areaCode);
+
+  // Ensure the number fits the required length of 20
+  if (generatedPhoneNumber.length <= 20) {
+    return generatedPhoneNumber;
+  }
+
+  const suggestedPhoneNumber = generatedPhoneNumber.slice(0, 20);
+  console.log(`Suggested phone number: ${suggestedPhoneNumber}`);
+  // If too long, slice to fit within max length
+  return suggestedPhoneNumber;
 }
 
+// Helper function to generate a sequential phone number based on the current date and time
+function generateSequentialPhoneNumber(areaCode) {
+  const now = new Date();
+  const day = now.getDate().toString(); // Day in DD format
+  const hour = now.getHours().toString().padStart(2, '0'); // Hour in HH format
+  const minute = now.getMinutes().toString().padStart(2, '0'); // Minute in MM format
+  const second = now.getSeconds().toString().padStart(2, '0'); // Second in SS format
+
+
+  // Generate a number between 2 and 9 based on the current day
+  const hashedDay = (day % 8) + 2; // Map the day (1-31) to a number between 2 and 9
+
+  // Construct the full phone number (e.g., +19492911879)
+  const phoneNumber = `+1${areaCode}${hashedDay}${hour}${minute}${second}`;
+
+  return phoneNumber;
+}
 // TODO: Make it accept an array and recall itself in case of array. paralleize when possible
 async function checkIfNotChecked(selector) {
   try {
@@ -1695,6 +1748,7 @@ async function completeRegistration(selectedTraveler) {
   });
 
   if (global.headless || global.visualHeadless) {
+    await new Promise(resolve => setTimeout(resolve, 2000));
     await page.click("#submitBtn")
     try {
       await page.waitForSelector("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div:nth-child(2) > button");
