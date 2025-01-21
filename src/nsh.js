@@ -7,6 +7,7 @@ const fs = require("fs");
 const path = require("path");
 const util = require("./util");
 const { getPath } = require("./lib/getPath");
+const moment = require("moment");
 const kea = require("./lib/kea");
 const budgie = require("./budgie");
 const { fetchOTPFromNusuk } = require("./lib/imap");
@@ -27,6 +28,7 @@ let manualMode;
 const verifyClicked = {};
 const loginRetries = {};
 const clicked = {};
+let uploadDocumentRetries = 0;
 let emailCodeCounter = 0;
 const URLS = {
   SIGN_UP: "https://hajj.nusuk.sa/registration/signup",
@@ -498,6 +500,7 @@ async function pageContentHandler(currentConfig) {
       });
       break;
     case "complete-registration":
+      // TODO: This seems to report rejection all the time
       if (manualMode === "register") {
         const errorMessage = await page.$eval(
           "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
@@ -642,7 +645,7 @@ async function pageContentHandler(currentConfig) {
       });
 
       if (global.headless || global.visualHeadless) {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
         const nextSelector = "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
         try {
           await page.waitForSelector(nextSelector)
@@ -768,17 +771,10 @@ async function pageContentHandler(currentConfig) {
       });
       // in Companion mode do not upload documents
       if (
-        !passenger.email?.includes(".companion") &&
         !clicked[passenger.passportNumber + "documents"]
       ) {
         clicked[passenger.passportNumber + "documents"] = true;
         await uploadDocuments(util.getSelectedTraveler());
-        const rejectionReason = await handleDialogBox(passenger);
-        if (rejectionReason) {
-          // retry uploading documents to open manual mode
-          await uploadDocuments(util.getSelectedTraveler());
-          await handleDialogBox(passenger);
-        }
       }
       if (global.headless || global.visualHeadless) {
         // wait for 5 seconds
@@ -814,11 +810,16 @@ async function pageContentHandler(currentConfig) {
 
     case "success":
       if (global.headless || global.visualHeadless) {
-        // close the browser and exist
-        await page.browser().close();
-        process.exit(0);
-        return;
+        if (data.travellers.length > 1) {
+          await page.goto("https://hajj.nusuk.sa/profile/myfamily/members")
+        } else {
+          // close the browser and exist
+          await page.browser().close();
+          process.exit(0);
+          return;
+        }
       }
+
       // logout after 10 seconds if the user did not go to another page
       setTimeout(async () => {
         const currentUrl = await page.url();
@@ -828,6 +829,14 @@ async function pageContentHandler(currentConfig) {
       }, 10000);
       break;
     case "members":
+      if (global.headless || global.visualHeadless) {
+        if (data.travellers.length > 1) {
+          util.incrementSelectedTraveler();
+          if (util.getSelectedTraveler() < data.travellers.length) {
+            await addNewMember(util.getSelectedTraveler());
+          }
+        }
+      }
       break;
     case "signout":
       util.incrementSelectedTraveler();
@@ -884,18 +893,28 @@ async function handleDialogBox(passenger, saveReason = true) {
       console.log(`Rejection Reason: ${rejectionReason}`);
 
       // Update passenger status and rejection reason
-      await kea.updatePassenger(
-        data.system.accountId,
-        passenger.passportNumber,
-        {
-          "submissionData.nsk.status": "Rejected",
-          "submissionData.nsk.rejectionReason": rejectionReason,
-        }
-      );
       if (rejectionReason === "The applicant already has pending application.") {
         // close the browser and exit
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            "submissionData.nsk.status": "Rejected",
+            "submissionData.nsk.rejectionReason": rejectionReason,
+            mofaNumber: `PENDING-${moment().format('DD-MMM-YY')}`,
+          }
+        );
         await page.browser().close();
         process.exit(0);
+      } else {
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            "submissionData.nsk.status": "Rejected",
+            "submissionData.nsk.rejectionReason": rejectionReason,
+          }
+        );
       }
     } else {
       console.warn("No rejection reason found in the dialog box.");
@@ -1160,7 +1179,10 @@ async function addNewMember(selectedTraveler) {
     passenger.email || emailAddress
   );
   await getCompanionOTPCode();
-}
+  // add relationship
+  // #AddMemberViewModel_Relation
+  // If the companion is male make brother 27a4b628-0cf2-43b6-9364-053855f580c9, otherwise sister f8350217-d93d-4e7b-a68c-74766360e3f8
+}// then click #submitAddMember
 const usedCodes = {};
 function codeUsed(code) {
   if (usedCodes[code]) {
@@ -1372,6 +1394,13 @@ async function uploadDocuments(selectedTraveler) {
 
       await util.commitFile("#residencyPhoto", residencyPath2);
     }
+  }
+  const rejectionReason = await handleDialogBox(passenger);
+  if (rejectionReason && uploadDocumentRetries < 2) {
+    // retry uploading documents once to open manual mode
+    uploadDocumentRetries = uploadDocumentRetries + 1;
+    await uploadDocuments(util.getSelectedTraveler());
+    await handleDialogBox(passenger);
   }
 }
 
