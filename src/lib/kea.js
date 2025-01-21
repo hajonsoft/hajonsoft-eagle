@@ -75,13 +75,6 @@ const init = async () => {
     global.captchaKey = snapshot.val();
     console.log("Captcha key found in database");
   }
-  // Check gorillaSample.js file for the format
-  global.gorilla = null;
-  const gorillaSnapshot = await get(dbRef(database, "app-data/gorilla"));
-  if (gorillaSnapshot.exists()) {
-    global.gorilla = gorillaSnapshot.val();
-    console.log("Gorilla code found in database");
-  }
 
   await getSubmission(submissionId);
 

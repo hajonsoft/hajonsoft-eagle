@@ -2,10 +2,7 @@
     {
         "regex": "https://hajj.nusuk.sa/registration/documents/[0-9a-f-]+",
         "description": "click residence no",
-        "enabled": false,
-        "accounts": [
-            "6RVLBZmZkuG8SdfVwuwmoG"
-        ],
+        "executeAfter": true,
         "tests": [
             {
                 "selector": "#HaveValidResidencyNo",
@@ -22,11 +19,6 @@
     },
     {
         "regex": "https://example.com/another-path/[0-9]+",
-        "enabled": true,
-        "accounts": [
-            "exampleAccount1",
-            "exampleAccount2"
-        ],
         "tests": [
             {
                 "selector": "#AnotherTestSelector",
