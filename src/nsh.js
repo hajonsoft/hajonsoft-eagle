@@ -500,7 +500,7 @@ async function pageContentHandler(currentConfig) {
       });
       break;
     case "complete-registration":
-      // TODO: This seems to report rejection all the time
+      // This code seems to be ok, just in case you think about it again, you are not supposed to come here if the manual mode is register
       if (manualMode === "register") {
         const errorMessage = await page.$eval(
           "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
@@ -1179,10 +1179,21 @@ async function addNewMember(selectedTraveler) {
     passenger.email || emailAddress
   );
   await getCompanionOTPCode();
-  // add relationship
-  // #AddMemberViewModel_Relation
   // If the companion is male make brother 27a4b628-0cf2-43b6-9364-053855f580c9, otherwise sister f8350217-d93d-4e7b-a68c-74766360e3f8
-}// then click #submitAddMember
+  // wait for email verified message to appear and for the "#AddMemberViewModel_Relation" to be visible
+  // Check the word "Email verified" in this selector #emailVerifiedSpan
+  // await util.commit(
+  //   page,
+  //   [
+  //     {
+  //       selector: "#AddMemberViewModel_Relation",
+  //       value: (row) => row.gender === "Male" ?  "27a4b628-0cf2-43b6-9364-053855f580c9" : "f8350217-d93d-4e7b-a68c-74766360e3f8",
+  //     }
+  //   ],
+  //   passenger
+  // );
+  // await page.click("#submitAddMember");
+}
 const usedCodes = {};
 function codeUsed(code) {
   if (usedCodes[code]) {
@@ -1870,22 +1881,6 @@ async function runParallel() {
 module.exports = { send };
 
 
-// TODO: Gorilla
-// 1- After logging succesfully
-// 2- Check which page the passenger lands in and check the following
-//    - the passenger has been registered succesfully
-//    - There is gorilla script
-//    - this user account is in the gorilla accounts
-//    - start executing the gorilla
 // TODO: Refactor opprtunities
-//  1- Create a common function for all page views to install the controller or any commanders asynchronously when not headless
 //  2- modularize the code on seaparate files
-//  3- handle errors and retries to gurantee registration
 //  4- implement new captcha mouse click
-//  5- add scroll to element in config and scroll to it
-// TODO: Chunk-ing
-// Phase 1
-// Click Save and continue later
-// Phase 2
-//  1- Take all the travellers and divide them into leader and its companions
-//  2- for each leader and the associated companion get a machine to register them
