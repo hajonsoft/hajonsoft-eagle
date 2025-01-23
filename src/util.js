@@ -1806,10 +1806,6 @@ const hijriYear = 44;
 async function clickWhenReady(selector, page) {
   try {
     await page.waitForSelector(selector);
-    await page.$eval(selector, (el) =>
-      el.scrollIntoView({ behavior: "smooth", block: "start" })
-    );
-
     for (let i = 0; i < 10; i++) {
       try {
         await page.click(selector);
