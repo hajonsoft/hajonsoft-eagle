@@ -810,14 +810,7 @@ async function pageContentHandler(currentConfig) {
 
     case "success":
       if (global.headless || global.visualHeadless) {
-        if (data.travellers.length > 1) {
-          await page.goto("https://hajj.nusuk.sa/profile/myfamily/members")
-        } else {
-          // close the browser and exist
-          await page.browser().close();
-          process.exit(0);
-          return;
-        }
+        await page.goto("https://hajj.nusuk.sa/profile/myfamily/members")
       }
 
       // logout after 10 seconds if the user did not go to another page
@@ -831,10 +824,55 @@ async function pageContentHandler(currentConfig) {
     case "members":
       if (global.headless || global.visualHeadless) {
         if (data.travellers.length > 1) {
-          util.incrementSelectedTraveler();
-          if (util.getSelectedTraveler() < data.travellers.length) {
-            await addNewMember(util.getSelectedTraveler());
+          // get all registered family members
+          await page.waitForSelector('#members-container');
+          // Extract names inside <h6> elements
+          const passengerNames = await page.evaluate(() => {
+            const container = document.querySelector('#members-container');
+            if (!container) return [];
+
+            // Select all the child divs
+            const childDivs = container.querySelectorAll('div');
+
+            // Iterate over the divs and extract the <h6> text
+            const names = [];
+            childDivs.forEach(child => {
+              const h6Element = child.querySelector('div.col-12.col-md-6.col-lg-6 > a > h6');
+              if (h6Element) {
+                names.push(h6Element.innerText.trim());
+              }
+            });
+
+            return names;
+          });
+          while (true) {
+            util.incrementSelectedTraveler(); // Move to the next traveler
+            const currentPassenger = data.travellers[util.getSelectedTraveler()]; // Get the current traveler
+
+            // Combine first and last name to match the format in passengerNames
+            const fullName = `${currentPassenger.name.first} ${currentPassenger.name.last}`.trim();
+
+            // Check if the full name exists in the passengerNames array
+            if (!passengerNames.includes(fullName)) {
+              // If not found, call addNewMember and break the loop
+              await addNewMember(util.getSelectedTraveler());
+              break;
+            }
+
+            // Optional safeguard to prevent infinite loops
+            if (util.getSelectedTraveler() >= data.travellers.length - 1) {
+              await takeMembersScreenShot();
+              console.error("No family members found to add.");
+              await page.browser().close();
+              process.exit(0);
+              break;
+            }
           }
+        } else {
+          await takeMembersScreenShot();
+          await page.browser().close();
+          process.exit(0);
+          break;
         }
       }
       break;
@@ -845,6 +883,20 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
+async function takeMembersScreenShot() {
+  const passenger = data.travellers[util.getSelectedTraveler()]; // Get the current traveler
+  // screen shot and save it as the visa picture
+  const pageElement = await page.$("body");
+  // save screenshot to kea
+  try {
+    await util.screenShotToKea(
+      pageElement,
+      data.system.accountId,
+      passenger,
+      "Embassy"
+    );
+  } catch (error) { }
+}
 async function gorillaHandler(gorillaConfig) {
   console.log(gorillaConfig)
   const actions = gorillaConfig?.actions;
