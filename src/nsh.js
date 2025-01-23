@@ -810,14 +810,7 @@ async function pageContentHandler(currentConfig) {
 
     case "success":
       if (global.headless || global.visualHeadless) {
-        if (data.travellers.length > 1) {
-          await page.goto("https://hajj.nusuk.sa/profile/myfamily/members")
-        } else {
-          // close the browser and exist
-          await page.browser().close();
-          process.exit(0);
-          return;
-        }
+        await page.goto("https://hajj.nusuk.sa/profile/myfamily/members")
       }
 
       // logout after 10 seconds if the user did not go to another page
@@ -854,10 +847,10 @@ async function pageContentHandler(currentConfig) {
           });
           while (true) {
             util.incrementSelectedTraveler(); // Move to the next traveler
-            const passenger = data.travellers[util.getSelectedTraveler()]; // Get the current traveler
+            const currentPassenger = data.travellers[util.getSelectedTraveler()]; // Get the current traveler
 
             // Combine first and last name to match the format in passengerNames
-            const fullName = `${passenger.name.first} ${passenger.name.last}`.trim();
+            const fullName = `${currentPassenger.name.first} ${currentPassenger.name.last}`.trim();
 
             // Check if the full name exists in the passengerNames array
             if (!passengerNames.includes(fullName)) {
@@ -868,12 +861,18 @@ async function pageContentHandler(currentConfig) {
 
             // Optional safeguard to prevent infinite loops
             if (util.getSelectedTraveler() >= data.travellers.length - 1) {
+              await takeMembersScreenShot();
               console.error("No family members found to add.");
               await page.browser().close();
               process.exit(0);
               break;
             }
           }
+        } else {
+          await takeMembersScreenShot();
+          await page.browser().close();
+          process.exit(0);
+          break;
         }
       }
       break;
@@ -884,6 +883,20 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
+async function takeMembersScreenShot() {
+  const passenger = data.travellers[util.getSelectedTraveler()]; // Get the current traveler
+  // screen shot and save it as the visa picture
+  const pageElement = await page.$("body");
+  // save screenshot to kea
+  try {
+    await util.screenShotToKea(
+      pageElement,
+      data.system.accountId,
+      passenger,
+      "Embassy"
+    );
+  } catch (error) { }
+}
 async function gorillaHandler(gorillaConfig) {
   console.log(gorillaConfig)
   const actions = gorillaConfig?.actions;

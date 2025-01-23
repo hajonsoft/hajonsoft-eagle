@@ -1523,7 +1523,7 @@ async function SolveIamNotARobot(responseSelector, url, siteKey, signal) {
         const tokenValue = res.data.split("|")[1].replace(/ /g, "");
         console.log(
           "📢[util.js:1358]: I am not a robot tokenValue: ",
-          tokenValue
+          "solved"
         );
         await page.$eval(responseSelector, (el) => {
           el.style.display = "block";
