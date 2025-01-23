@@ -1179,20 +1179,31 @@ async function addNewMember(selectedTraveler) {
     passenger.email || emailAddress
   );
   await getCompanionOTPCode();
-  // If the companion is male make brother 27a4b628-0cf2-43b6-9364-053855f580c9, otherwise sister f8350217-d93d-4e7b-a68c-74766360e3f8
-  // wait for email verified message to appear and for the "#AddMemberViewModel_Relation" to be visible
-  // Check the word "Email verified" in this selector #emailVerifiedSpan
-  // await util.commit(
-  //   page,
-  //   [
-  //     {
-  //       selector: "#AddMemberViewModel_Relation",
-  //       value: (row) => row.gender === "Male" ?  "27a4b628-0cf2-43b6-9364-053855f580c9" : "f8350217-d93d-4e7b-a68c-74766360e3f8",
-  //     }
-  //   ],
-  //   passenger
-  // );
-  // await page.click("#submitAddMember");
+  try {
+    // Wait for the span with ID #emailVerifiedSpan to appear and have the text "Email verified"
+    await page.waitForFunction(
+      () => {
+        const span = document.querySelector('#emailVerifiedSpan');
+        return span && span.textContent.trim() === 'Email verified';
+      },
+      { timeout: 120000 } // Set a timeout of 10 seconds (adjust as needed)
+    );
+    console.log('Email verified span is present and has the correct value.');
+    await util.commit(
+      page,
+      [
+        {
+          selector: "#AddMemberViewModel_Relation",
+          value: (row) => row.gender === "Male" ? "27a4b628-0cf2-43b6-9364-053855f580c9" : "f8350217-d93d-4e7b-a68c-74766360e3f8",
+        }
+      ],
+      passenger
+    );
+    await page.click("#submitAddMember");
+  } catch (error) {
+    console.error('Error: The "Email verified" span did not appear within the timeout period.', error);
+  }
+
 }
 const usedCodes = {};
 function codeUsed(code) {
