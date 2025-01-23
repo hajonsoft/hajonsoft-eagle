@@ -282,8 +282,16 @@ async function send(sendData) {
   page = await util.initPage(config, onContentLoaded);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
-
+let timeoutId;
+const MAX_WAIT_TIME_MS = 600000;
+const handleTimeout = async () => {
+  console.error("Timeout occurred: onContentLoaded not triggered within 10 minutes.");
+  await page.browser().close();
+  process.exit(1); // Exit the process with an error code
+};
 async function onContentLoaded(res) {
+  clearTimeout(timeoutId); 
+  timeoutId = setTimeout(handleTimeout, MAX_WAIT_TIME_MS); 
   counter = util.useCounter(counter);
   if (counter >= data?.travellers?.length) {
     util.setCounter(0);
