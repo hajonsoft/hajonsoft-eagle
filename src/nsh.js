@@ -291,8 +291,8 @@ const handleTimeout = async () => {
   process.exit(1); // Exit the process with an error code
 };
 async function onContentLoaded(res) {
-  clearTimeout(timeoutId); 
-  timeoutId = setTimeout(handleTimeout, MAX_WAIT_TIME_MS); 
+  clearTimeout(timeoutId);
+  timeoutId = setTimeout(handleTimeout, MAX_WAIT_TIME_MS);
   counter = util.useCounter(counter);
   if (counter >= data?.travellers?.length) {
     util.setCounter(0);
@@ -916,11 +916,17 @@ async function gorillaHandler(gorillaConfig) {
       await page.goto(action.goto)
       return;
     }
-    if (action.wait) {
-      await page.waitForSelector(action.selector)
+    if (action.timeout) {
+      await new Promise(resolve => setTimeout(resolve, action.timeout));
     }
     if (action.click) {
+      if (action.wait) {
+        await page.waitForSelector(action.selector)
+      }
       await page.click(action.selector)
+    }
+    if (action.screenshot) {
+      await takeScreenShot();
     }
   }
 
@@ -1364,7 +1370,7 @@ async function loginPassenger(selectedTraveler) {
     loginCaptchaAbortController.signal
   );
 
-  if (!loginCaptchaValue && url.toLowerCase() !== URLS.LOGIN.toLowerCase()) {
+  if (!loginCaptchaValue) {
     util.infoMessage(page, `Manual captcha required`);
     if ((loginRetries[selectedTraveler] || 0) < 3) {
       if (!loginRetries[selectedTraveler]) {
