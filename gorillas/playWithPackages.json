@@ -1,0 +1,40 @@
+[
+    {
+        "regex": "https://hajj.nusuk.sa/profile/dashboard",
+        "description": "Go to booking page",
+        "tests": [
+            {
+                "selector": "#ex1-tabs-1 > table > tbody > tr:nth-child(1) > td:nth-child(1) > div > small",
+                "value": "Completed"
+            }
+        ],
+        "actions": [
+            {
+                "goto": "https://hajj.nusuk.sa/applicants/booking/all"
+            }
+        ]
+    },
+    {
+        "regex": "https://hajj.nusuk.sa/applicants/booking/all",
+        "description": "Select package",
+        "actions": [
+            {
+                "selector": "#my-package-page > div.border-0.card.mt-4.py-5.rounded-3.bg-transparent > div > div > a",
+                "wait": true,
+                "click": true
+            }
+        ]
+    },
+    {
+        "regex": "https://hajj.nusuk.sa/packages",
+        "description": "Select package",
+        "actions": [
+            {
+                "selector": "#formFilter > div:nth-child(4) > input",
+                "timeout": 1000,
+                "wait": true,
+                "click": true
+            }
+        ]
+    }
+]
