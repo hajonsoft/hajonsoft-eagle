@@ -286,6 +286,7 @@ let timeoutId;
 const MAX_WAIT_TIME_MS = 600000;
 const handleTimeout = async () => {
   console.error("Timeout occurred: onContentLoaded not triggered within 10 minutes.");
+  await takeScreenShot();
   await page.browser().close();
   process.exit(1); // Exit the process with an error code
 };
@@ -869,7 +870,7 @@ async function pageContentHandler(currentConfig) {
 
             // Optional safeguard to prevent infinite loops
             if (util.getSelectedTraveler() >= data.travellers.length - 1) {
-              await takeMembersScreenShot();
+              await takeScreenShot();
               console.error("No family members found to add.");
               await page.browser().close();
               process.exit(0);
@@ -877,7 +878,7 @@ async function pageContentHandler(currentConfig) {
             }
           }
         } else {
-          await takeMembersScreenShot();
+          await takeScreenShot();
           await page.browser().close();
           process.exit(0);
           break;
@@ -891,7 +892,7 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
-async function takeMembersScreenShot() {
+async function takeScreenShot() {
   const passenger = data.travellers[util.getSelectedTraveler()]; // Get the current traveler
   // screen shot and save it as the visa picture
   const pageElement = await page.$("body");
