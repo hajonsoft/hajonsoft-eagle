@@ -638,21 +638,17 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "summary":
-      if (passenger.nationality.code !== data.system.country.code) {
-        await summaryResidence(util.getSelectedTraveler());
-      } else {
-        await checkIfNotChecked("#HaveValidResidencyNo");
-      }
+      // if (passenger.nationality.code !== data.system.country.code) {
+      //   await summaryResidence(util.getSelectedTraveler());
+      // } else {
+      //   await checkIfNotChecked("#HaveValidResidencyNo");
+      // }
       await checkIfNotChecked("#PreviouslyReceivedVisaEnterKSANo");
       await checkIfNotChecked("#PreviousKSAVisaRejectionNo");
       await checkIfNotChecked("#PassportHasRestrictionForOneTripNo");
       await checkIfNotChecked("#HaveRelativesResigingInKSANo");
       await checkIfNotChecked("#HoldOtherNationalitiesNo");
       await checkIfNotChecked("#TraveledToOtherCountriesNo");
-      await page.evaluate(() => {
-        window.scrollTo(0, document.body.scrollHeight);
-      });
-
       if (global.headless || global.visualHeadless) {
         await new Promise(resolve => setTimeout(resolve, 2000));
         const nextSelector = "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
@@ -918,6 +914,18 @@ async function gorillaHandler(gorillaConfig) {
     }
     if (action.timeout) {
       await new Promise(resolve => setTimeout(resolve, action.timeout));
+    }
+    if (action.type) {
+      await util.commit(
+        page,
+        [
+          {
+            selector: action.selector,
+            value: action.type,
+          },
+        ],
+        {}
+      );
     }
     if (action.click) {
       if (action.wait) {
@@ -1714,55 +1722,46 @@ async function closeAccountCreatedSuccessModal() {
 
 async function summaryResidence(selectedTraveler) {
   const passenger = data.travellers[selectedTraveler];
-  checkIfNotChecked("#HaveValidResidencyYes");
-  await util.commit(
-    page,
-    [
-      {
-        selector: "#BackgroundStepOneViewModel_ResidencyIdNumber",
-        value: (row) => passenger.idNumber,
-      },
-    ],
-    passenger
-  );
-
-  await page.$eval(
-    "body > main > div.system > div > div.system-content.p-3 > form > div.row.mb-4 > div:nth-child(2) > div > label",
-    (el, idNumber) => (el.innerText = "Residency ID Number: => " + idNumber),
-    passenger.idNumber
-  );
-
-  if (passenger.idIssueDt) {
-    await page.$eval(
-      "body > main > div.system > div > div.system-content.p-3 > form > div.row.mb-4 > div:nth-child(3) > div > label",
-      (el, issueDate) =>
-        (el.innerText = "Residence ID Issue Date: => " + issueDate),
-      passenger.idIssueDt.dmmmy
+  try {
+    await checkIfNotChecked("#HaveValidResidencyYes");
+    await util.commit(
+      page,
+      [
+        {
+          selector: "#BackgroundStepOneViewModel_ResidencyIdNumber",
+          value: (row) => passenger.idNumber,
+        },
+      ],
+      passenger
     );
 
-    // await util.clickWhenReady(
-    //   "#BackgroundStepOneViewModel_ResidenceIdIssueDate",
-    //   page
-    // );
-    // await page.waitForSelector(
-    //   "body > div.datepick-popup > div > div.datepick-month-row > div > div > select:nth-child(1)"
-    // );
-    // await page.select(
-    //   "body > div.datepick-popup > div > div.datepick-month-row > div > div > select:nth-child(1)",
-    //   "6/2024"
-    // );
-  }
-
-  if (passenger.idExpireDt) {
-    uncheckIfChecked("#expiryDateNotSpecified");
     await page.$eval(
-      "body > main > div.system > div > div.system-content.p-3 > form > div.row.mb-4 > div:nth-child(4) > div.mb-3.datepicker-input > label",
-      (el, expireDate) =>
-        (el.innerText = "Residence ID Expiry Date: => " + expireDate),
-      passenger.idExpireDt.dmmmy
+      "body > main > div.system > div > div.system-content.p-3 > form > div.row.mb-4 > div:nth-child(2) > div > label",
+      (el, idNumber) => (el.innerText = "Residency ID Number: => " + idNumber),
+      passenger.idNumber
     );
-  } else {
-    checkIfNotChecked("#expiryDateNotSpecified");
+
+    if (passenger.idIssueDt) {
+      await page.$eval(
+        "body > main > div.system > div > div.system-content.p-3 > form > div.row.mb-4 > div:nth-child(3) > div > label",
+        (el, issueDate) =>
+          (el.innerText = "Residence ID Issue Date: => " + issueDate),
+        passenger.idIssueDt.dmmmy
+      );
+    }
+
+    if (passenger.idExpireDt) {
+      uncheckIfChecked("#expiryDateNotSpecified");
+      await page.$eval(
+        "body > main > div.system > div > div.system-content.p-3 > form > div.row.mb-4 > div:nth-child(4) > div.mb-3.datepicker-input > label",
+        (el, expireDate) =>
+          (el.innerText = "Residence ID Expiry Date: => " + expireDate),
+        passenger.idExpireDt.dmmmy
+      );
+    } else {
+      checkIfNotChecked("#expiryDateNotSpecified");
+    }
+  } catch (e) {
   }
 }
 
