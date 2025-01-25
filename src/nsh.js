@@ -921,7 +921,7 @@ async function gorillaHandler(gorillaConfig) {
         [
           {
             selector: action.selector,
-            value: action.type,
+            value: () => action.type,
           },
         ],
         {}
