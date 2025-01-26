@@ -2,7 +2,6 @@ const fs = require("fs");
 const path = require("path");
 const puppeteer = require("puppeteer-extra");
 const os = require("os");
-const { ImgurClient } = require("imgur");
 const RuCaptcha2Captcha = require("rucaptcha-2captcha");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
@@ -26,17 +25,10 @@ const residencyFolder = path.join(homedir, "hajonsoft", "residency");
 const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
 
 const VISION_DEFICIENCY = "none";
-const IMGUR_CLIENT_ID = "0b4827447357d6b";
-const IMGUR_CLIENT_SECRET = "c842b1a08f0748150465ec643c04c0aeb17329c7";
 const kea = require("./lib/kea");
 
 const MRZ_TD3_LINE_LENGTH = 44;
 
-// or your client ID
-const imgurClient = new ImgurClient({
-  clientId: IMGUR_CLIENT_ID,
-  clientSecret: IMGUR_CLIENT_SECRET,
-});
 
 let page;
 let browser;
@@ -1573,21 +1565,6 @@ async function uploadImage(fileName) {
   const metadata = await image.metadata();
   if (metadata.width < 10) {
     return;
-  }
-
-  if (fs.existsSync(fileName)) {
-    imgurClient
-      .upload({
-        image: fs.createReadStream(fileName),
-        type: "stream",
-      })
-      .then((result) => {
-        console.log("View screenshot: ", result.data?.link);
-      })
-      .catch((err) => {
-        console.log("error uploading image: ", err);
-        console.log("local path: ", fileName);
-      });
   }
 }
 
