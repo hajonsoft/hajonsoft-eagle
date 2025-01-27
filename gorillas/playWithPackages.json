@@ -1,7 +1,7 @@
 [
     {
         "regex": "https://hajj.nusuk.sa/profile/dashboard",
-        "description": "Go to booking page",
+        "description": "Go to booking page from dashboard",
         "tests": [
             {
                 "selector": "#ex1-tabs-1 > table > tbody > tr:nth-child(1) > td:nth-child(1) > div > small",
