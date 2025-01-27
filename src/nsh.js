@@ -53,7 +53,7 @@ const URLS = {
   SUCCESS: "https://hajj.nusuk.sa/registration/completed",
   MEMBERS: "https://hajj.nusuk.sa/profile/myfamily/members",
   SIGNOUT: "https://hajj.nusuk.sa/Account/Signout",
-  DASHBOARD: "https://hajj.nusuk.sa/dashboard",
+  DASHBOARD: "https://hajj.nusuk.sa/profile/dashboard",
   PACKAGE_SUMMARY: "https://hajj.nusuk.sa/sp/package/summary/[0-9a-f-]+",
   CONFIGURE_PACKAGE: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/rooms/configure",
   ADDITIONAL_SERVICES: "https://hajj.nusuk.sa/package/0-9a-f-]+/booking/0-9a-f-]+/services/configure"
@@ -905,16 +905,10 @@ async function pageContentHandler(currentConfig) {
       util.incrementSelectedTraveler();
       break;
     case "dashboard":
-      const packageName = passenger.comments?.split(",")?.[0];
-      if (packageName) {
-        await page.goto(passenger.comments);
-        return;
-      }
-      // data.system.gorillaScript
       try {
         const gorillaJSON = JSON.parse(data.system.gorillaScript);
-        if (gorillaJSON?.packageName) {
-          await page.goto(gorillaJSON.packageName);
+        if (gorillaJSON?.package) {
+          await page.goto(gorillaJSON.package);
           return;
         }
       } catch (error) {
@@ -922,9 +916,29 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "package-summary":
-      await page.click("body > main > div.package-details > div.bg-maincolor.p-4.text-white.mt-2 > div > div.col-12.col-xxl-4.col-xl-5.col-lg-6 > div > a")
+      // const configurePackageButton = "body > main > div.package-details > div.bg-maincolor.p-4.text-white.mt-2 > div > div.col-12.col-xxl-4.col-xl-5.col-lg-6 > div > a";
+      // await page.waitForSelector(configurePackageButton);
+      // await page.click(configurePackageButton)
+      // "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/rooms/configure"
+      // get packageId from the URL
+      try {
+        const gorillaJSON = JSON.parse(data.system.gorillaScript);
+        if (gorillaJSON?.package) {
+          const packageId = gorillaJSON.package.split("/").pop();
+          console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ packageId", packageId);
+          await page.goto(`https://hajj.nusuk.sa/package/${packageId}/booking/rooms/configure`);
+          return;
+        }
+      } catch (error) {
+        console.error("Error parsing Gorilla JSON", error);
+      }
       break;
     case "configure-package":
+      //   {
+      //     "package": "",
+      //     "makkah": "0,0,0,1",
+      //     "madinah": "0,0,0,1"
+      // }
       try {
         const gorillaJSON = JSON.parse(data.system.gorillaScript);
         if (gorillaJSON?.makkah) {
@@ -940,8 +954,8 @@ async function pageContentHandler(currentConfig) {
           await takeScreenShot();
           await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
         }
-        if (gorillaJSON?.madina) {
-          const madinahRooms = gorillaJSON.madina.split(",");
+        if (gorillaJSON?.madinah) {
+          const madinahRooms = gorillaJSON.madinah.split(",");
           const madinahSingle = madinahRooms[0];
           const madinahDouble = madinahRooms[1];
           const madinahTriple = madinahRooms[2];

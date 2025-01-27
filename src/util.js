@@ -26,6 +26,7 @@ const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
 
 const VISION_DEFICIENCY = "none";
 const kea = require("./lib/kea");
+const { array } = require("yargs");
 
 const MRZ_TD3_LINE_LENGTH = 44;
 
@@ -402,6 +403,9 @@ function findGorillaConfig(url, gorillaConfigsString) {
     gorillaConfigs = JSON.parse(gorillaConfigsString);
   } catch (e) {
     console.log("Invalid Gorilla Script, skipping gorilla...");
+    return;
+  }
+  if (!Array.isArray(gorillaConfigs)) {
     return;
   }
 
