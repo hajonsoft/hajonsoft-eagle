@@ -53,6 +53,10 @@ const URLS = {
   SUCCESS: "https://hajj.nusuk.sa/registration/completed",
   MEMBERS: "https://hajj.nusuk.sa/profile/myfamily/members",
   SIGNOUT: "https://hajj.nusuk.sa/Account/Signout",
+  DASHBOARD: "https://hajj.nusuk.sa/profile/dashboard",
+  PACKAGE_SUMMARY: "https://hajj.nusuk.sa/sp/package/summary/[0-9a-f-]+",
+  CONFIGURE_PACKAGE: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/rooms/configure",
+  ADDITIONAL_SERVICES: "https://hajj.nusuk.sa/package/0-9a-f-]+/booking/0-9a-f-]+/services/configure"
 };
 
 function getOTPEmailAddress(email) {
@@ -274,6 +278,22 @@ const config = [
         }
       },
     },
+  },
+  {
+    name: "dashboard",
+    regex: URLS.DASHBOARD,
+  },
+  {
+    name: "package-summary",
+    regex: URLS.PACKAGE_SUMMARY,
+  },
+  {
+    name: "configure-package",
+    regex: URLS.CONFIGURE_PACKAGE,
+  },
+  {
+    name: "additional-services",
+    regex: URLS.ADDITIONAL_SERVICES,
   },
 ];
 
@@ -883,11 +903,100 @@ async function pageContentHandler(currentConfig) {
       break;
     case "signout":
       util.incrementSelectedTraveler();
+      break;
+    case "dashboard":
+      try {
+        const gorillaJSON = JSON.parse(data.system.gorillaScript);
+        if (gorillaJSON?.package) {
+          await page.goto(gorillaJSON.package);
+          return;
+        }
+      } catch (error) {
+        console.error("Error parsing Gorilla JSON", error);
+      }
+      break;
+    case "package-summary":
+      // const configurePackageButton = "body > main > div.package-details > div.bg-maincolor.p-4.text-white.mt-2 > div > div.col-12.col-xxl-4.col-xl-5.col-lg-6 > div > a";
+      // await page.waitForSelector(configurePackageButton);
+      // await page.click(configurePackageButton)
+      // "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/rooms/configure"
+      // get packageId from the URL
+      try {
+        const gorillaJSON = JSON.parse(data.system.gorillaScript);
+        if (gorillaJSON?.package) {
+          const packageId = gorillaJSON.package.split("/").pop();
+          console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ packageId", packageId);
+          await page.goto(`https://hajj.nusuk.sa/package/${packageId}/booking/rooms/configure`);
+          return;
+        }
+      } catch (error) {
+        console.error("Error parsing Gorilla JSON", error);
+      }
+      break;
+    case "configure-package":
+      //   {
+      //     "package": "",
+      //     "makkah": "0,0,0,1",
+      //     "madinah": "0,0,0,1"
+      // }
+      try {
+        const gorillaJSON = JSON.parse(data.system.gorillaScript);
+        if (gorillaJSON?.makkah) {
+          const makkahRooms = gorillaJSON.makkah.split(",");
+          const makkahSingle = makkahRooms[0];
+          const makkahDouble = makkahRooms[1];
+          const makkahTriple = makkahRooms[2];
+          const makkahQuad = makkahRooms[3];
+          configureRooming(makkahSingle, "#divMakkahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          configureRooming(makkahDouble, "#divMakkahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          configureRooming(makkahTriple, "#divMakkahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          configureRooming(makkahQuad, "#divMakkahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          await takeScreenShot();
+          await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
+        }
+        if (gorillaJSON?.madinah) {
+          const madinahRooms = gorillaJSON.madinah.split(",");
+          const madinahSingle = madinahRooms[0];
+          const madinahDouble = madinahRooms[1];
+          const madinahTriple = madinahRooms[2];
+          const madinahQuad = madinahRooms[3];
+          configureRooming(madinahSingle, "#divMadinahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          configureRooming(madinahDouble, "#divMadinahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          configureRooming(madinahTriple, "#divMadinahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          configureRooming(madinahQuad, "#divMadinahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        }
+        await takeScreenShot();
+        await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
+
+      } catch (error) {
+        console.error("Error parsing Gorilla JSON", error);
+      }
+      break;
+    case "additional-services":
+      // next #roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button
+      await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
+      break;
     default:
       break;
   }
 }
 
+async function configureRooming(roomCount, selector) {
+  // Check if the selector is present or not
+  const isPresent = await page.$(selector)
+  if (!isPresent) {
+    return;
+  }
+
+  if (roomCount) {
+    const roomCountInt = parseInt(roomCount);
+    // check if the selector is present or not
+    for (let i = 0; i < roomCountInt; i++) {
+      await page.click(selector)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+}
 async function takeScreenShot() {
   const passenger = data.travellers[util.getSelectedTraveler()]; // Get the current traveler
   // screen shot and save it as the visa picture
