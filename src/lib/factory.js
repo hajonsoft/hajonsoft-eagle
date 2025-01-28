@@ -250,6 +250,7 @@ function toPassengers(passengers) {
       idNumber: passenger.residencyNumber,
       mofaNumber: passenger.mofaNumber,
       isCompanion: passenger.companionIds?.length > 0 && !passenger.isPartyLeader,
+      companionsCount: passenger.companionIds?.length,
       eNumber: passenger.eNumber,
       placeOfIssue: passenger.passportIssuePlace,
       codeline: codeLine,
