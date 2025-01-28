@@ -921,7 +921,7 @@ async function pageContentHandler(currentConfig) {
           return;
         }
       } catch (error) {
-        console.error("Error parsing Gorilla JSON", error);
+        console.error("Error parsing Gorilla JSON", error, data.system.gorillaScript);
       }
       break;
     case "package-summary":
@@ -937,7 +937,7 @@ async function pageContentHandler(currentConfig) {
           return;
         }
       } catch (error) {
-        console.error("Error parsing Gorilla JSON", error);
+        console.error("Error parsing Gorilla JSON", error, data.system.gorillaScript);
       }
       break;
     case "configure-package":
@@ -946,7 +946,7 @@ async function pageContentHandler(currentConfig) {
       //     "makkah": "0,0,0,1",
       //     "madinah": "0,0,0,1",
       //     "disabled": true,
-      //     "pay": true,
+      //     "pay": true
       // }
       try {
         const gorillaJSON = JSON.parse(data.system.gorillaScript);
@@ -954,29 +954,29 @@ async function pageContentHandler(currentConfig) {
           return;
         }
         if (gorillaJSON?.makkah) {
-          const makkahRooms = gorillaJSON.makkah.split(",");
-          const makkahSingle = makkahRooms[0];
-          const makkahDouble = makkahRooms[1];
-          const makkahTriple = makkahRooms[2];
-          const makkahQuad = makkahRooms[3];
-          await configureRooming(makkahSingle, "#divMakkahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-          await configureRooming(makkahDouble, "#divMakkahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-          await configureRooming(makkahTriple, "#divMakkahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-          await configureRooming(makkahQuad, "#divMakkahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          const makkahBeds = gorillaJSON.makkah.split(",");
+          const makkahSingle = makkahBeds[0];
+          const makkahDouble = makkahBeds[1];
+          const makkahTriple = makkahBeds[2];
+          const makkahQuad = makkahBeds[3];
+          await configureBeds(makkahSingle, passenger, "#divMakkahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          await configureBeds(makkahDouble, passenger, "#divMakkahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          await configureBeds(makkahTriple, passenger, "#divMakkahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          await configureBeds(makkahQuad, passenger, "#divMakkahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
         }
         if (gorillaJSON?.madinah) {
-          const madinahRooms = gorillaJSON.madinah.split(",");
-          const madinahSingle = madinahRooms[0];
-          const madinahDouble = madinahRooms[1];
-          const madinahTriple = madinahRooms[2];
-          const madinahQuad = madinahRooms[3];
-          await configureRooming(madinahSingle, "#divMadinahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-          await configureRooming(madinahDouble, "#divMadinahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-          await configureRooming(madinahTriple, "#divMadinahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-          await configureRooming(madinahQuad, "#divMadinahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          const madinahBeds = gorillaJSON.madinah.split(",");
+          const madinahSingle = madinahBeds[0];
+          const madinahDouble = madinahBeds[1];
+          const madinahTriple = madinahBeds[2];
+          const madinahQuad = madinahBeds[3];
+          await configureBeds(madinahSingle, passenger, "#divMadinahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          await configureBeds(madinahDouble, passenger, "#divMadinahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          await configureBeds(madinahTriple, passenger, "#divMadinahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+          await configureBeds(madinahQuad, passenger, "#divMadinahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
         }
         await takeScreenShot();
-        await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")  
+        await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
       } catch (error) {
         console.error("Error parsing Gorilla JSON", error);
       }
@@ -992,7 +992,7 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
-async function configureRooming(roomCount, selector) {
+async function configureBeds(bedCount, passenger, selector) {
   // Add "disabled" to the selector
   const disabledSelector = `${selector}.disabled`;
 
@@ -1003,9 +1003,14 @@ async function configureRooming(roomCount, selector) {
     return;
   }
 
-  if (roomCount) {
-    const roomCountInt = parseInt(roomCount, 10); // Ensure roomCount is parsed as an integer
-    for (let i = 0; i < roomCountInt; i++) {
+  if (bedCount) {
+    let bedCountInt = 0;
+    if (bedCount === "*") {
+      bedCountInt = (passenger.companionsCount ?? 0) + 1;
+    } else {
+      bedCountInt = parseInt(bedCount, 10); // Ensure roomCount is parsed as an integer
+    }
+    for (let i = 0; i < bedCountInt; i++) {
       // Use $eval with proper logic to click the button
       await page.$eval(selector, (el) => {
         if (el) {
