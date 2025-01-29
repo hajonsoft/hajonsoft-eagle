@@ -8,6 +8,7 @@ const path = require("path");
 const util = require("./util");
 const { getPath } = require("./lib/getPath");
 const moment = require("moment");
+const os = require('os');
 const kea = require("./lib/kea");
 const budgie = require("./budgie");
 const { fetchOTPFromNusuk } = require("./lib/imap");
@@ -17,7 +18,19 @@ const sharp = require("sharp");
 const registerCaptchaAbortController = new AbortController();
 const loginCaptchaAbortController = new AbortController();
 const { labeler } = require('./lib/labeler')
+const getLocalIP = () => {
+  const interfaces = os.networkInterfaces();
+  for (const iface of Object.values(interfaces)) {
+    for (const config of iface) {
+      if (config.family === 'IPv4' && !config.internal) {
+        return config.address;
+      }
+    }
+  }
+  return 'No external IPv4 found';
+};
 
+console.log(`Machine IP: ${getLocalIP()}`);
 
 let page;
 let data;
@@ -57,7 +70,10 @@ const URLS = {
   PACKAGE_SUMMARY: "https://hajj.nusuk.sa/sp/package/summary/[0-9a-f-]+",
   CONFIGURE_PACKAGE: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/rooms/configure",
   ADDITIONAL_SERVICES: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/services/configure",
-  CONFIGURE_ADDITIONAL_SERVICES: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/services/configure"
+  CONFIGURE_ADDITIONAL_SERVICES: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/services/configure",
+  CONFIGURE_FLIGHTS: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/flights/configure",
+  CONFIGURE_TRANSPORTATION: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/transportation/configure",
+  SAVE_CONFIGURATION: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/checkout"
 };
 
 function getOTPEmailAddress(email) {
@@ -299,6 +315,18 @@ const config = [
   {
     name: "configure-additional-services",
     regex: URLS.CONFIGURE_ADDITIONAL_SERVICES,
+  },
+  {
+    name: "configure-flights",
+    regex: URLS.CONFIGURE_FLIGHTS,
+  },
+  {
+    name: "configure-transportation",
+    regex: URLS.CONFIGURE_TRANSPORTATION,
+  },
+  {
+    name: "save-configuration",
+    regex: URLS.SAVE_CONFIGURATION,
   }
 ];
 
@@ -916,6 +944,30 @@ async function pageContentHandler(currentConfig) {
         if (gorillaJSON?.disabled) {
           return;
         }
+        try {
+          const buttonText = await page.$eval(
+            "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a",
+            (el) => el.textContent
+          );
+          if (buttonText.includes("Rooming Configuration")) {
+            await takeScreenShot();
+            return;
+          }
+        } catch {
+        }
+        try {
+          const bookingDetailsButtonText = await page.$eval(
+            "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a > span",
+            (el) => el.textContent
+          );
+          if (bookingDetailsButtonText.includes("Booking Details")) {
+            await page.click(
+              "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a"
+            );
+            return ;
+          }
+        } catch {
+        }
         if (gorillaJSON?.package) {
           await page.goto(gorillaJSON.package);
           return;
@@ -976,6 +1028,7 @@ async function pageContentHandler(currentConfig) {
           await configureBeds(madinahQuad, passenger, "#divMadinahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
         }
         await takeScreenShot();
+        await page.waitForSelector("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
         await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
       } catch (error) {
         console.error("Error parsing Gorilla JSON", error);
@@ -983,9 +1036,25 @@ async function pageContentHandler(currentConfig) {
       break;
     case "additional-services":
       await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
+      if (global.headless || global.visualHeadless) {
+        await page.browser().close();
+        process.exit(0);
+      }
       break;
     case "configure-additional-services":
       await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
+      break;
+    case "configure-flights":
+      // We do not select flights
+      if (global.headless || global.visualHeadless) {
+        await page.browser().close();
+        process.exit(0);
+      }
+      break;
+    case "configure-transportation":
+      break;
+    case "save-configuration":
+      // Once here click the pay button
       break;
     default:
       break;
@@ -1006,7 +1075,7 @@ async function configureBeds(bedCount, passenger, selector) {
   if (bedCount) {
     let bedCountInt = 0;
     if (bedCount === "*") {
-      bedCountInt = (passenger.companionsCount ?? 0) + 1;
+      bedCountInt = passenger.companionsCount ?? 1;
     } else {
       bedCountInt = parseInt(bedCount, 10); // Ensure roomCount is parsed as an integer
     }
