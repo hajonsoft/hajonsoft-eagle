@@ -341,7 +341,7 @@ const handleTimeout = async () => {
   console.error("Timeout occurred: onContentLoaded not triggered within 10 minutes.");
   await takeScreenShot();
   await page.browser().close();
-  process.exit(1); // Exit the process with an error code
+  process.exit(0);
 };
 async function onContentLoaded(res) {
   clearTimeout(timeoutId);
@@ -938,35 +938,36 @@ async function pageContentHandler(currentConfig) {
       util.incrementSelectedTraveler();
       break;
     case "dashboard":
+      try {
+        const buttonText = await page.$eval(
+          "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a",
+          (el) => el.textContent
+        );
+        if (buttonText.includes("Rooming Configuration")) {
+          await takeScreenShot();
+          return;
+        }
+      } catch {
+      }
+      try {
+        const bookingDetailsButtonText = await page.$eval(
+          "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a > span",
+          (el) => el.textContent
+        );
+        if (bookingDetailsButtonText.includes("Booking Details")) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await page.click(
+            "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a"
+          );
+          return ;
+        }
+      } catch {
+      }
       // Package selection with male gorilla
       try {
         const gorillaJSON = JSON.parse(data.system.gorillaScript);
         if (gorillaJSON?.disabled) {
           return;
-        }
-        try {
-          const buttonText = await page.$eval(
-            "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a",
-            (el) => el.textContent
-          );
-          if (buttonText.includes("Rooming Configuration")) {
-            await takeScreenShot();
-            return;
-          }
-        } catch {
-        }
-        try {
-          const bookingDetailsButtonText = await page.$eval(
-            "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a > span",
-            (el) => el.textContent
-          );
-          if (bookingDetailsButtonText.includes("Booking Details")) {
-            await page.click(
-              "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a"
-            );
-            return ;
-          }
-        } catch {
         }
         if (gorillaJSON?.package) {
           await page.goto(gorillaJSON.package);
@@ -1055,6 +1056,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "save-configuration":
       // Once here click the pay button
+      await takeScreenShot();
       break;
     default:
       break;
@@ -1095,14 +1097,17 @@ async function configureBeds(bedCount, passenger, selector) {
   }
 }
 
-async function takeScreenShot() {
+async function takeScreenShot(elementSelector) {
   const passenger = data.travellers[util.getSelectedTraveler()]; // Get the current traveler
   // screen shot and save it as the visa picture
-  const pageElement = await page.$("body");
+  let screenshotElement = await page.$("body");
+  if (elementSelector) {
+    screenshotElement = await page.$(elementSelector);
+  }
   // save screenshot to kea
   try {
     await util.screenShotToKea(
-      pageElement,
+      screenshotElement,
       data.system.accountId,
       passenger,
       "Embassy"
@@ -1907,6 +1912,9 @@ async function pasteOTPCodeCompanion(err, code) {
 }
 
 function getPassword(passenger) {
+  if (passenger.email && passenger.email.includes("/")) {
+    return passenger.email.split("/")[1];
+  }
   return data.system.password;
 }
 
