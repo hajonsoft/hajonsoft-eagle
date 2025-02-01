@@ -974,7 +974,13 @@ async function pageContentHandler(currentConfig) {
           return;
         }
       } catch (error) {
-        console.error("Error parsing Gorilla JSON", error, data.system.gorillaScript);
+        console.error("Error parsing Gorilla JSON, Nothing to execute exiting...", error, data.system.gorillaScript);
+        // Nothing to execute headless
+        if (global.headless || global.visualHeadless) {
+          await takeScreenShot();
+          await page.browser().close();
+          process.exit(0);
+        }
       }
       break;
     case "package-summary":
@@ -1104,6 +1110,7 @@ async function takeScreenShot(elementSelector) {
   if (elementSelector) {
     screenshotElement = await page.$(elementSelector);
   }
+  await new Promise(resolve => setTimeout(resolve, 1000));
   // save screenshot to kea
   try {
     await util.screenShotToKea(
@@ -1113,6 +1120,7 @@ async function takeScreenShot(elementSelector) {
       "Embassy"
     );
   } catch (error) { }
+  await new Promise(resolve => setTimeout(resolve, 1000));
 }
 async function gorillaHandler(gorillaConfig) {
   console.log(gorillaConfig)
@@ -1180,7 +1188,7 @@ async function handleDialogBox(passenger, saveReason = true) {
       console.log(`Rejection Reason: ${rejectionReason}`);
 
       // Update passenger status and rejection reason
-      if (rejectionReason === "The applicant already has pending application.") {
+      if (rejectionReason.includes("The applicant already has pending application")) {
         // close the browser and exit
         await kea.updatePassenger(
           data.system.accountId,
@@ -2090,6 +2098,7 @@ async function completeRegistration(selectedTraveler) {
     try {
       await page.waitForSelector("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div:nth-child(2) > button");
       await page.click("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div:nth-child(2) > button");
+      await handleDialogBox(passenger);
     } catch { }
   }
 }
