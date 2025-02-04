@@ -9,14 +9,14 @@ const NUSUK_FROM_EMAIL = "no_reply@notification.nusuk.sa";
 const nskFromEmail = "no-reply@mofa.gov.sa";
 const messages = {};
 
-function getHostName(recipient) {
-  if (recipient.includes("@triamail.com")) {
+function getHostName(emailServer) {
+  if (emailServer.includes("@triamail.com")) {
     return "mail.privateemail.com";
   }
-  if (recipient.includes("hajonsoft.net")) {
+  if (emailServer.includes("hajonsoft.net")) {
     return "giow1026.siteground.us";
   }
-  return `mail.${recipient.split("@")[1]}`;
+  return `mail.${emailServer.split("@")[1]}`;
 }
 
 function decodeBase64(text) {
@@ -53,11 +53,11 @@ function extractOtpFromHtml(body) {
 
 
 
-async function fetchOTPFromNusuk(recipient, password, subject, callback, isNotVirtualEmail) {
+async function fetchOTPFromNusuk(recipient, password, subject, callback, emailServer) {
   var imap = new Imap({
-    user: isNotVirtualEmail ? recipient : `admin@${recipient.split("@")[1]}`,
+    user: `admin@${emailServer}`,
     password: password,
-    host: getHostName(recipient),
+    host: getHostName(emailServer),
     port: 993,
     tls: true,
     tlsOptions: { rejectUnauthorized: false },
@@ -88,15 +88,19 @@ async function fetchOTPFromNusuk(recipient, password, subject, callback, isNotVi
 
 
       const subjectArray = subject.map((s) => ["HEADER", "SUBJECT", s]);
+      const forwardSubjectArray = subject.map((s) => ["HEADER", "SUBJECT", `FW: ${s}`]);
+      const searchCriteria = ["UNSEEN", ["SINCE", sinceDate]];
+      if (recipient.toLowerCase().includes(emailServer.toLowerCase())) {
+        searchCriteria.push(["HEADER", "FROM", NUSUK_FROM_EMAIL]);
+        searchCriteria.push(["OR", ...subjectArray]);
+        searchCriteria.push(["HEADER", "TO", recipient]);
+      } else {
+        searchCriteria.push(["HEADER", "FROM", recipient]);
+        searchCriteria.push(["OR", ...forwardSubjectArray]);
+        searchCriteria.push(["HEADER", "TO", `admin@${emailServer}`]);
+      }
 
-      imap.search(
-        [
-          "UNSEEN",
-          ["OR", ...subjectArray],
-          ["HEADER", "FROM", NUSUK_FROM_EMAIL],
-          ["HEADER", "TO", recipient],
-          ["SINCE", sinceDate],
-        ],
+      imap.search(searchCriteria,
         function (err, results) {
           if (err) throw err;
 
