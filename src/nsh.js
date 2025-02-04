@@ -1357,12 +1357,10 @@ async function getOTPCode() {
     ) {
       await fetchOTPFromNusuk(
         getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
-        (passenger.email || emailAddress).includes("/")
-          ? (passenger.email || emailAddress).split("/")[1]
-          : data.system.adminEmailPassword,
+        data.system.adminEmailPassword,
         ["One Time Password", "رمز سري لمرة واحدة"],
         pasteOTPCode,
-        data.system.username
+        data.system.username.replace("@", "")
       );
     }
   } catch (e) {
@@ -1381,9 +1379,7 @@ async function getCompanionOTPCode() {
   try {
     await fetchOTPFromNusuk(
       getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
-      (passenger.email || emailAddress).includes("/")
-        ? (passenger.email || emailAddress).split("/")[1]
-        : data.system.adminEmailPassword,
+      data.system.adminEmailPassword,
       ["One Time Password", "رمز سري لمرة واحدة"],
       pasteOTPCodeCompanion,
       data.system.username.replace("@", "")
