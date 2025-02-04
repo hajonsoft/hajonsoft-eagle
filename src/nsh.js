@@ -271,7 +271,7 @@ const config = [
         }
       },
     },
-    focus: "#LogInViewModel_Password"
+    focus: "#LogInViewModel_Email"
   },
   {
     name: "success",
@@ -343,6 +343,21 @@ const handleTimeout = async () => {
   await page.browser().close();
   process.exit(0);
 };
+
+function readSubmissionGorilla() {
+  if (!data.system.gorillaScript) {
+    return;
+  }
+  try {
+    const gorillaJSON = JSON.parse(data.system.gorillaScript);
+    if (gorillaJSON?.disabled) {
+      return;
+    }
+    global.submissionGorilla = gorillaJSON;
+    console.log("submission gorilla loaded", global.submissionGorilla);
+  } catch (error) {
+  }
+}
 async function onContentLoaded(res) {
   clearTimeout(timeoutId);
   timeoutId = setTimeout(handleTimeout, MAX_WAIT_TIME_MS);
@@ -355,6 +370,7 @@ async function onContentLoaded(res) {
   }
   const pageUrl = await page.url();
   console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ pageUrl", pageUrl);
+  readSubmissionGorilla();
   const beforeGorillaConfig = await util.findGorillaConfig(pageUrl, data.system.gorillaScript);
   if (beforeGorillaConfig?.executeBefore) {
     try {
@@ -938,45 +954,20 @@ async function pageContentHandler(currentConfig) {
       util.incrementSelectedTraveler();
       break;
     case "dashboard":
-      try {
-        const buttonText = await page.$eval(
-          "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a",
-          (el) => el.textContent
-        );
-        if (buttonText.includes("Rooming Configuration")) {
-          await takeScreenShot();
-          return;
-        }
-      } catch {
-      }
-      try {
-        const bookingDetailsButtonText = await page.$eval(
-          "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a > span",
-          (el) => el.textContent
-        );
-        if (bookingDetailsButtonText.includes("Booking Details")) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          await page.click(
-            "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a"
+      if (global.headless || global.visualHeadless) {
+        try {
+          const bookingDetailsButtonTextSelector = "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a > span";
+          const bookingDetailsButtonText = await page.$eval(
+            bookingDetailsButtonTextSelector,
+            (el) => { if (el) { return el.textContent } else { return null } }
           );
-          return ;
-        }
-      } catch {
-      }
-      // Package selection with male gorilla
-      try {
-        const gorillaJSON = JSON.parse(data.system.gorillaScript);
-        if (gorillaJSON?.disabled) {
-          return;
-        }
-        if (gorillaJSON?.package) {
-          await page.goto(gorillaJSON.package);
-          return;
-        }
-      } catch (error) {
-        console.error("Error parsing Gorilla JSON, Nothing to execute exiting...", error, data.system.gorillaScript);
-        // Nothing to execute headless
-        if (global.headless || global.visualHeadless) {
+
+          if (bookingDetailsButtonText?.includes("Booking Details")) {
+            const href = await page.$eval("body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a", (el) => el.href);
+            await page.goto(href);
+            return;
+          }
+        } catch {
           await takeScreenShot();
           await page.browser().close();
           process.exit(0);
@@ -984,19 +975,11 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "package-summary":
-      try {
-        const gorillaJSON = JSON.parse(data.system.gorillaScript);
-        if (gorillaJSON.disabled) {
-          return;
-        }
-        if (gorillaJSON?.package) {
-          const packageId = gorillaJSON.package.split("/").pop();
-          console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ packageId", packageId);
-          await page.goto(`https://hajj.nusuk.sa/package/${packageId}/booking/rooms/configure`);
-          return;
-        }
-      } catch (error) {
-        console.error("Error parsing Gorilla JSON", error, data.system.gorillaScript);
+      if (global.submissionGorilla?.package) {
+        const packageId = global.submissionGorilla.package.split("/").pop();
+        console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ packageId", packageId);
+        await page.goto(`https://hajj.nusuk.sa/package/${packageId}/booking/rooms/configure`);
+        return;
       }
       break;
     case "configure-package":
@@ -1007,39 +990,31 @@ async function pageContentHandler(currentConfig) {
       //     "disabled": true,
       //     "pay": true
       // }
-      try {
-        const gorillaJSON = JSON.parse(data.system.gorillaScript);
-        if (gorillaJSON?.disabled) {
-          return;
-        }
-        if (gorillaJSON?.makkah) {
-          const makkahBeds = gorillaJSON.makkah.split(",");
-          const makkahSingle = makkahBeds[0];
-          const makkahDouble = makkahBeds[1];
-          const makkahTriple = makkahBeds[2];
-          const makkahQuad = makkahBeds[3];
-          await configureBeds(makkahSingle, passenger, "#divMakkahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-          await configureBeds(makkahDouble, passenger, "#divMakkahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-          await configureBeds(makkahTriple, passenger, "#divMakkahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-          await configureBeds(makkahQuad, passenger, "#divMakkahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-        }
-        if (gorillaJSON?.madinah) {
-          const madinahBeds = gorillaJSON.madinah.split(",");
-          const madinahSingle = madinahBeds[0];
-          const madinahDouble = madinahBeds[1];
-          const madinahTriple = madinahBeds[2];
-          const madinahQuad = madinahBeds[3];
-          await configureBeds(madinahSingle, passenger, "#divMadinahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-          await configureBeds(madinahDouble, passenger, "#divMadinahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-          await configureBeds(madinahTriple, passenger, "#divMadinahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-          await configureBeds(madinahQuad, passenger, "#divMadinahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-        }
-        await takeScreenShot();
-        await page.waitForSelector("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
-        await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
-      } catch (error) {
-        console.error("Error parsing Gorilla JSON", error);
+      if (global.submissionGorilla?.makkah) {
+        const makkahBeds = gorillaJSON.makkah.split(",");
+        const makkahSingle = makkahBeds[0];
+        const makkahDouble = makkahBeds[1];
+        const makkahTriple = makkahBeds[2];
+        const makkahQuad = makkahBeds[3];
+        await configureBeds(makkahSingle, passenger, "#divMakkahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        await configureBeds(makkahDouble, passenger, "#divMakkahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        await configureBeds(makkahTriple, passenger, "#divMakkahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        await configureBeds(makkahQuad, passenger, "#divMakkahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
       }
+      if (global.submissionGorilla?.madinah) {
+        const madinahBeds = gorillaJSON.madinah.split(",");
+        const madinahSingle = madinahBeds[0];
+        const madinahDouble = madinahBeds[1];
+        const madinahTriple = madinahBeds[2];
+        const madinahQuad = madinahBeds[3];
+        await configureBeds(madinahSingle, passenger, "#divMadinahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        await configureBeds(madinahDouble, passenger, "#divMadinahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        await configureBeds(madinahTriple, passenger, "#divMadinahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        await configureBeds(madinahQuad, passenger, "#divMadinahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+      }
+      await takeScreenShot();
+      await page.waitForSelector("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
+      await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
       break;
     case "additional-services":
       await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
@@ -1062,7 +1037,21 @@ async function pageContentHandler(currentConfig) {
       break;
     case "save-configuration":
       // Once here click the pay button
+      const walletBalanceRaw = await page.$eval("#purchaseDetailsDiv > div.purchase-details > div.total-area > div.row.mt-3 > div > div > div > div.col.text-end.total-price > span", el => el.textContent);
+      const walletBalance = parseFloat(walletBalanceRaw.replace("SAR", "").trim());
+      const totalPriceRaw = await page.$eval("#purchaseDetailsDiv > div.purchase-details > div.total-area > div:nth-child(4) > div.col.text-end.total-price > span", el => el.textContent);
+      const totalPrice = parseFloat(totalPriceRaw.replace("SAR", "").trim());
       await takeScreenShot();
+      if (walletBalance >= totalPrice) {
+        console.log("Wallet balance is enough to pay", walletBalanceRaw, ">", totalPriceRaw);
+        if (global.submissionGorilla?.pay) {
+          // await page.click("#btnPay");
+        }
+      } else {
+        console.log("Wallet balance is not enough to pay", walletBalanceRaw, "<", totalPriceRaw);
+        await page.browser().close();
+        process.exit(0);
+      }
       break;
     default:
       break;
@@ -1351,21 +1340,16 @@ async function getOTPCode() {
     (el, email, fromString) =>
       (el.innerText = `${email.split("/")[0]} ${fromString}`),
     passenger.email || emailAddress,
-    (passenger.email || emailAddress).includes("/")
-      ? ""
-      : `from (admin@${(passenger.email || emailAddress).split("@")[1].split("/")[0]
-      })`
+    `from (admin@${data.system.username.replace("@", "")})`
   );
   try {
     if (pageMode.includes("Registration") || pageMode.includes("التسجيل")) {
       await fetchOTPFromNusuk(
         getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
-        (passenger.email || emailAddress).includes("/")
-          ? (passenger.email || emailAddress).split("/")[1]
-          : data.system.adminEmailPassword,
+        data.system.adminEmailPassword,
         ["Email Activation", "تفعيل البريد الالكتروني"],
         pasteOTPCode,
-        (passenger.email || emailAddress).includes("/")
+        data.system.username.replace("@", "")
       );
     } else if (
       pageMode.includes("OTP Verification") ||
@@ -1378,7 +1362,7 @@ async function getOTPCode() {
           : data.system.adminEmailPassword,
         ["One Time Password", "رمز سري لمرة واحدة"],
         pasteOTPCode,
-        (passenger.email || emailAddress).includes("/")
+        data.system.username
       );
     }
   } catch (e) {
@@ -1402,7 +1386,7 @@ async function getCompanionOTPCode() {
         : data.system.adminEmailPassword,
       ["One Time Password", "رمز سري لمرة واحدة"],
       pasteOTPCodeCompanion,
-      (passenger.email || emailAddress).includes("/")
+      data.system.username.replace("@", "")
     );
   } catch (e) {
     await util.infoMessage(page, "Manual code required!");
@@ -1469,8 +1453,7 @@ async function addNewMember(selectedTraveler) {
   await page.$eval(
     "#OTPModal > div > div > div > form > label",
     (el, email) =>
-    (el.innerText = `${email.split("/")[0]} from (admin@${email.split("@")[1].split("/")[0]
-      })`),
+      (el.innerText = `${email.split("/")[0]} from (admin@${data.system.username})`),
     passenger.email || emailAddress
   );
   await getCompanionOTPCode();
@@ -2119,10 +2102,10 @@ async function enterDate(selector, value) {
 }
 
 function canGetCode(email, domain) {
-  if (email.includes(domain)) {
-    return true;
-  }
-  return false;
+  // if (email.includes(domain)) {
+  //   return true;
+  // }
+  return true;
 }
 
 async function runParallel() {
