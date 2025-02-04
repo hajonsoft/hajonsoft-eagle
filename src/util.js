@@ -402,7 +402,7 @@ function findGorillaConfig(url, gorillaConfigsString) {
   try {
     gorillaConfigs = JSON.parse(gorillaConfigsString);
   } catch (e) {
-    console.log("Invalid Gorilla Script, skipping gorilla...");
+    console.log("Invalid Gorilla Script, skipping gorilla...", gorillaConfigsString);
     return;
   }
   if (!Array.isArray(gorillaConfigs)) {

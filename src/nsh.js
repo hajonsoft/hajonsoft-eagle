@@ -1045,7 +1045,15 @@ async function pageContentHandler(currentConfig) {
       if (walletBalance >= totalPrice) {
         console.log("Wallet balance is enough to pay", walletBalanceRaw, ">", totalPriceRaw);
         if (global.submissionGorilla?.pay) {
-          // await page.click("#btnPay");
+          const [button] = await page.$x("//button[text()='Purchase Package']");
+          if (button) {
+            await button.click();
+            console.log("Clicked 'Purchase Package' button.");
+          } else {
+            console.log("'Purchase Package' button not found.");
+          }
+          await takeScreenShot();
+          // await provokeMaleGorilla();
         }
       } else {
         console.log("Wallet balance is not enough to pay", walletBalanceRaw, "<", totalPriceRaw);
@@ -1058,6 +1066,18 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
+async function provokeMaleGorilla() {
+  for (let i = 0; i < 20; i++) {
+    const gorilla = kea.getGorilla();
+    console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ gorilla", gorilla);
+    if (gorilla) {
+      await gorillaHandler(gorilla);
+      break;
+    }
+    await new Promise(resolve => setTimeout(resolve, 30000));
+
+  }
+}
 async function configureBeds(bedCount, passenger, selector) {
   // Add "disabled" to the selector
   const disabledSelector = `${selector}.disabled`;
@@ -1591,6 +1611,19 @@ async function loginPassenger(selectedTraveler) {
     const loginButtonSelector =
       "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.mt-5.w-100";
     await util.clickWhenReady(loginButtonSelector, page);
+    try {
+      await page.waitForSelector("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text", { timeout: 2000 }).catch(() => { });
+      const loginFailed = await page.$eval("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text", (el) => el.innerText);
+      if (loginFailed) {
+        await util.infoMessage(page, `Login failed`);
+        await takeScreenShot();
+        await page.browser().close();
+        process.exit(0);
+      }
+    } catch {
+
+    }
+
   }
 }
 

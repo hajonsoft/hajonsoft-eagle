@@ -16,7 +16,7 @@ function getHostName(emailServer) {
   if (emailServer.includes("hajonsoft.net")) {
     return "giow1026.siteground.us";
   }
-  return `mail.${emailServer.split("@")[1]}`;
+  return `mail.${emailServer.replace("@", "")}`;
 }
 
 function decodeBase64(text) {
