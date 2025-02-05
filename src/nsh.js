@@ -859,6 +859,13 @@ async function pageContentHandler(currentConfig) {
       // await util.clickWhenReady("#HaveValidResidencyNo", page);
       break;
     case "login":
+      if (global.headless || global.visualHeadless) {
+        if (passenger.mofaNumber.startsWith("PENDING")) {
+          console.log("🚦 passenger", passenger.slug, "Has PENDING Application, Please clear MOFA# field to try again");
+          await page.browser().close();
+          process.exit(0);
+        }
+      }
       await closeAccountCreatedSuccessModal();
       await page.$eval(
         "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.mt-5.w-100",
@@ -955,6 +962,15 @@ async function pageContentHandler(currentConfig) {
       break;
     case "dashboard":
       if (global.headless || global.visualHeadless) {
+        // put the package into the cart
+        try {
+          if (global.submissionGorilla?.package) {
+            const packageId = global.submissionGorilla.package.split("/").pop();
+            console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ packageId", packageId);
+            await page.goto(`https://hajj.nusuk.sa/package/${packageId}/booking/rooms/configure`);
+            return;
+          }
+        } catch { }
         try {
           const bookingDetailsButtonTextSelector = "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a > span";
           const bookingDetailsButtonText = await page.$eval(
@@ -1044,17 +1060,7 @@ async function pageContentHandler(currentConfig) {
       await takeScreenShot();
       if (walletBalance >= totalPrice) {
         console.log("Wallet balance is enough to pay", walletBalanceRaw, ">", totalPriceRaw);
-        if (global.submissionGorilla?.pay) {
-          const [button] = await page.$x("//button[text()='Purchase Package']");
-          if (button) {
-            await button.click();
-            console.log("Clicked 'Purchase Package' button.");
-          } else {
-            console.log("'Purchase Package' button not found.");
-          }
-          await takeScreenShot();
-          // await provokeMaleGorilla();
-        }
+        await provokeMaleGorilla();
       } else {
         console.log("Wallet balance is not enough to pay", walletBalanceRaw, "<", totalPriceRaw);
         await page.browser().close();
@@ -1067,6 +1073,17 @@ async function pageContentHandler(currentConfig) {
 }
 
 async function provokeMaleGorilla() {
+  if (!global.submissionGorilla?.pay) {
+    return;
+  }
+  const [button] = await page.$x("//button[text()='Purchase Package']");
+  if (button) {
+    await button.click();
+    console.log("Clicked 'Purchase Package' button.");
+  } else {
+    console.log("'Purchase Package' button not found.");
+  }
+  await takeScreenShot();
   for (let i = 0; i < 20; i++) {
     const gorilla = kea.getGorilla();
     console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ gorilla", gorilla);
@@ -1112,6 +1129,7 @@ async function configureBeds(bedCount, passenger, selector) {
   }
 }
 
+const gorillaMemory = {};
 async function takeScreenShot(elementSelector) {
   const passenger = data.travellers[util.getSelectedTraveler()]; // Get the current traveler
   // screen shot and save it as the visa picture
@@ -1131,12 +1149,17 @@ async function takeScreenShot(elementSelector) {
   } catch (error) { }
   await new Promise(resolve => setTimeout(resolve, 1000));
 }
+
 async function gorillaHandler(gorillaConfig) {
   console.log(gorillaConfig)
   const actions = gorillaConfig?.actions;
 
 
   for (const action of actions) {
+    if (gorillaMemory[action.id]) {
+      continue;
+    }
+    gorillaMemory[action.id] = true;
     if (action.goto) {
       await page.goto(action.goto)
       return;
@@ -1156,11 +1179,21 @@ async function gorillaHandler(gorillaConfig) {
         {}
       );
     }
+    //TODO: check x selector and they will always start with // and check how to wait for it and how to find it and click it, is it always an array
     if (action.click) {
       if (action.wait) {
-        await page.waitForSelector(action.selector)
+        if (selector.startsWith("//")) {
+
+        } else {
+          await page.waitForSelector(action.selector)
+        }
       }
-      await page.click(action.selector)
+      if (selector.startsWith("//")) {
+        const [element] = await page.$x(action.selector);
+        await page.click(element)
+      } else {
+        await page.click(action.selector)
+      }
     }
     if (action.screenshot) {
       await takeScreenShot();
