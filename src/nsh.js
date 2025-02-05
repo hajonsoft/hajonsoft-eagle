@@ -1007,7 +1007,7 @@ async function pageContentHandler(currentConfig) {
       //     "pay": true
       // }
       if (global.submissionGorilla?.makkah) {
-        const makkahBeds = gorillaJSON.makkah.split(",");
+        const makkahBeds = global.submissionGorilla.makkah.split(",");
         const makkahSingle = makkahBeds[0];
         const makkahDouble = makkahBeds[1];
         const makkahTriple = makkahBeds[2];
@@ -1016,9 +1016,15 @@ async function pageContentHandler(currentConfig) {
         await configureBeds(makkahDouble, passenger, "#divMakkahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
         await configureBeds(makkahTriple, passenger, "#divMakkahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
         await configureBeds(makkahQuad, passenger, "#divMakkahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        // apply the same to shifting
+        await configureBeds(makkahSingle, passenger, "#divMakkahShiftingWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        await configureBeds(makkahDouble, passenger, "#divMakkahShiftingWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        await configureBeds(makkahTriple, passenger, "#divMakkahShiftingWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        await configureBeds(makkahQuad, passenger, "#divMakkahShiftingWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+
       }
       if (global.submissionGorilla?.madinah) {
-        const madinahBeds = gorillaJSON.madinah.split(",");
+        const madinahBeds = global.submissionGorilla.madinah.split(",");
         const madinahSingle = madinahBeds[0];
         const madinahDouble = madinahBeds[1];
         const madinahTriple = madinahBeds[2];
@@ -1096,37 +1102,39 @@ async function provokeMaleGorilla() {
   }
 }
 async function configureBeds(bedCount, passenger, selector) {
-  // Add "disabled" to the selector
-  const disabledSelector = `${selector}.disabled`;
+  try {
+    const disabledSelector = `${selector}.disabled`;
 
-  // Check if the "disabled" selector is present
-  const isDisabled = await page.$(disabledSelector);
-  if (isDisabled) {
-    console.log("Button is disabled. Exiting function.");
-    return;
-  }
-
-  if (bedCount) {
-    let bedCountInt = 0;
-    if (bedCount === "*") {
-      bedCountInt = passenger.companionsCount ?? 1;
-    } else {
-      bedCountInt = parseInt(bedCount, 10); // Ensure roomCount is parsed as an integer
+    // Check if the "disabled" selector is present
+    const isDisabled = await page.$(disabledSelector);
+    if (isDisabled) {
+      console.log("Button is disabled. Exiting function.");
     }
-    for (let i = 0; i < bedCountInt; i++) {
-      // Use $eval with proper logic to click the button
-      await page.$eval(selector, (el) => {
-        if (el) {
-          el.click();
-        } else {
-          console.error("Element not found for selector:", selector);
-        }
-      });
-
-      // Wait 1 second between clicks to mimic natural interaction
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    }
+  } catch {
   }
+  try {
+    if (bedCount) {
+      let bedCountInt = 0;
+      if (bedCount === "*") {
+        bedCountInt = passenger.companionsCount ?? 1;
+      } else {
+        bedCountInt = parseInt(bedCount, 10); // Ensure roomCount is parsed as an integer
+      }
+      for (let i = 0; i < bedCountInt; i++) {
+        // Use $eval with proper logic to click the button
+        await page.$eval(selector, (el) => {
+          if (el) {
+            el.click();
+          } else {
+            console.error("Element not found for selector:", selector);
+          }
+        });
+
+        // Wait 1 second between clicks to mimic natural interaction
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+  } catch { }
 }
 
 const gorillaMemory = {};
