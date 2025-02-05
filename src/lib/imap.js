@@ -95,9 +95,8 @@ async function fetchOTPFromNusuk(recipient, password, subject, callback, emailSe
         searchCriteria.push(["OR", ...subjectArray]);
         searchCriteria.push(["HEADER", "TO", recipient]);
       } else {
-        searchCriteria.push(["HEADER", "FROM", recipient]);
-        searchCriteria.push(["OR", ...forwardSubjectArray]);
-        searchCriteria.push(["HEADER", "TO", `admin@${emailServer}`]);
+        // searchCriteria.push(["OR", ["HEADER", "SUBJECT", subjectArray[0]], ["HEADER", "SUBJECT", `FW: ${subjectArray[0]}`]]);
+        searchCriteria.push(["OR", ["HEADER", "TO", recipient], ["HEADER", "TO", `admin@${emailServer}`]]);
       }
 
       imap.search(searchCriteria,

@@ -77,16 +77,16 @@ const URLS = {
 };
 
 function getOTPEmailAddress(email) {
-  if (
-    email.includes(".gmail") ||
-    email.includes(".yahoo") ||
-    email.includes(".outlook")
-  ) {
-    const domain = data.system.username.includes("@")
-      ? data.system.username.split("@")[1]
-      : data.system.username;
-    return `admin@${domain}`;
-  }
+  // if (
+  //   email.includes(".gmail") ||
+  //   email.includes(".yahoo") ||
+  //   email.includes(".outlook")
+  // ) {
+  //   const domain = data.system.username.includes("@")
+  //     ? data.system.username.split("@")[1]
+  //     : data.system.username;
+  //   return `admin@${domain}`;
+  // }
   return email;
 }
 
