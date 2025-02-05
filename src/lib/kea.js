@@ -257,6 +257,11 @@ const uploadImageToStorage = async (base64, destination) => {
   return await getDownloadURL(snapshot.ref);
 };
 
+async function getGorilla() {
+  const snap = await getDoc(dbRef(database, "app-data/gorilla"));
+  return snap.val();
+}
+
 module.exports = {
   init,
   updateSelectedTraveller,
@@ -264,4 +269,5 @@ module.exports = {
   updatePassenger,
   updateSubmission,
   updateTargetSystem,
+  getGorilla
 };
