@@ -1509,9 +1509,9 @@ async function addNewMember(selectedTraveler) {
 
   await page.$eval(
     "#OTPModal > div > div > div > form > label",
-    (el, email) =>
-      (el.innerText = `${email.split("/")[0]} from (admin@${data.system.username})`),
-    passenger.email || emailAddress
+    (el, params) =>
+      (el.innerText = `${params[0].split("/")[0]} from (admin@${params[1]})`),
+    [passenger.email || emailAddress, data.system.username]
   );
   await getCompanionOTPCode();
   try {
@@ -1534,6 +1534,7 @@ async function addNewMember(selectedTraveler) {
       ],
       passenger
     );
+    await new Promise(resolve => setTimeout(resolve, 3000));
     await page.click("#submitAddMember");
   } catch (error) {
     console.error('Error: The "Email verified" span did not appear within the timeout period.', error);
