@@ -73,6 +73,7 @@ const URLS = {
   CONFIGURE_ADDITIONAL_SERVICES: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/services/configure",
   CONFIGURE_FLIGHTS: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/flights/configure",
   CONFIGURE_TRANSPORTATION: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/transportation/configure",
+  CONFIGURE_TRANSPORTATIONS: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/transportations/configure",
   SAVE_CONFIGURATION: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/checkout"
 };
 
@@ -323,6 +324,10 @@ const config = [
   {
     name: "configure-transportation",
     regex: URLS.CONFIGURE_TRANSPORTATION,
+  },
+  {
+    name: "configure-transportations",
+    regex: URLS.CONFIGURE_TRANSPORTATIONS,
   },
   {
     name: "save-configuration",
@@ -860,7 +865,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "login":
       if (global.headless || global.visualHeadless) {
-        if (passenger.mofaNumber.startsWith("PENDING")) {
+        if (passenger.mofaNumber?.startsWith("PENDING")) {
           console.log("🚦 passenger", passenger.slug, "Has PENDING Application, Please clear MOFA# field to try again");
           await page.browser().close();
           process.exit(0);
@@ -962,9 +967,9 @@ async function pageContentHandler(currentConfig) {
       break;
     case "dashboard":
       if (global.headless || global.visualHeadless) {
-        // put the package into the cart
+        // put the package into the cart if the payment is not requested. if payment instruction is present then do not change the package
         try {
-          if (global.submissionGorilla?.package) {
+          if (global.submissionGorilla?.package && !global.submissionGorilla?.pay) {
             const packageId = global.submissionGorilla.package.split("/").pop();
             console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ packageId", packageId);
             await page.goto(`https://hajj.nusuk.sa/package/${packageId}/booking/rooms/configure`);
@@ -999,13 +1004,6 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "configure-package":
-      //   {
-      //     "package": "",
-      //     "makkah": "0,0,0,1",
-      //     "madinah": "0,0,0,1",
-      //     "disabled": true,
-      //     "pay": true
-      // }
       if (global.submissionGorilla?.makkah) {
         const makkahBeds = global.submissionGorilla.makkah.split(",");
         const makkahSingle = makkahBeds[0];
@@ -1037,6 +1035,20 @@ async function pageContentHandler(currentConfig) {
       await takeScreenShot();
       await page.waitForSelector("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
       await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      try {
+        const modal = await page.$(`body > div.swal-overlay.swal-overlay--show-modal > div`);
+        if (modal) {
+          await page.click("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button");
+        }
+      } catch { }
+      // find this cart selector and get the href and visit it
+      // body > header > nav > div > div.d-flex.align-items-center.d-lg-none > div > div > div > div > a.btn.btn-main.x-small.d-block.d-sm-inline-block.d-md-block.px-1.w-100.py-2
+
+      try {
+        const href = await page.$eval("body > header > nav > div > div.d-flex.align-items-center.d-lg-none > div > div > div > div > a.btn.btn-main.x-small.d-block.d-sm-inline-block.d-md-block.px-1.w-100.py-2", (el) => el.href);
+        await page.goto(href);
+      } catch { }
       break;
     case "additional-services":
       await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
@@ -1049,13 +1061,10 @@ async function pageContentHandler(currentConfig) {
       await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
       break;
     case "configure-flights":
-      // We do not select flights
-      if (global.headless || global.visualHeadless) {
-        await page.browser().close();
-        process.exit(0);
-      }
       break;
     case "configure-transportation":
+    case "configure-transportations":
+      await page.click("#nextButton")
       break;
     case "save-configuration":
       // Once here click the pay button
@@ -1116,7 +1125,7 @@ async function configureBeds(bedCount, passenger, selector) {
     if (bedCount) {
       let bedCountInt = 0;
       if (bedCount === "*") {
-        bedCountInt = passenger.companionsCount ?? 1;
+        bedCountInt = (passenger.companionsCount ?? 0) + 1;
       } else {
         bedCountInt = parseInt(bedCount, 10); // Ensure roomCount is parsed as an integer
       }
