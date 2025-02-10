@@ -74,7 +74,8 @@ const URLS = {
   CONFIGURE_FLIGHTS: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/flights/configure",
   CONFIGURE_TRANSPORTATION: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/transportation/configure",
   CONFIGURE_TRANSPORTATIONS: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/transportations/configure",
-  SAVE_CONFIGURATION: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/checkout"
+  SAVE_CONFIGURATION: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/checkout",
+  REMITTANCES: "https://hajj.nusuk.sa/wallet/remittances",
 };
 
 function getOTPEmailAddress(email) {
@@ -332,7 +333,11 @@ const config = [
   {
     name: "save-configuration",
     regex: URLS.SAVE_CONFIGURATION,
-  }
+  },
+  {
+    name: "remittances",
+    regex: URLS.REMITTANCES,
+  },
 ];
 
 async function send(sendData) {
@@ -443,11 +448,11 @@ async function pageContentHandler(currentConfig) {
         });
       }
       if (global.headless || global.visualHeadless) {
-        if (passenger.isCompanion) {
-          console.log("can not login as a companion")
-          await page.browser().close();
-          return;
-        }
+        // if (passenger.isCompanion) {
+        //   console.log("can not login as a companion")
+        //   await page.browser().close();
+        //   return;
+        // }
         await loginOrRegister(util.getSelectedTraveler());
         return;
       }
@@ -517,6 +522,13 @@ async function pageContentHandler(currentConfig) {
         },
       });
       await getOTPCode();
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      try {
+        const modal = await page.$(`body > div.swal-overlay.swal-overlay--show-modal > div`);
+        if (modal) {
+          await page.click("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button");
+        }
+      } catch { }
       break;
     case "signup-password":
       await util.commit(
@@ -967,6 +979,11 @@ async function pageContentHandler(currentConfig) {
       break;
     case "dashboard":
       if (global.headless || global.visualHeadless) {
+        const canProceed = await checkCanPay();
+        if (!canProceed) {
+          await page.browser().close();
+          process.exit(0);
+        }
         // put the package into the cart if the payment is not requested. if payment instruction is present then do not change the package
         try {
           if (global.submissionGorilla?.package && !global.submissionGorilla?.pay) {
@@ -1068,23 +1085,67 @@ async function pageContentHandler(currentConfig) {
       await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
       break;
     case "configure-flights":
+      if (global.headless || global.visualHeadless) {
+        try {
+          const noFlightsAvailable = await page.$eval("#frmSaveFlightContract > div > div > div > p", (el) => el.innerText);
+          if (noFlightsAvailable.includes("no flights available")) {
+            await takeScreenShot();
+            await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+              mofaNumber: `NO-FLIGHTS-${moment().format('DD-MMM-YY')}`,
+              "submissionData.nsh.status": "Rejected",
+              "submissionData.nsh.rejectionReason": "No flights available",
+            });
+            await page.browser().close();
+            process.exit(0);
+          }
+        } catch { }
+      }
       break;
     case "configure-transportation":
     case "configure-transportations":
       await page.click("#nextButton")
       break;
     case "save-configuration":
-      // Once here click the pay button
-      const walletBalanceRaw = await page.$eval("#purchaseDetailsDiv > div.purchase-details > div.total-area > div.row.mt-3 > div > div > div > div.col.text-end.total-price > span", el => el.textContent);
-      const walletBalance = parseFloat(walletBalanceRaw.replace("SAR", "").trim());
+      let walletBalance = 0;
+      try {
+        const walletBalanceRaw = await page.$eval("#purchaseDetailsDiv > div.purchase-details > div.total-area > div.row.mt-3 > div > div > div > div.col.text-end.total-price > span", el => el.textContent);
+        walletBalance = parseFloat(walletBalanceRaw.replace("SAR", "").replaceAll(",", "").trim());
+      } catch { }
       const totalPriceRaw = await page.$eval("#purchaseDetailsDiv > div.purchase-details > div.total-area > div:nth-child(4) > div.col.text-end.total-price > span", el => el.textContent);
-      const totalPrice = parseFloat(totalPriceRaw.replace("SAR", "").trim());
+      console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ totalPriceRaw", totalPriceRaw);
+      const totalPrice = parseFloat(totalPriceRaw.replace("SAR", "").replaceAll(",", "").trim());
       await takeScreenShot();
       if (walletBalance >= totalPrice) {
-        console.log("Wallet balance is enough to pay", walletBalanceRaw, ">", totalPriceRaw);
+        console.log("Wallet balance is enough to pay", walletBalance, ">", totalPrice);
         await provokeMaleGorilla();
       } else {
-        console.log("Wallet balance is not enough to pay", walletBalanceRaw, "<", totalPriceRaw);
+        console.log("Wallet balance is not enough to pay", walletBalance, "<", totalPrice);
+        await page.browser().close();
+        process.exit(0);
+      }
+      break;
+    case "remittances":
+      const found = await page.evaluate(() => {
+        const rows = document.querySelectorAll('body > main > div > div > div > div.profile-container.theContent.p-4.p-md-5 > div > div:nth-child(3) > div > div.table-responsive > table > tbody tr');
+        for (let row of rows) {
+          const cells = row.querySelectorAll('td');
+          for (let cell of cells) {
+            if (cell.textContent.includes('Purchase package')) {
+              return true; // If the text is found, return true
+            }
+          }
+        }
+        return false; // If not found in any cell
+      });
+      if (found) {
+        console.log("Package has been purchased");
+        await takeScreenShot();
+        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          mofaNumber: `Purchased-${moment().format('DD-MMM-YY')}`,
+          "submissionData.nsh.status": "Rejected",
+          "submissionData.nsh.rejectionReason": "Package has been purchased",
+        });
+
         await page.browser().close();
         process.exit(0);
       }
@@ -1094,6 +1155,64 @@ async function pageContentHandler(currentConfig) {
   }
 }
 
+async function checkCanPay() {
+  if (global.submissionGorilla?.pay) {
+    const passenger = data.travellers[util.getSelectedTraveler()];
+    try {
+      const walletBalanceSelector = "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div.col-12.col-md-6.active-card.mb-2 > div > div.mt-0 > h4";
+      try {
+        await page.waitForSelector(walletBalanceSelector);
+      } catch {
+        await takeScreenShot();
+        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          mofaNumber: `NO-WALLET-${moment().format('DD-MMM-YY')}`,
+          "submissionData.nsh.status": "Rejected",
+          "submissionData.nsh.rejectionReason": "No Wallet balance found",
+        });
+        return false;
+      }
+      const dashboardBalanceRaw = await page.$eval(walletBalanceSelector, (el) => el.textContent);
+      const dashboardWalletBalance = parseFloat(dashboardBalanceRaw.replace("SAR", "").replace(",", "").trim());
+      const dashboardTotalPriceSelector = "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.booking-price > h6 > span.font-bold.package-price.text-uppercase";
+      try {
+        await page.waitForSelector(dashboardTotalPriceSelector);
+      } catch {
+        await takeScreenShot();
+        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          mofaNumber: `NO-PKG-${moment().format('DD-MMM-YY')}`,
+          "submissionData.nsh.status": "Rejected",
+          "submissionData.nsh.rejectionReason": "No Package selected",
+        });
+        return false;
+      }
+
+      const dashboardTotalPriceRaw = await page.$eval(dashboardTotalPriceSelector, (el) => el.textContent);
+      const dashboardTotalPrice = parseFloat(dashboardTotalPriceRaw.replace("SAR", "").replace(",", "").trim());
+      console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ dashboardTotalPrice", dashboardTotalPrice);
+      console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ dashboardWalletBalance", dashboardWalletBalance);
+      if (dashboardWalletBalance < dashboardTotalPrice) {
+        await takeScreenShot();
+        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          mofaNumber: `NSF-${moment().format('DD-MMM-YY')}`,
+          "submissionData.nsh.status": "Rejected",
+          "submissionData.nsh.rejectionReason": "Wallet balance is not enough to pay",
+        });
+        await page.goto("https://hajj.nusuk.sa/wallet/remittances");
+        await new Promise(resolve => setTimeout(resolve, 5000)); // wait long enough untill remittances page is loaded
+        return false;
+      } else {
+        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          mofaNumber: `OK-${moment().format('DD-MMM-YY')}`,
+        });
+        return true;
+      }
+    } catch {
+
+    }
+  }
+
+  return true;
+}
 async function provokeMaleGorilla() {
   if (!global.submissionGorilla?.pay) {
     return;
@@ -1673,7 +1792,11 @@ async function loginPassenger(selectedTraveler) {
       await page.waitForSelector("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text", { timeout: 2000 }).catch(() => { });
       const loginFailed = await page.$eval("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text", (el) => el.innerText);
       if (loginFailed) {
-        await util.infoMessage(page, `Login failed`);
+        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          mofaNumber: `LOGIN-FAILED-${moment().format('DD-MMM-YY')}`,
+          "submissionData.nsh.status": "Rejected",
+          "submissionData.nsh.rejectionReason": loginFailed,
+        });
         await takeScreenShot();
         await page.browser().close();
         process.exit(0);
