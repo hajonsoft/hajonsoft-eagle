@@ -32,6 +32,7 @@ const getLocalIP = () => {
 
 console.log(`Machine IP: ${getLocalIP()}`);
 
+const MAX_PARALLEL = 15;
 let page;
 let data;
 let counter = 0;
@@ -437,7 +438,7 @@ async function pageContentHandler(currentConfig) {
           controller: {
             selector:
               "body > main > div.home-full-bg > div.container-lg.container-fluid.h-100 > div.row.z-1.position-relative.align-content-end.home-full-text > div > h3",
-            title: `Login All Passengers (${Math.min(leads.length, 15)}/${leads.length
+            title: `Login All Passengers (${Math.min(leads.length, MAX_PARALLEL)}/${leads.length
               })`,
             arabicTitle: "تسجيل الدخول لجميع الركاب",
             name: "parallel",
@@ -884,10 +885,6 @@ async function pageContentHandler(currentConfig) {
         }
       }
       await closeAccountCreatedSuccessModal();
-      await page.$eval(
-        "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.mt-5.w-100",
-        (el) => el.scrollIntoView({ behavior: "smooth", block: "start" })
-      );
       if (!manualMode) {
         manualMode = currentConfig.name;
       }
@@ -1106,7 +1103,7 @@ async function pageContentHandler(currentConfig) {
       await page.click("#nextButton")
       break;
     case "save-configuration":
-      let walletBalance = 0;
+      let walletBalance = -1;
       try {
         const walletBalanceRaw = await page.$eval("#purchaseDetailsDiv > div.purchase-details > div.total-area > div.row.mt-3 > div > div > div > div.col.text-end.total-price > span", el => el.textContent);
         walletBalance = parseFloat(walletBalanceRaw.replace("SAR", "").replaceAll(",", "").trim());
@@ -1119,7 +1116,22 @@ async function pageContentHandler(currentConfig) {
         console.log("Wallet balance is enough to pay", walletBalance, ">", totalPrice);
         await provokeMaleGorilla();
       } else {
-        console.log("Wallet balance is not enough to pay", walletBalance, "<", totalPrice);
+        if (walletBalance === -1) {
+          try {
+            const reasonWalletBalance = await page.$eval("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.alert.alert-primary.mt-4.py-2.px-3.rounded-2 > div > div > div > div > div.ms-3 > small > span", el => el.textContent);
+            await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+              mofaNumber: `NO-CAPACITY-${moment().format('DD-MMM-YY')}`,
+              "submissionData.nsh.status": "Rejected",
+              "submissionData.nsh.rejectionReason": reasonWalletBalance,
+            });
+          } catch { }
+        } else {
+          await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+            mofaNumber: `NO-WALLET-${moment().format('DD-MMM-YY')}`,
+            "submissionData.nsh.status": "Rejected",
+            "submissionData.nsh.rejectionReason": "Unable to find the wallet balance in save-configuration page",
+          });
+        }
         await page.browser().close();
         process.exit(0);
       }
@@ -2319,17 +2331,14 @@ function canGetCode(email, domain) {
 }
 
 async function runParallel() {
-  const leads = data.travellers.filter(
-    (traveller) =>
-      !traveller.isCompanion &&
-      traveller.email &&
-      !traveller.email.includes(".companion")
-  );
+  const selectedParallelTraveller = await page.$eval("#hajonsoft_select", (el) => Number(el.value));
+  const startIndex = Math.max(0, selectedParallelTraveller - 1); // Convert 1-based to 0-based
+  const leads = data.travellers.slice(startIndex, startIndex + MAX_PARALLEL);
   // get screenWidth and height of the page
   const monitorWidth = await page.evaluate(() => screen.width);
   const monitorHeight = await page.evaluate(() => screen.height);
   const commands = [];
-  for (let index = 0; index < Math.min(leads.length, 15); index++) {
+  for (let index = 0; index < Math.min(leads.length, MAX_PARALLEL); index++) {
     const passenger = leads[index];
     const newArgs = process.argv.map((v) => {
       if (v.includes("/node") || v.includes("\\node")) {
@@ -2342,11 +2351,11 @@ async function runParallel() {
         return `${v} --passengerIds=${passenger.id
           } --auto -windowed --index=${index}/${Math.min(
             leads.length,
-            15
-          )} --monitor-width=${monitorWidth} --monitor-height=${monitorHeight}`;
+            MAX_PARALLEL
+          )} --monitor-width=${monitorWidth} --monitor-height=${monitorHeight} --visualHeadless`;
       }
       if (v.startsWith("--passengerId")) {
-        return ``;
+        return ` --visualHeadless `;
       }
       return v;
     });
