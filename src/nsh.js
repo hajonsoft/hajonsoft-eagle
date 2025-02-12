@@ -1227,7 +1227,7 @@ async function checkCanPay() {
     }
   }
 
-  return true;
+  return false;
 }
 async function provokeMaleGorilla() {
   if (!global.submissionGorilla?.pay) {
@@ -1813,13 +1813,16 @@ async function loginPassenger(selectedTraveler) {
     await util.clickWhenReady(loginButtonSelector, page);
     try {
       await page.waitForSelector("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text", { timeout: 2000 }).catch(() => { });
-      const loginFailed = await page.$eval("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text", (el) => el.innerText);
-      if (loginFailed) {
+      const loginFailedMessage = await page.$eval("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text", (el) => el.innerText);
+      if (loginFailedMessage) {
         await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
           mofaNumber: `LOGIN-FAILED-${moment().format('DD-MMM-YY')}`,
           "submissionData.nsh.status": "Rejected",
-          "submissionData.nsh.rejectionReason": loginFailed,
+          "submissionData.nsh.rejectionReason": loginFailedMessage,
         });
+        if (loginFailedMessage.includes("not verified")) {
+          await page.click("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button");
+        }
         loginRetries[selectedTraveler] += 1;
         await loginPassenger(selectedTraveler);
       }
