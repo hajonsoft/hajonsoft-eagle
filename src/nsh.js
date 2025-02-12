@@ -1103,37 +1103,41 @@ async function pageContentHandler(currentConfig) {
       await page.click("#nextButton")
       break;
     case "save-configuration":
-      let walletBalance = -1;
-      try {
-        const walletBalanceRaw = await page.$eval("#purchaseDetailsDiv > div.purchase-details > div.total-area > div.row.mt-3 > div > div > div > div.col.text-end.total-price > span", el => el.textContent);
-        walletBalance = parseFloat(walletBalanceRaw.replace("SAR", "").replaceAll(",", "").trim());
-      } catch { }
-      const totalPriceRaw = await page.$eval("#purchaseDetailsDiv > div.purchase-details > div.total-area > div:nth-child(4) > div.col.text-end.total-price > span", el => el.textContent);
-      console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ totalPriceRaw", totalPriceRaw);
-      const totalPrice = parseFloat(totalPriceRaw.replace("SAR", "").replaceAll(",", "").trim());
-      await takeScreenShot();
-      if (walletBalance >= totalPrice) {
-        console.log("Wallet balance is enough to pay", walletBalance, ">", totalPrice);
-        await provokeMaleGorilla();
-      } else {
-        if (walletBalance === -1) {
+      if (global.headless || global.visualHeadless) {
+        if (global.submissionGorilla?.pay) {
+          let walletBalance = -1;
           try {
-            const reasonWalletBalance = await page.$eval("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.alert.alert-primary.mt-4.py-2.px-3.rounded-2 > div > div > div > div > div.ms-3 > small > span", el => el.textContent);
-            await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-              mofaNumber: `NO-CAPACITY-${moment().format('DD-MMM-YY')}`,
-              "submissionData.nsh.status": "Rejected",
-              "submissionData.nsh.rejectionReason": reasonWalletBalance,
-            });
+            const walletBalanceRaw = await page.$eval("#purchaseDetailsDiv > div.purchase-details > div.total-area > div.row.mt-3 > div > div > div > div.col.text-end.total-price > span", el => el.textContent);
+            walletBalance = parseFloat(walletBalanceRaw.replace("SAR", "").replaceAll(",", "").trim());
           } catch { }
-        } else {
-          await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-            mofaNumber: `NO-WALLET-${moment().format('DD-MMM-YY')}`,
-            "submissionData.nsh.status": "Rejected",
-            "submissionData.nsh.rejectionReason": "Unable to find the wallet balance in save-configuration page",
-          });
+          const totalPriceRaw = await page.$eval("#purchaseDetailsDiv > div.purchase-details > div.total-area > div:nth-child(4) > div.col.text-end.total-price > span", el => el.textContent);
+          console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ totalPriceRaw", totalPriceRaw);
+          const totalPrice = parseFloat(totalPriceRaw.replace("SAR", "").replaceAll(",", "").trim());
+          await takeScreenShot();
+          if (walletBalance >= totalPrice) {
+            console.log("Wallet balance is enough to pay", walletBalance, ">", totalPrice);
+            await provokeMaleGorilla();
+          } else {
+            if (walletBalance === -1) {
+              try {
+                const reasonWalletBalance = await page.$eval("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.alert.alert-primary.mt-4.py-2.px-3.rounded-2 > div > div > div > div > div.ms-3 > small > span", el => el.textContent);
+                await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+                  mofaNumber: `NO-CAPACITY-${moment().format('DD-MMM-YY')}`,
+                  "submissionData.nsh.status": "Rejected",
+                  "submissionData.nsh.rejectionReason": reasonWalletBalance,
+                });
+              } catch { }
+            } else {
+              await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+                mofaNumber: `NO-WALLET-${moment().format('DD-MMM-YY')}`,
+                "submissionData.nsh.status": "Rejected",
+                "submissionData.nsh.rejectionReason": "Unable to find the wallet balance in save-configuration page",
+              });
+            }
+            await page.browser().close();
+            process.exit(0);
+          }
         }
-        await page.browser().close();
-        process.exit(0);
       }
       break;
     case "remittances":
@@ -1223,30 +1227,37 @@ async function checkCanPay() {
     }
   }
 
-  return true;
+  return false;
 }
 async function provokeMaleGorilla() {
   if (!global.submissionGorilla?.pay) {
     return;
   }
   const [button] = await page.$x("//button[text()='Purchase Package']");
+  await takeScreenShot();
   if (button) {
-    await button.click();
     console.log("Clicked 'Purchase Package' button.");
+    await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+      mofaNumber: `BUTTON-${moment().format('DD-MMM-YY')}`,
+      "submissionData.nsh.status": "Rejected",
+      "submissionData.nsh.rejectionReason": "Purchase button present",
+    });
+    // await button.click();
+    // await page.browser().close();
+    // process.exit(0);
   } else {
     console.log("'Purchase Package' button not found.");
   }
-  await takeScreenShot();
-  for (let i = 0; i < 20; i++) {
-    const gorilla = kea.getGorilla();
-    console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ gorilla", gorilla);
-    if (gorilla) {
-      await gorillaHandler(gorilla);
-      break;
-    }
-    await new Promise(resolve => setTimeout(resolve, 30000));
+  // for (let i = 0; i < 20; i++) {
+  //   const gorilla = kea.getGorilla();
+  //   console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ gorilla", gorilla);
+  //   if (gorilla) {
+  //     await gorillaHandler(gorilla);
+  //     break;
+  //   }
+  //   await new Promise(resolve => setTimeout(resolve, 30000));
 
-  }
+  // }
 }
 async function configureBeds(bedCount, passenger, selector) {
   try {
@@ -1802,16 +1813,18 @@ async function loginPassenger(selectedTraveler) {
     await util.clickWhenReady(loginButtonSelector, page);
     try {
       await page.waitForSelector("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text", { timeout: 2000 }).catch(() => { });
-      const loginFailed = await page.$eval("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text", (el) => el.innerText);
-      if (loginFailed) {
+      const loginFailedMessage = await page.$eval("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text", (el) => el.innerText);
+      if (loginFailedMessage) {
         await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
           mofaNumber: `LOGIN-FAILED-${moment().format('DD-MMM-YY')}`,
           "submissionData.nsh.status": "Rejected",
-          "submissionData.nsh.rejectionReason": loginFailed,
+          "submissionData.nsh.rejectionReason": loginFailedMessage,
         });
-        await takeScreenShot();
-        await page.browser().close();
-        process.exit(0);
+        if (loginFailedMessage.includes("not verified")) {
+          await page.click("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button");
+        }
+        loginRetries[selectedTraveler] += 1;
+        await loginPassenger(selectedTraveler);
       }
     } catch {
 
@@ -2019,6 +2032,15 @@ async function pasteOTPCode(err, code) {
           );
         } catch { }
         getOTPCode();
+      } else {
+        const passenger = data.travellers[util.getSelectedTraveler()];
+        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          mofaNumber: `NO-OTP-${moment().format('DD-MMM-YY')}`,
+          "submissionData.nsh.status": "Rejected",
+          "submissionData.nsh.rejectionReason": "No OTP code received",
+        });
+        await page.browser().close();
+        process.exit(0);
       }
     }, 3000);
     return;
