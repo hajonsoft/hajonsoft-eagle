@@ -1271,11 +1271,9 @@ async function provokeMaleGorilla() {
       "submissionData.nsh.status": "Rejected",
       "submissionData.nsh.rejectionReason": "Purchase button present",
     });
-    // await button.click();
-    // await page.browser().close();
-    // process.exit(0);
   } else {
     console.log("'Purchase Package' button not found.");
+    global.submissionGorilla = null;
   }
   // for (let i = 0; i < 20; i++) {
   //   const gorilla = kea.getGorilla();
