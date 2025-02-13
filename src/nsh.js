@@ -17,7 +17,8 @@ const childProcess = require("child_process");
 const sharp = require("sharp");
 const registerCaptchaAbortController = new AbortController();
 const loginCaptchaAbortController = new AbortController();
-const { labeler } = require('./lib/labeler')
+const { labeler } = require('./lib/labeler');
+const { el } = require("date-fns/locale");
 const getLocalIP = () => {
   const interfaces = os.networkInterfaces();
   for (const iface of Object.values(interfaces)) {
@@ -351,8 +352,12 @@ const MAX_WAIT_TIME_MS = 600000;
 const handleTimeout = async () => {
   console.error("Timeout occurred: onContentLoaded not triggered within 10 minutes.");
   await takeScreenShot();
-  await page.browser().close();
-  process.exit(0);
+  if (global.visualHeadless) {
+    return
+  } else {
+    await page.browser().close();
+    process.exit(0);
+  }
 };
 
 function readSubmissionGorilla() {
@@ -978,8 +983,12 @@ async function pageContentHandler(currentConfig) {
       if (global.headless || global.visualHeadless) {
         const canProceed = await checkCanPay();
         if (!canProceed) {
-          await page.browser().close();
-          process.exit(0);
+          if (global.visualHeadless) {
+            return
+          } else {
+            await page.browser().close();
+            process.exit(0);
+          }
         }
         // put the package into the cart if the payment is not requested. if payment instruction is present then do not change the package
         try {
@@ -1004,8 +1013,12 @@ async function pageContentHandler(currentConfig) {
           }
         } catch {
           await takeScreenShot();
-          await page.browser().close();
-          process.exit(0);
+          if (global.visualHeadless) {
+            return
+          } else {
+            await page.browser().close();
+            process.exit(0);
+          }
         }
       }
       break;
@@ -1074,8 +1087,12 @@ async function pageContentHandler(currentConfig) {
     case "additional-services":
       await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
       if (global.headless || global.visualHeadless) {
-        await page.browser().close();
-        process.exit(0);
+        if (global.visualHeadless) {
+          return
+        } else {
+          await page.browser().close();
+          process.exit(0);
+        }
       }
       break;
     case "configure-additional-services":
@@ -1092,8 +1109,12 @@ async function pageContentHandler(currentConfig) {
               "submissionData.nsh.status": "Rejected",
               "submissionData.nsh.rejectionReason": "No flights available",
             });
-            await page.browser().close();
-            process.exit(0);
+            if (global.visualHeadless) {
+              return
+            } else {
+              await page.browser().close();
+              process.exit(0);
+            }
           }
         } catch { }
       }
@@ -1134,8 +1155,13 @@ async function pageContentHandler(currentConfig) {
                 "submissionData.nsh.rejectionReason": "Unable to find the wallet balance in save-configuration page",
               });
             }
-            await page.browser().close();
-            process.exit(0);
+            if (global.visualHeadless) {
+              return
+            }
+            else {
+              await page.browser().close();
+              process.exit(0);
+            }
           }
         }
       }
@@ -1161,9 +1187,12 @@ async function pageContentHandler(currentConfig) {
           "submissionData.nsh.status": "Rejected",
           "submissionData.nsh.rejectionReason": "Package has been purchased",
         });
-
-        await page.browser().close();
-        process.exit(0);
+        if (global.visualHeadless) {
+          return
+        } else {
+          await page.browser().close();
+          process.exit(0);
+        }
       }
       break;
     default:
