@@ -1141,7 +1141,7 @@ async function pageContentHandler(currentConfig) {
           const totalPrice = parseFloat(totalPriceRaw.replace("SAR", "").replaceAll(",", "").trim());
           await takeScreenShot();
           if (walletBalance >= totalPrice) {
-            console.log("Wallet balance is enough to pay", walletBalance, ">", totalPrice);
+            console.log("Wallet balance is sufficient to pay", walletBalance, ">=", totalPrice);
             await provokeMaleGorilla();
           } else {
             if (walletBalance === -1) {
@@ -1297,6 +1297,7 @@ async function provokeMaleGorilla() {
     }
   } catch {
     console.log("'Purchase Package' button not found.");
+    const passenger = data.travellers[util.getSelectedTraveler()];
     await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
       mofaNumber: `NO-BTN-${moment().format('DD-MMM-YY')}`,
       "submissionData.nsh.status": "Rejected",
