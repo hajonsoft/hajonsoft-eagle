@@ -78,6 +78,7 @@ const URLS = {
   CONFIGURE_TRANSPORTATIONS: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/transportations/configure",
   SAVE_CONFIGURATION: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/checkout",
   REMITTANCES: "https://hajj.nusuk.sa/wallet/remittances",
+  PURCHASE_RESULT: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/result"
 };
 
 function getOTPEmailAddress(email) {
@@ -340,6 +341,10 @@ const config = [
     name: "remittances",
     regex: URLS.REMITTANCES,
   },
+  {
+    name: "purchase-result",
+    regex: URLS.PURCHASE_RESULT,
+  }
 ];
 
 async function send(sendData) {
@@ -1195,6 +1200,20 @@ async function pageContentHandler(currentConfig) {
         }
       }
       break;
+    case "purchase-result":
+      // wait for confirmed then exit
+      try {
+        await page.waitForSelector("#booking-result-6 > div > div > h4")
+        await takeScreenShot();
+        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+          mofaNumber: `Purchased-${moment().format('DD-MMM-YY')}`,
+          "submissionData.nsh.status": "Submitted",
+        });
+        await page.browser().close();
+        process.exit(0);
+      } catch { }
+
+      break;
     default:
       break;
   }
@@ -1262,19 +1281,30 @@ async function provokeMaleGorilla() {
   if (!global.submissionGorilla?.pay) {
     return;
   }
-  const [button] = await page.$x("//button[text()='Purchase Package']");
   await takeScreenShot();
-  if (button) {
-    console.log("Clicked 'Purchase Package' button.");
-    await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-      mofaNumber: `BUTTON-${moment().format('DD-MMM-YY')}`,
-      "submissionData.nsh.status": "Rejected",
-      "submissionData.nsh.rejectionReason": "Purchase button present",
-    });
-  } else {
+  try {
+    const purchasePackageSelector = "#btnProcessBooking";
+    await page.waitForSelector(purchasePackageSelector);
+    const captchaCode = await util.SolveIamNotARobot(
+      "#g-recaptcha-response",
+      URLS.SIGN_UP,
+      "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek",
+      registerCaptchaAbortController.signal
+    );
+    if (captchaCode) {
+      await page.click(purchasePackageSelector);
+      console.log("Clicked 'Purchase Package' button.");
+    }
+  } catch {
     console.log("'Purchase Package' button not found.");
+    await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+      mofaNumber: `NO-BTN-${moment().format('DD-MMM-YY')}`,
+      "submissionData.nsh.status": "Rejected",
+      "submissionData.nsh.rejectionReason": "Purchase button not present",
+    });
     global.submissionGorilla = null;
   }
+
   // for (let i = 0; i < 20; i++) {
   //   const gorilla = kea.getGorilla();
   //   console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ gorilla", gorilla);
