@@ -34,6 +34,7 @@ const getLocalIP = () => {
 console.log(`Machine IP: ${getLocalIP()}`);
 
 const MAX_PARALLEL = 15;
+let nusukParallel = false;
 let page;
 let data;
 let counter = 0;
@@ -78,7 +79,8 @@ const URLS = {
   CONFIGURE_TRANSPORTATIONS: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/transportations/configure",
   SAVE_CONFIGURATION: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/checkout",
   REMITTANCES: "https://hajj.nusuk.sa/wallet/remittances",
-  PURCHASE_RESULT: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/result"
+  PURCHASE_RESULT: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/result",
+  AGREE_FLIGHT: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/flightsb2c"
 };
 
 function getOTPEmailAddress(email) {
@@ -276,7 +278,6 @@ const config = [
         }
       },
     },
-    focus: "#LogInViewModel_Email"
   },
   {
     name: "success",
@@ -344,11 +345,20 @@ const config = [
   {
     name: "purchase-result",
     regex: URLS.PURCHASE_RESULT,
+  },
+  {
+    name: "agree-flight",
+    regex: URLS.AGREE_FLIGHT,
   }
 ];
 
 async function send(sendData) {
   data = sendData;
+  if (process.argv.includes("--nusuk")) {
+    nusukParallel = true;
+    await runParallel();
+    return;
+  }
   page = await util.initPage(config, onContentLoaded);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
@@ -1115,6 +1125,7 @@ async function pageContentHandler(currentConfig) {
               "submissionData.nsh.rejectionReason": "No flights available",
             });
             if (global.visualHeadless) {
+              await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.mt-5.mb-4 > div > div > div > button")
               return
             } else {
               await page.browser().close();
@@ -1213,6 +1224,10 @@ async function pageContentHandler(currentConfig) {
         process.exit(0);
       } catch { }
 
+      break;
+    case "agree-flight":
+      await util.clickWhenReady("#__next > div > div > div > main > div.MuiContainer-root.MuiContainer-maxWidthLg.muiltr-1qsxih2 > form > div.MuiGrid-root.MuiGrid-container.muiltr-1d3bbye > div > div:nth-child(1) > div:nth-child(1) > label > div > span > input", page);
+      await util.clickWhenReady("#__next > div > div > div > main > div.MuiContainer-root.MuiContainer-maxWidthLg.muiltr-1qsxih2 > form > div.MuiGrid-root.MuiGrid-container.jss1381.muiltr-8rnkcc > div.MuiGrid-root.MuiGrid-container.MuiGrid-item.MuiGrid-grid-xs-6.muiltr-1l2zjop > button", page);
       break;
     default:
       break;
@@ -2411,12 +2426,18 @@ function canGetCode(email, domain) {
 }
 
 async function runParallel() {
-  const selectedParallelTraveller = await page.$eval("#hajonsoft_select", (el) => Number(el.value));
-  const startIndex = Math.max(0, selectedParallelTraveller - 1); // Convert 1-based to 0-based
+  let startIndex = 0;
+  let selectedParallelTraveller = 1;
+  let monitorWidth = 1920;
+  let monitorHeight = 1080;
+  if (!nusukParallel) {
+    selectedParallelTraveller = await page.$eval("#hajonsoft_select", (el) => Number(el.value));
+    startIndex = Math.max(0, selectedParallelTraveller - 1); // Convert 1-based to 0-based
+    monitorWidth = await page.evaluate(() => screen.width);
+    monitorHeight = await page.evaluate(() => screen.height);
+  }
   const leads = data.travellers.slice(startIndex, startIndex + MAX_PARALLEL);
-  // get screenWidth and height of the page
-  const monitorWidth = await page.evaluate(() => screen.width);
-  const monitorHeight = await page.evaluate(() => screen.height);
+
   const commands = [];
   for (let index = 0; index < Math.min(leads.length, MAX_PARALLEL); index++) {
     const passenger = leads[index];
@@ -2437,28 +2458,35 @@ async function runParallel() {
       if (v.startsWith("--passengerId")) {
         return ` --visualHeadless `;
       }
+      if (v.startsWith("--parallel")) {
+        return ` `;
+      }
+      if (v.startsWith("--nusuk")) {
+        return ` `;
+      }
       return v;
     });
     const command = newArgs.join(" ");
     console.log("📢[nsh.js:1517]: command: ", command);
     commands.push(command);
-    childProcess.exec(command, function (error, stdout, stderr) {
-      if (error) {
-        console.log("Parallel Run Error: " + error.code);
-      }
-      if (stdout) {
-        console.log("Parallel Run: " + stdout);
-      }
-      if (stderr) {
-        console.log("Parallel Run: " + stderr);
-      }
-    });
   }
-  // const newCommand = commands.join(" & ");
+  const newCommand = commands.join(" & ");
   // console.log("📢[nsh.js:1491]: oneCommand: ", newCommand);
   // run the command using child process
-
-  await page.browser().close();
+  childProcess.exec(newCommand, function (error, stdout, stderr) {
+    if (error) {
+      console.log("Parallel Run Error: " + error.code);
+    }
+    if (stdout) {
+      console.log("Parallel Run: " + stdout);
+    }
+    if (stderr) {
+      console.log("Parallel Run: " + stderr);
+    }
+  });
+  if (!nusukParallel) {
+    await page.browser().close();
+  }
 }
 
 module.exports = { send };
