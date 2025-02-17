@@ -427,7 +427,7 @@ async function commit(page, details, row) {
   if (!details) return;
   if (details?.[0]?.selector) {
     await page.waitForSelector(details?.[0].selector, {
-      timeout: 240000,
+      timeout: 900000,
     });
   }
   if (details?.[0]?.xPath) {
@@ -771,7 +771,9 @@ async function commander(page, structure, travellers) {
   }
 
   try {
-    await page.waitForSelector(structure.controller.selector);
+    await page.waitForSelector(structure.controller.selector, {
+      timeout: 0,
+    });
     const controllerHandleMethod = `handleEagle${structure.controller.name || "Budgie"
       }Click`;
     const isLoop = fs.existsSync(getPath("loop.txt"));
