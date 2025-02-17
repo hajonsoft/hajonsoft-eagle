@@ -70,6 +70,7 @@ const URLS = {
   MEMBERS: "https://hajj.nusuk.sa/profile/myfamily/members",
   SIGNOUT: "https://hajj.nusuk.sa/Account/Signout",
   DASHBOARD: "https://hajj.nusuk.sa/profile/dashboard",
+  PACKAGES: "https://hajj.nusuk.sa/packages",
   PACKAGE_SUMMARY: "https://hajj.nusuk.sa/sp/package/summary/[0-9a-f-]+",
   CONFIGURE_PACKAGE: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/rooms/configure",
   ADDITIONAL_SERVICES: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/services/configure",
@@ -305,6 +306,10 @@ const config = [
   {
     name: "dashboard",
     regex: URLS.DASHBOARD,
+  },
+  {
+    name: "packages",
+    regex: URLS.PACKAGES,
   },
   {
     name: "package-summary",
@@ -1037,6 +1042,9 @@ async function pageContentHandler(currentConfig) {
         }
       }
       break;
+    case "packages":
+      global.submissionGorilla = null;
+      break;
     case "package-summary":
       if (global.submissionGorilla?.package) {
         const packageId = global.submissionGorilla.package.split("/").pop();
@@ -1210,6 +1218,7 @@ async function pageContentHandler(currentConfig) {
           process.exit(0);
         }
       }
+      global.submissionGorilla = null;
       break;
     case "purchase-result":
       // wait for confirmed then exit
