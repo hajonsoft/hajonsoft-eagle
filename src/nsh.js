@@ -2476,11 +2476,11 @@ async function runParallel() {
       return v;
     });
     const command = newArgs.join(" ");
-    console.log("📢[nsh.js:1517]: command: ", command);
+    // console.log("📢[nsh.js:1517]: command: ", command);
     commands.push(command);
   }
   const newCommand = commands.join(" & ");
-  // console.log("📢[nsh.js:1491]: oneCommand: ", newCommand);
+  console.log(newCommand);
   // run the command using child process
   childProcess.exec(newCommand, function (error, stdout, stderr) {
     if (error) {
