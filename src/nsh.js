@@ -2479,7 +2479,10 @@ async function runParallel() {
     // console.log("📢[nsh.js:1517]: command: ", command);
     commands.push(command);
   }
-  const newCommand = commands.join(" & ");
+  let newCommand = commands.join(" & ");
+  if (process.argv.includes("--musharaf")) {
+    oneCommand = `start "" ${oneCommand.replaceAll('&', '& start "" ')}`;
+  }
   console.log(newCommand);
   // run the command using child process
   childProcess.exec(newCommand, function (error, stdout, stderr) {
