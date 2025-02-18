@@ -2481,7 +2481,7 @@ async function runParallel() {
   }
   let newCommand = commands.join(" & ");
   if (process.argv.includes("--musharaf")) {
-    newCommand = `start "" ${oneCommand.replaceAll('&', '& start "" ')}`;
+    newCommand = `start "" ${newCommand.replaceAll('&', '& start "" ')}`;
   }
   console.log(newCommand);
   // run the command using child process
