@@ -55,12 +55,11 @@ function getLogFile() {
 
 let startTime;
 
-const serviceAddress = "https://masar.nusuk.sa"
-
 const config = [
   {
     name: "home",
-    url: `${serviceAddress}`,
+    url: "https://ehaj.haj.gov.sa/",
+    regex: "https://ehaj.haj.gov.sa/$",
   },
   {
     name: "index",
@@ -72,14 +71,14 @@ const config = [
   },
   {
     name: "login",
-    regex: `${serviceAddress}/pub/login`,
+    regex: "https://ehaj.haj.gov.sa/EH/login.xhtml",
     details: [
       {
-        selector: "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.form-mb > g-input-text > div > input",
+        selector: "#j_username",
         value: (row) => row.username,
       },
       {
-        selector: "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.mb-2 > p-password > div > input",
+        selector: "#j_password",
         value: (row) => row.password,
       },
     ],
@@ -507,15 +506,15 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "login":
-      // const isError = await page.$("#stepItemsMSGs > div > div");
-      // if (isError) {
-      //   return;
-      // }
+      const isError = await page.$("#stepItemsMSGs > div > div");
+      if (isError) {
+        return;
+      }
 
-      // const isCaptcha = await page.$("#exampleCaptcha_CaptchaImage");
-      // if (isCaptcha) {
-      //   return;
-      // }
+      const isCaptcha = await page.$("#exampleCaptcha_CaptchaImage");
+      if (isCaptcha) {
+        return;
+      }
       await util.commit(page, currentConfig.details, data.system);
       if (data.system.username && data.system.password) {
         const loginButton = "#yj_idt95";
