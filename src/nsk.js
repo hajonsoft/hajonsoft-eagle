@@ -8,7 +8,7 @@ const moment = require("moment");
 const path = require("path");
 const util = require("./util");
 const { getPath } = require("./lib/getPath");
-const totp = require("totp-generator");
+const { TOTP } = require("totp-generator");
 const kea = require("./lib/kea");
 const { fetchNusukIMAPPDF } = require("./lib/imap");
 const sharp = require("sharp");
@@ -308,9 +308,12 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "otp":
-      const googleToken = totp(data.system.ehajCode);
+      if (!data.system.ehajCode) {
+        return;
+      }
+      const googleToken = TOTP.generate(data.system.ehajCode);
       console.log("📢[nsk.js:227]: googleToken: ", googleToken);
-      await page.type("#OtpValue", googleToken);
+      await page.type("#OtpValue", googleToken.otp);
       await page.click("#newfrm > button");
 
       try {
@@ -323,11 +326,11 @@ async function pageContentHandler(currentConfig) {
           console.log("Error: Invalid OTP");
           process.exit(1);
         }
-      } catch (e) {}
+      } catch (e) { }
       break;
     case "groups":
       if (!autoMode) return;
-      await page.waitFor(5000);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
 
       await page.goto(getCreateGroupUrl());
 
@@ -348,15 +351,17 @@ async function pageContentHandler(currentConfig) {
           },
         },
       });
-
-      if (global.headless) {
-        await page.goto(getCreateGroupUrl());
-      } else {
-        await page.waitFor(5000);
-        // if the page is still dashboard after 10 seconds, click on groups
-        if (autoMode) {
+      try {
+        if (global.headless) {
           await page.goto(getCreateGroupUrl());
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          // if the page is still dashboard after 10 seconds, click on groups
+          if (autoMode) {
+            await page.goto(getCreateGroupUrl());
+          }
         }
+      } catch {
       }
       break;
     case "create-group":
@@ -367,7 +372,7 @@ async function pageContentHandler(currentConfig) {
       groupCreated = true;
       if (!autoMode) return;
 
-      await page.waitFor(5000);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
       await util.commit(page, currentConfig.details, data);
       await page.$eval(
         "#EmbassyId",
@@ -462,12 +467,12 @@ async function pageContentHandler(currentConfig) {
                 element.scrollIntoView();
               }
             }, "#SelectedTimeSlot");
-            await page.waitFor(500);
+            await new Promise((resolve) => setTimeout(resolve, 500));
             await page.type(
               "#SelectedTimeSlot",
               moment().add(1, "day").format("YYYY-MM-DD")
             );
-            await page.waitFor(500);
+            await new Promise((resolve) => setTimeout(resolve, 500));
           },
         },
       });
@@ -636,7 +641,7 @@ async function pageContentHandler(currentConfig) {
     case "umrah-operator-create-package":
       page
         .waitForSelector(
-          "#kt_form > div:nth-child(8) > div.kt-form__section.kt-form__section--first > div > div > div > div.form-group > div > label:nth-child(1) > input[type=radio]", {visible: true}
+          "#kt_form > div:nth-child(8) > div.kt-form__section.kt-form__section--first > div > div > div > div.form-group > div > label:nth-child(1) > input[type=radio]", { visible: true }
         )
         .then(() =>
           page.evaluate(() => {
@@ -664,7 +669,7 @@ async function pageContentHandler(currentConfig) {
         .split("T")[0];
 
       page
-        .waitForSelector("#BRN", {visible: true})
+        .waitForSelector("#BRN", { visible: true })
         .then(() => page.type("#BRN", "123"))
         .then(() => page.waitForSelector("#None_GDS_NoOfRooms"))
         .then(() => page.type("#None_GDS_NoOfRooms", "4"))
@@ -684,7 +689,7 @@ async function pageContentHandler(currentConfig) {
         .catch((err) => console.error(err));
 
       page
-        .waitForSelector("#None_GDS_Transportation_BRN", {visible: true})
+        .waitForSelector("#None_GDS_Transportation_BRN", { visible: true })
         .then(() => page.type("#None_GDS_Transportation_BRN", "1234"))
         .then(() => page.waitForSelector("#None_GDS_Transportation_Date"))
         .then(() => page.type("#None_GDS_Transportation_Date", checkInDate))
@@ -695,7 +700,7 @@ async function pageContentHandler(currentConfig) {
         .catch((err) => console.error(err));
 
       page
-        .waitForSelector("#Search_ArrivalFlightNo", {visible: true})
+        .waitForSelector("#Search_ArrivalFlightNo", { visible: true })
         .then(() => page.type("#Search_ArrivalFlightNo", "173"))
         .then(() =>
           page.click(
@@ -777,19 +782,15 @@ function suggestEmail(passenger) {
     return passenger.email;
   }
 
-  if (!data.system.email.startsWith("@")) {
+  if (data.system.email.includes("@")) {
     return data.system.email;
   }
 
-  const domain = data.system.email.split("@")[1];
-  const friendlyName = `${passenger.name.first}.${passenger.name.last}${moment()
-    .unix()
-    .toString(36)}`
+  const domain = data.system.email;
+  const friendlyName = `${passenger.name.first}.${passenger.passportNumber}@${domain}`
     .toLowerCase()
-    .replace(/ /g, "")
-    .padEnd(50 - 1 - domain.length, "x");
-  const email = `${friendlyName}@${domain}`;
-
+    .replace(/ /g, "");
+  const email = friendlyName;
   return email;
 }
 
@@ -808,9 +809,8 @@ async function sendCurrentPassenger() {
   await page.$eval(
     "#mutamerForm > div.modal-body > div:nth-child(2) > h4",
     (e, params) => {
-      e.innerText = `Add Mutamer ${parseInt(params[0]) + 1} of ${params[1]} - ${
-        params[2].slug
-      }`;
+      e.innerText = `Add Mutamer ${parseInt(params[0]) + 1} of ${params[1]} - ${params[2].slug
+        }`;
     },
     [selectedTraveler, data.travellers.length, passenger]
   );
@@ -826,10 +826,10 @@ async function sendCurrentPassenger() {
   await pasteRemainingImages(passenger);
   await showCommanders(passenger);
   await commitRemainingFields(passenger);
-  await page.waitFor(1000);
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   await page.focus("#PassportNumber");
   await page.click("#PassportNumber");
-  await page.waitFor(500);
+  await new Promise((resolve) => setTimeout(resolve, 500));
 
   if (!isPassportScanSuccessful) {
     await page.$eval("#qa-add-mutamer-save", (e) => {
@@ -899,7 +899,7 @@ async function commitRemainingFields(passenger) {
   );
 
   await page.click("#PassportIssueDate");
-  await page.waitFor(500);
+  await new Promise((resolve) => setTimeout(resolve, 500));
   await util.commit(
     page,
     [
@@ -1058,15 +1058,14 @@ async function pasteRemainingImages(passenger) {
       }
 
       await page.click("#IqamaExpiryDate");
-      await page.waitFor(500);
+      await new Promise((resolve) => setTimeout(resolve, 500));
       await util.commit(
         page,
         [
           {
             selector: "#IqamaExpiryDate",
             value: (row) =>
-              `${row.idExpireDt.yyyy || row.passExpireDt.yyyy}-${
-                row.idExpireDt.mm || row.passExpireDt.mm
+              `${row.idExpireDt.yyyy || row.passExpireDt.yyyy}-${row.idExpireDt.mm || row.passExpireDt.mm
               }-${row.idExpireDt.dd || row.passExpireDt.dd}`,
           },
         ],
@@ -1116,7 +1115,7 @@ async function pastePassportImage(passenger, resized = true) {
     await util.downloadImage(passenger.images.passport, passportPath);
     await util.commitFile("#PassportPictureUploader", passportPath);
   }
-  await page.waitFor(1000);
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   const isSuccess = await assertPassportImage();
   return isSuccess;
 }
@@ -1162,7 +1161,7 @@ async function assertPassportImage() {
       passportNumberInPage !== "" &&
       passenger.passportNumber === passportNumberInPage
     );
-  } catch (e) {}
+  } catch (e) { }
   return false;
 }
 
@@ -1171,7 +1170,7 @@ async function addMutamerClick() {
     "#newfrm > div.kt-wizard-v2__content > div.kt-heading.kt-heading--md.d-flex > a";
   await page.waitForSelector(addMutamerButtonSelector);
   await page.click(addMutamerButtonSelector);
-  await page.waitFor(1000);
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 }
 
 async function dismissGroupCreated() {
@@ -1182,9 +1181,9 @@ async function dismissGroupCreated() {
       timeout: 1000,
     });
     await page.click(groupCreatedOkButtonSelector);
-  } catch (e) {}
+  } catch (e) { }
 
-  await page.waitFor(1000);
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   // Store group id
   if (!global.submission.targetGroupId) {
     const groupId = page
