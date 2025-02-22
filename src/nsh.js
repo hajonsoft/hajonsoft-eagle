@@ -384,6 +384,10 @@ function readSubmissionGorilla() {
   if (!data.system.gorillaScript) {
     return;
   }
+  if (data.system.gorillaScript?.stop || global.submissionGorilla?.stop) {
+    console.log("submission gorilla stopped");
+    return;
+  }
   try {
     const gorillaJSON = JSON.parse(data.system.gorillaScript);
     if (gorillaJSON?.disabled) {
@@ -1000,6 +1004,20 @@ async function pageContentHandler(currentConfig) {
       util.incrementSelectedTraveler();
       break;
     case "dashboard":
+await util.commander(page, {
+        controller: {
+          selector: "body > main > div.container-xxl.container-fluid.py-4 > div.row.welcome-area.mt-4 > div > h4",
+          title: "Stop Auto Mode",
+          arabicTitle: "إيقاف الوضع التلقائي",
+          name: "autoModeNsk",
+          action: async () => {
+            global.submissionGorilla = {
+              stop: true
+            }
+          },
+        },
+      });
+    await new Promise(resolve => setTimeout(resolve, 2000));
       if (global.headless || global.visualHeadless) {
         const canProceed = await checkCanPay();
         if (!canProceed) {
@@ -1043,7 +1061,26 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "packages":
-      global.submissionGorilla = null;
+      const packagesLabelSelector = "#choose-package > div.container-xxl.container-fluid.py-4 > div.mt-1 > p:nth-child(2)"
+      await page.waitForSelector(packagesLabelSelector);
+      await page.$eval(packagesLabelSelector, 
+        (el, g) => el.textContent = JSON.stringify(g, null, 2),
+      global.submissionGorilla);
+      await util.commander(page, {
+        controller: {
+          selector: "#choose-package > div.container-xxl.container-fluid.py-4 > div.mt-1 > p:nth-child(3)",
+          title: "Unlock Packages",
+          arabicTitle: "فتح الباقات",
+          name: "revealpackages",
+          action: async () => {
+            await page.evaluate(() => {
+              document.querySelectorAll('.overlay-disabled').forEach(element => {
+                element.classList.remove('overlay-disabled');
+              });
+            });
+          },
+        },
+      });
       break;
     case "package-summary":
       if (global.submissionGorilla?.package) {

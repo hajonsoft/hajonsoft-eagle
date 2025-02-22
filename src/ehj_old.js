@@ -55,12 +55,11 @@ function getLogFile() {
 
 let startTime;
 
-const serviceAddress = "https://masar.nusuk.sa"
-
 const config = [
   {
     name: "home",
-    url: `${serviceAddress}`,
+    url: "https://ehaj.haj.gov.sa/",
+    regex: "https://ehaj.haj.gov.sa/$",
   },
   {
     name: "index",
@@ -72,14 +71,14 @@ const config = [
   },
   {
     name: "login",
-    regex: `${serviceAddress}/pub/login`,
+    regex: "https://ehaj.haj.gov.sa/EH/login.xhtml",
     details: [
       {
-        selector: "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.form-mb > g-input-text > div > input",
+        selector: "#j_username",
         value: (row) => row.username,
       },
       {
-        selector: "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.mb-2 > p-password > div > input",
+        selector: "#j_password",
         value: (row) => row.password,
       },
     ],
@@ -454,7 +453,8 @@ async function rememberValue(selector, budgieKey) {
 async function pasteCodeLine(selectedTraveler, passengersData) {
   await util.infoMessage(
     page,
-    `${parseInt(selectedTraveler.toString()) + 1}/${passengersData.travellers.length
+    `${parseInt(selectedTraveler.toString()) + 1}/${
+      passengersData.travellers.length
     }`
   );
   await page.focus("#passportCaptureStatus");
@@ -506,28 +506,20 @@ async function pageContentHandler(currentConfig) {
       }
       break;
     case "login":
-      // const isError = await page.$("#stepItemsMSGs > div > div");
-      // if (isError) {
-      //   return;
-      // }
-
-      // const isCaptcha = await page.$("#exampleCaptcha_CaptchaImage");
-      // if (isCaptcha) {
-      //   return;
-      // }
-      await util.commit(page, currentConfig.details, data.system);
-      const captchaCode = await util.SolveIamNotARobot(
-        "#g-recaptcha-response",
-        "https://masar.nusuk.sa/pub/login",
-        "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
-      );
-      if (captchaCode) {
-        if (data.system.username && data.system.password) {
-          const loginButton = "#login > app-login > div.log-card.ng-star-inserted > form > div > button";
-          await page.click(loginButton);
-        }
+      const isError = await page.$("#stepItemsMSGs > div > div");
+      if (isError) {
+        return;
       }
 
+      const isCaptcha = await page.$("#exampleCaptcha_CaptchaImage");
+      if (isCaptcha) {
+        return;
+      }
+      await util.commit(page, currentConfig.details, data.system);
+      if (data.system.username && data.system.password) {
+        const loginButton = "#yj_idt95";
+        await page.click(loginButton);
+      }
       break;
     case "authentication-settings":
       const isAuthCode = await page.$("#secretKey");
@@ -800,8 +792,9 @@ async function pageContentHandler(currentConfig) {
             console.table(liberiaPassports.filter((p) => p.status !== "NEW"));
             await page.evaluate((ehajNumbers) => {
               const eagleButton = document.querySelector("#importEhajNumber");
-              eagleButton.textContent = `Done... [${ehajNumbers[0]}-${ehajNumbers[ehajNumbers.length - 1]
-                }] => ${ehajNumbers.length}`;
+              eagleButton.textContent = `Done... [${ehajNumbers[0]}-${
+                ehajNumbers[ehajNumbers.length - 1]
+              }] => ${ehajNumbers.length}`;
             }, ehajNumbers);
           },
         },
@@ -831,8 +824,9 @@ async function pageContentHandler(currentConfig) {
             break;
           }
           if (passportNumber === editPassportNumber) {
-            const nextEdit = `#PackageReqForm > div > div > div:nth-child(1) > div > div > div.ui-datatable-tablewrapper > table > tbody > tr:nth-child(${i + 1
-              }) > td:nth-child(13) > div > ul > li:nth-child(2) > a`;
+            const nextEdit = `#PackageReqForm > div > div > div:nth-child(1) > div > div > div.ui-datatable-tablewrapper > table > tbody > tr:nth-child(${
+              i + 1
+            }) > td:nth-child(13) > div > ul > li:nth-child(2) > a`;
             await page.evaluate((selector) => {
               const nextEditButton = document.querySelector(selector);
               if (nextEditButton) {
@@ -1029,8 +1023,8 @@ async function pageContentHandler(currentConfig) {
               row.caravan < 40
                 ? row.caravan.replace(/[^a-zA-Z0-9 ]/, "")
                 : row.caravan
-                  .substring(row.caravan.length - 40, row.caravan.length)
-                  .replace(/[^a-zA-Z0-9 ]/, ""),
+                    .substring(row.caravan.length - 40, row.caravan.length)
+                    .replace(/[^a-zA-Z0-9 ]/, ""),
           },
         ],
         data.info
@@ -1125,14 +1119,14 @@ async function pageContentHandler(currentConfig) {
           (el, val) => (el.innerText = val),
           passenger.passIssueDt.dmy
         );
-      } catch { }
+      } catch {}
       try {
         await page.$eval(
           "#formData > div:nth-child(11) > div:nth-child(1) > div:nth-child(4) > label",
           (el, val) => (el.innerText = val),
           passenger.passIssueDt.dmy
         );
-      } catch { }
+      } catch {}
       await page.waitFor(1000);
       // try issue date 5 times
       const passportIssueDateFromData = `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`;
@@ -1209,7 +1203,7 @@ async function pageContentHandler(currentConfig) {
       }
       try {
         await page.select("#hajType", budgie.get("ehaj_pilgrim_hajType", "1"));
-      } catch { }
+      } catch {}
 
       // if (passports.filter((x) => x == passenger.passportNumber).length > 3) {
       //   // Stop
@@ -1422,7 +1416,7 @@ async function pageContentHandler(currentConfig) {
           (el, val) => (el.innerText = val),
           resizedPassportPath
         );
-      } catch { }
+      } catch {}
 
       await page.evaluate(() => {
         document
@@ -1889,7 +1883,7 @@ async function makeReservations(index, passengersData) {
         await page.type(
           "#email",
           (passenger.name.first + passenger.name.last).replace(/ /g, "") +
-          "@premiumemail.ca"
+            "@premiumemail.ca"
         );
       }
     }
