@@ -50,6 +50,10 @@ const config = [
     ],
   },
   {
+    name: "contracts",
+    url: `${defaultDomain}/ExternalAgencies/Dashboard/Contracts`,
+  },
+  {
     name: "dashboard",
     regex: `${defaultDomain}/ExternalAgencies/Dashboard`,
   },
@@ -362,6 +366,47 @@ async function pageContentHandler(currentConfig) {
           }
         }
       } catch {
+      }
+      break;
+    case "contracts":
+      await page.waitForSelector("#ContractsListTable");
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const targetContractId = data.system.contractId;
+      // Check if there is only one contract
+      // Select all rows in the table
+      const rows = await page.$$("#ContractsListTable > tbody > tr");
+      let activeRows = [];
+      let targetRow = null;
+      for (const row of rows) {
+        // Get the contract ID from the first column
+        const contractId = await row.$eval(
+          "td:nth-child(1)",
+          (td) => td.textContent.trim()
+        );
+        // Get the contract status from the fifth column
+        const status = await row.$eval("td:nth-child(5)", (td) =>
+          td.textContent.trim()
+        );
+        if (status === "Active") {
+          activeRows.push(row);
+          if (contractId === targetContractId) {
+            targetRow = row;
+            break; // Stop searching once the target contract is found
+          }
+        }
+      }
+      // Determine which contract to click
+      let selectedRow = targetRow || (activeRows.length === 1 ? activeRows[0] : null);
+      if (selectedRow) {
+        const link = await selectedRow.$("td:nth-child(6) a");
+        if (link) {
+          await link.click();
+          console.log("Navigating to contract details...");
+        } else {
+          console.log("No link found for the selected contract.");
+        }
+      } else {
+        console.log("No matching contract found.");
       }
       break;
     case "create-group":
@@ -858,10 +903,18 @@ async function sendCurrentPassenger() {
       return;
     }
   } else {
+    const code = await util.commitCaptchaTokenWithSelector(
+      page,
+      "#img-captcha",
+      "#CaptchaCode",
+      5
+    );
     try {
-      await page.waitForSelector("#qa-add-mutamer-save");
-      await page.click("#qa-add-mutamer-save");
-      await recordStatus(passenger);
+      if (code) {
+        await page.waitForSelector("#qa-add-mutamer-save");
+        await page.click("#qa-add-mutamer-save");
+        await recordStatus(passenger);
+      }
     } catch (e) {
       // console.log("Error: ", e);
     }
@@ -1036,7 +1089,6 @@ async function pasteRemainingImages(passenger) {
   }
 
   // is resident
-  if (passenger.nationality.code !== data.system.country.code) {
     try {
       await page.type(
         "#IqamaId",
@@ -1090,7 +1142,7 @@ async function pasteRemainingImages(passenger) {
     } catch (e) {
       // console.log("Error: ", e);
     }
-  }
+  
 }
 
 async function pastePassportImage(passenger, resized = true) {
