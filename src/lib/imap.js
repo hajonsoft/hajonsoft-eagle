@@ -200,85 +200,108 @@ async function fetchOTPFromNusuk(recipient, password, subject, callback, emailSe
 }
 
 async function fetchNusukIMAPPDF(recipient, password, subject, callback) {
-  var imap = new Imap({
+  const imap = new Imap({
     user: `admin@${recipient.split("@")[1]}`,
     password: password,
-    host: `mail.${recipient.split("@")[1]}`,
+    host: getHostName(recipient.split("@")[1]),
     port: 993,
     tls: true,
-    tlsOptions: { rejectUnauthorized: false },
   });
 
   function openInbox(cb) {
     imap.openBox("INBOX", false, cb);
   }
+
   imap.once("ready", function () {
+    console.log("IMAP connection ready...");
+    
     openInbox(function (err, box) {
-      if (err) throw err;
+      if (err) {
+        console.error("Error opening inbox:", err);
+        callback("Error: " + err);
+        imap.end();
+        return;
+      }
+
+      console.log("Inbox opened successfully.");
+
       const subjectArray = subject.map((s) => ["HEADER", "SUBJECT", s]);
 
-      imap.search(
-        [
-          // "UNSEEN",
-          // ["OR", ...subjectArray],
-          ["HEADER", "FROM", nskFromEmail],
-          ["HEADER", "TO", recipient],
-        ],
-        function (err, results) {
-          if (err) throw err;
-
-          if (!results || !results.length) {
-            imap.end();
-            return callback("no-visa-pdf");
-          }
-          for (let i = 0; i < Math.min(results.length, 1); i++) {
-            var msgSeqNo = results[i];
-            var f = imap.fetch(msgSeqNo, {
-              bodies: "",
-              struct: true,
-              markSeen: false,
-            });
-          }
-
-          f.on("message", function (msg, seqno) {
-            msg.on("body", function (stream, info) {
-              simpleParser(stream, {}, (err, parsed) => {
-                if (err) throw err;
-
-                if (parsed.attachments && parsed.attachments.length) {
-                  parsed.attachments.forEach((attachment) => {
-                    if (attachment.contentType === "application/pdf") {
-                      callback(null, attachment);
-                      return;
-                    }
-                  });
-                }
-              });
-            });
-
-            msg.once("end", function () {
-
-            });
-          });
-
-          f.once("error", function (err) {
-            callback("Error: " + err);
-          });
+      imap.search([["HEADER", "FROM", nskFromEmail], ["HEADER", "TO", recipient]], function (err, results) {
+        if (err) {
+          console.error("IMAP search error:", err);
+          callback("Error: " + err);
+          imap.end();
+          return;
         }
-      );
+
+        if (!results || results.length === 0) {
+          console.log("No emails found.");
+          imap.end();
+          return callback("no-visa-pdf");
+        }
+
+        console.log(`Found ${results.length} matching emails.`);
+
+        var f = imap.fetch(results.slice(0, 1), { bodies: "", struct: true, markSeen: false });
+
+        f.on("message", function (msg, seqno) {
+          console.log(`Processing email #${seqno}...`);
+
+          msg.on("body", function (stream, info) {
+            simpleParser(stream, {}, (err, parsed) => {
+              if (err) {
+                console.error("Parsing error:", err);
+                callback("Error: " + err);
+                return;
+              }
+
+              if (parsed.attachments && parsed.attachments.length) {
+                console.log(`Found ${parsed.attachments.length} attachment(s).`);
+
+                parsed.attachments.forEach((attachment) => {
+                  if (attachment.contentType === "application/pdf") {
+                    console.log("PDF attachment found!");
+                    callback(null, attachment);
+                    imap.end();
+                    return;
+                  }
+                });
+              } else {
+                console.log("No PDF attachments found.");
+                callback("no-visa-pdf");
+              }
+            });
+          });
+        });
+
+        f.once("error", function (err) {
+          console.error("Fetch error:", err);
+          callback("Error: " + err);
+          imap.end();
+        });
+
+        f.once("end", function () {
+          console.log("Email processing complete.");
+          imap.end();
+        });
+      });
     });
   });
 
   imap.once("error", function (err) {
+    console.error("IMAP Connection Error:", err);
     callback("Error: " + err);
   });
 
   imap.once("end", function () {
-    callback("Error: Connection ended");
+    console.log("IMAP Connection closed.");
   });
 
+  console.log("Connecting to IMAP...");
   imap.connect();
 }
+
 
 function decodeQuotedPrintable(encodedText) {
   // Replace soft line breaks (encoded as '=') followed by newline characters with empty string

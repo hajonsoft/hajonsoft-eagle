@@ -212,14 +212,14 @@ async function downloadVisas() {
     const rows = document.querySelectorAll('#MuatamerList > tbody > tr');
     let passengers = [];
 
-    rows.forEach(row => {
+    rows.forEach((row, index) => {
       const columns = row.querySelectorAll('td');
 
       if (columns.length >= 6) { // Ensure there are enough columns
         const fullName = columns[3].innerText.trim(); // 4th column (index 3)
         const passportNumber = columns[5].innerText.trim(); // 6th column (index 5)
 
-        passengers.push({ fullName, passportNumber });
+        passengers.push({ fullName, passportNumber, statusElement: columns[2], index });
       }
     });
 
@@ -228,28 +228,68 @@ async function downloadVisas() {
   // TODO: review the english email subject
   for (const passengerFromPage of passengersFromPage) {
     const passengerEmail = `${passengerFromPage.fullName.split(" ")[0].toLowerCase()}.${passengerFromPage.passportNumber}@${data.system.email}`.toLowerCase();
-      await fetchNusukIMAPPDF(
-        passengerEmail,
-        data.system.adminEmailPassword,
-        ["التأشيرة الإلكترونية", "Electronic Visa"],
-        (err, pdf) =>
-          saveVisaPDF(
-            err,
-            pdf,
-            passengerFromPage
-          )
-      );
-    
+    await fetchNusukIMAPPDF(
+      passengerEmail,
+      data.system.adminEmailPassword,
+      ["التأشيرة الإلكترونية", "Electronic Visa"],
+      (err, pdf) =>
+        saveVisaPDF(
+          err,
+          pdf,
+          passengerFromPage
+        )
+    );
+
   }
 }
 
 async function saveVisaPDF(err, pdf, passengerFromPage) {
   if (err) {
     console.log("Error: ", err);
+    await page.evaluate(
+      (element, err) => {
+        element.innerText = er;
+      },
+      passengerFromPage.statusElement,
+      err
+    );
     return;
   }
   if (pdf) {
-    await util.pdfToKea(pdf.content, data.system.accountId, passengerFromPage);
+    const paths = await util.pdfToKea(pdf.content, data.system.accountId, passengerFromPage);
+    await page.evaluate(
+      (statusElementSelector, paths) => {
+        if (!paths || !paths.pdfUrl || !paths.pdfFileName) return;
+    
+        // Find the element again inside the browser context
+        const element = document.querySelector(statusElementSelector);
+        if (!element) return; // Exit if not found
+    
+        // Ensure it's a valid HTML element
+        if (!(element instanceof HTMLElement)) return;
+    
+        // Create the first anchor for the PDF URL
+        const pdfLink = document.createElement("a");
+        pdfLink.href = paths.pdfUrl;
+        pdfLink.innerText = "Download PDF";
+        pdfLink.target = "_blank"; // Open in a new tab
+    
+        // Create the second anchor for the file name
+        const fileNameLink = document.createElement("a");
+        fileNameLink.href = paths.pdfFileName;
+        fileNameLink.innerText = paths.pdfFileName;
+        fileNameLink.target = "_blank"; // Open in a new tab
+    
+        // Clear existing content and append the new anchors
+        element.innerHTML = "";
+        element.appendChild(pdfLink);
+        element.appendChild(document.createTextNode(" | ")); // Add a separator
+        element.appendChild(fileNameLink);
+      },
+      `#MuatamerList > tbody > tr:nth-child(${passengerFromPage.index + 1}) > td:nth-child(2)`, // Pass a selector instead of the element itself
+      paths
+    );
+    
   }
 }
 

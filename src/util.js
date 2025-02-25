@@ -1759,6 +1759,7 @@ async function pdfToKea(
     visaImageUrl: pdfUrl,
     "submissionData.nsk.status": status,
   });
+  return {pdfUrl, pdfFileName};
 }
 
 async function remember(page, selector) {
