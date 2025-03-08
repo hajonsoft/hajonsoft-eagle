@@ -1739,7 +1739,7 @@ function getDownloadFolder() {
 async function pdfToKea(
   pdfBuffer,
   accountId,
-  currentPassenger,
+  passengerFromPage,
   status = "visa"
 ) {
   const folder = path.join(getDownloadFolder(), "hajonsoft", "pdf");
@@ -1748,17 +1748,18 @@ async function pdfToKea(
   }
   const pdfFileName = path.join(
     folder,
-    `visa_${currentPassenger.passportNumber}.pdf`
+    `visa_${passengerFromPage.passportNumber}.pdf`
   );
   fs.writeFileSync(pdfFileName, pdfBuffer);
   const base64 = await pdfBuffer.toString("base64");
-  const pdfFilename = `visa_${currentPassenger.passportNumber}.pdf`;
+  const pdfFilename = `visa_${passengerFromPage.passportNumber}.pdf`;
   const pdfDestination = `${accountId}/visaImageUrl/${pdfFilename}`;
   const pdfUrl = await kea.uploadImageToStorage(base64, pdfDestination);
-  await kea.updatePassenger(accountId, currentPassenger.passportNumber, {
+  await kea.updatePassenger(accountId, passengerFromPage.passportNumber, {
     visaImageUrl: pdfUrl,
     "submissionData.nsk.status": status,
   });
+  return {pdfUrl, pdfFileName};
 }
 
 async function remember(page, selector) {

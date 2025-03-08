@@ -199,42 +199,97 @@ const config = [
     name: "umrah-operator-create-package",
     regex: `${defaultDomain}/UmrahOperators/Home/CreatePackage`,
   },
+  {
+    name: "mutamer-list-details",
+    regex: "https://umrahmasar.nusuk.sa/bsp/ExternalAgencies/Groups/GetMuatamerListDetails",
+  }
 ];
 
 async function downloadVisas() {
   downloadVisaMode = true;
+  // Extract data
+  const passengersFromPage = await page.evaluate(() => {
+    const rows = document.querySelectorAll('#MuatamerList > tbody > tr');
+    let passengers = [];
+
+    rows.forEach((row, index) => {
+      const columns = row.querySelectorAll('td');
+
+      if (columns.length >= 6) { // Ensure there are enough columns
+        const fullName = columns[3].innerText.trim(); // 4th column (index 3)
+        const passportNumber = columns[5].innerText.trim(); // 6th column (index 5)
+
+        passengers.push({ fullName, passportNumber, statusElement: columns[2], index });
+      }
+    });
+
+    return passengers;
+  });
   // TODO: review the english email subject
-  for (let i = 0; i < data.travellers.length; i++) {
-    if (data.travellers[i].email) {
-      await fetchNusukIMAPPDF(
-        data.travellers[i].email,
-        data.system.adminEmailPassword,
-        ["التأشيرة الإلكترونية", "Electronic Visa"],
-        (err, pdf) =>
-          saveVisaPDF(
-            err,
-            pdf,
-            data.travellers[i],
-            i === data.travellers.length - 1
-          )
-      );
-    }
+  for (const passengerFromPage of passengersFromPage) {
+    const passengerEmail = `${passengerFromPage.fullName.split(" ")[0].toLowerCase()}.${passengerFromPage.passportNumber}@${data.system.email}`.toLowerCase();
+    await fetchNusukIMAPPDF(
+      passengerEmail,
+      data.system.adminEmailPassword,
+      ["التأشيرة الإلكترونية", "Electronic Visa"],
+      (err, pdf) =>
+        saveVisaPDF(
+          err,
+          pdf,
+          passengerFromPage
+        )
+    );
+
   }
 }
 
-async function saveVisaPDF(err, pdf, passenger, lastPassenger) {
+async function saveVisaPDF(err, pdf, passengerFromPage) {
   if (err) {
     console.log("Error: ", err);
+    await page.evaluate(
+      (element, err) => {
+        element.innerText = er;
+      },
+      passengerFromPage.statusElement,
+      err
+    );
     return;
   }
   if (pdf) {
-    await util.pdfToKea(pdf.content, data.system.accountId, passenger);
-    if (lastPassenger) {
-      setTimeout(async () => {
-        console.log("All visas downloaded successfully");
-        process.exit(0);
-      }, 5000);
-    }
+    const paths = await util.pdfToKea(pdf.content, data.system.accountId, passengerFromPage);
+    await page.evaluate(
+      (statusElementSelector, paths) => {
+        if (!paths || !paths.pdfUrl || !paths.pdfFileName) return;
+    
+        // Find the element again inside the browser context
+        const element = document.querySelector(statusElementSelector);
+        if (!element) return; // Exit if not found
+    
+        // Ensure it's a valid HTML element
+        if (!(element instanceof HTMLElement)) return;
+    
+        // Create the first anchor for the PDF URL
+        const pdfLink = document.createElement("a");
+        pdfLink.href = paths.pdfUrl;
+        pdfLink.innerText = "Download PDF";
+        pdfLink.target = "_blank"; // Open in a new tab
+    
+        // Create the second anchor for the file name
+        const fileNameLink = document.createElement("a");
+        fileNameLink.href = paths.pdfFileName;
+        fileNameLink.innerText = paths.pdfFileName;
+        fileNameLink.target = "_blank"; // Open in a new tab
+    
+        // Clear existing content and append the new anchors
+        element.innerHTML = "";
+        element.appendChild(pdfLink);
+        element.appendChild(document.createTextNode(" | ")); // Add a separator
+        element.appendChild(fileNameLink);
+      },
+      `#MuatamerList > tbody > tr:nth-child(${passengerFromPage.index + 1}) > td:nth-child(2)`, // Pass a selector instead of the element itself
+      paths
+    );
+    
   }
 }
 
@@ -248,11 +303,6 @@ function canActivateVisaDownloadMode(data) {
 
 async function send(sendData) {
   data = sendData;
-  // if (canActivateVisaDownloadMode(data)) {
-  //   console.log("Visa download mode activated. Downloading visas from email.");
-  //   await downloadVisas(data);
-  //   return;
-  // }
   page = await util.initPage(config, onContentLoaded);
   await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
 }
@@ -282,20 +332,6 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      const viasToDownload = data.travellers.filter((t) => t.email);
-      if (viasToDownload.length > 0 && data.system.email.startsWith("@")) {
-        await util.commander(page, {
-          controller: {
-            selector: "#form1 > h1",
-            title: `Download ${viasToDownload.length} Visas`,
-            arabicTitle: "تحميل التأشيرات",
-            name: "downloadVisas",
-            action: async () => {
-              await downloadVisas();
-            },
-          },
-        });
-      }
       const code = await util.commitCaptchaTokenWithSelector(
         page,
         "#img-captcha",
@@ -755,6 +791,22 @@ async function pageContentHandler(currentConfig) {
         .catch((err) => console.error(err));
 
       break;
+    case "mutamer-list-details":
+      if (data.system.email.includes("@")) {
+        return;
+      }
+      await util.commander(page, {
+        controller: {
+          selector: "#kt_content > div > div > div.kt-portlet__head > div.kt-portlet__head-label > h3",
+          title: "download visas",
+          arabicTitle: "تحميل التأشيرات",
+          name: "downloadvisasfromlist",
+          action: async () => {
+            await downloadVisas();
+          },
+        },
+      });
+      break;
     default:
       break;
   }
@@ -822,12 +874,15 @@ async function pasteOriginalPassport() {
   return isSuccess;
 }
 
-function suggestEmail(passenger) {
+async function suggestEmail(passenger) {
   if (passenger.email) {
     return passenger.email;
   }
 
   if (data.system.email.includes("@")) {
+    await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+      email: data.system.email,
+    });
     return data.system.email;
   }
 
@@ -836,6 +891,9 @@ function suggestEmail(passenger) {
     .toLowerCase()
     .replace(/ /g, "");
   const email = friendlyName;
+  await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+    email,
+  });
   return email;
 }
 
@@ -925,7 +983,7 @@ async function commitRemainingFields(passenger) {
   const passengersConfig = config.find((c) => c.name === "passengers");
 
   await util.commit(page, passengersConfig.details, passenger);
-  const email = suggestEmail(passenger);
+  const email = await suggestEmail(passenger);
   if (data.system.email.startsWith("@")) {
     await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
       email: email,
@@ -1089,60 +1147,60 @@ async function pasteRemainingImages(passenger) {
   }
 
   // is resident
-    try {
-      await page.type(
-        "#IqamaId",
-        passenger.idNumber || passenger.passportNumber
+  try {
+    await page.type(
+      "#IqamaId",
+      passenger.idNumber || passenger.passportNumber
+    );
+    if (passenger.images.residency) {
+      const permitPath = await util.downloadAndResizeImage(
+        passenger,
+        800,
+        400,
+        "residency",
+        400,
+        1024,
+        true
       );
-      if (passenger.images.residency) {
-        const permitPath = await util.downloadAndResizeImage(
-          passenger,
-          800,
-          400,
-          "residency",
-          400,
-          1024,
-          true
-        );
-        await util.commitFile("#ResidencyPictureUploader", permitPath);
-      } else {
-        await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
-      }
-
-      await page.click("#IqamaExpiryDate");
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      await util.commit(
-        page,
-        [
-          {
-            selector: "#IqamaExpiryDate",
-            value: (row) =>
-              `${row.idExpireDt.yyyy || row.passExpireDt.yyyy}-${row.idExpireDt.mm || row.passExpireDt.mm
-              }-${row.idExpireDt.dd || row.passExpireDt.dd}`,
-          },
-        ],
-        passenger
-      );
-
-      await page.$eval(
-        "#dvResidencyExpiryDate > label",
-        (e, idExpireDt) => {
-          e.textContent = `Residency Expiry Date: => (${idExpireDt})`;
-        },
-        passenger.idExpireDt.dmmmy
-      );
-
-      await page.$eval(
-        "#dvResidencyId > label",
-        (e, residenceId) => {
-          e.textContent = `Residency ID: => (${residenceId})`;
-        },
-        passenger.idNumber
-      );
-    } catch (e) {
-      // console.log("Error: ", e);
+      await util.commitFile("#ResidencyPictureUploader", permitPath);
+    } else {
+      await util.commitFile("#ResidencyPictureUploader", resizedPhotoPath);
     }
-  
+
+    await page.click("#IqamaExpiryDate");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await util.commit(
+      page,
+      [
+        {
+          selector: "#IqamaExpiryDate",
+          value: (row) =>
+            `${row.idExpireDt.yyyy || row.passExpireDt.yyyy}-${row.idExpireDt.mm || row.passExpireDt.mm
+            }-${row.idExpireDt.dd || row.passExpireDt.dd}`,
+        },
+      ],
+      passenger
+    );
+
+    await page.$eval(
+      "#dvResidencyExpiryDate > label",
+      (e, idExpireDt) => {
+        e.textContent = `Residency Expiry Date: => (${idExpireDt})`;
+      },
+      passenger.idExpireDt.dmmmy
+    );
+
+    await page.$eval(
+      "#dvResidencyId > label",
+      (e, residenceId) => {
+        e.textContent = `Residency ID: => (${residenceId})`;
+      },
+      passenger.idNumber
+    );
+  } catch (e) {
+    // console.log("Error: ", e);
+  }
+
 }
 
 async function pastePassportImage(passenger, resized = true) {
