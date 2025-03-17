@@ -12,7 +12,7 @@ const totp = require("totp-generator");
 const kea = require("./lib/kea");
 const { cloneDeep } = require("lodash");
 const { send: sendHsf } = require("./hsf");
-const { fetchNusukIMAPPDF } = require("./lib/imap");
+const { fetchNusukIMAPPDF, fetchOTPForMasar } = require("./lib/imap");
 
 let page;
 let data;
@@ -63,6 +63,10 @@ const config = [
     url: `${serviceAddress}`,
   },
   {
+    name: "home",
+    url: `${serviceAddress}/`,
+  },
+  {
     name: "index",
     regex: "https://ehaj.haj.gov.sa/EH/index.xhtml;jsessionid=",
   },
@@ -87,7 +91,21 @@ const config = [
   {
     name: "add-pilgrim-select-method",
     regex:
-      "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajData/Add1.xhtml",
+      `https://masar.nusuk.sa/protected-applicant-st/add/data-entry-method`,
+    controller: {
+      selector: "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card:nth-child(1) > div > div.card-header.mb-0.cursor-pointer.ng-star-inserted > h3",
+      action: async () => {
+        const selectedTraveler = await page.$eval(
+          "#hajonsoft_select",
+          (el) => el.value
+        );
+        if (selectedTraveler) {
+          util.setSelectedTraveller(selectedTraveler);
+          await sendPassenger(util.getSelectedTraveler())
+        }
+      },
+    },
+
   },
   {
     name: "haj-mission-group-details",
@@ -181,7 +199,7 @@ const config = [
   },
   {
     name: "dashboard",
-    regex: "https://ehaj.haj.gov.sa/EH/pages/home/dashboard.xhtml",
+    regex: `https://masar.nusuk.sa/protected/dhc/dashboard/requestsDashboard`,
   },
   {
     name: "list-pilgrims-mission",
@@ -191,7 +209,7 @@ const config = [
   {
     name: "list-pilgrims",
     regex:
-      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/List.xhtml",
+      `https://masar.nusuk.sa/protected/applicants-groups/applicants/list`,
   },
   {
     name: "add-mission-pilgrim",
@@ -431,8 +449,23 @@ const config = [
 async function sendPassenger(selectedTraveler) {
   const data = fs.readFileSync(getPath("data.json"), "utf-8");
   var passengersData = JSON.parse(data);
+  const passenger = passengersData.travellers[util.getSelectedTraveler()]
   util.setSelectedTraveller(selectedTraveler);
-  await pasteCodeLine(selectedTraveler, passengersData);
+  // await pasteCodeLine(selectedTraveler, passengersData);
+  await util.clickWhenReady("#content > div > app-applicant-add > app-data-entry-method > div > app-main-card > div > div.body.collapse.show > div.choices-container.justify-content-start > div:nth-child(1) > label > div > p-radiobutton > div > div.p-radiobutton-box", page)
+  await new Promise(resolve => setTimeout(resolve, 100));
+  await page.waitForSelector("#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div > button")
+
+  const resizedPassportPath = await util.downloadAndResizeImage(
+    passenger,
+    400,
+    300,
+    "passport"
+  );
+  await util.commitFile(
+    "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > input",
+    resizedPassportPath
+  );
 }
 
 async function rememberValue(selector, budgieKey) {
@@ -486,7 +519,16 @@ async function onContentLoaded(res) {
       fs.unlinkSync(getPath("loop.txt"));
     }
   }
-  const currentConfig = util.findConfig(await page.url(), config);
+  const currentUrl = await page.url();
+  const currentConfig = util.findConfig(currentUrl, config);
+  if (global.debug) {
+    console.log("Url", currentUrl)
+    if (!currentConfig) {
+      console.log("No configuration found for this url", currentUrl)
+      return;
+    }
+  }
+  console.log(currentConfig.name, currentUrl)
   try {
     await pageContentHandler(currentConfig);
   } catch (err) {
@@ -500,7 +542,6 @@ async function pageContentHandler(currentConfig) {
     case "home":
     case "index":
     case "index2":
-      console.log("index");
       if (global.headless) {
         await page.goto("https://ehaj.haj.gov.sa/EH/login.xhtml");
       }
@@ -518,7 +559,7 @@ async function pageContentHandler(currentConfig) {
       await util.commit(page, currentConfig.details, data.system);
       const captchaCode = await util.SolveIamNotARobot(
         "#g-recaptcha-response",
-        "https://masar.nusuk.sa/pub/login",
+        `${serviceAddress}/pub/login`,
         "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
       );
       if (captchaCode) {
@@ -528,6 +569,13 @@ async function pageContentHandler(currentConfig) {
         }
       }
 
+      await fetchOTPForMasar(
+        data.system.username,
+        data.system.adminEmailPassword,
+        ["رمز التحقق|Verification Code", "رمز التحقق|Verification Code"],
+        pasteOTPCode,
+        "hajonsoft.net"
+      );
       break;
     case "authentication-settings":
       const isAuthCode = await page.$("#secretKey");
@@ -659,29 +707,31 @@ async function pageContentHandler(currentConfig) {
       break;
     case "add-pilgrim-select-method":
     case "add-pilgrim-select-method-company":
-      const isConfirmationSpan = await page.$(
-        "#stepItemsMSGs > div > div > div > ul > li > span"
-      );
-      if (isConfirmationSpan) {
-        const confirmationMessage = await page.$eval(
-          "#stepItemsMSGs > div > div > div > ul > li > span",
-          (el) => el.innerText
-        );
-        fs.appendFileSync(getLogFile(), confirmationMessage + "\n");
-        if (confirmationMessage.includes(passenger.name.last)) {
-          util.incrementSelectedTraveler();
-          //TODO: get the ehaj id as well and save it
-          kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-            "submissionData.ehj.status": "Submitted",
-          });
-        }
-        // if loop.txt exists then go to the addMrz page
-        if (fs.existsSync(getPath("loop.txt"))) {
-          const url = await page.url();
-          const addMrzUrl = url.replace("Add1", "AddMrz");
-          await page.goto(addMrzUrl);
-        }
-      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await util.controller(page, currentConfig, data.travellers)
+      // const isConfirmationSpan = await page.$(
+      //   "#stepItemsMSGs > div > div > div > ul > li > span"
+      // );
+      // if (isConfirmationSpan) {
+      //   const confirmationMessage = await page.$eval(
+      //     "#stepItemsMSGs > div > div > div > ul > li > span",
+      //     (el) => el.innerText
+      //   );
+      //   fs.appendFileSync(getLogFile(), confirmationMessage + "\n");
+      //   if (confirmationMessage.includes(passenger.name.last)) {
+      //     util.incrementSelectedTraveler();
+      //     //TODO: get the ehaj id as well and save it
+      //     kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
+      //       "submissionData.ehj.status": "Submitted",
+      //     });
+      //   }
+      //   // if loop.txt exists then go to the addMrz page
+      //   if (fs.existsSync(getPath("loop.txt"))) {
+      //     const url = await page.url();
+      //     const addMrzUrl = url.replace("Add1", "AddMrz");
+      //     await page.goto(addMrzUrl);
+      //   }
+      // }
       break;
     case "edit-pilgrim":
     case "edit-pilgrim-mission":
@@ -1989,5 +2039,83 @@ async function saveVisaPDF(err, pdf, passenger, lastPassenger) {
     }
   }
 }
+let emailCodeCounter = 0;
+const usedCodes = {};
+function codeUsed(code) {
+  if (usedCodes[code]) {
+    return true;
+  }
+  usedCodes[code] = true;
+  return false;
+}
+async function pasteOTPCode(err, code) {
+  if (err === "no-code") {
+    setTimeout(async () => {
+      if (emailCodeCounter < 50) {
+        emailCodeCounter++;
+        const alertSelector = "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p"
+        try {
+          await page.waitForSelector(alertSelector);
+          if (err.startsWith("Error:")) {
+            await page.$eval(
+              alertSelector,
+              (el, message) => (el.innerText = message),
+              err
+            );
+            return;
+          }
+          await page.$eval(
+            alertSelector,
+            (el, i) =>
+              (el.innerText = `Checking email ${i}/00:02:30 فحص البريد`),
+            formatTime(emailCodeCounter * 3)
+          );
+        } catch { }
+        getOTPCode();
+      } else {
+        // manual code is required
+      }
+    }, 3000);
+    return;
+  }
+  if (err || !code) {
+    // try {
+    //   await page.waitForSelector("#hajonsoft-commander-alert");
+    //   if (err.startsWith("Error:")) {
+    //     await page.$eval(
+    //       "#hajonsoft-commander-alert",
+    //       (el, message) => (el.innerText = message),
+    //       err
+    //     );
+    //     return;
+    //   }
+    //   await page.$eval(
+    //     "#hajonsoft-commander-alert",
+    //     (el, i) =>
+    //       (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
+    //     emailCodeCounter
+    //   );
+    // } catch { }
 
+    return;
+  }
+  if (codeUsed(code)) {
+    return;
+  }
+  await util.commit(
+    page,
+    [
+      {
+        selector: "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(3) > ng-otp-input > div > input.otp-input.ng-pristine.ng-valid.ng-star-inserted.ng-touched",
+        value: () => code,
+      },
+    ],
+    {}
+  );
+}
+function formatTime(seconds) {
+  const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const secs = (seconds % 60).toString().padStart(2, "0");
+  return `00:${minutes}:${secs}`;
+}
 module.exports = { send };
