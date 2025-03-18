@@ -108,6 +108,14 @@ const config = [
 
   },
   {
+    name: "add-pilgrim-basic-data",
+    regex: "https://masar.nusuk.sa/protected-applicant-st/add/basic-data"
+  },
+  {
+    name: "add-pilgrim-additional-data",
+    regex: "https://masar.nusuk.sa/protected-applicant-st/add/additinal-data"
+  },
+  {
     name: "haj-mission-group-details",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajMission/lookup/hajGroup/View.xhtml",
@@ -150,7 +158,7 @@ const config = [
   {
     name: "company-questionnaire",
     regex:
-      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/Questionnaire.xhtml",
+      "https://masar.nusuk.sa/protected-applicant-st/add/Questionnaire",
     details: [
       {
         selector:
@@ -277,10 +285,6 @@ const config = [
     },
   },
   {
-    name: "dashboard",
-    regex: "https://ehaj.haj.gov.sa/EH/pages/home/dashboard.xhtml",
-  },
-  {
     name: "edit-pilgrim",
     regex:
       "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/Edit.xhtml",
@@ -324,7 +328,7 @@ const config = [
   {
     name: "add-pilgrim-3",
     regex:
-      "https://ehaj.haj.gov.sa/EH/pages/hajCompany/lookup/hajData/Add3.xhtml",
+      "https://masar.nusuk.sa/protected-applicant-st/add/Identity-and-residence",
     details: [
       {
         selector: "#fatherNameEn",
@@ -444,6 +448,10 @@ const config = [
     name: "reservation-complete",
     regex: "https://ehaj.haj.gov.sa/EPATH/pages/StartBooking/home.xhtml",
   },
+  {
+    name: "add-pilgrim-review-application",
+    regex: "https://masar.nusuk.sa/protected-applicant-st/add/Review-application"
+  }
 ];
 
 async function sendPassenger(selectedTraveler) {
@@ -451,15 +459,20 @@ async function sendPassenger(selectedTraveler) {
   var passengersData = JSON.parse(data);
   const passenger = passengersData.travellers[util.getSelectedTraveler()]
   util.setSelectedTraveller(selectedTraveler);
-  // await pasteCodeLine(selectedTraveler, passengersData);
-  await util.clickWhenReady("#content > div > app-applicant-add > app-data-entry-method > div > app-main-card > div > div.body.collapse.show > div.choices-container.justify-content-start > div:nth-child(1) > label > div > p-radiobutton > div > div.p-radiobutton-box", page)
+  // await util.clickWhenReady("#content > div > app-applicant-add > app-data-entry-method > div > app-main-card > div > div.body.collapse.show > div.choices-container.justify-content-start > div:nth-child(1) > label > div > p-radiobutton > div > div.p-radiobutton-box", page)
+  await util.clickWhenReady("#content > div > app-applicant-add > app-data-entry-method > div > app-main-card:nth-child(1) > div > div.body.collapse.show > div.choices-container.justify-content-start > div:nth-child(2) > label > div > p-radiobutton", page)
   await new Promise(resolve => setTimeout(resolve, 100));
-  await page.waitForSelector("#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div > button")
+  const startPassScanningButton = "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div.passport-upload.mb-4.ng-star-inserted > button";
+  await util.clickWhenReady(startPassScanningButton, page)
+  await new Promise(resolve => setTimeout(resolve, 100));
 
+  await pasteCodeLine(selectedTraveler, passengersData);
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  await page.waitForSelector("#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div > button")
   const resizedPassportPath = await util.downloadAndResizeImage(
     passenger,
-    400,
-    300,
+    200,
+    200,
     "passport"
   );
   await util.commitFile(
@@ -490,7 +503,7 @@ async function pasteCodeLine(selectedTraveler, passengersData) {
     `${parseInt(selectedTraveler.toString()) + 1}/${passengersData.travellers.length
     }`
   );
-  await page.focus("#passportCaptureStatus");
+  await page.focus("#content > div > app-applicant-add > app-data-entry-method > p-dialog.p-element.ng-tns-c4042076560-7.ng-star-inserted > div > div > div.ng-tns-c4042076560-7.p-dialog-content > div > app-alert > div");
   if (selectedTraveler == "-1") {
     const browser = await page.browser();
     browser.disconnect();
@@ -691,6 +704,12 @@ async function pageContentHandler(currentConfig) {
         // console.log(err);
       }
       break;
+    case "add-pilgrim-basic-data":
+      break;
+    case "add-pilgrim-additional-data":
+      break;
+    case "add-pilgrim-review-application":
+      break;
     case "haj-mission-group-details":
       // add commander at
       await util.commander(page, {
@@ -707,7 +726,7 @@ async function pageContentHandler(currentConfig) {
       break;
     case "add-pilgrim-select-method":
     case "add-pilgrim-select-method-company":
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
       await util.controller(page, currentConfig, data.travellers)
       // const isConfirmationSpan = await page.$(
       //   "#stepItemsMSGs > div > div > div > ul > li > span"
@@ -2053,19 +2072,18 @@ async function pasteOTPCode(err, code) {
     setTimeout(async () => {
       if (emailCodeCounter < 50) {
         emailCodeCounter++;
-        const alertSelector = "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p"
         try {
-          await page.waitForSelector(alertSelector);
+          await page.waitForSelector("#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p");
           if (err.startsWith("Error:")) {
             await page.$eval(
-              alertSelector,
+              "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
               (el, message) => (el.innerText = message),
               err
             );
             return;
           }
           await page.$eval(
-            alertSelector,
+            "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
             (el, i) =>
               (el.innerText = `Checking email ${i}/00:02:30 فحص البريد`),
             formatTime(emailCodeCounter * 3)
@@ -2079,23 +2097,23 @@ async function pasteOTPCode(err, code) {
     return;
   }
   if (err || !code) {
-    // try {
-    //   await page.waitForSelector("#hajonsoft-commander-alert");
-    //   if (err.startsWith("Error:")) {
-    //     await page.$eval(
-    //       "#hajonsoft-commander-alert",
-    //       (el, message) => (el.innerText = message),
-    //       err
-    //     );
-    //     return;
-    //   }
-    //   await page.$eval(
-    //     "#hajonsoft-commander-alert",
-    //     (el, i) =>
-    //       (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
-    //     emailCodeCounter
-    //   );
-    // } catch { }
+    try {
+      await page.waitForSelector("#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p");
+      if (err.startsWith("Error:")) {
+        await page.$eval(
+          "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
+          (el, message) => (el.innerText = message),
+          err
+        );
+        return;
+      }
+      await page.$eval(
+        "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
+        (el, i) =>
+          (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
+        emailCodeCounter
+      );
+    } catch { }
 
     return;
   }
@@ -2113,6 +2131,22 @@ async function pasteOTPCode(err, code) {
     {}
   );
 }
+
+async function getOTPCode() {
+  try {
+    await fetchOTPForMasar(
+      data.system.username,
+      data.system.adminEmailPassword,
+      ["رمز التحقق|Verification Code", "رمز التحقق|Verification Code"],
+      pasteOTPCode,
+      "hajonsoft.net"
+    );
+  } catch (e) {
+    await util.infoMessage(page, "Manual code required or try again!");
+  }
+}
+
+
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
   const secs = (seconds % 60).toString().padStart(2, "0");
