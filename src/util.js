@@ -217,15 +217,17 @@ async function initPage(config, onContentLoaded, data) {
       }
     }
   }
-
+  if (process.argv.includes("--debug")) {
+    global.debug = true;
+  }
   const launchOptions = {
-    headless: process.argv.includes("--debug") ? false : isCloudRun || isHeadless,
+    headless: global.debug ? false : isCloudRun || isHeadless,
     ignoreHTTPSErrors: true,
     defaultViewport,
     args,
   };
 
-  if (process.argv.includes("--debug") || (!isCloudRun && !isHeadless)) {
+  if (global.debug || (!isCloudRun && !isHeadless)) {
     launchOptions.executablePath = getChromePath();
   }
   browser = await puppeteer.launch(launchOptions);
@@ -1759,7 +1761,7 @@ async function pdfToKea(
     visaImageUrl: pdfUrl,
     "submissionData.nsk.status": status,
   });
-  return {pdfUrl, pdfFileName};
+  return { pdfUrl, pdfFileName };
 }
 
 async function remember(page, selector) {
