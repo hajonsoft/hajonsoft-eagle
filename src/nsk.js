@@ -260,26 +260,26 @@ async function saveVisaPDF(err, pdf, passengerFromPage) {
     await page.evaluate(
       (statusElementSelector, paths) => {
         if (!paths || !paths.pdfUrl || !paths.pdfFileName) return;
-    
+
         // Find the element again inside the browser context
         const element = document.querySelector(statusElementSelector);
         if (!element) return; // Exit if not found
-    
+
         // Ensure it's a valid HTML element
         if (!(element instanceof HTMLElement)) return;
-    
+
         // Create the first anchor for the PDF URL
         const pdfLink = document.createElement("a");
         pdfLink.href = paths.pdfUrl;
         pdfLink.innerText = "Download PDF";
         pdfLink.target = "_blank"; // Open in a new tab
-    
+
         // Create the second anchor for the file name
         const fileNameLink = document.createElement("a");
         fileNameLink.href = paths.pdfFileName;
         fileNameLink.innerText = paths.pdfFileName;
         fileNameLink.target = "_blank"; // Open in a new tab
-    
+
         // Clear existing content and append the new anchors
         element.innerHTML = "";
         element.appendChild(pdfLink);
@@ -289,7 +289,7 @@ async function saveVisaPDF(err, pdf, passengerFromPage) {
       `#MuatamerList > tbody > tr:nth-child(${passengerFromPage.index + 1}) > td:nth-child(2)`, // Pass a selector instead of the element itself
       paths
     );
-    
+
   }
 }
 
@@ -858,8 +858,8 @@ async function pasteSimulatedPassport() {
     .toFile(passportPathMrz);
 
   await util.commitFile("#PassportPictureUploader", passportPathMrz);
-  const isSuccess = await assertPassportImage();
-  return isSuccess;
+  const imageAssertResult = await assertPassportImage();
+  return imageAssertResult;
 }
 
 async function pasteOriginalPassport() {
@@ -870,8 +870,8 @@ async function pasteOriginalPassport() {
   await util.downloadImage(passenger.images.passport, passportOriginalPath);
 
   await util.commitFile("#PassportPictureUploader", passportOriginalPath);
-  const isSuccess = await assertPassportImage();
-  return isSuccess;
+  const imageAssertResult = await assertPassportImage();
+  return imageAssertResult;
 }
 
 async function suggestEmail(passenger) {
@@ -897,9 +897,11 @@ async function suggestEmail(passenger) {
   return email;
 }
 
-async function sendCurrentPassenger() {
+async function sendCurrentPassenger(mustClickAddNew = true) {
   if (!autoMode) return;
-  await addMutamerClick();
+  if (mustClickAddNew) {
+    await addMutamerClick();
+  }
   const selectedTraveler = util.getSelectedTraveler();
   if (selectedTraveler >= data.travellers.length) {
     await page.goto(`${defaultDomain}/ExternalAgencies/Groups`);
@@ -919,48 +921,63 @@ async function sendCurrentPassenger() {
   );
   util.infoMessage(page, `🧟 Inputting ${passenger.slug} saved`);
   // let isPassportScanSuccessful = await pastePassportImage(passenger);
-  let isPassportScanSuccessful = false;
-  if (!isPassportScanSuccessful) {
-    isPassportScanSuccessful = await pasteSimulatedPassport();
-  }
-  if (!isPassportScanSuccessful) {
-    isPassportScanSuccessful = await pasteOriginalPassport();
-  }
-  await pasteRemainingImages(passenger);
-  await showCommanders(passenger);
-  await commitRemainingFields(passenger);
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  await page.focus("#PassportNumber");
-  await page.click("#PassportNumber");
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  // if (!isPassportScanSuccessful) {
+  //   isPassportScanSuccessful = await pasteSimulatedPassport();
+  // }
+  // if (!isPassportScanSuccessful) {
+  const imagePasteResult = await pasteOriginalPassport();
+  // }
 
-  if (!isPassportScanSuccessful) {
-    await page.$eval("#qa-add-mutamer-save", (e) => {
-      e.textContent =
-        "Save (Be careful Passport number or Last name is not correct) - download OCRB font from https://fontsgeek.com/fonts/OCRB-Medium";
-    });
-    // scroll to this selector
-    // #qa-add-mutamer-save
-    await page.evaluate((selector) => {
-      const element = document.querySelector(selector);
-      if (element) {
-        element.scrollIntoView();
-      }
-    }, "#qa-add-mutamer-save");
-
-    openFields();
+  if (!imagePasteResult.isSuccess) {
+    // Skip the passenger, increment the selected traveler and move on
     await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
       "submissionData.nsk.status": "Rejected",
       "submissionData.nsk.rejectionReason":
-        "Passport number or Last name is not correct",
+        imagePasteResult.message,
     });
-    util.incrementSelectedTraveler();
-    if (global.headless) {
-      // Skip the passenger, increment the selected traveler and move on
-      await sendCurrentPassenger();
+    if (global.headless || global.visualHeadless) {
+      util.incrementSelectedTraveler();
+      await sendCurrentPassenger(false);
       return;
+    } else {
+      if (imagePasteResult.message === "Passport number parse error") {
+        await page.$eval("#qa-add-mutamer-save", (e) => {
+          e.textContent =
+            "Save (Be careful Passport number or Last name may not be correct) - download OCRB font from https://fontsgeek.com/fonts/OCRB-Medium";
+        });
+      }
+      // scroll to this selector
+      // #qa-add-mutamer-save
+      await page.evaluate((selector) => {
+        const element = document.querySelector(selector);
+        if (element) {
+          element.scrollIntoView();
+        }
+      }, "#qa-add-mutamer-save");
+      openFields();
+      // Add button to Skip
+      await util.commander(page, {
+        controller: {
+          selector:
+            "#kt_content > div > div > div > div.kt-portlet__head > div",
+          title: "Skip",
+          arabicTitle: "تجاهل",
+          name: "skippax",
+          action: async () => {
+            await util.incrementSelectedTraveler();
+            await sendCurrentPassenger(false);
+          },
+        },
+      });
     }
   } else {
+    await pasteRemainingImages(passenger);
+    await showCommanders(passenger);
+    await commitRemainingFields(passenger);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await page.focus("#PassportNumber");
+    await page.click("#PassportNumber");
+    await new Promise((resolve) => setTimeout(resolve, 500));
     const code = await util.commitCaptchaTokenWithSelector(
       page,
       "#img-captcha",
@@ -1226,53 +1243,72 @@ async function pastePassportImage(passenger, resized = true) {
     await util.commitFile("#PassportPictureUploader", passportPath);
   }
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  const isSuccess = await assertPassportImage();
-  return isSuccess;
+  const imageAssertResult = await assertPassportImage();
+  return imageAssertResult;
 }
 
 async function assertPassportImage() {
+  const readimgImageSelector = "#dataLoading"
+  const modalContentSelector =
+    "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-content";
+  const closeButtonSelector =
+    "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled";
+
   try {
-    const modalContentSelector =
-      "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-content";
-    await page.waitForSelector(modalContentSelector, {
-      timeout: 1000,
-    });
-    const modalContent = await page.$eval(
-      modalContentSelector,
-      (e) => e.textContent
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await page.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        if (!el) return true; // If it's not in the DOM, treat as ready
+        const style = window.getComputedStyle(el);
+        return style.opacity === "0";
+      },
+      {},
+      readimgImageSelector
     );
-    if (
-      modalContent.match(
-        /(Please upload a valid passport image)|(Please upload a valid passport image)/
-      )
-    ) {
-      // close the modal
-      const closeButtonSelector =
-        "body > div.swal2-container.swal2-center.swal2-shown > div > div.swal2-actions > button.swal2-confirm.swal2-styled";
-      await page.waitForSelector(closeButtonSelector);
-      await page.click(closeButtonSelector);
-      return false;
+    // Wait up to 2s for modal content to appear
+    await page.waitForSelector(modalContentSelector, { timeout: 2000 });
+
+    const modalContent = await page.$eval(modalContentSelector, (el) => el.textContent?.trim() || "");
+
+    // Try to close the modal, always
+    try {
+      await page.waitForSelector(closeButtonSelector, { timeout: 1000 });
+      await util.clickWhenReady(closeButtonSelector, page);
+    } catch (closeErr) {
+      console.warn("Failed to close modal:", closeErr.message);
+    } finally {
+      return {
+        isSuccess: false,
+        message: modalContent || "Unknown modal error",
+      };
     }
-  } catch (e) {
-    // Do nothing
+  } catch (err) {
+    // Modal never showed — that's fine, continue normally
   }
 
-  try {
-    // wait for passport number value to appear in the page
-    await page.waitForFunction(
-      `document.querySelector("#PassportNumber").value !== ""`
-    );
+  // try {
+  //   // wait for passport number value to appear in the page
+  //   await page.waitForFunction(
+  //     `document.querySelector("#PassportNumber").value !== ""`
+  //   );
 
-    const passportNumberInPage = await page.$eval(
-      "#PassportNumber",
-      (e) => e.value
-    );
-    return (
-      passportNumberInPage !== "" &&
-      passenger.passportNumber === passportNumberInPage
-    );
-  } catch (e) { }
-  return false;
+  //   const passportNumberInPage = await page.$eval(
+  //     "#PassportNumber",
+  //     (e) => e.value
+  //   );
+  //   const isSuccess = passportNumberInPage !== "" &&
+  //     passenger.passportNumber === passportNumberInPage
+  //   return {
+  //     isSuccess,
+  //     message: isSuccess ? "" : "Passport number parse error"
+  //   };
+  // } catch (e) { }
+  // Here means no errors
+  return {
+    isSuccess: true,
+    message: ""
+  }
 }
 
 async function addMutamerClick() {
@@ -1309,6 +1345,9 @@ async function dismissGroupCreated() {
 }
 
 async function openFields() {
+  if (global.headless) {
+    return;
+  }
   const details = [
     {
       selector: "#NationalityId",
@@ -1436,7 +1475,7 @@ async function recordStatus(passenger) {
       }
     }
   } catch (e) {
-    console.log("Status was not saved: ", e);
+    console.log("Status was not saved: Stack Trace:", e);
   }
   util.incrementSelectedTraveler();
 }
