@@ -501,8 +501,8 @@ async function sendPassenger(selectedTraveler) {
   if (basicDataUrl == "https://masar.nusuk.sa/protected-applicant-st/add/basic-data") {
     let resizedPhotoPath = await util.downloadAndResizeImage(
       passenger,
-      200,
-      200,
+      480,
+      640,
       "photo",
       5,
       20
@@ -529,6 +529,10 @@ async function sendPassenger(selectedTraveler) {
         {
           selector: "#content > div > app-applicant-add > app-add-basic-data > form > div.col-md-12 > app-main-card > div > div.body.collapse.show > div > div.col-md-6.mt-3 > g-input-text > div > input",
           value: () => data.info.caravan
+        },
+        {
+          selector: "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div:nth-child(4) > g-input-text > div > input",
+          value: () => "92660"
         }
       ],
       passenger
@@ -2181,28 +2185,32 @@ async function getOTPCode() {
 }
 
 async function LoginToNusuk(currentConfig) {
-  // const isError = await page.$("#stepItemsMSGs > div > div");
-  // if (isError) {
-  //   return;
-  // }
-
-  // const isCaptcha = await page.$("#exampleCaptcha_CaptchaImage");
-  // if (isCaptcha) {
-  //   return;
-  // }
   await util.commit(page, currentConfig.details, data.system);
-  const captchaCode = await util.SolveIamNotARobot(
-    "#g-recaptcha-response",
-    `${serviceAddress}/pub/login`,
-    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
-  );
-  if (captchaCode) {
-    if (data.system.username && data.system.password) {
-      const loginButton = "#login > app-login > div.log-card.ng-star-inserted > form > div > button";
-      await page.click(loginButton);
-    }
-  }
-
+  // const captchaCode = await util.SolveIamNotARobot(
+  //   "#g-recaptcha-response",
+  //   `${serviceAddress}/pub/login`,
+  //   "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek"
+  // );
+  // if (captchaCode) {
+  //   if (data.system.username && data.system.password) {
+  //     const loginButton = "#login > app-login > div.log-card.ng-star-inserted > form > div > button";
+  //     await page.click(loginButton);
+  //   }
+  // }
+// add commander to get code
+      // await util.commander(page, {
+      //   controller: {
+      //     selector:
+      //       "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > p",
+      //     title: "Get Code",
+      //     arabicTitle: "احصل عالرمز",
+      //     name: "otp",
+      //     action: async () => {
+      //       emailCodeCounter = 0;
+      //       await getOTPCode();
+      //     },
+      //   },
+      // });
   await fetchOTPForMasar(
     data.system.username,
     data.system.adminEmailPassword,
