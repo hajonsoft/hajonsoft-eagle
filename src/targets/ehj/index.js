@@ -14,7 +14,6 @@ const { cloneDeep } = require("lodash");
 const { send: sendHsf } = require("../../hsf");
 const { fetchNusukIMAPPDF, fetchOTPForMasar } = require("../../lib/imap");
 const { CONFIG, baseAddress } = require("./config.js");
-const { SELECTORS } = require("./selectors.js");
 
 let page;
 let data;
@@ -35,52 +34,20 @@ async function send(sendData) {
 }
 
 async function observeDOM() {
-  await setupListeners();
-  await page.evaluate(
-    (CONFIG, SELECTORS) => {
-      const observer = new MutationObserver((mutations) => {
-        const currentUrl = window.location.href;
-        for (const mutation of mutations) {
-          for (const pageKey of Object.keys(CONFIG.pages)) {
-            const page = CONFIG.pages[pageKey];
-            if (page.url && new RegExp(page.url).test(currentUrl)) {
-              // check for required selectors
-              if (page.requiredSelectors) {
-                for (const selector of page.requiredSelectors) {
-                  if (!document.querySelector(selector)) {
-                    return;
-                  }
-                }
-                if (!page.triggered) {
-                  page.triggered = true;
-                  console.log(pageKey, currentUrl);
-                  window.dispatchEvent(new Event(`onHajOnSoft${pageKey}Ready`));
-                } else {
-                  break;
-                }
-              }
-            }
-          }
-        }
-      });
-
-      observer.observe(document.body, { childList: true, subtree: true });
-    },
-    CONFIG,
-    SELECTORS
-  );
+  await exposeFunctionsAndEvents();
+  await startObserving();
 }
 
-async function setupListeners() {
+async function exposeFunctionsAndEvents() {
   for (const pageName of Object.keys(CONFIG.pages)) {
     exposeFunctions(pageName, CONFIG.pages[pageName]);
     listenToEvents(pageName);
   }
 }
-
 async function exposeFunctions(name, pageToObserve) {
   const eventName = `onHajOnSoft${name}Ready`;
   await page.exposeFunction(eventName, async () => {
+    console.log(name, pageToObserve.url, "received event", eventName);
     if (pageToObserve.reload) {
       await page.reload();
       return;
@@ -90,7 +57,6 @@ async function exposeFunctions(name, pageToObserve) {
     }
   });
 }
-
 async function listenToEvents(name) {
   const eventName = `onHajOnSoft${name}Ready`;
   await page.evaluate((eventName) => {
@@ -101,6 +67,50 @@ async function listenToEvents(name) {
     });
   }, eventName);
 }
+
+async function startObserving() {
+  await page.evaluate((CONFIG) => {
+    const observer = new MutationObserver((mutations) => {
+      const currentUrl = window.location.href;
+
+      for (const pageKey of Object.keys(CONFIG.pages)) {
+        const page = CONFIG.pages[pageKey];
+
+        if (page.url && new RegExp(page.url).test(currentUrl)) {
+          if (page.requiredSelectors) {
+            const allSelectorsPresent = page.requiredSelectors.every(
+              (selector) => document.querySelector(selector)
+            );
+
+            if (allSelectorsPresent && !window[`triggered_${pageKey}`]) {
+              window[`triggered_${pageKey}`] = true; // Store in `window` to persist across mutations
+              const eventName = `onHajOnSoft${pageKey}Ready`;
+              console.log(pageKey, currentUrl, "dispatching", eventName);
+              window.dispatchEvent(new Event(eventName));
+            }
+          }
+        }
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true, // Detect attribute changes (some elements are updated via attributes)
+      characterData: true, // Detect text changes inside elements
+    });
+
+    // Initial check in case elements are already present
+    setTimeout(
+      () =>
+        observer
+          .takeRecords()
+          .forEach((mutation) => observer.callback([mutation])),
+      100
+    );
+  }, CONFIG);
+}
+
 // if (fs.existsSync(getPath("passports.txt"))) {
 //   const rawPassports = fs
 //     .readFileSync(getPath("passports.txt"), "utf-8")
@@ -2261,7 +2271,7 @@ async function getOTPCode() {
 }
 
 async function LoginToNusuk() {
-  await util.commit(page, CONFIG.pages.login.inputs, data.system);
+  // await util.commit(page, CONFIG.pages.login.inputs, data.system);
   // const captchaCode = await util.SolveIamNotARobot(
   //   "#g-recaptcha-response",
   //   `${serviceAddress}/pub/login`,
@@ -2287,13 +2297,13 @@ async function LoginToNusuk() {
   //     },
   //   },
   // });
-  await fetchOTPForMasar(
-    data.system.username,
-    data.system.adminEmailPassword,
-    ["رمز التحقق|Verification Code", "رمز التحقق|Verification Code"],
-    pasteOTPCode,
-    "hajonsoft.net"
-  );
+  // await fetchOTPForMasar(
+  //   data.system.username,
+  //   data.system.adminEmailPassword,
+  //   ["رمز التحقق|Verification Code", "رمز التحقق|Verification Code"],
+  //   pasteOTPCode,
+  //   "hajonsoft.net"
+  // );
 }
 
 function formatTime(seconds) {

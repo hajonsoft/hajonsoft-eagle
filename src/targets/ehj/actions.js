@@ -1,6 +1,10 @@
+const { fetchOTPForMasar } = require("../../lib/imap");
 const util = require("../../util");
 
-
+let globalPage = null;
+let globalData = null;
+let globalConfig = null;
+let usedCodes = {};
 async function showController(page, data, config) {
   await util.controller(
     page,
@@ -14,10 +18,13 @@ async function fillInputs(page, data, config) {
 }
 
 async function fillOtp(page, data, config) {
+  globalPage = page;
+  globalData = data;
+  globalConfig = config;
   try {
     await fetchOTPForMasar(
       data.system.username,
-      data.system.adminEmailPassword,
+      "Hajonsoft123",
       ["رمز التحقق|Verification Code", "رمز التحقق|Verification Code"],
       (err, code, page) => pasteOTPCode(err, code, page),
       "hajonsoft.net"
@@ -34,25 +41,25 @@ async function pasteOTPCode(err, code, page) {
       if (emailCodeCounter < 50) {
         emailCodeCounter++;
         try {
-          await page.waitForSelector(
+          await globalPage.waitForSelector(
             "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p"
           );
           if (err.startsWith("Error:")) {
-            await page.$eval(
+            await globalPage.$eval(
               "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
               (el, message) => (el.innerText = message),
               err
             );
             return;
           }
-          await page.$eval(
+          await globalPage.$eval(
             "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
             (el, i) =>
               (el.innerText = `Checking email ${i}/00:02:30 فحص البريد`),
             formatTime(emailCodeCounter * 3)
           );
         } catch {}
-        getOTPCode();
+        await fillOtp(globalPage, globalData, globalConfig);
       } else {
         // manual code is required
       }
@@ -61,18 +68,18 @@ async function pasteOTPCode(err, code, page) {
   }
   if (err || !code) {
     try {
-      await page.waitForSelector(
+      await globalPage.waitForSelector(
         "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p"
       );
       if (err.startsWith("Error:")) {
-        await page.$eval(
+        await globalPage.$eval(
           "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
           (el, message) => (el.innerText = message),
           err
         );
         return;
       }
-      await page.$eval(
+      await globalPage.$eval(
         "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
         (el, i) =>
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
@@ -86,7 +93,7 @@ async function pasteOTPCode(err, code, page) {
     return;
   }
   await util.commit(
-    page,
+    globalPage,
     [
       {
         selector:
@@ -96,6 +103,14 @@ async function pasteOTPCode(err, code, page) {
     ],
     {}
   );
+}
+
+function codeUsed(code) {
+  if (usedCodes[code]) {
+    return true;
+  }
+  usedCodes[code] = true;
+  return false;
 }
 module.exports = {
   showController,
