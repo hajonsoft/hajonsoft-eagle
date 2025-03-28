@@ -1,10 +1,14 @@
 const { fetchOTPForMasar } = require("../../lib/imap");
 const util = require("../../util");
+const { CONFIG } = require("./config");
+const { SELECTORS } = require("./selectors");
 
 let globalPage = null;
 let globalData = null;
 let globalConfig = null;
 let usedCodes = {};
+let emailCodeCounter = 0;
+let emailTimerHandler = null;
 async function showController(page, data, config) {
   await util.controller(
     page,
@@ -21,66 +25,68 @@ async function fillOtp(page, data, config) {
   globalPage = page;
   globalData = data;
   globalConfig = config;
-  try {
-    await fetchOTPForMasar(
-      data.system.username,
-      "Hajonsoft123",
-      ["رمز التحقق|Verification Code", "رمز التحقق|Verification Code"],
-      (err, code, page) => pasteOTPCode(err, code, page),
-      "hajonsoft.net"
-    );
-  } catch (e) {
-    await util.infoMessage(page, "Manual code required or try again!", e);
-  }
+
+  await util.commander(page, {
+    controller: {
+      selector: SELECTORS.loginOtp.h1,
+      title: "Get Code",
+      arabicTitle: "احصل عالرمز",
+      name: "otp",
+      action: async () => {
+        emailCodeCounter = 0;
+        startEmailTimer();
+      },
+    },
+  });
+  startEmailTimer();
 }
 
-let emailCodeCounter = 0;
+async function startEmailTimer() {
+  emailTimerHandler = setInterval(async () => {
+    emailCodeCounter++;
+    if (emailCodeCounter > 50) {
+      clearInterval(emailTimerHandler);
+      emailTimerHandler = null;
+    } else {
+      globalPage.$eval(
+        SELECTORS.loginOtp.label,
+        (el, i) =>
+          (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
+        emailCodeCounter
+      );
+
+      try {
+        await fetchOTPForMasar(
+          globalData.system.username,
+          "Hajonsoft123",
+          ["رمز التحقق|Verification Code", "رمز التحقق|Verification Code"],
+          (err, code, page) => pasteOTPCode(err, code, page),
+          "hajonsoft.net"
+        );
+      } catch (e) {
+        await util.infoMessage(page, "Manual code required or try again!", e);
+      }
+    }
+  }, 3000);
+}
+
 async function pasteOTPCode(err, code, page) {
   if (err === "no-code") {
-    setTimeout(async () => {
-      if (emailCodeCounter < 50) {
-        emailCodeCounter++;
-        try {
-          await globalPage.waitForSelector(
-            "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p"
-          );
-          if (err.startsWith("Error:")) {
-            await globalPage.$eval(
-              "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
-              (el, message) => (el.innerText = message),
-              err
-            );
-            return;
-          }
-          await globalPage.$eval(
-            "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
-            (el, i) =>
-              (el.innerText = `Checking email ${i}/00:02:30 فحص البريد`),
-            formatTime(emailCodeCounter * 3)
-          );
-        } catch {}
-        await fillOtp(globalPage, globalData, globalConfig);
-      } else {
-        // manual code is required
-      }
-    }, 3000);
     return;
   }
   if (err || !code) {
     try {
-      await globalPage.waitForSelector(
-        "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p"
-      );
+      await globalPage.waitForSelector(SELECTORS.loginOtp.label);
       if (err.startsWith("Error:")) {
         await globalPage.$eval(
-          "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
+          SELECTORS.loginOtp.label,
           (el, message) => (el.innerText = message),
           err
         );
         return;
       }
       await globalPage.$eval(
-        "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
+        SELECTORS.loginOtp.label,
         (el, i) =>
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
         emailCodeCounter
@@ -96,12 +102,18 @@ async function pasteOTPCode(err, code, page) {
     globalPage,
     [
       {
-        selector:
-          "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(3) > ng-otp-input > div > input.otp-input.ng-pristine.ng-valid.ng-star-inserted.ng-touched",
+        selector: SELECTORS.loginOtp.firstDigit,
         value: () => code,
       },
     ],
     {}
+  );
+  clearInterval(emailTimerHandler);
+  emailTimerHandler = null;
+  await util.infoMessage(
+    globalPage,
+    "Code has been pasted successfully",
+    null
   );
 }
 
@@ -115,5 +127,5 @@ function codeUsed(code) {
 module.exports = {
   showController,
   fillInputs,
-  fillOtp
+  fillOtp,
 };

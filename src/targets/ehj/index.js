@@ -14,6 +14,7 @@ const { cloneDeep } = require("lodash");
 const { send: sendHsf } = require("../../hsf");
 const { fetchNusukIMAPPDF, fetchOTPForMasar } = require("../../lib/imap");
 const { CONFIG, baseAddress } = require("./config.js");
+const { SELECTORS } = require("./selectors.js");
 
 let page;
 let data;
@@ -142,14 +143,6 @@ function getLogFile() {
 let startTime;
 
 const config = [
-  {
-    name: "home",
-    url: `${baseAddress}`,
-  },
-  {
-    name: "home",
-    url: `${baseAddress}/`,
-  },
   {
     name: "login",
     regex: `${baseAddress}/pub/login`,
@@ -529,23 +522,15 @@ const config = [
 ];
 
 async function sendPassenger(selectedTraveler) {
-  CONFIG.pages.dataEntry.triggered = false;
-  const passenger = data.travellers[util.getSelectedTraveler()];
-  // await util.clickWhenReady("#content > div > app-applicant-add > app-data-entry-method > div > app-main-card > div > div.body.collapse.show > div.choices-container.justify-content-start > div:nth-child(1) > label > div > p-radiobutton > div > div.p-radiobutton-box", page)
-  await util.clickWhenReady(
-    "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card:nth-child(1) > div > div.body.collapse.show > div.choices-container.justify-content-start > div:nth-child(2) > label > div > p-radiobutton",
-    page
-  );
+  const passenger = data.travellers[selectedTraveler];
+  await util.clickWhenReady(SELECTORS.dataEntry.automaticScan, page);
   await new Promise((resolve) => setTimeout(resolve, 100));
-  const startPassScanningButton =
-    "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div.passport-upload.mb-4.ng-star-inserted > button";
-  await util.clickWhenReady(startPassScanningButton, page);
+  await util.clickWhenReady(SELECTORS.loginOtp.startScanButton, page);
   await new Promise((resolve) => setTimeout(resolve, 100));
-
   await pasteCodeLine(selectedTraveler, data);
   await new Promise((resolve) => setTimeout(resolve, 2000));
   await page.waitForSelector(
-    "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div > button"
+    SELECTORS.dataEntry.passportPhotoButton,
   );
   const resizedPassportPath = await util.downloadAndResizeImage(
     passenger,
@@ -554,9 +539,13 @@ async function sendPassenger(selectedTraveler) {
     "passport"
   );
   await util.commitFile(
-    "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > input",
+    SELECTORS.dataEntry.passportPhotoInput,
     resizedPassportPath
   );
+}
+
+async function remainingCode() {
+  const passenger = data.travellers[util.getSelectedTraveler()];
 
   // wait for identity and residence
   await page.waitForSelector(

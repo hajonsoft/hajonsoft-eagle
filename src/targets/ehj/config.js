@@ -1,7 +1,5 @@
 const { SELECTORS } = require("./selectors.js");
 const {
-  startScan,
-  showDataEntryController,
   fillInputs,
   fillOtp,
   showController,
