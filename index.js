@@ -5,7 +5,7 @@ const pjson = require("./package.json");
 const version = pjson.version;
 console.log(`=== Eagle v${version} ===`);
 
-const { send: sendEhj } = require("./src/ehj");
+const { send: sendEhj } = require("./src/targets/ehj");
 const { send: sendVst } = require("./src/vst");
 const { send: sendEnj } = require("./src/enj");
 const { send: sendHsf } = require("./src/hsf");
