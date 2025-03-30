@@ -3,6 +3,7 @@ const {
   fillInputs,
   fillOtp,
   showController,
+  fillIdAndResidence,
 } = require("./actions.js");
 
 const baseAddress = "https://masar.nusuk.sa";
@@ -43,9 +44,23 @@ const CONFIG = {
         SELECTORS.dataEntry.automaticScan,
         SELECTORS.dataEntry.manualEntry,
       ],
-      reload: true,
       action: (page, data, pageToObserve) =>
         showController(page, data, pageToObserve),
+    },
+    identityAndResidence: {
+      url: `${baseAddress}/protected-applicant-st/add/Identity-and-residence`,
+      requiredSelectors: [
+        SELECTORS.identityAndResidence.hajjType,
+        SELECTORS.identityAndResidence.embassy,
+      ],
+      inputs: [
+        {
+          selector: SELECTORS.identityAndResidence.placeOfIssue,
+          value: (row) => row.placeOfIssue,
+        },
+      ],
+      action: (page, data, pageToObserve) =>
+        fillIdAndResidence(page, data, pageToObserve),
     },
   },
 };
