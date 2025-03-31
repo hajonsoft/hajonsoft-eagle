@@ -4,15 +4,17 @@ const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
 const fs = require("fs");
 const path = require("path");
-const budgie = require("./budgie");
-const util = require("./util");
-const { getPath } = require("./lib/getPath");
+const budgie = require("../../budgie");
+const util = require("../../util");
+const { getPath } = require("../../lib/getPath");
 const moment = require("moment");
 const totp = require("totp-generator");
-const kea = require("./lib/kea");
+const kea = require("../../lib/kea");
 const { cloneDeep } = require("lodash");
-const { send: sendHsf } = require("./hsf");
-const { fetchNusukIMAPPDF, fetchOTPForMasar } = require("./lib/imap");
+const { send: sendHsf } = require("../../hsf");
+const { fetchNusukIMAPPDF, fetchOTPForMasar } = require("../../lib/imap");
+const { CONFIG, baseAddress } = require("./config.js");
+const { SELECTORS } = require("./selectors.js");
 
 let page;
 let data;
@@ -25,16 +27,141 @@ let liberiaPassports = [];
 const questionnaireClicked = {};
 let sent = {};
 
-if (fs.existsSync(getPath("passports.txt"))) {
-  const rawPassports = fs
-    .readFileSync(getPath("passports.txt"), "utf-8")
-    .split("\n");
-  for (let pass of rawPassports) {
-    liberiaPassports.push({
-      passportNumber: pass,
-      status: "unknown",
-    });
+async function send(sendData) {
+  data = sendData;
+  page = await util.initPage(config, onContentLoaded);
+  let startingUrl = CONFIG.pages.home.url;
+  if (global.headless || global.visualHeadless) {
+    startingUrl = CONFIG.pages.login.url;
   }
+  await page.goto(startingUrl, { waitUntil: "domcontentloaded" });
+  startTimerObserver();
+}
+
+async function startTimerObserver() {
+  setInterval(() => {
+    CheckAllPages();
+  }, 100);
+}
+
+async function CheckAllPages() {
+  const currentUrl = await page.url();
+  for (const pageName of Object.keys(CONFIG.pages)) {
+    const pageToObserve = CONFIG.pages[pageName];
+    if (
+      pageToObserve.url &&
+      pageToObserve.requiredSelectors &&
+      new RegExp(pageToObserve.url).test(currentUrl)
+      && !pageToObserve.active
+    ) {
+      const allSelectorsPresent = await checkSelectorsPresent(
+        page,
+        pageToObserve.requiredSelectors
+      );
+
+      console.log(
+        "Checking required selectors for",
+        pageName,
+        allSelectorsPresent
+      );
+      if (allSelectorsPresent) {
+        if (pageToObserve.action) {
+          pageToObserve.active = true; // Mark the page as active to prevent re-triggering
+          await pageToObserve.action(page, data, pageToObserve);
+        }
+        break;
+      }
+    }
+  }
+}
+
+async function checkSelectorsPresent(page, requiredSelectors) {
+  // Use Promise.all to check all selectors concurrently
+  const results = await Promise.all(
+    requiredSelectors.map(async (selector) => {
+      const element = await page.$(selector); // Try to get the element
+      return !!element; // Return true if element exists, false if it doesn't
+    })
+  );
+
+  // Check if all selectors are present
+  const allSelectorsPresent = results.every((exists) => exists);
+  return allSelectorsPresent;
+}
+
+async function observeDOM() {
+  await exposeFunctionsAndEvents();
+  await startObserving();
+}
+
+async function exposeFunctionsAndEvents() {
+  for (const pageName of Object.keys(CONFIG.pages)) {
+    exposeFunctions(pageName, CONFIG.pages[pageName]);
+    listenToEvents(pageName);
+  }
+}
+async function exposeFunctions(name, pageToObserve) {
+  const eventName = `onHajOnSoft${name}Ready`;
+  await page.exposeFunction(eventName, async () => {
+    console.log(name, pageToObserve.url, "received event", eventName);
+    if (pageToObserve.reload) {
+      await page.reload();
+      return;
+    }
+    if (pageToObserve.action) {
+      await pageToObserve.action(page, data, pageToObserve);
+    }
+  });
+}
+async function listenToEvents(name) {
+  const eventName = `onHajOnSoft${name}Ready`;
+  await page.evaluate((eventName) => {
+    window.addEventListener(eventName, () => {
+      if (typeof window[eventName] === "function") {
+        window[eventName]();
+      }
+    });
+  }, eventName);
+}
+
+async function startObserving() {
+  await page.evaluate((CONFIG) => {
+    const observer = new MutationObserver((mutations) => {
+      const currentUrl = window.location.href;
+      console.log("Current URL:", currentUrl);
+      for (const pageKey of Object.keys(CONFIG.pages)) {
+        const page = CONFIG.pages[pageKey];
+
+        if (page.url && new RegExp(page.url).test(currentUrl)) {
+          if (page.requiredSelectors) {
+            const allSelectorsPresent = page.requiredSelectors.every(
+              (selector) => document.querySelector(selector)
+            );
+
+            if (allSelectorsPresent && !window[`triggered_${pageKey}`]) {
+              window[`triggered_${pageKey}`] = true; // Store in `window` to persist across mutations
+              const eventName = `onHajOnSoft${pageKey}Ready`;
+              console.log(pageKey, currentUrl, "dispatching", eventName);
+              window.dispatchEvent(new Event(eventName));
+            }
+          }
+        }
+      }
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+    // Initial check in case elements are already present
+    setTimeout(
+      () =>
+        observer
+          .takeRecords()
+          .forEach((mutation) => observer._callback([mutation])),
+      100
+    );
+  }, CONFIG);
 }
 
 function getLogFile() {
@@ -55,45 +182,29 @@ function getLogFile() {
 
 let startTime;
 
-const serviceAddress = "https://masar.nusuk.sa"
-
 const config = [
   {
-    name: "home",
-    url: `${serviceAddress}`,
-  },
-  {
-    name: "home",
-    url: `${serviceAddress}/`,
-  },
-  {
-    name: "index",
-    regex: "https://ehaj.haj.gov.sa/EH/index.xhtml;jsessionid=",
-  },
-  {
-    name: "index2",
-    regex: "https://ehaj.haj.gov.sa/EH/index.xhtml.dswid=",
-  },
-  {
     name: "login",
-    regex: `${serviceAddress}/pub/login`,
+    regex: `${baseAddress}/pub/login`,
     details: [
       {
-        selector: "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.form-mb > g-input-text > div > input",
+        selector:
+          "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.form-mb > g-input-text > div > input",
         value: (row) => row.username,
       },
       {
-        selector: "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.mb-2 > p-password > div > input",
+        selector:
+          "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.mb-2 > p-password > div > input",
         value: (row) => row.password,
       },
     ],
   },
   {
     name: "add-pilgrim-select-method",
-    regex:
-      `https://masar.nusuk.sa/protected-applicant-st/add/data-entry-method`,
+    regex: `https://masar.nusuk.sa/protected-applicant-st/add/data-entry-method`,
     controller: {
-      selector: "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card:nth-child(1) > div > div.card-header.mb-0.cursor-pointer.ng-star-inserted > h3",
+      selector:
+        "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card:nth-child(1) > div > div.card-header.mb-0.cursor-pointer.ng-star-inserted > h3",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -101,19 +212,18 @@ const config = [
         );
         if (selectedTraveler) {
           util.setSelectedTraveller(selectedTraveler);
-          await sendPassenger(util.getSelectedTraveler())
+          await sendPassenger(util.getSelectedTraveler());
         }
       },
     },
-
   },
   {
     name: "add-pilgrim-basic-data",
-    regex: "https://masar.nusuk.sa/protected-applicant-st/add/basic-data"
+    regex: "https://masar.nusuk.sa/protected-applicant-st/add/basic-data",
   },
   {
     name: "add-pilgrim-additional-data",
-    regex: "https://masar.nusuk.sa/protected-applicant-st/add/additinal-data"
+    regex: "https://masar.nusuk.sa/protected-applicant-st/add/additinal-data",
   },
   {
     name: "haj-mission-group-details",
@@ -157,8 +267,7 @@ const config = [
   },
   {
     name: "company-questionnaire",
-    regex:
-      "https://masar.nusuk.sa/protected-applicant-st/add/Questionnaire",
+    regex: "https://masar.nusuk.sa/protected-applicant-st/add/Questionnaire",
     details: [
       {
         selector:
@@ -216,8 +325,7 @@ const config = [
   },
   {
     name: "list-pilgrims",
-    regex:
-      `https://masar.nusuk.sa/protected/applicants-groups/applicants/list`,
+    regex: `https://masar.nusuk.sa/protected/applicants-groups/applicants/list`,
   },
   {
     name: "add-mission-pilgrim",
@@ -448,23 +556,20 @@ const config = [
   },
   {
     name: "add-pilgrim-review-application",
-    regex: "https://masar.nusuk.sa/protected-applicant-st/add/Review-application"
-  }
+    regex:
+      "https://masar.nusuk.sa/protected-applicant-st/add/Review-application",
+  },
 ];
 
 async function sendPassenger(selectedTraveler) {
-  const passenger = data.travellers[util.getSelectedTraveler()]
-  util.setSelectedTraveller(selectedTraveler);
-  // await util.clickWhenReady("#content > div > app-applicant-add > app-data-entry-method > div > app-main-card > div > div.body.collapse.show > div.choices-container.justify-content-start > div:nth-child(1) > label > div > p-radiobutton > div > div.p-radiobutton-box", page)
-  await util.clickWhenReady("#content > div > app-applicant-add > app-data-entry-method > div > app-main-card:nth-child(1) > div > div.body.collapse.show > div.choices-container.justify-content-start > div:nth-child(2) > label > div > p-radiobutton", page)
-  await new Promise(resolve => setTimeout(resolve, 100));
-  const startPassScanningButton = "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div.passport-upload.mb-4.ng-star-inserted > button";
-  await util.clickWhenReady(startPassScanningButton, page)
-  await new Promise(resolve => setTimeout(resolve, 100));
-
+  const passenger = data.travellers[selectedTraveler];
+  await util.clickWhenReady(SELECTORS.dataEntry.automaticScan, page);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await util.clickWhenReady(SELECTORS.dataEntry.startScanButton, page);
+  await new Promise((resolve) => setTimeout(resolve, 100));
   await pasteCodeLine(selectedTraveler, data);
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  await page.waitForSelector("#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div > button")
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+  await page.waitForSelector(SELECTORS.dataEntry.passportPhotoButton);
   const resizedPassportPath = await util.downloadAndResizeImage(
     passenger,
     200,
@@ -472,73 +577,9 @@ async function sendPassenger(selectedTraveler) {
     "passport"
   );
   await util.commitFile(
-    "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > input",
+    SELECTORS.dataEntry.passportPhotoInput,
     resizedPassportPath
   );
-
-  // wait for identity and residence
-  await page.waitForSelector("#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(1) > g-input-text > div")
-  const identityAndResidenceUrl = await page.url();
-  if (identityAndResidenceUrl == "https://masar.nusuk.sa/protected-applicant-st/add/Identity-and-residence") {
-    await util.commit(
-      page,
-      [
-        {
-          selector: "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(5) > g-input-text > div > input",
-          value: (row) => row.placeOfIssue,
-        },
-      ],
-      passenger
-    );
-
-    await page.$eval("#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > label", (el, pass) => el.textContent = `Passport Issue Date: ${pass.passIssueDt.dmmmy}`, passenger)
-    await util.clickWhenReady("#content > div > app-applicant-add > app-identity-and-residence > form > app-main-card > div > div.body.collapse.show > div > div > div:nth-child(1) > label > div > p-radiobutton > div > div.p-radiobutton-box", page)
-
-  }
-
-  await page.waitForSelector("#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div:nth-child(2) > div:nth-child(2) > g-input-text > div > input")
-  const basicDataUrl = await page.url();
-  if (basicDataUrl == "https://masar.nusuk.sa/protected-applicant-st/add/basic-data") {
-    let resizedPhotoPath = await util.downloadAndResizeImage(
-      passenger,
-      480,
-      640,
-      "photo",
-      5,
-      20
-    );
-    await util.commitFile("#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div.row.mb-3 > div:nth-child(1) > g-attachment-upload > div.form-control.file-upload.enabled > div.upload-info-container > input", resizedPhotoPath);
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    await util.clickWhenReady("#content > div > app-applicant-add > app-add-basic-data > form > div.col-md-12 > app-main-card > div > div.body.collapse.show > div > div.col-md-12.mt-3 > div > div:nth-child(2) > div > p-radiobutton", page)
-    await util.commit(
-      page,
-      [
-        {
-          selector: "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div:nth-child(2) > div:nth-child(8) > g-input-text > div > input",
-          value: (row) => row.birthPlace,
-        },
-        {
-          selector: "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div.col-md-12 > div > div > g-input-text > div > input",
-          value: (row) => row.email || "admin@hajonsoft.net"
-
-        },
-        {
-          selector: "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > div > div.col-md-8 > g-input-text > div > input",
-          value: (row) => row.phone || new Date().valueOf().toString().substring(0, 10)
-        },
-        {
-          selector: "#content > div > app-applicant-add > app-add-basic-data > form > div.col-md-12 > app-main-card > div > div.body.collapse.show > div > div.col-md-6.mt-3 > g-input-text > div > input",
-          value: () => data.info.caravan
-        },
-        {
-          selector: "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div:nth-child(4) > g-input-text > div > input",
-          value: () => "92660"
-        }
-      ],
-      passenger
-    );
-  }
-
 }
 
 async function rememberValue(selector, budgieKey) {
@@ -560,10 +601,16 @@ async function rememberValue(selector, budgieKey) {
 async function pasteCodeLine(selectedTraveler, passengersData) {
   await util.infoMessage(
     page,
-    `${parseInt(selectedTraveler.toString()) + 1}/${passengersData.travellers.length
+    `${parseInt(selectedTraveler.toString()) + 1}/${
+      passengersData.travellers.length
     }`
   );
-  await page.focus("#content > div > app-applicant-add > app-data-entry-method > p-dialog.p-element.ng-tns-c4042076560-7.ng-star-inserted > div > div > div.ng-tns-c4042076560-7.p-dialog-content > div > app-alert > div");
+  await page.waitForSelector(
+    "#content > div > app-applicant-add > app-data-entry-method > p-dialog.p-element.ng-tns-c4042076560-7.ng-star-inserted > div > div > div.ng-tns-c4042076560-7.p-dialog-content > div > app-alert > div"
+  );
+  await page.focus(
+    "#content > div > app-applicant-add > app-data-entry-method > p-dialog.p-element.ng-tns-c4042076560-7.ng-star-inserted > div > div > div.ng-tns-c4042076560-7.p-dialog-content > div > app-alert > div"
+  );
   if (selectedTraveler == "-1") {
     const browser = await page.browser();
     browser.disconnect();
@@ -578,12 +625,6 @@ async function pasteCodeLine(selectedTraveler, passengersData) {
   }
 }
 
-async function send(sendData) {
-  data = sendData;
-  page = await util.initPage(config, onContentLoaded);
-  await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
-}
-
 async function onContentLoaded(res) {
   counter = util.useCounter(counter);
   if (counter >= data?.travellers?.length) {
@@ -595,13 +636,13 @@ async function onContentLoaded(res) {
   const currentUrl = await page.url();
   const currentConfig = util.findConfig(currentUrl, config);
   if (global.debug) {
-    console.log("Url", currentUrl)
+    console.log("Url", currentUrl);
     if (!currentConfig) {
-      console.log("No configuration found for this url", currentUrl)
+      console.log("No configuration found for this url", currentUrl);
       return;
     }
   }
-  console.log(currentConfig.name, currentUrl)
+  console.log(currentConfig.name, currentUrl);
   try {
     await pageContentHandler(currentConfig);
   } catch (err) {
@@ -613,20 +654,15 @@ async function pageContentHandler(currentConfig) {
   const passenger = data.travellers[util.getSelectedTraveler()];
   switch (currentConfig.name) {
     case "home":
-    case "index":
-    case "index2":
-      if (global.headless) {
-        await page.goto("https://ehaj.haj.gov.sa/EH/login.xhtml");
+      if (global.headless || global.visualHeadless) {
+        await page.goto(CONFIG.pages.login.url, {
+          waitUntil: "domcontentloaded",
+        });
+        return;
       }
-      await page.waitForSelector("#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.form-mb > g-input-text > div > input")
-      const loginUrl = await page.url()
-      if (loginUrl == "https://masar.nusuk.sa/pub/login") {
-        await LoginToNusuk(config.find(c => c.name === "login"));
-      }
-
       break;
     case "login":
-      await LoginToNusuk(config.find(c => c.name === "login"));
+      await LoginToNusuk();
       break;
     case "authentication-settings":
       const isAuthCode = await page.$("#secretKey");
@@ -652,31 +688,6 @@ async function pageContentHandler(currentConfig) {
 
       break;
     case "otp":
-      const messageSelector = "#loginPanel > h5";
-      await page.waitForSelector(messageSelector);
-      const message = await page.$eval(messageSelector, (el) => el.innerText);
-      if (
-        (message.includes("generated by Google Authenticator") ||
-          message.includes("vérification généré par Google Authenticator") ||
-          message.includes("ديك في تطبيق Google Authenticator")) &&
-        data.system.ehajCode
-      ) {
-        const token = totp(data.system.ehajCode);
-        await util.commit(
-          page,
-          [
-            {
-              selector: "#first",
-              value: () => token,
-            },
-          ],
-          passenger
-        );
-        const submitButton = "#sj1";
-        await page.waitForSelector(submitButton);
-        await page.click(submitButton);
-      }
-
       break;
     case "profile-verification":
       await page.waitForSelector("#code");
@@ -764,8 +775,8 @@ async function pageContentHandler(currentConfig) {
       break;
     case "add-pilgrim-select-method":
     case "add-pilgrim-select-method-company":
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      await util.controller(page, currentConfig, data.travellers)
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await util.controller(page, currentConfig, data.travellers);
       // const isConfirmationSpan = await page.$(
       //   "#stepItemsMSGs > div > div > div > ul > li > span"
       // );
@@ -907,8 +918,9 @@ async function pageContentHandler(currentConfig) {
             console.table(liberiaPassports.filter((p) => p.status !== "NEW"));
             await page.evaluate((ehajNumbers) => {
               const eagleButton = document.querySelector("#importEhajNumber");
-              eagleButton.textContent = `Done... [${ehajNumbers[0]}-${ehajNumbers[ehajNumbers.length - 1]
-                }] => ${ehajNumbers.length}`;
+              eagleButton.textContent = `Done... [${ehajNumbers[0]}-${
+                ehajNumbers[ehajNumbers.length - 1]
+              }] => ${ehajNumbers.length}`;
             }, ehajNumbers);
           },
         },
@@ -938,8 +950,9 @@ async function pageContentHandler(currentConfig) {
             break;
           }
           if (passportNumber === editPassportNumber) {
-            const nextEdit = `#PackageReqForm > div > div > div:nth-child(1) > div > div > div.ui-datatable-tablewrapper > table > tbody > tr:nth-child(${i + 1
-              }) > td:nth-child(13) > div > ul > li:nth-child(2) > a`;
+            const nextEdit = `#PackageReqForm > div > div > div:nth-child(1) > div > div > div.ui-datatable-tablewrapper > table > tbody > tr:nth-child(${
+              i + 1
+            }) > td:nth-child(13) > div > ul > li:nth-child(2) > a`;
             await page.evaluate((selector) => {
               const nextEditButton = document.querySelector(selector);
               if (nextEditButton) {
@@ -1136,8 +1149,8 @@ async function pageContentHandler(currentConfig) {
               row.caravan < 40
                 ? row.caravan.replace(/[^a-zA-Z0-9 ]/, "")
                 : row.caravan
-                  .substring(row.caravan.length - 40, row.caravan.length)
-                  .replace(/[^a-zA-Z0-9 ]/, ""),
+                    .substring(row.caravan.length - 40, row.caravan.length)
+                    .replace(/[^a-zA-Z0-9 ]/, ""),
           },
         ],
         data.info
@@ -1222,7 +1235,6 @@ async function pageContentHandler(currentConfig) {
           ],
           passenger
         );
-
       }
       // Wait here for 1 second
       await page.waitFor(1000);
@@ -1232,14 +1244,14 @@ async function pageContentHandler(currentConfig) {
           (el, val) => (el.innerText = val),
           passenger.passIssueDt.dmy
         );
-      } catch { }
+      } catch {}
       try {
         await page.$eval(
           "#formData > div:nth-child(11) > div:nth-child(1) > div:nth-child(4) > label",
           (el, val) => (el.innerText = val),
           passenger.passIssueDt.dmy
         );
-      } catch { }
+      } catch {}
       await page.waitFor(1000);
       // try issue date 5 times
       const passportIssueDateFromData = `${passenger.passIssueDt.dd}/${passenger.passIssueDt.mm}/${passenger.passIssueDt.yyyy}`;
@@ -1316,7 +1328,7 @@ async function pageContentHandler(currentConfig) {
       }
       try {
         await page.select("#hajType", budgie.get("ehaj_pilgrim_hajType", "1"));
-      } catch { }
+      } catch {}
 
       // if (passports.filter((x) => x == passenger.passportNumber).length > 3) {
       //   // Stop
@@ -1529,7 +1541,7 @@ async function pageContentHandler(currentConfig) {
           (el, val) => (el.innerText = val),
           resizedPassportPath
         );
-      } catch { }
+      } catch {}
 
       await page.evaluate(() => {
         document
@@ -1996,7 +2008,7 @@ async function makeReservations(index, passengersData) {
         await page.type(
           "#email",
           (passenger.name.first + passenger.name.last).replace(/ /g, "") +
-          "@premiumemail.ca"
+            "@premiumemail.ca"
         );
       }
     }
@@ -2111,7 +2123,9 @@ async function pasteOTPCode(err, code) {
       if (emailCodeCounter < 50) {
         emailCodeCounter++;
         try {
-          await page.waitForSelector("#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p");
+          await page.waitForSelector(
+            "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p"
+          );
           if (err.startsWith("Error:")) {
             await page.$eval(
               "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
@@ -2126,7 +2140,7 @@ async function pasteOTPCode(err, code) {
               (el.innerText = `Checking email ${i}/00:02:30 فحص البريد`),
             formatTime(emailCodeCounter * 3)
           );
-        } catch { }
+        } catch {}
         getOTPCode();
       } else {
         // manual code is required
@@ -2136,7 +2150,9 @@ async function pasteOTPCode(err, code) {
   }
   if (err || !code) {
     try {
-      await page.waitForSelector("#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p");
+      await page.waitForSelector(
+        "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p"
+      );
       if (err.startsWith("Error:")) {
         await page.$eval(
           "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(1) > p",
@@ -2151,7 +2167,7 @@ async function pasteOTPCode(err, code) {
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
         emailCodeCounter
       );
-    } catch { }
+    } catch {}
 
     return;
   }
@@ -2162,7 +2178,8 @@ async function pasteOTPCode(err, code) {
     page,
     [
       {
-        selector: "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(3) > ng-otp-input > div > input.otp-input.ng-pristine.ng-valid.ng-star-inserted.ng-touched",
+        selector:
+          "#login > app-login > div.login-otp.ng-star-inserted > g-otp-built-in-component > form > div:nth-child(3) > ng-otp-input > div > input.otp-input.ng-pristine.ng-valid.ng-star-inserted.ng-touched",
         value: () => code,
       },
     ],
@@ -2180,12 +2197,12 @@ async function getOTPCode() {
       "hajonsoft.net"
     );
   } catch (e) {
-    await util.infoMessage(page, "Manual code required or try again!");
+    await util.infoMessage(page, "Manual code required or try again!", e);
   }
 }
 
-async function LoginToNusuk(currentConfig) {
-  await util.commit(page, currentConfig.details, data.system);
+async function LoginToNusuk() {
+  // await util.commit(page, CONFIG.pages.login.inputs, data.system);
   // const captchaCode = await util.SolveIamNotARobot(
   //   "#g-recaptcha-response",
   //   `${serviceAddress}/pub/login`,
@@ -2197,31 +2214,33 @@ async function LoginToNusuk(currentConfig) {
   //     await page.click(loginButton);
   //   }
   // }
-// add commander to get code
-      // await util.commander(page, {
-      //   controller: {
-      //     selector:
-      //       "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > p",
-      //     title: "Get Code",
-      //     arabicTitle: "احصل عالرمز",
-      //     name: "otp",
-      //     action: async () => {
-      //       emailCodeCounter = 0;
-      //       await getOTPCode();
-      //     },
-      //   },
-      // });
-  await fetchOTPForMasar(
-    data.system.username,
-    data.system.adminEmailPassword,
-    ["رمز التحقق|Verification Code", "رمز التحقق|Verification Code"],
-    pasteOTPCode,
-    "hajonsoft.net"
-  );
+  // add commander to get code
+  // await util.commander(page, {
+  //   controller: {
+  //     selector:
+  //       "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > p",
+  //     title: "Get Code",
+  //     arabicTitle: "احصل عالرمز",
+  //     name: "otp",
+  //     action: async () => {
+  //       emailCodeCounter = 0;
+  //       await getOTPCode();
+  //     },
+  //   },
+  // });
+  // await fetchOTPForMasar(
+  //   data.system.username,
+  //   data.system.adminEmailPassword,
+  //   ["رمز التحقق|Verification Code", "رمز التحقق|Verification Code"],
+  //   pasteOTPCode,
+  //   "hajonsoft.net"
+  // );
 }
 
 function formatTime(seconds) {
-  const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const minutes = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, "0");
   const secs = (seconds % 60).toString().padStart(2, "0");
   return `00:${minutes}:${secs}`;
 }
