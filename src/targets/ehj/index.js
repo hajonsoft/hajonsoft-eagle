@@ -51,8 +51,8 @@ async function CheckAllPages() {
     if (
       pageToObserve.url &&
       pageToObserve.requiredSelectors &&
-      new RegExp(pageToObserve.url).test(currentUrl)
-      && !pageToObserve.active
+      new RegExp(pageToObserve.url).test(currentUrl) &&
+      !pageToObserve.active
     ) {
       const allSelectorsPresent = await checkSelectorsPresent(
         page,
@@ -66,11 +66,21 @@ async function CheckAllPages() {
       );
       if (allSelectorsPresent) {
         if (pageToObserve.action) {
-          pageToObserve.active = true; // Mark the page as active to prevent re-triggering
+          setPageActive(pageName);
           await pageToObserve.action(page, data, pageToObserve);
         }
         break;
       }
+    }
+  }
+}
+
+function setPageActive(pageName) {
+  for (const pageKey of Object.keys(CONFIG.pages)) {
+    if (pageKey === pageName) {
+      CONFIG.pages[pageKey].active = true;
+    } else {
+      CONFIG.pages[pageKey].active = false;
     }
   }
 }
