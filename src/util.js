@@ -30,7 +30,6 @@ const { array } = require("yargs");
 
 const MRZ_TD3_LINE_LENGTH = 44;
 
-
 let page;
 let browser;
 function getChromePath() {
@@ -122,12 +121,16 @@ async function initPage(config, onContentLoaded, data) {
     if (autoIndexArg) {
       const indexArray = autoIndexArg.split("=")?.[1]?.split("/");
       if (indexArray.length === 2) {
-        const monitorWidth = parseInt(process.argv
-          .find((c) => c.startsWith("--monitor-width"))
-          ?.split("=")?.[1]);
-        const monitorHeight = parseInt(process.argv
-          .find((c) => c.startsWith("--monitor-height"))
-          ?.split("=")?.[1]);
+        const monitorWidth = parseInt(
+          process.argv
+            .find((c) => c.startsWith("--monitor-width"))
+            ?.split("=")?.[1]
+        );
+        const monitorHeight = parseInt(
+          process.argv
+            .find((c) => c.startsWith("--monitor-height"))
+            ?.split("=")?.[1]
+        );
 
         const index = parseInt(indexArray[0]);
         const total = parseInt(indexArray[1]);
@@ -240,7 +243,7 @@ async function initPage(config, onContentLoaded, data) {
     await pauseMessage(page, 5);
     try {
       await dialog.accept();
-    } catch { }
+    } catch {}
   });
 
   if (process.argv.length > 2) {
@@ -273,7 +276,7 @@ async function initPage(config, onContentLoaded, data) {
   } else {
     fs.readdir(vaccineFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(vaccineFolder, file), (err) => { });
+        fs.unlink(path.join(vaccineFolder, file), (err) => {});
       }
     });
   }
@@ -296,7 +299,7 @@ async function createControlsFile(
   url,
   container,
   xPath,
-  fieldFunction = async () => { }
+  fieldFunction = async () => {}
 ) {
   const logFolder = getPath("log");
   if (!fs.existsSync(logFolder)) {
@@ -386,7 +389,8 @@ function findConfig(url, config) {
   if (urlConfig) {
     infoMessage(
       page,
-      `✈️  Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex
+      `✈️  Workflow: ${urlConfig.name} ${
+        urlConfig.url || urlConfig.regex
       } ${timeElapsed()} seconds`,
       2
     );
@@ -404,7 +408,10 @@ function findGorillaConfig(url, gorillaConfigsString) {
   try {
     gorillaConfigs = JSON.parse(gorillaConfigsString);
   } catch (e) {
-    console.log("Invalid Gorilla Script, skipping gorilla...", gorillaConfigsString);
+    console.log(
+      "Invalid Gorilla Script, skipping gorilla...",
+      gorillaConfigsString
+    );
     return;
   }
   if (!Array.isArray(gorillaConfigs)) {
@@ -592,7 +599,7 @@ function getMofaImportString(passenger) {
       const importJSON = JSON.parse(importContent);
       return " - MOFA: " + importJSON?.status;
     }
-  } catch { }
+  } catch {}
   return "";
 }
 
@@ -601,16 +608,19 @@ function getOptionNode(passenger, cursor) {
   <div style="width: 100%; display: flex; align-items: center; gap: 1rem; background-color: yellow; height: 200px;">
     <div>${cursor + 1}- </div>
     <div>
-    ${passenger.nationality?.isArabic
-      ? passenger?.nameArabic?.given + " " + passenger.nameArabic.last
-      : passenger.name.full
-    } - ${passenger.passportNumber} - ${passenger?.nationality?.name} - ${passenger?.gender || "gender"
-    } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(
-      passenger
-    )}${passenger.email?.includes(".companion") || passenger.isCompanion
+    ${
+      passenger.nationality?.isArabic
+        ? passenger?.nameArabic?.given + " " + passenger.nameArabic.last
+        : passenger.name.full
+    } - ${passenger.passportNumber} - ${passenger?.nationality?.name} - ${
+    passenger?.gender || "gender"
+  } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(
+    passenger
+  )}${
+    passenger.email?.includes(".companion") || passenger.isCompanion
       ? "(companion)"
       : ""
-    }
+  }
     </div>
   </div>
   `;
@@ -642,7 +652,8 @@ async function controller(page, structure, travellers) {
       // .filter((t) => !t.email.includes(".companion"))
       .map(
         (traveller, cursor) =>
-          `<option value="${cursor}" ${cursor == lastTraveler ? "selected" : ""
+          `<option value="${cursor}" ${
+            cursor == lastTraveler ? "selected" : ""
           }>
           ${getOptionNode(traveller, cursor)}
           </option>`
@@ -651,8 +662,9 @@ async function controller(page, structure, travellers) {
 
   try {
     await page.waitForSelector(structure.controller.selector);
-    const controllerHandleMethod = `handleEagle${structure.controller.name || "Send"
-      }Click`;
+    const controllerHandleMethod = `handleEagle${
+      structure.controller.name || "Send"
+    }Click`;
     const htmlFileName = path.join(__dirname, "assets", "controller.html");
     let html = fs.readFileSync(htmlFileName, "utf8");
 
@@ -675,9 +687,9 @@ async function controller(page, structure, travellers) {
           .replace(/{pax}/, pax.length)
           .replace(/{current}/, (parseInt(lastTraveler) + 1).toString())
           .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`.replace(
-            /{sendall}/,
-            "Continuous مستمر"
-          );
+          /{sendall}/,
+          "Continuous مستمر"
+        );
       },
       [
         structure,
@@ -709,19 +721,19 @@ async function controller(page, structure, travellers) {
       await page.exposeFunction("getVisaCount", getVisaCount);
       await page.exposeFunction(
         "handleWTUClick",
-        structure.controller.wtuAction || (() => { })
+        structure.controller.wtuAction || (() => {})
       );
       await page.exposeFunction(
         "handleGMAClick",
-        structure.controller.gmaAction || (() => { })
+        structure.controller.gmaAction || (() => {})
       );
       await page.exposeFunction(
         "handleBAUClick",
-        structure.controller.bauAction || (() => { })
+        structure.controller.bauAction || (() => {})
       );
       await page.exposeFunction(
         "handleTWFClick",
-        structure.controller.twfAction || (() => { })
+        structure.controller.twfAction || (() => {})
       );
       await page.exposeFunction(
         "handleLoadImportedOnlyClick",
@@ -729,7 +741,7 @@ async function controller(page, structure, travellers) {
       );
       await page.exposeFunction(
         "handleNSKClick",
-        structure.controller.nskAction || (() => { })
+        structure.controller.nskAction || (() => {})
       );
       await page.exposeFunction("closeBrowser", closeBrowser);
     }
@@ -744,7 +756,7 @@ function registerLoop() {
 }
 function unregisterLoop() {
   if (fs.existsSync(getPath("loop.txt"))) {
-    fs.unlink(getPath("loop.txt"), (err) => { });
+    fs.unlink(getPath("loop.txt"), (err) => {});
   }
 }
 function getVisaCount() {
@@ -776,8 +788,9 @@ async function commander(page, structure, travellers) {
     await page.waitForSelector(structure.controller.selector, {
       timeout: 0,
     });
-    const controllerHandleMethod = `handleEagle${structure.controller.name || "Budgie"
-      }Click`;
+    const controllerHandleMethod = `handleEagle${
+      structure.controller.name || "Budgie"
+    }Click`;
     const isLoop = fs.existsSync(getPath("loop.txt"));
 
     const htmlFileName = path.join(__dirname, "assets", "commander.html");
@@ -801,8 +814,8 @@ async function commander(page, structure, travellers) {
           .replace(
             /{title}/g,
             structureParam.controller.title +
-            " " +
-            structureParam.controller.arabicTitle
+              " " +
+              structureParam.controller.arabicTitle
           );
         container.outerHTML = controller.keepOriginalElement
           ? `<div>${container.outerHTML}${htmlContent}</div>`
@@ -867,7 +880,7 @@ async function handleLoadImportedOnlyClick() {
           passportNumber: jsonData.passportNumber,
         });
       }
-    } catch { }
+    } catch {}
   }
 
   const data = {
@@ -1054,7 +1067,8 @@ async function downloadAndResizeImage(
   let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
   const resizedPath = path.join(
     folder,
-    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.${convertToPNG ? "png" : "jpg"
+    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.${
+      convertToPNG ? "png" : "jpg"
     }`
   );
 
@@ -1089,22 +1103,8 @@ async function downloadAndResizeImage(
     console.log("override found at: ", overridePhoto);
     imagePath = overridePhoto;
   }
-  let quality = 80;
-  await sharp(imagePath)
-    .resize(width, height, {
-      fit: sharp.fit.contain,
-    })
-    .withMetadata()
-    .toFormat(convertToPNG ? "png" : "jpeg", {
-      quality,
-      chromaSubsampling: "4:4:4",
-    })
-    .toFile(resizedPath);
-
-  let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
-
-  while (sizeAfter < minKb && quality <= 95) {
-    quality += 5;
+  if (width && height) {
+    let quality = 80;
     await sharp(imagePath)
       .resize(width, height, {
         fit: sharp.fit.contain,
@@ -1115,22 +1115,40 @@ async function downloadAndResizeImage(
         chromaSubsampling: "4:4:4",
       })
       .toFile(resizedPath);
-    sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
-  }
 
-  while (sizeAfter > maxKb && quality > 10) {
-    quality -= 5;
-    await sharp(imagePath)
-      .resize(width, height, {
-        fit: sharp.fit.contain,
-      })
-      .withMetadata()
-      .toFormat(convertToPNG ? "png" : "jpeg", {
-        quality,
-        chromaSubsampling: "4:4:4",
-      })
-      .toFile(resizedPath);
-    sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
+    let sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
+
+    while (sizeAfter < minKb && quality <= 95) {
+      quality += 5;
+      await sharp(imagePath)
+        .resize(width, height, {
+          fit: sharp.fit.contain,
+        })
+        .withMetadata()
+        .toFormat(convertToPNG ? "png" : "jpeg", {
+          quality,
+          chromaSubsampling: "4:4:4",
+        })
+        .toFile(resizedPath);
+      sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
+    }
+
+    while (sizeAfter > maxKb && quality > 10) {
+      quality -= 5;
+      await sharp(imagePath)
+        .resize(width, height, {
+          fit: sharp.fit.contain,
+        })
+        .withMetadata()
+        .toFormat(convertToPNG ? "png" : "jpeg", {
+          quality,
+          chromaSubsampling: "4:4:4",
+        })
+        .toFile(resizedPath);
+      sizeAfter = Math.round(fs.statSync(resizedPath).size / 1024);
+    }
+  } else {
+    resizedPath = imagePath;
   }
   return resizedPath;
 }
@@ -1534,7 +1552,7 @@ async function SolveIamNotARobot(responseSelector, url, siteKey, signal) {
       // wait 5 seconds
       await new Promise((resolve) => setTimeout(resolve, 5000));
     }
-  } catch { }
+  } catch {}
 }
 const premiumSupportAlert = async (page, selector, data) => {
   await page.waitForSelector(selector);
@@ -1800,29 +1818,35 @@ async function clickWhenReady(selector, page) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
-  } catch { }
+  } catch {}
 }
 
 function generateMRZ(passenger) {
   console.log(passenger);
   try {
     // LINE 1
-    const codeLine1 = `P<${passenger.nationality.code}${passenger.name.last.replace(
+    const codeLine1 = `P<${
+      passenger.nationality.code
+    }${passenger.name.last.replace(/ /g, "<")}<<${passenger.name.given.replace(
       / /g,
       "<"
-    )}<<${passenger.name.given.replace(/ /g, "<")}`
+    )}`
       .padEnd(MRZ_TD3_LINE_LENGTH, "<")
       .substring(0, MRZ_TD3_LINE_LENGTH);
     // LINE 2
     const icaoPassportNumber = passenger.passportNumber.padEnd(9, "<");
-    const birthDate = `${passenger.dob.yyyy.substring(2)}${passenger.dob.mm}${passenger.dob.dd}`;
-    const expiryDate = `${passenger.passExpireDt.yyyy.substring(2)}${passenger.passExpireDt.mm}${passenger.passExpireDt.dd}`;
+    const birthDate = `${passenger.dob.yyyy.substring(2)}${passenger.dob.mm}${
+      passenger.dob.dd
+    }`;
+    const expiryDate = `${passenger.passExpireDt.yyyy.substring(2)}${
+      passenger.passExpireDt.mm
+    }${passenger.passExpireDt.dd}`;
     const gender = passenger.gender.substring(0, 1).toUpperCase();
-    let codeLine2 = `${icaoPassportNumber}${checkDigit(
-      icaoPassportNumber
-    )}${passenger.nationality.code}${birthDate}${checkDigit(
-      birthDate
-    )}${gender}${expiryDate}${checkDigit(expiryDate)}`;
+    let codeLine2 = `${icaoPassportNumber}${checkDigit(icaoPassportNumber)}${
+      passenger.nationality.code
+    }${birthDate}${checkDigit(birthDate)}${gender}${expiryDate}${checkDigit(
+      expiryDate
+    )}`;
 
     if (codeLine2.length) {
       const filler = "<".repeat(MRZ_TD3_LINE_LENGTH - 2 - codeLine2.length);
@@ -1833,8 +1857,8 @@ function generateMRZ(passenger) {
       // letters that are a part of the number fields and their check digits.
       const compositeCheckDigit = checkDigit(
         codeLine2.substring(0, 10) +
-        codeLine2.substring(13, 20) +
-        codeLine2.substring(21, 43)
+          codeLine2.substring(13, 20) +
+          codeLine2.substring(21, 43)
       );
       codeLine2 += compositeCheckDigit.replace(/[-]/g, "<");
     }
@@ -1844,7 +1868,7 @@ function generateMRZ(passenger) {
     console.warn(error);
     return null;
   }
-};
+}
 
 function checkDigit(inputData) {
   // http://www.highprogrammer.com/alan/numbers/mrp.html#checkdigit
@@ -1898,7 +1922,7 @@ const checkDigitDiagram = {
   W: 32,
   X: 33,
   Y: 34,
-  Z: 35
+  Z: 35,
 };
 module.exports = {
   hijriYear,

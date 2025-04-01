@@ -5,6 +5,8 @@ const {
   showController,
   fillIdAndResidence,
   fillBasicData,
+  reviewApplication,
+  fillQuestions,
 } = require("./actions.js");
 
 const baseAddress = "https://masar.nusuk.sa";
@@ -108,8 +110,44 @@ const CONFIG = {
     },
     additionalData: {
       url: `${baseAddress}/protected-applicant-st/add/additinal-data`,
+      requiredSelectors: [
+        SELECTORS.additionalData.notEmployed,
+        SELECTORS.additionalData.expectedLength,
+      ],
+      inputs: [
+        {
+          selector: SELECTORS.additionalData.flightNumber,
+          value: (row) => "SV25",
+        },
+        {
+          selector: SELECTORS.additionalData.expectedLength,
+          value: (row) => "20",
+        },
+      ],
+      action: (page, data, pageToObserve) => {
+        fillInputs(page, data, pageToObserve);
+      },
     },
-    
+    questions: {
+      url: `${baseAddress}/protected-applicant-st/add/questions`,
+      requiredSelectors: [
+        SELECTORS.questions.otherNationalitiesYes,
+        SELECTORS.questions.haveYouTraveled,
+      ],
+      action: (page, data, pageToObserve) => {
+        fillQuestions(page, data, pageToObserve);
+      },
+    },
+    reviewApplication: {
+      url: `${baseAddress}/protected-applicant-st/add/review-application`,
+      requiredSelectors: [
+        SELECTORS.reviewApplication.pledgeShowVaccine,
+        SELECTORS.reviewApplication.pledgeShowVaccine,
+      ],
+      action: async (page, data, pageToObserve) => {
+        reviewApplication(page, data, pageToObserve);
+      },
+    },
   },
 };
 

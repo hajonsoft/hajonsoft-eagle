@@ -216,7 +216,7 @@ async function fillBasicData(page, data, config) {
       {
         selector: SELECTORS.basicData.phoneNumber,
         value: (row) => suggestPhoneNumber(row),
-      }
+      },
     ],
     passenger
   );
@@ -231,17 +231,26 @@ async function fillBasicData(page, data, config) {
 
 async function uploadPortrait(page, data, config) {
   const passenger = globalData.travellers[util.getSelectedTraveler()];
+  // let resizedPhotoPath = await util.downloadAndResizeImage(
+  //   passenger,
+  //   480,
+  //   640,
+  //   "photo",
+  //   50,
+  //   200
+  // );
   let resizedPhotoPath = await util.downloadAndResizeImage(
     passenger,
     480,
     640,
-    "photo",
-    50,
-    200
+    "photo"
   );
   await util.commitFile(SELECTORS.basicData.photoInput, resizedPhotoPath);
 }
 
+async function fillQuestions(page, data, config) {
+  //TODO: click all No Radios except the last twp and wait and fill the inputs
+}
 function codeUsed(code) {
   if (usedCodes[code]) {
     return true;
@@ -275,7 +284,7 @@ function suggestPhoneNumber(passenger) {
   }
 
   // Get the USA area code 949 (as an example)
-  const areaCode = '949';
+  const areaCode = "949";
 
   // Generate a valid phone number based on the current time
   let generatedPhoneNumber = generateSequentialPhoneNumber(areaCode);
@@ -292,19 +301,23 @@ function suggestPhoneNumber(passenger) {
 function generateSequentialPhoneNumber(areaCode) {
   const now = new Date();
   const day = now.getDate().toString(); // Day in DD format
-  const hour = now.getHours().toString().padStart(2, '0'); // Hour in HH format
-  const minute = now.getMinutes().toString().padStart(2, '0'); // Minute in MM format
-  const second = now.getSeconds().toString().padStart(2, '0'); // Second in SS format
+  const hour = now.getHours().toString().padStart(2, "0"); // Hour in HH format
+  const minute = now.getMinutes().toString().padStart(2, "0"); // Minute in MM format
+  const second = now.getSeconds().toString().padStart(2, "0"); // Second in SS format
   const hashedDay = (day % 8) + 2; // Map the day (1-31) to a number between 2 and 9
   // Construct the full phone number (e.g., +19492911879)
   const phoneNumber = `+1${areaCode}${hashedDay}${hour}${minute}${second}`;
 
   return phoneNumber;
 }
+
+async function reviewApplication(page, data, config) {}
 module.exports = {
   showController,
   fillInputs,
   fillOtp,
   fillIdAndResidence,
   fillBasicData,
+  fillQuestions,
+  reviewApplication,
 };

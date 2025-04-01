@@ -69,7 +69,7 @@ const SELECTORS = {
   questions: {
     otherNationalitiesYes:
       "#content > div > app-applicant-add > app-questionnaire > app-main-card > div > div.body.collapse.show > form > div > div:nth-child(1) > div > div > div > div > div > div:nth-child(2) > label > p-radiobutton > div > div.p-radiobutton-box",
-    haveYouTravelled:
+    haveYouTraveled:
       "#content > div > app-applicant-add > app-questionnaire > app-main-card > div > div.body.collapse.show > form > div > div:nth-child(2) > div > div > div > div > div > div:nth-child(2) > label > p-radiobutton > div > div.p-radiobutton-box",
     rejectedVisa:
       "#content > div > app-applicant-add > app-questionnaire > app-main-card > div > div.body.collapse.show > form > div > div:nth-child(3) > div > div > div > div > div > div:nth-child(2) > label > p-radiobutton > div > div.p-radiobutton-box.p-highlight",
