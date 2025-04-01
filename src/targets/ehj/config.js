@@ -4,6 +4,7 @@ const {
   fillOtp,
   showController,
   fillIdAndResidence,
+  fillBasicData,
 } = require("./actions.js");
 
 const baseAddress = "https://masar.nusuk.sa";
@@ -62,6 +63,53 @@ const CONFIG = {
       action: (page, data, pageToObserve) =>
         fillIdAndResidence(page, data, pageToObserve),
     },
+    confirmScan: {
+      url: `${baseAddress}/protected-applicant-st/add/data-entry-method`,
+      requiredSelectors: [SELECTORS.confirmScan.confirmScanButton],
+      action: async (page, data, pageToObserve) => {
+        // TODO: Make sure it is visible and click it
+      },
+    },
+    basicData: {
+      url: `${baseAddress}/protected-applicant-st/add/basic-data`,
+      requiredSelectors: [
+        SELECTORS.basicData.fatherName,
+        SELECTORS.basicData.email,
+      ],
+      inputs: [
+        {
+          selector: SELECTORS.basicData.email,
+          value: (row) => row.email,
+        },
+        {
+          selector: SELECTORS.basicData.placeOfBirth,
+          value: (row) => row.birthPlace,
+        },
+        {
+          selector: SELECTORS.basicData.residentialAddress,
+          value: (row) => row.birthPlace,
+        },
+        {
+          selector: SELECTORS.basicData.phoneNumber,
+          value: (row) => "9495221000",
+        },
+        {
+          selector: SELECTORS.basicData.zipCode,
+          value: (row) => "12345",
+        },
+        {
+          selector: SELECTORS.basicData.mailBox,
+          value: (row) => "12345",
+        },
+      ],
+      action: async (page, data, pageToObserve) => {
+        fillBasicData(page, data, pageToObserve);
+      },
+    },
+    additionalData: {
+      url: `${baseAddress}/protected-applicant-st/add/additinal-data`,
+    },
+    
   },
 };
 

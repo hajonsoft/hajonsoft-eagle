@@ -203,6 +203,45 @@ async function fillIdAndResidence(page, data, config) {
   await util.clickWhenReady(SELECTORS.identityAndResidence.hajjType, page);
 }
 
+async function fillBasicData(page, data, config) {
+  const passenger = data.travellers[util.getSelectedTraveler()];
+  await util.commit(page, config.inputs, passenger);
+  await util.commit(
+    page,
+    [
+      {
+        selector: SELECTORS.basicData.email,
+        value: (row) => suggestEmail(row),
+      },
+      {
+        selector: SELECTORS.basicData.phoneNumber,
+        value: (row) => suggestPhoneNumber(row),
+      }
+    ],
+    passenger
+  );
+
+  await page.$eval(
+    SELECTORS.basicData.placeOfBirthLabel,
+    (el, pass) => (el.textContent = `Place of Birth: ${pass.birthPlace}`),
+    data.travellers[util.getSelectedTraveler()]
+  );
+  await uploadPortrait(page, passenger, config);
+}
+
+async function uploadPortrait(page, data, config) {
+  const passenger = globalData.travellers[util.getSelectedTraveler()];
+  let resizedPhotoPath = await util.downloadAndResizeImage(
+    passenger,
+    480,
+    640,
+    "photo",
+    50,
+    200
+  );
+  await util.commitFile(SELECTORS.basicData.photoInput, resizedPhotoPath);
+}
+
 function codeUsed(code) {
   if (usedCodes[code]) {
     return true;
@@ -210,9 +249,62 @@ function codeUsed(code) {
   usedCodes[code] = true;
   return false;
 }
+
+function suggestEmail(passenger) {
+  if (passenger.email) {
+    return passenger.email.split("/")[0];
+  }
+  if (globalData.system.username) {
+    return globalData.system.username;
+  }
+
+  return "admin@hajonsoft.net";
+
+  // const friendlyName = `${passenger.name.first}.${
+  //   companion ? "companion." : ""
+  // }${passenger.passportNumber}@${domain}`
+  //   .toLowerCase()
+  //   .replace(/ /g, "");
+  // const email = friendlyName;
+  // return email;
+}
+
+function suggestPhoneNumber(passenger) {
+  if (passenger.mobileNumber) {
+    return passenger.mobileNumber;
+  }
+
+  // Get the USA area code 949 (as an example)
+  const areaCode = '949';
+
+  // Generate a valid phone number based on the current time
+  let generatedPhoneNumber = generateSequentialPhoneNumber(areaCode);
+
+  if (generatedPhoneNumber.length <= 20) {
+    return generatedPhoneNumber;
+  }
+
+  const suggestedPhoneNumber = generatedPhoneNumber.slice(0, 20);
+  return suggestedPhoneNumber;
+}
+
+// Helper function to generate a sequential phone number based on the current date and time
+function generateSequentialPhoneNumber(areaCode) {
+  const now = new Date();
+  const day = now.getDate().toString(); // Day in DD format
+  const hour = now.getHours().toString().padStart(2, '0'); // Hour in HH format
+  const minute = now.getMinutes().toString().padStart(2, '0'); // Minute in MM format
+  const second = now.getSeconds().toString().padStart(2, '0'); // Second in SS format
+  const hashedDay = (day % 8) + 2; // Map the day (1-31) to a number between 2 and 9
+  // Construct the full phone number (e.g., +19492911879)
+  const phoneNumber = `+1${areaCode}${hashedDay}${hour}${minute}${second}`;
+
+  return phoneNumber;
+}
 module.exports = {
   showController,
   fillInputs,
   fillOtp,
   fillIdAndResidence,
+  fillBasicData,
 };
