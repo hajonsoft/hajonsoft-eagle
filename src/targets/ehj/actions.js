@@ -178,12 +178,14 @@ async function pasteOTPCode(err, code, page) {
 }
 
 async function fillIdAndResidence(page, data, config) {
-  const passenger = data.travellers[util.getSelectedTraveler()];
+  const passenger = globalData.travellers[util.getSelectedTraveler()];
+  await util.clickWhenReady(".p-dropdown .p-dropdown-label", globalPage);
+  await util.clickWhenReady("#dropDownId_list .p-dropdown-item", globalPage);
 
-  await util.commit(page, config.inputs, passenger);
+  await util.commit(globalPage, config.inputs, passenger);
 
   await util.commit(
-    page,
+    globalPage,
     [
       {
         selector:
@@ -194,13 +196,16 @@ async function fillIdAndResidence(page, data, config) {
     passenger
   );
 
-  await page.$eval(
+  await globalPage.$eval(
     SELECTORS.identityAndResidence.PassIssueDate,
     (el, pass) =>
       (el.textContent = `Passport Issue Date: ${pass.passIssueDt.dmmmy}`),
     passenger
   );
-  await util.clickWhenReady(SELECTORS.identityAndResidence.hajjType, page);
+  await util.clickWhenReady(
+    SELECTORS.identityAndResidence.hajjType,
+    globalPage
+  );
 }
 
 async function fillBasicData(page, data, config) {
@@ -249,7 +254,36 @@ async function uploadPortrait(page, data, config) {
 }
 
 async function fillQuestions(page, data, config) {
-  //TODO: click all No Radios except the last twp and wait and fill the inputs
+  await globalPage.$$eval('input[type="radio"][value="0"]', (radios) => {
+    radios.forEach((radio) => {
+      if (!radio.checked) {
+        radio.click(); // Click the "No" option if it's not already selected
+      }
+    });
+  });
+
+  // await globalPage.$eval(SELECTORS.questions.vaccineTakenYes, (radio) => {
+  //   radio.click();
+  // });
+  // await globalPage.$eval(SELECTORS.questions.vaccinePledgeYes, (radio) => {
+  //   radio.click();
+  // });
+  // await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  // await util.commit(
+  //   globalPage,
+  //   [
+  //     {
+  //       selector: SELECTORS.questions.vaccineClarificationInput,
+  //       value: () => "COVID, Yellow fever, Hepatitis, Others",
+  //     },
+  //     {
+  //       selector: SELECTORS.questions.vaccinePledgeClarificationInput,
+  //       value: () => "I CONFIRM",
+  //     },
+  //   ],
+  //   {}
+  // );
 }
 function codeUsed(code) {
   if (usedCodes[code]) {
@@ -306,12 +340,27 @@ function generateSequentialPhoneNumber(areaCode) {
   const second = now.getSeconds().toString().padStart(2, "0"); // Second in SS format
   const hashedDay = (day % 8) + 2; // Map the day (1-31) to a number between 2 and 9
   // Construct the full phone number (e.g., +19492911879)
-  const phoneNumber = `+1${areaCode}${hashedDay}${hour}${minute}${second}`;
+  const phoneNumber = `${areaCode}${hashedDay}${hour}${minute}${second}`;
 
   return phoneNumber;
 }
 
-async function reviewApplication(page, data, config) {}
+async function reviewApplication(page, data, config) {
+
+  // await page.$eval(
+  //   SELECTORS.reviewApplication.pledgeVaccines,
+  //   (radio) => {
+  //     radio.click();
+  //   }
+  // );
+  // await page.$eval(
+  //   SELECTORS.reviewApplication.pledgeShowVaccine,
+  //   (radio) => {
+  //     radio.click();
+  //   }
+  // );
+  // await util.clickWhenReady(SELECTORS.reviewApplication.next, globalPage);
+}
 module.exports = {
   showController,
   fillInputs,

@@ -129,7 +129,7 @@ const CONFIG = {
       },
     },
     questions: {
-      url: `${baseAddress}/protected-applicant-st/add/questions`,
+      url: `${baseAddress}/protected-applicant-st/add/Questionnaire`,
       requiredSelectors: [
         SELECTORS.questions.otherNationalitiesYes,
         SELECTORS.questions.haveYouTraveled,
@@ -139,12 +139,12 @@ const CONFIG = {
       },
     },
     reviewApplication: {
-      url: `${baseAddress}/protected-applicant-st/add/review-application`,
+      url: `${baseAddress}/protected-applicant-st/add/Review-application`,
       requiredSelectors: [
         SELECTORS.reviewApplication.pledgeShowVaccine,
         SELECTORS.reviewApplication.pledgeShowVaccine,
       ],
-      action: async (page, data, pageToObserve) => {
+      action:  (page, data, pageToObserve) => {
         reviewApplication(page, data, pageToObserve);
       },
     },
