@@ -1,24 +1,30 @@
 const { SELECTORS } = require("./selectors.js");
 const {
-  fillInputs,
-  fillOtp,
+  feedPlant,
+  secure,
   showController,
-  fillIdAndResidence,
-  fillBasicData,
-  reviewApplication,
-  fillQuestions,
+  whereDoYouLive,
+  tellMeAboutYourSelf,
+  recheck,
+  answerQuestions,
+  showApplicantListCommander
 } = require("./actions.js");
 
 const baseAddress = "https://masar.nusuk.sa";
+let soil;
+let will;
 
-const CONFIG = {
-  pages: {
-    home: {
+const knowledge = {
+  plants: {
+    landscape: {
       url: baseAddress,
+      allowOnce: true,
+      visualHeadLessForwardTo: `${baseAddress}/pub/login`,
     },
-    login: {
+    protect: {
       url: `${baseAddress}/pub/login`,
-      inputs: [
+      allowOnce: true,
+      slots: [
         {
           selector: SELECTORS.login.username,
           value: (row) => row.username,
@@ -28,57 +34,55 @@ const CONFIG = {
           value: (row) => row.password,
         },
       ],
-      requiredSelectors: [SELECTORS.login.username, SELECTORS.login.password],
-      action: (page, data, pageToObserve) =>
-        fillInputs(page, data, pageToObserve),
+      needs: [SELECTORS.login.username, SELECTORS.login.password],
+      action: (e) =>
+        feedPlant(e),
     },
-    loginOtp: {
+    challenge: {
       url: `${baseAddress}/pub/login`,
-      requiredSelectors: [
+      allowOnce: true,
+      needs: [
         SELECTORS.loginOtp.firstDigit,
         SELECTORS.loginOtp.label,
         SELECTORS.loginOtp.h1,
       ],
-      action: (page, data, pageToObserve) => fillOtp(page, data, pageToObserve),
+      action: (e) => secure(e),
     },
-    dataEntry: {
+    welcome: {
+      url: `${baseAddress}/protected/hm/dashboard/requestsDashboard`, 
+      // should skip in automation
+    },
+    hello: {
       url: `${baseAddress}/protected-applicant-st/add/data-entry-method`,
-      requiredSelectors: [
+      needs: [
         SELECTORS.dataEntry.automaticScan,
         SELECTORS.dataEntry.manualEntry,
       ],
-      action: (page, data, pageToObserve) =>
-        showController(page, data, pageToObserve),
+      action: (e) =>
+        showController(e),
     },
-    identityAndResidence: {
+    gettingToKnow: {
       url: `${baseAddress}/protected-applicant-st/add/Identity-and-residence`,
-      requiredSelectors: [
-        SELECTORS.identityAndResidence.hajjType,
+      needs: [
+        SELECTORS.identityAndResidence.placeOfIssue,
         SELECTORS.identityAndResidence.embassy,
       ],
-      inputs: [
+      slots: [
         {
           selector: SELECTORS.identityAndResidence.placeOfIssue,
           value: (row) => row.placeOfIssue,
         },
       ],
-      action: (page, data, pageToObserve) =>
-        fillIdAndResidence(page, data, pageToObserve),
+      action: (e) =>
+        whereDoYouLive(e),
     },
-    confirmScan: {
-      url: `${baseAddress}/protected-applicant-st/add/data-entry-method`,
-      requiredSelectors: [SELECTORS.confirmScan.confirmScanButton],
-      action: async (page, data, pageToObserve) => {
-        // TODO: Make sure it is visible and click it
-      },
-    },
-    basicData: {
+    moreGettingToKnow: {
       url: `${baseAddress}/protected-applicant-st/add/basic-data`,
-      requiredSelectors: [
+      needs: [
         SELECTORS.basicData.fatherName,
         SELECTORS.basicData.email,
       ],
-      inputs: [
+      slots: [
         {
           selector: SELECTORS.basicData.email,
           value: (row) => row.email,
@@ -104,17 +108,17 @@ const CONFIG = {
           value: (row) => "12345",
         },
       ],
-      action: async (page, data, pageToObserve) => {
-        fillBasicData(page, data, pageToObserve);
+      action: (e) => {
+        tellMeAboutYourSelf(e);
       },
     },
-    additionalData: {
+    moreAndMoreGettingToKnowYou: {
       url: `${baseAddress}/protected-applicant-st/add/additinal-data`,
-      requiredSelectors: [
+      needs: [
         SELECTORS.additionalData.notEmployed,
         SELECTORS.additionalData.expectedLength,
       ],
-      inputs: [
+      slots: [
         {
           selector: SELECTORS.additionalData.flightNumber,
           value: (row) => "SV25",
@@ -124,34 +128,47 @@ const CONFIG = {
           value: (row) => "20",
         },
       ],
-      action: (page, data, pageToObserve) => {
-        fillInputs(page, data, pageToObserve);
+      action: (e) => {
+        feedPlant(e);
       },
     },
-    questions: {
+    lastQuestions: {
       url: `${baseAddress}/protected-applicant-st/add/Questionnaire`,
-      requiredSelectors: [
+      needs: [
         SELECTORS.questions.otherNationalitiesYes,
         SELECTORS.questions.haveYouTraveled,
       ],
-      action: (page, data, pageToObserve) => {
-        fillQuestions(page, data, pageToObserve);
+      action: (e) => {
+        answerQuestions(e);
       },
     },
-    reviewApplication: {
+    almostDone: {
       url: `${baseAddress}/protected-applicant-st/add/Review-application`,
-      requiredSelectors: [
+      needs: [
         SELECTORS.reviewApplication.pledgeShowVaccine,
         SELECTORS.reviewApplication.pledgeShowVaccine,
       ],
-      action:  (page, data, pageToObserve) => {
-        reviewApplication(page, data, pageToObserve);
+      action:  (e) => {
+        recheck(e);
       },
     },
+    whoIsSent: {
+      url: `${baseAddress}/protected/applicants-groups/applicants/list`,
+      needs: [
+        SELECTORS.applicantList.title,
+      ],
+      action: (e) => {
+        showApplicantListCommander(e);
+      },
+    },
+  },
+  begin: (garden) => {
+    soil = garden.soil;
+    will = garden.will;
   },
 };
 
 module.exports = {
-  CONFIG,
+  knowledge,
   baseAddress,
 };

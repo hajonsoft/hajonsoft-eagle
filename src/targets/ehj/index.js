@@ -2,62 +2,70 @@ const puppeteer = require("puppeteer-extra");
 // Add stealth plugin and use defaults (all tricks to hide puppeteer usage)
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(StealthPlugin());
-const fs = require("fs");
-const budgie = require("../../budgie");
 const util = require("../../util");
-const { getPath } = require("../../lib/getPath");
-const moment = require("moment");
-const { CONFIG, baseAddress } = require("./config.js");
+const { knowledge } = require("./knowledge.js");
+const { garden: actionGarden } = require("./actions.js");
 
-let page;
-let data;
-let sent = {};
+const garden = {
+  soil: null,
+  will: null,
+};
 
-async function send(sendData) {
-  data = sendData;
-  page = await util.initPage(config, onContentLoaded);
-  let startingUrl = CONFIG.pages.home.url;
+async function send(theWill) {
+  garden.will = theWill;
+  garden.soil = await util.initPage({}, () => {}, theWill);
+  let startingUrl = knowledge.plants.landscape.url;
   if (global.headless || global.visualHeadless) {
-    startingUrl = CONFIG.pages.login.url;
+    startingUrl = knowledge.plants.protect.url;
   }
-  await page.goto(startingUrl, { waitUntil: "domcontentloaded" });
-  startTimerObserver();
+  await garden.soil.goto(startingUrl, { waitUntil: "domcontentloaded" });
+  knowledge.begin(garden);
+  actionGarden.soil = garden.soil;
+  actionGarden.will = garden.will;
+  summonGeese();
 }
 
-async function onContentLoaded() {}
-
-async function startTimerObserver() {
+async function summonGeese() {
   setInterval(() => {
-    CheckAllPages();
+    applyKnowledge();
   }, 100);
 }
 
-async function CheckAllPages() {
-  const currentUrl = await page.url();
-  for (const pageName of Object.keys(CONFIG.pages)) {
-    const pageToObserve = CONFIG.pages[pageName];
+async function applyKnowledge() {
+  const sun = await garden.soil.url();
+  for (const plantKey of Object.keys(knowledge.plants)) {
+    const plantKnowledge = knowledge.plants[plantKey];
+    // use this line to debug a certain page to avoid the timer bothering you
+    // You will need also to increase the time out in summonGeese to allow time for the part you want to debug
+    // if (plantKey === "gettingToKnow") {
+    //   // Skip the landscape plant
+    //   console.log(`Debug ${plantKey}...`);
+    // }
     if (
-      pageToObserve.url &&
-      pageToObserve.requiredSelectors &&
-      new RegExp(pageToObserve.url.toLowerCase()).test(
-        currentUrl.toLowerCase()
-      ) &&
-      !pageToObserve.active
+      sun &&
+      plantKnowledge.needs &&
+      new RegExp(plantKnowledge.url.toLowerCase()).test(sun.toLowerCase()) &&
+      !plantKnowledge.active
     ) {
-      const allSelectorsPresent = await checkSelectorsPresent(
-        page,
-        pageToObserve.requiredSelectors
-      );
-
-      console.log(
-        "Checking required selectors for",
-        pageName,
-        allSelectorsPresent
-      );
-      if (allSelectorsPresent) {
-        if (pageToObserve.action) {
-          setPageActive(pageName);
-          await pageToObserve.action(page, data, pageToObserve);
+      const canHarvest = await checkFreshness(plantKnowledge.needs);
+      if (!canHarvest) {
+        process.stdout.clearLine(0);
+        process.stdout.cursorTo(0);
+        process.stdout.write(`\r${plantKey} ⌛️ waiting patiently...`);
+      } else {
+        process.stdout.clearLine(0); // Clear the current line
+        process.stdout.cursorTo(0); // Move cursor to beginning
+        process.stdout.write(`${plantKey} 🍌 ready...`);
+        if (plantKnowledge.action) {
+          process.stdout.clearLine(0); // Clear the current line
+          process.stdout.cursorTo(0); // Move cursor to beginning
+          process.stdout.write(`${plantKey} ⛏ Picking ...`);
+          declareBloom(plantKey);
+          try {
+            await plantKnowledge.action(plantKnowledge);
+          } catch (error) {
+            console.error(`Error in action for ${plantKey}:`, error);
+          }
         }
         break;
       }
@@ -65,65 +73,33 @@ async function CheckAllPages() {
   }
 }
 
-function setPageActive(pageName) {
-  for (const pageKey of Object.keys(CONFIG.pages)) {
-    if (pageKey === pageName) {
-      CONFIG.pages[pageKey].active = true;
+function declareBloom(plantKeyToBloom) {
+  for (const plantKey of Object.keys(knowledge.plants)) {
+    if (plantKey === plantKeyToBloom) {
+      knowledge.plants[plantKey].active = true;
     } else {
-      CONFIG.pages[pageKey].active = false;
+      // I need to forget this plant unless allowOnce is true
+      if (!knowledge.plants[plantKey].allowOnce) {
+        knowledge.plants[plantKey].active = false; // forget
+      }
     }
   }
 }
 
-async function checkSelectorsPresent(page, requiredSelectors) {
-  // Use Promise.all to check all selectors concurrently
-  const results = await Promise.all(
-    requiredSelectors.map(async (selector) => {
-      const element = await page.$(selector); // Try to get the element
-      return !!element; // Return true if element exists, false if it doesn't
+async function checkFreshness(needs) {
+  // Filter out any non-string selectors
+  const validNeeds = needs.filter(
+    (selector) => typeof selector === "string" && selector.trim() !== ""
+  );
+
+  const soul = await Promise.all(
+    validNeeds.map(async (selector) => {
+      const good = await garden.soil.$(selector);
+      return !!good;
     })
   );
 
-  // Check if all selectors are present
-  const allSelectorsPresent = results.every((exists) => exists);
-  return allSelectorsPresent;
+  return soul.every(Boolean); // All selectors matched
 }
-
-const config = [
-  {
-    name: "login",
-    regex: `${baseAddress}/pub/login`,
-    details: [
-      {
-        selector:
-          "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.form-mb > g-input-text > div > input",
-        value: (row) => row.username,
-      },
-      {
-        selector:
-          "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.mb-2 > p-password > div > input",
-        value: (row) => row.password,
-      },
-    ],
-  },
-  {
-    name: "add-pilgrim-select-method",
-    regex: `https://masar.nusuk.sa/protected-applicant-st/add/data-entry-method`,
-    controller: {
-      selector:
-        "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card:nth-child(1) > div > div.card-header.mb-0.cursor-pointer.ng-star-inserted > h3",
-      action: async () => {
-        const selectedTraveler = await page.$eval(
-          "#hajonsoft_select",
-          (el) => el.value
-        );
-        if (selectedTraveler) {
-          util.setSelectedTraveller(selectedTraveler);
-          await sendPassenger(util.getSelectedTraveler());
-        }
-      },
-    },
-  },
-];
 
 module.exports = { send };

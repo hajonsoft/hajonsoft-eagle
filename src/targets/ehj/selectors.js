@@ -29,14 +29,23 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > input",
   },
   identityAndResidence: {
-    hajjType:
-      "#content > div > app-applicant-add > app-identity-and-residence > form > app-main-card > div > div.body.collapse.show > div > div > div:nth-child(1) > label > div > p-radiobutton > div > div.p-radiobutton-box",
+    firstEmbassyOption: "#dropDownId_list > p-dropdownitem:nth-child(1) > li",
+    normalHajj: "#content > div > app-applicant-add > app-identity-and-residence > form > app-main-card > div > div.body.collapse.show > div > div > div:nth-child(1) > label > div",
+    normalPassport:
+      "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-dropdown > p-dropdown > div",
     embassy:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(1) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-dropdown > p-dropdown",
     PassIssueDate:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > label",
     placeOfIssue:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(5) > g-input-text > div > input",
+    passIssueDataCalendarField:
+      "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-90.p-datepicker.p-component.ng-star-inserted > div.p-datepicker-buttonbar.ng-tns-c419082668-22.ng-star-inserted",
+    passIssueDataCalendarYear: "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-datepicker-group-container.ng-tns-c419082668-79.ng-star-inserted > div > div.p-datepicker-header.ng-tns-c419082668-79 > div > button.p-datepicker-year.p-link.ng-tns-c419082668-79.ng-star-inserted",
+    passIssueDateCalendarYearsContainer: "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-yearpicker.ng-tns-c419082668-79.ng-star-inserted",
+    passIssueDateCalendarMonthsContainer: "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-monthpicker.ng-tns-c419082668-79.ng-star-inserted",
+    passIssueDateCalendarDaysContainer: "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-datepicker-group-container.ng-tns-c419082668-79.ng-star-inserted > div > div.p-datepicker-calendar-container.ng-tns-c419082668-79.ng-star-inserted > table > tbody"
+
   },
   basicData: {
     fatherName:
@@ -107,9 +116,17 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-questionnaire > app-main-card > div > div.body.collapse.show > form > div > div:nth-child(17) > div > div > div.question-details.ng-star-inserted > div > div > g-text-area > div:nth-child(2) > textarea",
   },
   reviewApplication: {
-    pledgeVaccines: "#content > div > app-applicant-add > app-review-application > app-main-card:nth-child(10) > div > div.body.collapse.show > div > g-checkbox:nth-child(1) > div > p-checkbox > div > div.p-checkbox-box",
-    pledgeShowVaccine: "#content > div > app-applicant-add > app-review-application > app-main-card:nth-child(10) > div > div.body.collapse.show > div > g-checkbox:nth-child(2) > div > p-checkbox > div > div.p-checkbox-box.p-highlight",
+    pledgeVaccines:
+      "#content > div > app-applicant-add > app-review-application > app-main-card:nth-child(10) > div > div.body.collapse.show > div > g-checkbox:nth-child(1) > div > p-checkbox > div > div.p-checkbox-box",
+    pledgeShowVaccine:
+      "#content > div > app-applicant-add > app-review-application > app-main-card:nth-child(10) > div > div.body.collapse.show > div > g-checkbox:nth-child(2) > div > p-checkbox > div > div.p-checkbox-box.p-highlight",
     next: "#content > div > app-applicant-add > app-review-application > action-btns > div > div > button",
+  },
+  applicantList: {
+    title: "body > app-root > app-layout > div > div > div > applicants-list > div > div",
+    rows: "#listNormalApplicantId > div > div.p-datatable-wrapper > table > tbody > tr",
+    tdIndexedPassportNumber: "#listNormalApplicantId > div > div.p-datatable-wrapper > table > tbody > tr:nth-child({i}) > td:nth-child(5) > div > span > span",
+
   }
 };
 
