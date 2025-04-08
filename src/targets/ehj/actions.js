@@ -1,169 +1,174 @@
-const { fetchOTPForMasar } = require("../../lib/imap");
+const { getPath } = require("../../lib/getPath");
+const { fetchOTPForMasar: someEmailStuff } = require("../../lib/imap");
 const util = require("../../util");
-const { CONFIG } = require("./config");
 const { SELECTORS } = require("./selectors");
+const fs = require("fs");
 
-let globalPage = null;
-let globalData = null;
-let globalConfig = null;
-let usedCodes = {};
-let emailCodeCounter = 0;
-let emailTimerHandler = null;
+const garden = {
+  soil: null,
+  will: null,
+};
+let seen = {};
+let howManyTimes = 0;
+let mind = null;
 let sent = {};
-async function showController(page, data, config) {
+
+async function showController() {
   await util.controller(
-    page,
+    garden.soil,
     {
       controller: {
         selector:
           "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card:nth-child(1) > div > div.card-header.mb-0.cursor-pointer.ng-star-inserted > h3",
         action: async () => {
-          const selectedTraveler = await page.$eval(
+          const selectedTraveler = await garden.soil.$eval(
             "#hajonsoft_select",
             (el) => el.value
           );
           if (selectedTraveler) {
             util.setSelectedTraveller(selectedTraveler);
-            await sendPassenger(util.getSelectedTraveler());
+            await help(util.getSelectedTraveler());
           }
         },
       },
     },
-    data.travellers
+    garden.will.travellers
   );
 }
 
-async function sendPassenger(selectedTraveler) {
-  const passenger = globalData.travellers[selectedTraveler];
-  await util.clickWhenReady(SELECTORS.dataEntry.automaticScan, globalPage);
+async function help(passport) {
+  const human = garden.will.travellers[passport];
+  await util.clickWhenReady(SELECTORS.dataEntry.automaticScan, garden.soil);
   await new Promise((resolve) => setTimeout(resolve, 100));
-  await util.clickWhenReady(SELECTORS.dataEntry.startScanButton, globalPage);
+  await util.clickWhenReady(SELECTORS.dataEntry.startScanButton, garden.soil);
   await new Promise((resolve) => setTimeout(resolve, 100));
-  await pasteCodeLine(selectedTraveler, globalData);
+  await scan(passport);
   await new Promise((resolve) => setTimeout(resolve, 2000));
-  await globalPage.waitForSelector(SELECTORS.dataEntry.passportPhotoButton);
-  const resizedPassportPath = await util.downloadAndResizeImage(
-    passenger,
+  await garden.soil.waitForSelector(SELECTORS.dataEntry.passportPhotoButton);
+  const areYouReady = await util.downloadAndResizeImage(
+    human,
     200,
     200,
     "passport"
   );
-  await util.commitFile(
-    SELECTORS.dataEntry.passportPhotoInput,
-    resizedPassportPath
-  );
+  await util.commitFile(SELECTORS.dataEntry.passportPhotoInput, areYouReady);
 }
 
-async function pasteCodeLine(selectedTraveler, passengersData) {
+async function scan(humanPassport) {
   await util.infoMessage(
-    globalPage,
-    `${parseInt(selectedTraveler.toString()) + 1}/${
-      passengersData.travellers.length
-    }`
+    garden.soil,
+    `${parseInt(humanPassport.toString()) + 1}/${garden.will.travellers.length}`
   );
-  // await globalPage.waitForSelector(
-  //   "#content > div > app-applicant-add > app-data-entry-method > p-dialog.p-element.ng-tns-c4042076560-7.ng-star-inserted > div > div > div.ng-tns-c4042076560-7.p-dialog-content > div > app-alert > div"
-  // );
-  // await globalPage.focus(
-  //   "#content > div > app-applicant-add > app-data-entry-method > p-dialog.p-element.ng-tns-c4042076560-7.ng-star-inserted > div > div > div.ng-tns-c4042076560-7.p-dialog-content > div > app-alert > div"
-  // );
-  if (selectedTraveler == "-1") {
-    const browser = await globalPage.browser();
+  if (humanPassport == "-1") {
+    const browser = await garden.soil.browser();
     browser.disconnect();
   }
-  var passenger = passengersData.travellers[selectedTraveler];
-  if (sent[passenger.passportNumber] === undefined) {
-    await globalPage.keyboard.type(passenger.codeline);
+  var human = garden.will.travellers[humanPassport];
+  if (sent[human.passportNumber] === undefined) {
+    await garden.soil.keyboard.type(human.codeline);
   } else {
-    const newCodeLine = util.generateMRZ(passenger);
-    console.log("📢[ehj.js:470]: newCodeLine: ", newCodeLine);
-    await globalPage.keyboard.type(newCodeLine);
+    const reissuedPassport = util.generateMRZ(human);
+    console.log("📢[ehj.js:470]: reissuedPassport: ", reissuedPassport);
+    await garden.soil.keyboard.type(reissuedPassport);
   }
 }
 
-async function fillInputs(page, data, config) {
-  await util.commit(page, config.inputs, data.system);
+async function feedPlant(plant) {
+  if (plant.url === "https://masar.nusuk.sa/pub/login") {
+    await completeProtection(plant);
+    return;
+  }
+  const human = garden.will.travellers[util.getSelectedTraveler()];
+  await util.commit(garden.soil, plant.slots, human);
 }
 
-async function fillOtp(page, data, config) {
-  globalPage = page;
-  globalData = data;
-  globalConfig = config;
+async function advance() {
+  // This function should result in advancement
+}
 
-  await util.commander(page, {
+async function completeProtection(whatToProtect) {
+  await util.commit(garden.soil, whatToProtect.slots, garden.will.system);
+}
+
+async function secure() {
+  await util.commander(garden.soil, {
     controller: {
       selector: SELECTORS.loginOtp.h1,
       title: "Get Code",
       arabicTitle: "احصل عالرمز",
       name: "otp",
       action: async () => {
-        emailCodeCounter = 0;
-        startEmailTimer();
+        howManyTimes = 0;
+        plantSeeds();
       },
     },
   });
-  startEmailTimer();
+  plantSeeds();
 }
 
-async function startEmailTimer() {
-  emailTimerHandler = setInterval(async () => {
-    emailCodeCounter++;
-    if (emailCodeCounter > 50) {
-      clearInterval(emailTimerHandler);
-      emailTimerHandler = null;
+async function plantSeeds() {
+  mind = setInterval(async () => {
+    howManyTimes++;
+    if (howManyTimes > 50) {
+      clearInterval(mind);
+      const iamLosingMyMind = null;
+      mind = iamLosingMyMind;
     } else {
-      globalPage.$eval(
+      garden.soil.$eval(
         SELECTORS.loginOtp.label,
         (el, i) =>
           (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
-        emailCodeCounter
+        howManyTimes
       );
-
       try {
-        await fetchOTPForMasar(
-          globalData.system.username,
+        await someEmailStuff(
+          garden.will.system.username,
           "Hajonsoft123",
           ["رمز التحقق|Verification Code", "رمز التحقق|Verification Code"],
-          (err, code, page) => pasteOTPCode(err, code, page),
+          (err, code) => someSecurityThings(err, code),
           "hajonsoft.net"
         );
       } catch (e) {
-        await util.infoMessage(page, "Manual code required or try again!", e);
+        await util.infoMessage(
+          garden.soil,
+          "Manual code required or try again!",
+          e
+        );
       }
     }
   }, 3000);
 }
 
-async function pasteOTPCode(err, code, page) {
+async function someSecurityThings(err, code) {
   if (err === "no-code") {
     return;
   }
   if (err || !code) {
     try {
-      await globalPage.waitForSelector(SELECTORS.loginOtp.label);
-      if (err.startsWith("Error:")) {
-        await globalPage.$eval(
+      await garden.soil.waitForSelector(SELECTORS.loginOtp.label);
+      if (err?.startsWith("Error:")) {
+        await garden.soil.$eval(
           SELECTORS.loginOtp.label,
           (el, message) => (el.innerText = message),
           err
         );
         return;
       }
-      await globalPage.$eval(
+      await garden.soil.$eval(
         SELECTORS.loginOtp.label,
         (el, i) =>
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
-        emailCodeCounter
+        howManyTimes
       );
     } catch {}
 
     return;
   }
-  if (codeUsed(code)) {
+  if (seeYouBefore(code)) {
     return;
   }
   await util.commit(
-    globalPage,
+    garden.soil,
     [
       {
         selector: SELECTORS.loginOtp.firstDigit,
@@ -172,20 +177,21 @@ async function pasteOTPCode(err, code, page) {
     ],
     {}
   );
-  clearInterval(emailTimerHandler);
-  emailTimerHandler = null;
-  await util.infoMessage(globalPage, "Code has been pasted successfully", null);
+  clearInterval(mind);
+  mind = null;
+  await util.infoMessage(
+    garden.soil,
+    "Code has been pasted successfully",
+    null
+  );
 }
 
-async function fillIdAndResidence(page, data, config) {
-  const passenger = globalData.travellers[util.getSelectedTraveler()];
-  await util.clickWhenReady(".p-dropdown .p-dropdown-label", globalPage);
-  await util.clickWhenReady("#dropDownId_list .p-dropdown-item", globalPage);
-
-  await util.commit(globalPage, config.inputs, passenger);
+async function whereDoYouLive(e) {
+  const human = garden.will.travellers[util.getSelectedTraveler()];
+  await util.commit(garden.soil, e.slot, human);
 
   await util.commit(
-    globalPage,
+    garden.soil,
     [
       {
         selector:
@@ -193,180 +199,190 @@ async function fillIdAndResidence(page, data, config) {
         value: (row) => row.placeOfIssue,
       },
     ],
-    passenger
+    human
   );
 
-  await globalPage.$eval(
+  await garden.soil.$eval(
     SELECTORS.identityAndResidence.PassIssueDate,
-    (el, pass) =>
-      (el.textContent = `Passport Issue Date: ${pass.passIssueDt.dmmmy}`),
-    passenger
+    (el, passportData) =>
+      (el.textContent = `Passport Issue Date: ${passportData.passIssueDt.dmmmy}`),
+    human
   );
   await util.clickWhenReady(
-    SELECTORS.identityAndResidence.hajjType,
-    globalPage
+    SELECTORS.identityAndResidence.normalHajj,
+    garden.soil
   );
 }
 
-async function fillBasicData(page, data, config) {
-  const passenger = data.travellers[util.getSelectedTraveler()];
-  await util.commit(page, config.inputs, passenger);
+async function tellMeAboutYourSelf(e) {
+  const human = garden.will.travellers[util.getSelectedTraveler()];
+  await util.commit(garden.soil, e.slots, human);
   await util.commit(
-    page,
+    garden.soil,
     [
       {
         selector: SELECTORS.basicData.email,
-        value: (row) => suggestEmail(row),
+        value: (row) => guessSomeEmail(row),
       },
       {
         selector: SELECTORS.basicData.phoneNumber,
-        value: (row) => suggestPhoneNumber(row),
+        value: (row) => askWomanNumber(row),
       },
     ],
-    passenger
+    human
   );
 
-  await page.$eval(
+  await garden.soil.$eval(
     SELECTORS.basicData.placeOfBirthLabel,
     (el, pass) => (el.textContent = `Place of Birth: ${pass.birthPlace}`),
-    data.travellers[util.getSelectedTraveler()]
+    garden.will.travellers[util.getSelectedTraveler()]
   );
-  await uploadPortrait(page, passenger, config);
+  await showPhotoId(human, e);
 }
 
-async function uploadPortrait(page, data, config) {
-  const passenger = globalData.travellers[util.getSelectedTraveler()];
-  // let resizedPhotoPath = await util.downloadAndResizeImage(
-  //   passenger,
-  //   480,
-  //   640,
-  //   "photo",
-  //   50,
-  //   200
-  // );
-  let resizedPhotoPath = await util.downloadAndResizeImage(
-    passenger,
+async function showPhotoId(human, e) {
+  let handInPocket = await util.downloadAndResizeImage(
+    human,
     480,
     640,
     "photo"
   );
-  await util.commitFile(SELECTORS.basicData.photoInput, resizedPhotoPath);
+  await util.commitFile(SELECTORS.basicData.photoInput, handInPocket);
 }
 
-async function fillQuestions(page, data, config) {
-  await globalPage.$$eval('input[type="radio"][value="0"]', (radios) => {
+async function answerQuestions() {
+  fillThisAirlineForm();
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
+  await util.commit(
+    garden.soil,
+    [
+      {
+        selector: SELECTORS.questions.vaccineClarificationInput,
+        value: () =>
+          "COVID-19, Yellow Fever, Meningococcal (ACWY), Hepatitis A & B, Influenza, Polio",
+      },
+      {
+        selector: SELECTORS.questions.vaccinePledgeClarificationInput,
+        value: () => "I CONFIRM",
+      },
+    ],
+    {}
+  );
+}
+
+async function fillThisAirlineForm() {
+  await garden.soil.$$eval('input[type="radio"][value="0"]', (radios) => {
     radios.forEach((radio) => {
-      if (!radio.checked) {
-        radio.click(); // Click the "No" option if it's not already selected
+      const name = radio.getAttribute("name");
+      if (!radio.checked && name !== "31" && name !== "32") {
+        radio.click(); // Click the "No" option if it's not already selected and not one of the special ones
       }
     });
   });
 
-  // await globalPage.$eval(SELECTORS.questions.vaccineTakenYes, (radio) => {
-  //   radio.click();
-  // });
-  // await globalPage.$eval(SELECTORS.questions.vaccinePledgeYes, (radio) => {
-  //   radio.click();
-  // });
-  // await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  // await util.commit(
-  //   globalPage,
-  //   [
-  //     {
-  //       selector: SELECTORS.questions.vaccineClarificationInput,
-  //       value: () => "COVID, Yellow fever, Hepatitis, Others",
-  //     },
-  //     {
-  //       selector: SELECTORS.questions.vaccinePledgeClarificationInput,
-  //       value: () => "I CONFIRM",
-  //     },
-  //   ],
-  //   {}
-  // );
+  await garden.soil.$$eval('input[type="radio"][value="1"]', (radios) => {
+    radios.forEach((radio) => {
+      const name = radio.getAttribute("name");
+      if (name === "31" || name === "32") {
+        radio.click(); // Click the "No" option if it's not already selected and not one of the special ones
+      }
+    });
+  });
 }
-function codeUsed(code) {
-  if (usedCodes[code]) {
+
+function seeYouBefore(code) {
+  if (seen[code]) {
     return true;
   }
-  usedCodes[code] = true;
+  seen[code] = true;
   return false;
 }
 
-function suggestEmail(passenger) {
-  if (passenger.email) {
-    return passenger.email.split("/")[0];
+function guessSomeEmail(human) {
+  if (human.email) {
+    return human.email.split("/")[0];
   }
-  if (globalData.system.username) {
-    return globalData.system.username;
+  if (garden.will.system.username) {
+    return garden.will.system.username;
   }
 
   return "admin@hajonsoft.net";
-
-  // const friendlyName = `${passenger.name.first}.${
-  //   companion ? "companion." : ""
-  // }${passenger.passportNumber}@${domain}`
-  //   .toLowerCase()
-  //   .replace(/ /g, "");
-  // const email = friendlyName;
-  // return email;
 }
 
-function suggestPhoneNumber(passenger) {
-  if (passenger.mobileNumber) {
-    return passenger.mobileNumber;
+function askWomanNumber(woman) {
+  if (woman.mobileNumber) {
+    return woman.mobileNumber;
   }
 
-  // Get the USA area code 949 (as an example)
-  const areaCode = "949";
+  const lie = "949";
 
   // Generate a valid phone number based on the current time
-  let generatedPhoneNumber = generateSequentialPhoneNumber(areaCode);
+  let hereIsMyNumber = letMeThink(lie);
 
-  if (generatedPhoneNumber.length <= 20) {
-    return generatedPhoneNumber;
+  if (hereIsMyNumber.length <= 20) {
+    return hereIsMyNumber;
   }
 
-  const suggestedPhoneNumber = generatedPhoneNumber.slice(0, 20);
-  return suggestedPhoneNumber;
+  const hereItIs = hereIsMyNumber.slice(0, 20);
+  return hereItIs;
 }
 
 // Helper function to generate a sequential phone number based on the current date and time
-function generateSequentialPhoneNumber(areaCode) {
-  const now = new Date();
-  const day = now.getDate().toString(); // Day in DD format
-  const hour = now.getHours().toString().padStart(2, "0"); // Hour in HH format
-  const minute = now.getMinutes().toString().padStart(2, "0"); // Minute in MM format
-  const second = now.getSeconds().toString().padStart(2, "0"); // Second in SS format
-  const hashedDay = (day % 8) + 2; // Map the day (1-31) to a number between 2 and 9
+function letMeThink(lie) {
+  const whatShowITellHim = new Date();
+  const today = whatShowITellHim.getDate().toString(); // Day in DD format
+  const andTheTimeIs = whatShowITellHim.getHours().toString().padStart(2, "0"); // Hour in HH format
+  const minute = whatShowITellHim.getMinutes().toString().padStart(2, "0"); // Minute in MM format
+  const second = whatShowITellHim.getSeconds().toString().padStart(2, "0"); // Second in SS format
+  const letsStartByDay = (today % 8) + 2; // Map the day (1-31) to a number between 2 and 9
   // Construct the full phone number (e.g., +19492911879)
-  const phoneNumber = `${areaCode}${hashedDay}${hour}${minute}${second}`;
+  const myNumber = `${lie}${letsStartByDay}${andTheTimeIs}${minute}${second}`;
 
-  return phoneNumber;
+  return myNumber;
 }
 
-async function reviewApplication(page, data, config) {
+async function recheck() {
 
-  // await page.$eval(
-  //   SELECTORS.reviewApplication.pledgeVaccines,
-  //   (radio) => {
-  //     radio.click();
-  //   }
-  // );
-  // await page.$eval(
-  //   SELECTORS.reviewApplication.pledgeShowVaccine,
-  //   (radio) => {
-  //     radio.click();
-  //   }
-  // );
-  // await util.clickWhenReady(SELECTORS.reviewApplication.next, globalPage);
+}
+
+async function showApplicantListCommander(e) {
+  await util.commander(garden.soil, {
+    controller: {
+      selector: SELECTORS.applicantList.title,
+      title: "Learn about the applicants",
+      arabicTitle: "تعرف على المتقدمين",
+      name: "applicantList",
+      action: async () => {
+        const processedPassportNumbers = await garden.soil.$$eval(
+          SELECTORS.applicantList.rows,
+          (rows) => {
+            return rows
+              .map((row) => {
+                const cell = row.querySelector("td:nth-child(5) span span");
+                return cell ? cell.textContent.trim() : null;
+              })
+              .filter(Boolean); // Removes nulls if any cell was missing
+          }
+        );
+
+        garden.will.travellers = garden.will.travellers.filter(
+          (t) => !processedPassportNumbers.includes(t.passportNumber)
+        );
+        fs.writeFileSync(getPath("data.json"), JSON.stringify(garden.will));
+      },
+    },
+  });
 }
 module.exports = {
   showController,
-  fillInputs,
-  fillOtp,
-  fillIdAndResidence,
-  fillBasicData,
-  fillQuestions,
-  reviewApplication,
+  feedPlant,
+  secure,
+  whereDoYouLive,
+  tellMeAboutYourSelf,
+  answerQuestions,
+  recheck,
+  advance,
+  showApplicantListCommander,
+  garden,
 };
