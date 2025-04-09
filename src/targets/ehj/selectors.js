@@ -27,10 +27,15 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div > button",
     passportPhotoInput:
       "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > input",
+    confirmScanButton:
+      "#content > div > app-applicant-add > app-data-entry-method > p-dialog.p-element.ng-tns-c4042076560-70.ng-star-inserted > div > div > div.p-dialog-footer.ng-tns-c4042076560-70.ng-star-inserted > action-btns > div > div > button",
+    nextButton:
+      "#content > div > app-applicant-add > app-data-entry-method > action-btns > div > div > button",
   },
   identityAndResidence: {
     firstEmbassyOption: "#dropDownId_list > p-dropdownitem:nth-child(1) > li",
-    normalHajj: "#content > div > app-applicant-add > app-identity-and-residence > form > app-main-card > div > div.body.collapse.show > div > div > div:nth-child(1) > label > div",
+    normalHajj:
+      "#content > div > app-applicant-add > app-identity-and-residence > form > app-main-card > div > div.body.collapse.show > div > div > div:nth-child(1) > label > div",
     normalPassport:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-dropdown > p-dropdown > div",
     embassy:
@@ -40,12 +45,15 @@ const SELECTORS = {
     placeOfIssue:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(5) > g-input-text > div > input",
     passIssueDataCalendarField:
-      "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-90.p-datepicker.p-component.ng-star-inserted > div.p-datepicker-buttonbar.ng-tns-c419082668-22.ng-star-inserted",
-    passIssueDataCalendarYear: "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-datepicker-group-container.ng-tns-c419082668-79.ng-star-inserted > div > div.p-datepicker-header.ng-tns-c419082668-79 > div > button.p-datepicker-year.p-link.ng-tns-c419082668-79.ng-star-inserted",
-    passIssueDateCalendarYearsContainer: "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-yearpicker.ng-tns-c419082668-79.ng-star-inserted",
-    passIssueDateCalendarMonthsContainer: "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-monthpicker.ng-tns-c419082668-79.ng-star-inserted",
-    passIssueDateCalendarDaysContainer: "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-datepicker-group-container.ng-tns-c419082668-79.ng-star-inserted > div > div.p-datepicker-calendar-container.ng-tns-c419082668-79.ng-star-inserted > table > tbody"
-
+      "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > p-calendar > span > input",
+    passIssueDataCalendarYear:
+      "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-datepicker-group-container.ng-tns-c419082668-79.ng-star-inserted > div > div.p-datepicker-header.ng-tns-c419082668-79 > div > button.p-datepicker-year.p-link.ng-tns-c419082668-79.ng-star-inserted",
+    passIssueDateCalendarYearsContainer:
+      "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-yearpicker.ng-tns-c419082668-79.ng-star-inserted",
+    passIssueDateCalendarMonthsContainer:
+      "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-monthpicker.ng-tns-c419082668-79.ng-star-inserted",
+    passIssueDateCalendarDaysContainer:
+      "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-datepicker-group-container.ng-tns-c419082668-79.ng-star-inserted > div > div.p-datepicker-calendar-container.ng-tns-c419082668-79.ng-star-inserted > table > tbody",
   },
   basicData: {
     fatherName:
@@ -74,6 +82,7 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-input-text > div > input",
     flightNumber:
       "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-input-text > div > input",
+    dateIntoKSA: "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div.col-md-6.my-3 > g-calendar > p-calendar > span > input"
   },
   questions: {
     otherNationalitiesYes:
@@ -114,6 +123,7 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-questionnaire > app-main-card > div > div.body.collapse.show > form > div > div:nth-child(17) > div > div > div.main-question > div > div > div:nth-child(1) > label > p-radiobutton > div > div.p-radiobutton-box.p-highlight",
     vaccinePledgeClarificationInput:
       "#content > div > app-applicant-add > app-questionnaire > app-main-card > div > div.body.collapse.show > form > div > div:nth-child(17) > div > div > div.question-details.ng-star-inserted > div > div > g-text-area > div:nth-child(2) > textarea",
+    nextButton: "#content > div > app-applicant-add > app-questionnaire > action-btns > div > div > button"
   },
   reviewApplication: {
     pledgeVaccines:
@@ -123,11 +133,12 @@ const SELECTORS = {
     next: "#content > div > app-applicant-add > app-review-application > action-btns > div > div > button",
   },
   applicantList: {
-    title: "body > app-root > app-layout > div > div > div > applicants-list > div > div",
+    title:
+      "body > app-root > app-layout > div > div > div > applicants-list > div > div",
     rows: "#listNormalApplicantId > div > div.p-datatable-wrapper > table > tbody > tr",
-    tdIndexedPassportNumber: "#listNormalApplicantId > div > div.p-datatable-wrapper > table > tbody > tr:nth-child({i}) > td:nth-child(5) > div > span > span",
-
-  }
+    tdIndexedPassportNumber:
+      "#listNormalApplicantId > div > div.p-datatable-wrapper > table > tbody > tr:nth-child({i}) > td:nth-child(5) > div > span > span",
+  },
 };
 
 module.exports = {

@@ -7,7 +7,8 @@ const {
   tellMeAboutYourSelf,
   recheck,
   answerQuestions,
-  showApplicantListCommander
+  showApplicantListCommander,
+  moreAndMore
 } = require("./actions.js");
 
 const baseAddress = "https://masar.nusuk.sa";
@@ -115,7 +116,6 @@ const knowledge = {
     moreAndMoreGettingToKnowYou: {
       url: `${baseAddress}/protected-applicant-st/add/additinal-data`,
       needs: [
-        SELECTORS.additionalData.notEmployed,
         SELECTORS.additionalData.expectedLength,
       ],
       slots: [
@@ -129,7 +129,7 @@ const knowledge = {
         },
       ],
       action: (e) => {
-        feedPlant(e);
+        moreAndMore(e);
       },
     },
     lastQuestions: {

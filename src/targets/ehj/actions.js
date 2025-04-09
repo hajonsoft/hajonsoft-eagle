@@ -52,6 +52,26 @@ async function help(passport) {
     "passport"
   );
   await util.commitFile(SELECTORS.dataEntry.passportPhotoInput, areYouReady);
+  // wait for the confirm button to be visible
+  // await garden.soil.waitForSelector(
+  //   SELECTORS.dataEntry.confirmScanButton,
+  //   { visible: true }
+  // );
+  // await util.clickWhenReady(
+  //   SELECTORS.dataEntry.confirmScanButton,
+  //   garden.soil
+  // );
+  // await new Promise((resolve) => setTimeout(resolve, 100));
+  // // Check if next button is visible and clickable
+  // const nextButton = await garden.soil.$(
+  //   SELECTORS.dataEntry.nextButton,
+  //   { visible: true }
+  // );
+  // if (nextButton) {
+  //   await util.clickWhenReady(SELECTORS.dataEntry.nextButton, garden.soil);
+  // } else {
+  //   console.log("Next button is not visible or clickable.");
+  // }
 }
 
 async function scan(humanPassport) {
@@ -80,6 +100,33 @@ async function feedPlant(plant) {
   }
   const human = garden.will.travellers[util.getSelectedTraveler()];
   await util.commit(garden.soil, plant.slots, human);
+}
+
+async function moreAndMore(plant) {
+  feedPlant(plant);
+
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  const human = garden.will.travellers[util.getSelectedTraveler()];
+  const dateToEnter = await garden.soil.$(
+    SELECTORS.additionalData.dateIntoKSA
+  );
+  await dateToEnter.evaluate((el) => {
+    el.removeAttribute("readonly");
+    el.setAttribute("role", "");
+  });
+  await util.commit(
+    garden.soil,
+    [
+      {
+        selector: SELECTORS.additionalData.dateIntoKSA,
+        value: (row) =>
+          `18-05-2025`,
+      },
+    ],
+    human
+  );
+
+
 }
 
 async function advance() {
@@ -205,7 +252,26 @@ async function whereDoYouLive(e) {
   await garden.soil.$eval(
     SELECTORS.identityAndResidence.PassIssueDate,
     (el, passportData) =>
-      (el.textContent = `Passport Issue Date: ${passportData.passIssueDt.dmmmy}`),
+      (el.textContent = `Passport Issue Date: ${passportData.passIssueDt.dmmmy} and ${passportData.passIssueDt.dd}-${passportData.passIssueDt.mm}-${passportData.passIssueDt.yyyy}`),
+    human
+  );
+  // for passport issue date field, remove the readonly attribute, and the role attribute, or at least make the role empty
+  const passIssueDateField = await garden.soil.$(
+    SELECTORS.identityAndResidence.passIssueDataCalendarField
+  );
+  await passIssueDateField.evaluate((el) => {
+    el.removeAttribute("readonly");
+    el.setAttribute("role", "");
+  });
+  await util.commit(
+    garden.soil,
+    [
+      {
+        selector: SELECTORS.identityAndResidence.passIssueDataCalendarField,
+        value: (row) =>
+          `${row.passIssueDt.dd}-${row.passIssueDt.mm}-${row.passIssueDt.yyyy}`,
+      },
+    ],
     human
   );
   await util.clickWhenReady(
@@ -269,6 +335,8 @@ async function answerQuestions() {
     ],
     {}
   );
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await util.clickWhenReady(SELECTORS.questions.nextButton, garden.soil);
 }
 
 async function fillThisAirlineForm() {
@@ -343,7 +411,10 @@ function letMeThink(lie) {
 }
 
 async function recheck() {
-
+  // await new Promise((resolve) => setTimeout(resolve, 1000));
+  // await garden.soil.evaluate(() => {
+  //   window.scrollTo(0, document.body.scrollHeight);
+  // });
 }
 
 async function showApplicantListCommander(e) {
@@ -385,4 +456,5 @@ module.exports = {
   advance,
   showApplicantListCommander,
   garden,
+  moreAndMore,
 };
