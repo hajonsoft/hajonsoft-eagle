@@ -34,6 +34,12 @@ async function showController() {
     },
     garden.will.travellers
   );
+
+  // TODO: check if loop.txt file is present and just go ahead and send the correct passenger.
+  if (fs.existsSync(getPath("loop.txt"))) {
+    util.incrementSelectedTraveler();
+    await help(util.getSelectedTraveler());
+  }
 }
 
 async function help(passport) {
@@ -52,26 +58,28 @@ async function help(passport) {
     "passport"
   );
   await util.commitFile(SELECTORS.dataEntry.passportPhotoInput, areYouReady);
-  // wait for the confirm button to be visible
-  // await garden.soil.waitForSelector(
-  //   SELECTORS.dataEntry.confirmScanButton,
-  //   { visible: true }
-  // );
-  // await util.clickWhenReady(
-  //   SELECTORS.dataEntry.confirmScanButton,
-  //   garden.soil
-  // );
-  // await new Promise((resolve) => setTimeout(resolve, 100));
-  // // Check if next button is visible and clickable
-  // const nextButton = await garden.soil.$(
-  //   SELECTORS.dataEntry.nextButton,
-  //   { visible: true }
-  // );
-  // if (nextButton) {
-  //   await util.clickWhenReady(SELECTORS.dataEntry.nextButton, garden.soil);
-  // } else {
-  //   console.log("Next button is not visible or clickable.");
-  // }
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  const success = await waitForPleaseWaitToDisappear(garden.soil, 10000, 300);
+  if (success) {
+    await garden.soil.waitForSelector(SELECTORS.dataEntry.confirmScanButton, {
+      visible: true,
+    });
+    await util.clickWhenReady(
+      SELECTORS.dataEntry.confirmScanButton,
+      garden.soil
+    );
+    // await new Promise((resolve) => setTimeout(resolve, 100));
+    // // Check if next button is visible and clickable
+    // const nextButton = await garden.soil.$(SELECTORS.dataEntry.nextButton, {
+    //   visible: true,
+    // });
+    // if (nextButton) {
+    //   await util.clickWhenReady(SELECTORS.dataEntry.nextButton, garden.soil);
+    // } else {
+    //   console.log("Next button is not visible or clickable.");
+    // }
+  }
 }
 
 async function scan(humanPassport) {
@@ -102,14 +110,45 @@ async function feedPlant(plant) {
   await util.commit(garden.soil, plant.slots, human);
 }
 
+async function waitForPleaseWaitToDisappear(
+  page,
+  timeout = 10000,
+  interval = 300
+) {
+  const start = Date.now();
+
+  while (Date.now() - start < timeout) {
+    const isVisible = await page.evaluate(() => {
+      const elements = Array.from(document.querySelectorAll("body *"));
+      return elements.some((el) => {
+        const text = el.textContent?.trim();
+        const style = window.getComputedStyle(el);
+        return (
+          text === "Please wait" &&
+          style.display !== "none" &&
+          style.visibility !== "hidden"
+        );
+      });
+    });
+
+    if (!isVisible) {
+      console.log("✅ 'Please wait' is gone.");
+      return true;
+    }
+
+    await new Promise((r) => setTimeout(r, interval));
+  }
+
+  console.warn("⏰ Timeout: 'Please wait' is still visible after timeout.");
+  return false;
+}
+
 async function moreAndMore(plant) {
   feedPlant(plant);
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
   const human = garden.will.travellers[util.getSelectedTraveler()];
-  const dateToEnter = await garden.soil.$(
-    SELECTORS.additionalData.dateIntoKSA
-  );
+  const dateToEnter = await garden.soil.$(SELECTORS.additionalData.dateIntoKSA);
   await dateToEnter.evaluate((el) => {
     el.removeAttribute("readonly");
     el.setAttribute("role", "");
@@ -119,14 +158,11 @@ async function moreAndMore(plant) {
     [
       {
         selector: SELECTORS.additionalData.dateIntoKSA,
-        value: (row) =>
-          `18-05-2025`,
+        value: (row) => `18-05-2025`,
       },
     ],
     human
   );
-
-
 }
 
 async function advance() {

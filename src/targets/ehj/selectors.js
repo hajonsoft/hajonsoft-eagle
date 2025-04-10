@@ -27,6 +27,7 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div > button",
     passportPhotoInput:
       "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > input",
+    pleaseWait: '#content > div > app-applicant-add > app-data-entry-method > p-dialog.p-element.ng-tns-c4042076560-70.ng-star-inserted > div > div > div.ng-tns-c4042076560-70.p-dialog-content > div > h4',
     confirmScanButton:
       "#content > div > app-applicant-add > app-data-entry-method > p-dialog.p-element.ng-tns-c4042076560-70.ng-star-inserted > div > div > div.p-dialog-footer.ng-tns-c4042076560-70.ng-star-inserted > action-btns > div > div > button",
     nextButton:
