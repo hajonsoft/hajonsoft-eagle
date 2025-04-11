@@ -29,14 +29,14 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > input",
     pleaseWait: '#content > div > app-applicant-add > app-data-entry-method > p-dialog.p-element.ng-tns-c4042076560-70.ng-star-inserted > div > div > div.ng-tns-c4042076560-70.p-dialog-content > div > h4',
     confirmScanButton:
-      "#content > div > app-applicant-add > app-data-entry-method > p-dialog.p-element.ng-tns-c4042076560-70.ng-star-inserted > div > div > div.p-dialog-footer.ng-tns-c4042076560-70.ng-star-inserted > action-btns > div > div > button",
+      "#content > div > app-applicant-add > app-data-entry-method > p-dialog:nth-child(3) > div > div > div:nth-child(4) > action-btns > div > div > button",
     nextButton:
       "#content > div > app-applicant-add > app-data-entry-method > action-btns > div > div > button",
   },
   identityAndResidence: {
     firstEmbassyOption: "#dropDownId_list > p-dropdownitem:nth-child(1) > li",
     normalHajj:
-      "#content > div > app-applicant-add > app-identity-and-residence > form > app-main-card > div > div.body.collapse.show > div > div > div:nth-child(1) > label > div",
+      "#content > div > app-applicant-add > app-identity-and-residence > form > app-main-card > div > div.body.collapse.show > div > div > div:nth-child(1) > label > div > p-radiobutton > div > div.p-radiobutton-box.p-highlight",
     normalPassport:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-dropdown > p-dropdown > div",
     embassy:

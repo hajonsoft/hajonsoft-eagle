@@ -59,27 +59,29 @@ async function help(passport) {
   );
   await util.commitFile(SELECTORS.dataEntry.passportPhotoInput, areYouReady);
   await new Promise((resolve) => setTimeout(resolve, 2000));
+  try {
+    const success = await waitForPleaseWaitToDisappear();
+    if (success) {
+      await garden.soil.waitForSelector(SELECTORS.dataEntry.confirmScanButton, {
+        visible: true,
+      });
+      await util.clickWhenReady(
+        SELECTORS.dataEntry.confirmScanButton,
+        garden.soil
+      );
 
-  const success = await waitForPleaseWaitToDisappear(garden.soil, 10000, 300);
-  if (success) {
-    await garden.soil.waitForSelector(SELECTORS.dataEntry.confirmScanButton, {
-      visible: true,
-    });
-    await util.clickWhenReady(
-      SELECTORS.dataEntry.confirmScanButton,
-      garden.soil
-    );
-    // await new Promise((resolve) => setTimeout(resolve, 100));
-    // // Check if next button is visible and clickable
-    // const nextButton = await garden.soil.$(SELECTORS.dataEntry.nextButton, {
-    //   visible: true,
-    // });
-    // if (nextButton) {
-    //   await util.clickWhenReady(SELECTORS.dataEntry.nextButton, garden.soil);
-    // } else {
-    //   console.log("Next button is not visible or clickable.");
-    // }
-  }
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Check if next button is visible and clickable
+      const nextButton = await garden.soil.$(SELECTORS.dataEntry.nextButton, {
+        visible: true,
+      });
+      if (nextButton) {
+        await util.clickWhenReady(SELECTORS.dataEntry.nextButton, garden.soil);
+      } else {
+        console.log("Next button is not visible or clickable.");
+      }
+    }
+  } catch {}
 }
 
 async function scan(humanPassport) {
@@ -110,15 +112,11 @@ async function feedPlant(plant) {
   await util.commit(garden.soil, plant.slots, human);
 }
 
-async function waitForPleaseWaitToDisappear(
-  page,
-  timeout = 10000,
-  interval = 300
-) {
+async function waitForPleaseWaitToDisappear(timeout = 10000, interval = 300) {
   const start = Date.now();
 
   while (Date.now() - start < timeout) {
-    const isVisible = await page.evaluate(() => {
+    const isVisible = await garden.soil.evaluate(() => {
       const elements = Array.from(document.querySelectorAll("body *"));
       return elements.some((el) => {
         const text = el.textContent?.trim();
@@ -270,25 +268,13 @@ async function someSecurityThings(err, code) {
 }
 
 async function whereDoYouLive(e) {
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   const human = garden.will.travellers[util.getSelectedTraveler()];
-  await util.commit(garden.soil, e.slot, human);
-
-  await util.commit(
-    garden.soil,
-    [
-      {
-        selector:
-          "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(5) > g-input-text > div > input",
-        value: (row) => row.placeOfIssue,
-      },
-    ],
-    human
-  );
-
+  await util.commit(garden.soil, e.slots, human);
   await garden.soil.$eval(
     SELECTORS.identityAndResidence.PassIssueDate,
     (el, passportData) =>
-      (el.textContent = `Passport Issue Date: ${passportData.passIssueDt.dmmmy} and ${passportData.passIssueDt.dd}-${passportData.passIssueDt.mm}-${passportData.passIssueDt.yyyy}`),
+      (el.textContent = `Passport Issue Date: ${passportData.passIssueDt.dd}-${passportData.passIssueDt.mm}-${passportData.passIssueDt.yyyy}`),
     human
   );
   // for passport issue date field, remove the readonly attribute, and the role attribute, or at least make the role empty
@@ -310,10 +296,54 @@ async function whereDoYouLive(e) {
     ],
     human
   );
-  await util.clickWhenReady(
-    SELECTORS.identityAndResidence.normalHajj,
-    garden.soil
+  await garden.soil.$eval(
+    SELECTORS.identityAndResidence.placeOfIssue,
+    (el) => el.click()
   );
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await selectFirstItemInAllDropdowns();
+}
+
+async function selectFirstItemInAllDropdowns() {
+  await garden.soil.evaluate(async () => {
+    try {
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      const dropdowns = Array.from(
+        document.querySelectorAll("div#dropDownId.p-dropdown")
+      );
+
+      for (const dropdown of dropdowns) {
+        try {
+          if (dropdown.classList.contains("p-disabled")) continue;
+
+          const trigger = dropdown.querySelector(".p-dropdown-trigger");
+          if (trigger)
+            trigger.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+          await sleep(300); // Give time for the dropdown to populate
+
+          const label = dropdown.querySelector('[role="combobox"]');
+          const listId = label?.getAttribute("aria-controls");
+          if (!listId) continue;
+
+          const list = document.getElementById(listId);
+          const firstItem = list?.querySelector(".p-dropdown-item");
+
+          if (firstItem) {
+            firstItem.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          }
+
+          await sleep(300); // Space out clicks
+        } catch (innerErr) {
+          console.warn("Dropdown interaction failed on one element:", innerErr);
+          continue;
+        }
+      }
+    } catch (err) {
+      console.error("Dropdown selection failed completely:", err);
+    }
+  });
 }
 
 async function tellMeAboutYourSelf(e) {
@@ -340,6 +370,76 @@ async function tellMeAboutYourSelf(e) {
     garden.will.travellers[util.getSelectedTraveler()]
   );
   await showPhotoId(human, e);
+
+  await chooseMaritalStatusAndCountryCode();
+}
+
+async function chooseMaritalStatusAndCountryCode() {
+  await garden.soil.evaluate(async (countryCodeToSelect = "225") => {
+    try {
+      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      const openDropdownAndSelect = async (labelText, optionSelector) => {
+        try {
+          const dropdown = Array.from(
+            document.querySelectorAll("p-dropdown")
+          ).find((el) => {
+            const label = el.querySelector('[role="combobox"]');
+            return label
+              ?.getAttribute("aria-label")
+              ?.toLowerCase()
+              .includes(labelText.toLowerCase());
+          });
+
+          if (!dropdown) {
+            console.warn(`Dropdown with label "${labelText}" not found`);
+            return;
+          }
+
+          const trigger = dropdown.querySelector(".p-dropdown-trigger");
+          if (trigger)
+            trigger.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          await sleep(300);
+
+          const label = dropdown.querySelector('[role="combobox"]');
+          const listId = label?.getAttribute("aria-controls");
+          if (!listId) return;
+
+          const list = document.getElementById(listId);
+          if (!list) return;
+
+          const option = optionSelector(list);
+          if (option) {
+            option.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          } else {
+            console.warn(`Option not found for label "${labelText}"`);
+          }
+
+          await sleep(300);
+        } catch (err) {
+          console.warn(`Error handling dropdown for label "${labelText}"`, err);
+        }
+      };
+
+      // Select last option for Marital Status
+      await openDropdownAndSelect("Marital status", (list) => {
+        const items = list.querySelectorAll(".p-dropdown-item");
+        return items[items.length - 1] ?? null;
+      });
+
+      // Select matching country code (e.g. 225)
+      await openDropdownAndSelect("Please Select", (list) => {
+        const items = Array.from(list.querySelectorAll(".p-dropdown-item"));
+        return (
+          items.find((item) =>
+            item.textContent?.includes(countryCodeToSelect)
+          ) ?? null
+        );
+      });
+    } catch (err) {
+      console.error("Error selecting dropdown values:", err);
+    }
+  }, garden.will.system.country.telCode); // Pass the desired country code here
 }
 
 async function showPhotoId(human, e) {
@@ -447,10 +547,32 @@ function letMeThink(lie) {
 }
 
 async function recheck() {
-  // await new Promise((resolve) => setTimeout(resolve, 1000));
-  // await garden.soil.evaluate(() => {
-  //   window.scrollTo(0, document.body.scrollHeight);
-  // });
+  // await safeClickCheckboxes();
+}
+
+async function safeClickCheckboxes() {
+  await garden.soil.evaluate(() => {
+    try {
+      const checkboxes = Array.from(
+        document.querySelectorAll('div.p-checkbox-box[data-p-disabled="false"]')
+      ).slice(0, 2);
+
+      if (checkboxes.length < 2) {
+        console.warn("Less than two enabled checkboxes found");
+      }
+
+      checkboxes.forEach((checkbox, index) => {
+        try {
+          checkbox.click();
+          console.log(`Clicked checkbox ${index + 1}`);
+        } catch (err) {
+          console.error(`Failed to click checkbox ${index + 1}`, err);
+        }
+      });
+    } catch (error) {
+      console.error("Checkbox click script failed:", error);
+    }
+  });
 }
 
 async function showApplicantListCommander(e) {
