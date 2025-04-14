@@ -42,13 +42,13 @@ async function showController() {
   }
 }
 
-async function help(passport) {
-  const human = garden.will.travellers[passport];
+async function help(paxNumber) {
+  const human = garden.will.travellers[paxNumber];
   await util.clickWhenReady(SELECTORS.dataEntry.automaticScan, garden.soil);
   await new Promise((resolve) => setTimeout(resolve, 100));
   await util.clickWhenReady(SELECTORS.dataEntry.startScanButton, garden.soil);
   await new Promise((resolve) => setTimeout(resolve, 100));
-  await scan(passport);
+  await scan(paxNumber);
   await new Promise((resolve) => setTimeout(resolve, 2000));
   await garden.soil.waitForSelector(SELECTORS.dataEntry.passportPhotoButton);
   const areYouReady = await util.downloadAndResizeImage(
@@ -81,19 +81,19 @@ async function help(passport) {
         console.log("Next button is not visible or clickable.");
       }
     }
-  } catch {}
+  } catch { }
 }
 
-async function scan(humanPassport) {
+async function scan(paxNumber) {
   await util.infoMessage(
     garden.soil,
-    `${parseInt(humanPassport.toString()) + 1}/${garden.will.travellers.length}`
+    `${parseInt(paxNumber.toString()) + 1}/${garden.will.travellers.length}`
   );
-  if (humanPassport == "-1") {
+  if (paxNumber == "-1") {
     const browser = await garden.soil.browser();
     browser.disconnect();
   }
-  var human = garden.will.travellers[humanPassport];
+  var human = garden.will.travellers[paxNumber];
   if (sent[human.passportNumber] === undefined) {
     await garden.soil.keyboard.type(human.codeline);
   } else {
@@ -161,6 +161,9 @@ async function moreAndMore(plant) {
     ],
     human
   );
+
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await clickNext(SELECTORS.additionalData.nextButton)
 }
 
 async function advance() {
@@ -241,7 +244,7 @@ async function someSecurityThings(err, code) {
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
         howManyTimes
       );
-    } catch {}
+    } catch { }
 
     return;
   }
@@ -302,8 +305,34 @@ async function whereDoYouLive(e) {
   );
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await selectFirstItemInAllDropdowns();
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await clickNext(SELECTORS.identityAndResidence.nextButton)
+
 }
 
+async function clickNext(nextSelector) {
+  const isClickable = await garden.soil.evaluate((selector) => {
+    const button = document.querySelector(
+      selector
+    );
+    if (!button) return false;
+
+    const rect = button.getBoundingClientRect();
+    const style = window.getComputedStyle(button);
+
+    return (
+      style.visibility !== 'hidden' &&
+      style.display !== 'none' &&
+      !button.disabled &&
+      rect.width > 0 &&
+      rect.height > 0
+    );
+  }, nextSelector);
+
+  if (isClickable) {
+    await garden.soil.click(nextSelector)
+  }
+}
 async function selectFirstItemInAllDropdowns() {
   await garden.soil.evaluate(async () => {
     try {
@@ -372,6 +401,8 @@ async function tellMeAboutYourSelf(e) {
   await showPhotoId(human, e);
 
   await chooseMaritalStatusAndCountryCode();
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await clickNext(SELECTORS.basicData.nextButton)
 }
 
 async function chooseMaritalStatusAndCountryCode() {
@@ -547,7 +578,12 @@ function letMeThink(lie) {
 }
 
 async function recheck() {
-  // await safeClickCheckboxes();
+  await garden.soil.evaluate((selector) => {
+    const element = document.querySelector(selector);
+    if (element) {
+      element.scrollIntoView({ behavior: 'instant', block: 'start' });
+    }
+  }, SELECTORS.reviewApplication.pledgeShowVaccine);
 }
 
 async function safeClickCheckboxes() {

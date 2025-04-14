@@ -55,6 +55,7 @@ const SELECTORS = {
       "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-monthpicker.ng-tns-c419082668-79.ng-star-inserted",
     passIssueDateCalendarDaysContainer:
       "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-datepicker-group-container.ng-tns-c419082668-79.ng-star-inserted > div > div.p-datepicker-calendar-container.ng-tns-c419082668-79.ng-star-inserted > table > tbody",
+    nextButton: "#content > div > app-applicant-add > app-identity-and-residence > action-btns > div > div > button"
   },
   basicData: {
     fatherName:
@@ -75,6 +76,7 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div:nth-child(5) > g-input-text > div > input",
     photoInput:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div.row.mb-3 > div:nth-child(1) > g-attachment-upload > div.form-control.file-upload.enabled > div.upload-info-container > input",
+    nextButton: "#content > div > app-applicant-add > app-add-basic-data > form > action-btns > div > div > button"
   },
   additionalData: {
     notEmployed:
@@ -83,7 +85,8 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-input-text > div > input",
     flightNumber:
       "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-input-text > div > input",
-    dateIntoKSA: "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div.col-md-6.my-3 > g-calendar > p-calendar > span > input"
+    dateIntoKSA: "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div.col-md-6.my-3 > g-calendar > p-calendar > span > input",
+    nextButton: "#content > div > app-applicant-add > app-additional-data > action-btns > div > div > button"
   },
   questions: {
     otherNationalitiesYes:
