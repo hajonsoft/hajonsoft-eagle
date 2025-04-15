@@ -36,7 +36,7 @@ const SELECTORS = {
   identityAndResidence: {
     firstEmbassyOption: "#dropDownId_list > p-dropdownitem:nth-child(1) > li",
     normalHajj:
-      "#content > div > app-applicant-add > app-identity-and-residence > form > app-main-card > div > div.body.collapse.show > div > div > div:nth-child(1)",
+      "#content > div > app-applicant-add > app-identity-and-residence > form > app-main-card > div > div.body.collapse.show > div > div > div:nth-child(1) > label > div > p-radiobutton > div > div.p-radiobutton-box",
     normalPassport:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-dropdown > p-dropdown > div",
     embassy:
@@ -76,11 +76,12 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div:nth-child(5) > g-input-text > div > input",
     photoInput:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div.row.mb-3 > div:nth-child(1) > g-attachment-upload > div.form-control.file-upload.enabled > div.upload-info-container > input",
+    referenceRadio: "#content > div > app-applicant-add > app-add-basic-data > form > div.col-md-12 > app-main-card > div > div.body.collapse.show > div > div.col-md-12.mt-3 > div > div.choice-box.flex-row.align-items-ceter.d-flex.align-items-center.justify-content-center.gap-3 > p-radiobutton > div > div.p-radiobutton-box",
     nextButton: "#content > div > app-applicant-add > app-add-basic-data > form > action-btns > div > div > button"
   },
   additionalData: {
     notEmployed:
-      "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(1) > div > app-main-card > div > div.body.collapse.show > div > div.col-md-6.mt-3 > div > div:nth-child(1) > div > p-radiobutton > div > div.p-radiobutton-box.p-highlight",
+      "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(1) > div > app-main-card > div > div.body.collapse.show > div > div.col-md-6.mt-3 > div > div:nth-child(1) > div > p-radiobutton > div > div.p-radiobutton-box",
     expectedLength:
       "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-input-text > div > input",
     flightNumber:
@@ -133,8 +134,9 @@ const SELECTORS = {
     pledgeVaccines:
       "#content > div > app-applicant-add > app-review-application > app-main-card:nth-child(10) > div > div.body.collapse.show > div > g-checkbox:nth-child(1) > div > p-checkbox > div > div.p-checkbox-box",
     pledgeShowVaccine:
-      "#content > div > app-applicant-add > app-review-application > app-main-card:nth-child(10) > div > div.body.collapse.show > div > g-checkbox:nth-child(2) > div > p-checkbox > div > div.p-checkbox-box.p-highlight",
-    next: "#content > div > app-applicant-add > app-review-application > action-btns > div > div > button",
+      "#content > div > app-applicant-add > app-review-application > app-main-card:nth-child(10) > div > div.body.collapse.show > div > g-checkbox:nth-child(2) > div > p-checkbox > div > div.p-checkbox-box",
+    pledgePilgrimAffairs: "#content > div > app-applicant-add > app-review-application > app-main-card:nth-child(10) > div > div.body.collapse.show > div > g-checkbox:nth-child(3) > div > p-checkbox > div > div.p-checkbox-box",
+    nextButton: "#content > div > app-applicant-add > app-review-application > action-btns > div > div > button",
   },
   applicantList: {
     title:

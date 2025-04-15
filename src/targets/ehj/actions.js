@@ -1,6 +1,7 @@
 const { getPath } = require("../../lib/getPath");
 const { fetchOTPForMasar: someEmailStuff } = require("../../lib/imap");
 const util = require("../../util");
+const { baseAddress } = require("./knowledge");
 const { SELECTORS } = require("./selectors");
 const fs = require("fs");
 
@@ -37,7 +38,6 @@ async function showController() {
 
   // TODO: check if loop.txt file is present and just go ahead and send the correct passenger.
   if (fs.existsSync(getPath("loop.txt"))) {
-    util.incrementSelectedTraveler();
     await help(util.getSelectedTraveler());
   }
 }
@@ -161,6 +161,11 @@ async function moreAndMore(plant) {
     ],
     human
   );
+  try {
+    await garden.soil.$eval(SELECTORS.additionalData.notEmployed, (el) =>
+      el.click()
+    );
+  } catch {}
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await clickNext(SELECTORS.additionalData.nextButton);
@@ -304,6 +309,11 @@ async function whereDoYouLive(e) {
   );
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await selectFirstItemInAllDropdowns();
+  try {
+    await garden.soil.$eval(SELECTORS.identityAndResidence.normalHajj, (el) =>
+      el.click()
+    );
+  } catch {}
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await clickNext(SELECTORS.identityAndResidence.nextButton);
 }
@@ -397,6 +407,12 @@ async function tellMeAboutYourSelf(e) {
   await showPhotoId(human, e);
 
   await chooseMaritalStatusAndCountryCode();
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await garden.soil.$eval(
+    SELECTORS.basicData.referenceRadio,
+    (el) => 
+      el.click()
+  );
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await clickNext(SELECTORS.basicData.nextButton);
 }
@@ -590,16 +606,23 @@ async function recheck() {
       console.log("Container not found");
     }
   });
+
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Click all checkboxes that are not disabled
+  await safeClickCheckboxes(3);
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Click the "Next" button
+  await clickNext(SELECTORS.reviewApplication.nextButton);
 }
 
-async function safeClickCheckboxes() {
-  await garden.soil.evaluate(() => {
+async function safeClickCheckboxes(maxCount = 2) {
+  await garden.soil.evaluate((maxCount) => {
     try {
       const checkboxes = Array.from(
         document.querySelectorAll('div.p-checkbox-box[data-p-disabled="false"]')
-      ).slice(0, 2);
+      ).slice(0, maxCount);
 
-      if (checkboxes.length < 2) {
+      if (checkboxes.length < maxCount) {
         console.warn("Less than two enabled checkboxes found");
       }
 
@@ -614,7 +637,7 @@ async function safeClickCheckboxes() {
     } catch (error) {
       console.error("Checkbox click script failed:", error);
     }
-  });
+  }, maxCount);
 }
 
 async function showApplicantListCommander(e) {
@@ -644,6 +667,15 @@ async function showApplicantListCommander(e) {
       },
     },
   });
+
+  try {
+    if (fs.existsSync(getPath("loop.txt"))) {
+      util.incrementSelectedTraveler();
+      await garden.soil.click(
+        "body > app-root > app-layout > div > div > div > applicants-list > div.d-flex.justify-content-between.align-items-center > button"
+      );
+    }
+  } catch {}
 }
 module.exports = {
   showController,

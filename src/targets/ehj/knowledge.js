@@ -24,7 +24,6 @@ const knowledge = {
     },
     protect: {
       url: `${baseAddress}/pub/login`,
-      allowOnce: true,
       slots: [
         {
           selector: SELECTORS.login.username,
@@ -41,7 +40,6 @@ const knowledge = {
     },
     challenge: {
       url: `${baseAddress}/pub/login`,
-      allowOnce: true,
       needs: [
         SELECTORS.loginOtp.firstDigit,
         SELECTORS.loginOtp.label,
@@ -144,6 +142,7 @@ const knowledge = {
     },
     almostDone: {
       url: `${baseAddress}/protected-applicant-st/add/Review-application`,
+      needs: [],
       action:  (e) => {
         recheck(e);
       },
