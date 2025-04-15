@@ -144,10 +144,6 @@ const knowledge = {
     },
     almostDone: {
       url: `${baseAddress}/protected-applicant-st/add/Review-application`,
-      needs: [
-        SELECTORS.reviewApplication.pledgeShowVaccine,
-        SELECTORS.reviewApplication.pledgeShowVaccine,
-      ],
       action:  (e) => {
         recheck(e);
       },

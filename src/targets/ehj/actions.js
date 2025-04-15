@@ -81,7 +81,7 @@ async function help(paxNumber) {
         console.log("Next button is not visible or clickable.");
       }
     }
-  } catch { }
+  } catch {}
 }
 
 async function scan(paxNumber) {
@@ -163,7 +163,7 @@ async function moreAndMore(plant) {
   );
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  await clickNext(SELECTORS.additionalData.nextButton)
+  await clickNext(SELECTORS.additionalData.nextButton);
 }
 
 async function advance() {
@@ -244,7 +244,7 @@ async function someSecurityThings(err, code) {
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
         howManyTimes
       );
-    } catch { }
+    } catch {}
 
     return;
   }
@@ -299,30 +299,26 @@ async function whereDoYouLive(e) {
     ],
     human
   );
-  await garden.soil.$eval(
-    SELECTORS.identityAndResidence.placeOfIssue,
-    (el) => el.click()
+  await garden.soil.$eval(SELECTORS.identityAndResidence.placeOfIssue, (el) =>
+    el.click()
   );
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await selectFirstItemInAllDropdowns();
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  await clickNext(SELECTORS.identityAndResidence.nextButton)
-
+  await clickNext(SELECTORS.identityAndResidence.nextButton);
 }
 
 async function clickNext(nextSelector) {
   const isClickable = await garden.soil.evaluate((selector) => {
-    const button = document.querySelector(
-      selector
-    );
+    const button = document.querySelector(selector);
     if (!button) return false;
 
     const rect = button.getBoundingClientRect();
     const style = window.getComputedStyle(button);
 
     return (
-      style.visibility !== 'hidden' &&
-      style.display !== 'none' &&
+      style.visibility !== "hidden" &&
+      style.display !== "none" &&
       !button.disabled &&
       rect.width > 0 &&
       rect.height > 0
@@ -330,7 +326,7 @@ async function clickNext(nextSelector) {
   }, nextSelector);
 
   if (isClickable) {
-    await garden.soil.click(nextSelector)
+    await garden.soil.click(nextSelector);
   }
 }
 async function selectFirstItemInAllDropdowns() {
@@ -402,7 +398,7 @@ async function tellMeAboutYourSelf(e) {
 
   await chooseMaritalStatusAndCountryCode();
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  await clickNext(SELECTORS.basicData.nextButton)
+  await clickNext(SELECTORS.basicData.nextButton);
 }
 
 async function chooseMaritalStatusAndCountryCode() {
@@ -578,12 +574,22 @@ function letMeThink(lie) {
 }
 
 async function recheck() {
-  await garden.soil.evaluate((selector) => {
-    const element = document.querySelector(selector);
-    if (element) {
-      element.scrollIntoView({ behavior: 'instant', block: 'start' });
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await garden.soil.evaluate(() => {
+    const container = document.querySelector(
+      "#content > div > app-applicant-add > app-review-application"
+    );
+    if (container) {
+      const lastChild = container.lastElementChild;
+      if (lastChild && typeof lastChild.scrollIntoView === "function") {
+        lastChild.scrollIntoView({ behavior: "smooth", block: "end" });
+      } else {
+        console.log("No scrollable child found");
+      }
+    } else {
+      console.log("Container not found");
     }
-  }, SELECTORS.reviewApplication.pledgeShowVaccine);
+  });
 }
 
 async function safeClickCheckboxes() {

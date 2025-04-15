@@ -36,7 +36,7 @@ const SELECTORS = {
   identityAndResidence: {
     firstEmbassyOption: "#dropDownId_list > p-dropdownitem:nth-child(1) > li",
     normalHajj:
-      "#content > div > app-applicant-add > app-identity-and-residence > form > app-main-card > div > div.body.collapse.show > div > div > div:nth-child(1) > label > div > p-radiobutton > div > div.p-radiobutton-box.p-highlight",
+      "#content > div > app-applicant-add > app-identity-and-residence > form > app-main-card > div > div.body.collapse.show > div > div > div:nth-child(1)",
     normalPassport:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-dropdown > p-dropdown > div",
     embassy:
