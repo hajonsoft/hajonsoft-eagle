@@ -88,7 +88,7 @@ const knowledge = {
         },
         {
           selector: SELECTORS.basicData.placeOfBirth,
-          value: (row) => row.birthPlace,
+          value: (row) => row.birthPlace || row.nationality.name,
         },
         {
           selector: SELECTORS.basicData.residentialAddress,
@@ -150,7 +150,7 @@ const knowledge = {
     whoIsSent: {
       url: `${baseAddress}/protected/applicants-groups/applicants/list`,
       needs: [
-        SELECTORS.applicantList.title,
+        SELECTORS.applicantList.pilgrimsTitle,
       ],
       action: (e) => {
         showApplicantListCommander(e);

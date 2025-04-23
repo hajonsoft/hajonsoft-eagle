@@ -1,7 +1,6 @@
 const { getPath } = require("../../lib/getPath");
 const { fetchOTPForMasar: someEmailStuff } = require("../../lib/imap");
 const util = require("../../util");
-const { baseAddress } = require("./knowledge");
 const { SELECTORS } = require("./selectors");
 const fs = require("fs");
 
@@ -37,9 +36,10 @@ async function showController() {
   );
 
   // TODO: check if loop.txt file is present and just go ahead and send the correct passenger.
-  if (fs.existsSync(getPath("loop.txt"))) {
-    await help(util.getSelectedTraveler());
-  }
+  // if (fs.existsSync(getPath("loop.txt"))) {
+  //   await new Promise((resolve) => setTimeout(resolve, 5000));
+  //   await help(util.getSelectedTraveler());
+  // }
 }
 
 async function help(paxNumber) {
