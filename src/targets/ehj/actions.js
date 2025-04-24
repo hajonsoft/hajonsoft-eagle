@@ -27,7 +27,7 @@ async function showController() {
           );
           if (selectedTraveler) {
             util.setSelectedTraveller(selectedTraveler);
-            await help(util.getSelectedTraveler());
+            await simulateScan(util.getSelectedTraveler());
           }
         },
       },
@@ -36,13 +36,15 @@ async function showController() {
   );
 
   // TODO: check if loop.txt file is present and just go ahead and send the correct passenger.
-  // if (fs.existsSync(getPath("loop.txt"))) {
-  //   await new Promise((resolve) => setTimeout(resolve, 5000));
-  //   await help(util.getSelectedTraveler());
-  // }
+  if (fs.existsSync(getPath("loop.txt"))) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await garden.soil.waitForSelector(SELECTORS.dataEntry.spinnerImage, { hidden: true });
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await simulateScan(util.getSelectedTraveler());
+  }
 }
 
-async function help(paxNumber) {
+async function simulateScan(paxNumber) {
   const human = garden.will.travellers[paxNumber];
   await util.clickWhenReady(SELECTORS.dataEntry.automaticScan, garden.soil);
   await new Promise((resolve) => setTimeout(resolve, 100));
@@ -408,10 +410,8 @@ async function tellMeAboutYourSelf(e) {
 
   await chooseMaritalStatusAndCountryCode();
   await new Promise((resolve) => setTimeout(resolve, 100));
-  await garden.soil.$eval(
-    SELECTORS.basicData.referenceRadio,
-    (el) => 
-      el.click()
+  await garden.soil.$eval(SELECTORS.basicData.referenceRadio, (el) =>
+    el.click()
   );
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await clickNext(SELECTORS.basicData.nextButton);
@@ -671,11 +671,12 @@ async function showApplicantListCommander(e) {
   try {
     if (fs.existsSync(getPath("loop.txt"))) {
       util.incrementSelectedTraveler();
-      await garden.soil.click(
-        "body > app-root > app-layout > div > div > div > applicants-list > div.d-flex.justify-content-between.align-items-center > button"
-      );
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await garden.soil.click(SELECTORS.applicantList.addPilgrimsButton);
     }
-  } catch {}
+  } catch (err) {
+    console.error("Error checking loop.txt file:", err);
+  }
 }
 module.exports = {
   showController,

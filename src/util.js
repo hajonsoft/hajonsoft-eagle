@@ -667,6 +667,10 @@ async function controller(page, structure, travellers) {
     }Click`;
     const htmlFileName = path.join(__dirname, "assets", "controller.html");
     let html = fs.readFileSync(htmlFileName, "utf8");
+    let isLooping = false;
+    if (fs.existsSync(getPath("loop.txt"))) {
+      isLooping = true;
+    }
 
     // Attach controller
     await page.evaluate(
@@ -680,11 +684,14 @@ async function controller(page, structure, travellers) {
         const htmlContent = params[4];
         const pax = params[5];
         const lastTraveler = params[6];
+        const isLooping = params[7];  
+        const paxLabel = `${pax.length}`;
         container.outerHTML = `${htmlContent
           .replace(/{handleMethodName}/, handleMethodName)
           .replace(/{options}/, optionsParam)
+          .replace(/{backcolor}/, isLooping ? "#76FF03" : "#8BC34B")
           .replace(/{visaPath}/, visaPath)
-          .replace(/{pax}/, pax.length)
+          .replace(/{pax}/, paxLabel)
           .replace(/{current}/, (parseInt(lastTraveler) + 1).toString())
           .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`.replace(
           /{sendall}/,
@@ -699,6 +706,7 @@ async function controller(page, structure, travellers) {
         html,
         travellers,
         lastTraveler,
+        isLooping
       ]
     );
     const isRegisterLoopRegistered = await page.evaluate(

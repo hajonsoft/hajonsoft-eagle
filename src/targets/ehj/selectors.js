@@ -33,6 +33,7 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-data-entry-method > p-dialog:nth-child(3) > div > div > div:nth-child(4) > action-btns > div > div > button",
     nextButton:
       "#content > div > app-applicant-add > app-data-entry-method > action-btns > div > div > button",
+    spinnerImage: "g-spinner > div > img",
   },
   identityAndResidence: {
     firstEmbassyOption: "#dropDownId_list > p-dropdownitem:nth-child(1) > li",
@@ -155,6 +156,8 @@ const SELECTORS = {
       "#listNormalApplicantId > div > div.p-datatable-wrapper > table > tbody > tr:nth-child({i}) > td:nth-child(5) > div > span > span",
     pilgrimsTitle:
       "#listNormalApplicantId > div > div.p-datatable-header.ng-star-inserted > div:nth-child(1)",
+    addPilgrimsButton:
+      "body > app-root > app-layout > div > div > div > applicants-list > div.d-flex.justify-content-between.align-items-center > button",
   },
 };
 
