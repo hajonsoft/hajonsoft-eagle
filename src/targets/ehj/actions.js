@@ -38,7 +38,9 @@ async function showController() {
   // TODO: check if loop.txt file is present and just go ahead and send the correct passenger.
   if (fs.existsSync(getPath("loop.txt"))) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    await garden.soil.waitForSelector(SELECTORS.dataEntry.spinnerImage, { hidden: true });
+    await garden.soil.waitForSelector(SELECTORS.dataEntry.spinnerImage, {
+      hidden: true,
+    });
     await new Promise((resolve) => setTimeout(resolve, 1000));
     await simulateScan(util.getSelectedTraveler());
   }
@@ -96,6 +98,10 @@ async function scan(paxNumber) {
     browser.disconnect();
   }
   var human = garden.will.travellers[paxNumber];
+  if (!human) {
+    console.error("No human found for the given paxNumber:", paxNumber);
+    return;
+  }
   if (sent[human.passportNumber] === undefined) {
     await garden.soil.keyboard.type(human.codeline);
   } else {
