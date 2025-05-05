@@ -35,7 +35,10 @@ async function showController() {
     garden.will.travellers
   );
 
-  // TODO: check if loop.txt file is present and just go ahead and send the correct passenger.
+  await eatApple();
+}
+
+async function eatApple() {
   if (fs.existsSync(getPath("loop.txt"))) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
     await garden.soil.waitForSelector(SELECTORS.dataEntry.spinnerImage, {
@@ -112,7 +115,7 @@ async function scan(paxNumber) {
 }
 
 async function feedPlant(plant) {
-  if (plant.url === "https://masar.nusuk.sa/pub/login") {
+  if (plant.url === "pub/login") {
     await completeProtection(plant);
     return;
   }
@@ -153,22 +156,7 @@ async function moreAndMore(plant) {
   feedPlant(plant);
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  const human = garden.will.travellers[util.getSelectedTraveler()];
-  const dateToEnter = await garden.soil.$(SELECTORS.additionalData.dateIntoKSA);
-  await dateToEnter.evaluate((el) => {
-    el.removeAttribute("readonly");
-    el.setAttribute("role", "");
-  });
-  await util.commit(
-    garden.soil,
-    [
-      {
-        selector: SELECTORS.additionalData.dateIntoKSA,
-        value: (row) => `18-05-2025`,
-      },
-    ],
-    human
-  );
+  await markTheDate(SELECTORS.additionalData.dateIntoKSA, "18-05-2025");
   try {
     await garden.soil.$eval(SELECTORS.additionalData.notEmployed, (el) =>
       el.click()
@@ -179,6 +167,23 @@ async function moreAndMore(plant) {
   await clickNext(SELECTORS.additionalData.nextButton);
 }
 
+async function markTheDate(selector, value) {
+  const dateSelector = await garden.soil.$(selector);
+  await dateSelector.evaluate((el) => {
+    el.removeAttribute("readonly");
+    el.setAttribute("role", "");
+  });
+  await util.commit(
+    garden.soil,
+    [
+      {
+        selector: selector,
+        value: (row) => value,
+      },
+    ],
+    {}
+  );
+}
 async function advance() {
   // This function should result in advancement
 }
@@ -293,24 +298,9 @@ async function whereDoYouLive(e) {
       (el.textContent = `Passport Issue Date: ${passportData.passIssueDt.dd}-${passportData.passIssueDt.mm}-${passportData.passIssueDt.yyyy}`),
     human
   );
-  // for passport issue date field, remove the readonly attribute, and the role attribute, or at least make the role empty
-  const passIssueDateField = await garden.soil.$(
-    SELECTORS.identityAndResidence.passIssueDataCalendarField
-  );
-  await passIssueDateField.evaluate((el) => {
-    el.removeAttribute("readonly");
-    el.setAttribute("role", "");
-  });
-  await util.commit(
-    garden.soil,
-    [
-      {
-        selector: SELECTORS.identityAndResidence.passIssueDataCalendarField,
-        value: (row) =>
-          `${row.passIssueDt.dd}-${row.passIssueDt.mm}-${row.passIssueDt.yyyy}`,
-      },
-    ],
-    human
+  await markTheDate(
+    SELECTORS.identityAndResidence.passIssueDataCalendarField,
+    `${human.passIssueDt.dd}-${human.passIssueDt.mm}-${human.passIssueDt.yyyy}`
   );
   await garden.soil.$eval(SELECTORS.identityAndResidence.placeOfIssue, (el) =>
     el.click()
@@ -322,8 +312,84 @@ async function whereDoYouLive(e) {
       el.click()
     );
   } catch {}
+
+  // Residence
+  try {
+    const residenceImage = await garden.soil.$(
+      SELECTORS.identityAndResidence.residenceIdImage
+    );
+    if (residenceImage) {
+      // if (garden.will.travellers[util.getSelectedTraveler()].images.id) {
+      //   await plantTomato(human);
+      // } else {
+      await plantApple(human);
+      // }
+    }
+  } catch {}
+
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await clickNext(SELECTORS.identityAndResidence.nextButton);
+}
+
+async function plantTomato(human) {
+  const myResidenceId = await util.downloadAndResizeImage(
+    human,
+    200,
+    200,
+    "id"
+  );
+  await util.commitFile(SELECTORS.dataEntry.residenceIdImage, myResidenceId);
+  await util.commit(
+    garden.soil,
+    [
+      {
+        selector: SELECTORS.identityAndResidence.residenceIdNumber,
+        value: (row) => row.residenceId,
+      },
+    ],
+    human
+  );
+
+  await markTheDate(
+    SELECTORS.identityAndResidence.residenceIdIssueDate,
+    `${human.idIssueDt.dd}-${human.idIssueDt.mm}-${human.idIssueDt.yyyy}`
+  );
+  await markTheDate(
+    SELECTORS.identityAndResidence.residenceIdExpireDate,
+    `${human.idExpireDt.dd}-${human.idExpireDt.mm}-${human.idExpireDt.yyyy}`
+  );
+}
+
+async function plantApple(human) {
+  const myPassport = await util.downloadAndResizeImage(
+    human,
+    200,
+    200,
+    "passport"
+  );
+  await util.commitFile(
+    SELECTORS.identityAndResidence.residenceIdImage,
+    myPassport
+  );
+  await util.commit(
+    garden.soil,
+    [
+      {
+        selector: SELECTORS.identityAndResidence.residenceIdNumber,
+        value: (row) => row.passportNumber,
+      },
+    ],
+    human
+  );
+  await markTheDate(
+    SELECTORS.identityAndResidence.residenceIdIssueDate,
+    `${human.passIssueDt.dd}-${human.passIssueDt.mm}-${human.passIssueDt.yyyy}`
+  );
+  await markTheDate(
+    SELECTORS.identityAndResidence.residenceIdExpireDate,
+    `${human.passExpireDt.dd}-${human.passExpireDt.mm}-${human.passExpireDt.yyyy}`
+  );
+  await garden.soil.click(SELECTORS.identityAndResidence.placeOfIssue);
 }
 
 async function clickNext(nextSelector) {
@@ -625,7 +691,7 @@ async function safeClickCheckboxes(maxCount = 2) {
   await garden.soil.evaluate((maxCount) => {
     try {
       const checkboxes = Array.from(
-        document.querySelectorAll('div.p-checkbox-box[data-p-disabled="false"]')
+        document.querySelectorAll('div.p-checkbox-box')
       ).slice(0, maxCount);
 
       if (checkboxes.length < maxCount) {
@@ -680,12 +746,11 @@ async function showApplicantListCommander(e) {
       await new Promise((resolve) => setTimeout(resolve, 10000));
       await garden.soil.click(SELECTORS.applicantList.addPilgrimsButton);
     }
-  } catch (err) {
-    console.error("Error checking loop.txt file:", err);
-  }
+  } catch {}
 }
 module.exports = {
   showController,
+  eatApple,
   feedPlant,
   secure,
   whereDoYouLive,

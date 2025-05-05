@@ -8,22 +8,18 @@ const {
   recheck,
   answerQuestions,
   showApplicantListCommander,
-  moreAndMore
+  moreAndMore,
 } = require("./actions.js");
-
-const baseAddress = "https://masar.nusuk.sa";
-let soil;
-let will;
 
 const knowledge = {
   plants: {
     landscape: {
-      url: baseAddress,
+      url: "",
       allowOnce: true,
-      visualHeadLessForwardTo: `${baseAddress}/pub/login`,
+      visualHeadLessForwardTo: `pub/login`,
     },
     protect: {
-      url: `${baseAddress}/pub/login`,
+      url: `pub/login`,
       slots: [
         {
           selector: SELECTORS.login.username,
@@ -35,11 +31,10 @@ const knowledge = {
         },
       ],
       needs: [SELECTORS.login.username, SELECTORS.login.password],
-      action: (e) =>
-        feedPlant(e),
+      action: (e) => feedPlant(e),
     },
     challenge: {
-      url: `${baseAddress}/pub/login`,
+      url: `pub/login`,
       needs: [
         SELECTORS.loginOtp.firstDigit,
         SELECTORS.loginOtp.label,
@@ -48,20 +43,19 @@ const knowledge = {
       action: (e) => secure(e),
     },
     welcome: {
-      url: `${baseAddress}/protected/hm/dashboard/requestsDashboard`, 
+      url: `protected/hm/dashboard/requestsDashboard`,
       // should skip in automation
     },
     hello: {
-      url: `${baseAddress}/protected-applicant-st/add/data-entry-method`,
+      url: `protected-applicant-st/add/data-entry-method`,
       needs: [
         SELECTORS.dataEntry.automaticScan,
         SELECTORS.dataEntry.manualEntry,
       ],
-      action: (e) =>
-        showController(e),
+      action: (e) => showController(e),
     },
     gettingToKnow: {
-      url: `${baseAddress}/protected-applicant-st/add/Identity-and-residence`,
+      url: `protected-applicant-st/add/Identity-and-residence`,
       needs: [
         SELECTORS.identityAndResidence.placeOfIssue,
         SELECTORS.identityAndResidence.embassy,
@@ -72,15 +66,11 @@ const knowledge = {
           value: (row) => row.placeOfIssue,
         },
       ],
-      action: (e) =>
-        whereDoYouLive(e),
+      action: (e) => whereDoYouLive(e),
     },
     moreGettingToKnow: {
-      url: `${baseAddress}/protected-applicant-st/add/basic-data`,
-      needs: [
-        SELECTORS.basicData.fatherName,
-        SELECTORS.basicData.email,
-      ],
+      url: `protected-applicant-st/add/basic-data`,
+      needs: [SELECTORS.basicData.fatherName, SELECTORS.basicData.email],
       slots: [
         {
           selector: SELECTORS.basicData.email,
@@ -112,10 +102,8 @@ const knowledge = {
       },
     },
     moreAndMoreGettingToKnowYou: {
-      url: `${baseAddress}/protected-applicant-st/add/additinal-data`,
-      needs: [
-        SELECTORS.additionalData.expectedLength,
-      ],
+      url: `protected-applicant-st/add/additinal-data`,
+      needs: [SELECTORS.additionalData.expectedLength],
       slots: [
         {
           selector: SELECTORS.additionalData.flightNumber,
@@ -131,7 +119,7 @@ const knowledge = {
       },
     },
     lastQuestions: {
-      url: `${baseAddress}/protected-applicant-st/add/Questionnaire`,
+      url: `protected-applicant-st/add/Questionnaire`,
       needs: [
         SELECTORS.questions.otherNationalitiesYes,
         SELECTORS.questions.haveYouTraveled,
@@ -141,17 +129,15 @@ const knowledge = {
       },
     },
     almostDone: {
-      url: `${baseAddress}/protected-applicant-st/add/Review-application`,
+      url: `protected-applicant-st/add/Review-application`,
       needs: [],
-      action:  (e) => {
+      action: (e) => {
         recheck(e);
       },
     },
     whoIsSent: {
-      url: `${baseAddress}/protected/applicants-groups/applicants/list`,
-      needs: [
-        SELECTORS.applicantList.pilgrimsTitle,
-      ],
+      url: `protected/applicants-groups/applicants/list`,
+      needs: [SELECTORS.applicantList.pilgrimsTitle],
       action: (e) => {
         showApplicantListCommander(e);
       },
@@ -165,5 +151,4 @@ const knowledge = {
 
 module.exports = {
   knowledge,
-  baseAddress,
 };

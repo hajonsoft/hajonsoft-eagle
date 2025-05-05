@@ -11,12 +11,14 @@ const garden = {
   will: null,
 };
 
+const baseAddress = "https://masar.nusuk.sa";
+
 async function send(theWill) {
   garden.will = theWill;
   garden.soil = await util.initPage({}, () => {}, theWill);
-  let startingUrl = knowledge.plants.landscape.url;
+  let startingUrl = gaze(knowledge.plants.landscape.url);
   if (global.headless || global.visualHeadless) {
-    startingUrl = knowledge.plants.protect.url;
+    startingUrl = gaze(knowledge.plants.protect.url);
   }
   await garden.soil.goto(startingUrl, { waitUntil: "domcontentloaded" });
   knowledge.begin(garden);
@@ -25,6 +27,16 @@ async function send(theWill) {
   summonGeese();
 }
 
+function gaze(url) {
+  if (url && url.includes(baseAddress)) {
+    return url;
+  }
+  if (url && url.startsWith("/")) {
+    return baseAddress + url;
+  }
+
+  return `${baseAddress}/${url}`;
+}
 async function summonGeese() {
   setInterval(() => {
     applyKnowledge();
@@ -44,7 +56,7 @@ async function applyKnowledge() {
     if (
       sun &&
       plantKnowledge.needs &&
-      new RegExp(plantKnowledge.url.toLowerCase()).test(sun.toLowerCase()) &&
+      new RegExp(gaze(plantKnowledge.url).toLowerCase()).test(sun.toLowerCase()) &&
       !plantKnowledge.active
     ) {
       const canHarvest = await checkFreshness(plantKnowledge.needs);

@@ -1,3 +1,4 @@
+//TODO: Check the confirm scan button selector
 const SELECTORS = {
   login: {
     username:
@@ -27,8 +28,6 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div > button",
     passportPhotoInput:
       "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > input",
-    pleaseWait:
-      "#content > div > app-applicant-add > app-data-entry-method > p-dialog.p-element.ng-tns-c4042076560-70.ng-star-inserted > div > div > div.ng-tns-c4042076560-70.p-dialog-content > div > h4",
     confirmScanButton:
       "#content > div > app-applicant-add > app-data-entry-method > p-dialog:nth-child(3) > div > div > div:nth-child(4) > action-btns > div > div > button",
     nextButton:
@@ -49,14 +48,10 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(5) > g-input-text > div > input",
     passIssueDataCalendarField:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > p-calendar > span > input",
-    passIssueDataCalendarYear:
-      "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-datepicker-group-container.ng-tns-c419082668-79.ng-star-inserted > div > div.p-datepicker-header.ng-tns-c419082668-79 > div > button.p-datepicker-year.p-link.ng-tns-c419082668-79.ng-star-inserted",
-    passIssueDateCalendarYearsContainer:
-      "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-yearpicker.ng-tns-c419082668-79.ng-star-inserted",
-    passIssueDateCalendarMonthsContainer:
-      "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-monthpicker.ng-tns-c419082668-79.ng-star-inserted",
-    passIssueDateCalendarDaysContainer:
-      "body > div.ng-trigger.ng-trigger-overlayAnimation.ng-tns-c419082668-79.p-datepicker.p-component.ng-star-inserted > div.p-datepicker-group-container.ng-tns-c419082668-79.ng-star-inserted > div > div.p-datepicker-calendar-container.ng-tns-c419082668-79.ng-star-inserted > table > tbody",
+    residenceIdImage: "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div.row > div:nth-child(1) > g-attachment-upload > div.form-control.file-upload.enabled > div.upload-info-container > input",
+    residenceIdNumber: "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-input-text > div > input",
+    residenceIdIssueDate: "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > p-calendar > span > input",
+    residenceIdExpireDate: "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(4) > g-calendar > p-calendar > span > input",
     nextButton:
       "#content > div > app-applicant-add > app-identity-and-residence > action-btns > div > div > button",
   },
