@@ -71,7 +71,7 @@ async function applyKnowledge() {
         if (plantKnowledge.action) {
           process.stdout.clearLine(0); // Clear the current line
           process.stdout.cursorTo(0); // Move cursor to beginning
-          process.stdout.write(`${plantKey} ⛏ Picking ...`);
+          process.stdout.write(`${plantKey} ⛏ Fertilizing ...`);
           declareBloom(plantKey);
           try {
             await plantKnowledge.action(plantKnowledge);

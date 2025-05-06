@@ -306,7 +306,14 @@ async function whereDoYouLive(e) {
     el.click()
   );
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  await selectFirstItemInAllDropdowns();
+  await selectDropdownByXPathOrFirstOption(
+    SELECTORS.identityAndResidence.embassyXPath,
+    "PUT YOUR EMBASSY NAME HERE"
+  );
+  await selectDropdownByXPathAndText(
+    SELECTORS.identityAndResidence.passportTypeXPath,
+    "Normal"
+  );
   try {
     await garden.soil.$eval(SELECTORS.identityAndResidence.normalHajj, (el) =>
       el.click()
@@ -413,47 +420,105 @@ async function clickNext(nextSelector) {
     await garden.soil.click(nextSelector);
   }
 }
-async function selectFirstItemInAllDropdowns() {
-  await garden.soil.evaluate(async () => {
-    try {
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-      const dropdowns = Array.from(
-        document.querySelectorAll("div#dropDownId.p-dropdown")
-      );
+async function selectDropdownByXPathAndText(dropdownXPath, visibleText) {
+  // Evaluate the logic in the browser context using the provided XPath
+  await garden.soil.evaluate(
+    async (dropdownXPath, visibleText) => {
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-      for (const dropdown of dropdowns) {
-        try {
-          if (dropdown.classList.contains("p-disabled")) continue;
+      // Find the dropdown trigger using XPath
+      const trigger = document.evaluate(
+        dropdownXPath +
+          '//p-dropdown//div[contains(@class,"p-dropdown-trigger")]',
+        document,
+        null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null
+      ).singleNodeValue;
 
-          const trigger = dropdown.querySelector(".p-dropdown-trigger");
-          if (trigger)
-            trigger.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-
-          await sleep(300); // Give time for the dropdown to populate
-
-          const label = dropdown.querySelector('[role="combobox"]');
-          const listId = label?.getAttribute("aria-controls");
-          if (!listId) continue;
-
-          const list = document.getElementById(listId);
-          const firstItem = list?.querySelector(".p-dropdown-item");
-
-          if (firstItem) {
-            firstItem.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-          }
-
-          await sleep(300); // Space out clicks
-        } catch (innerErr) {
-          console.warn("Dropdown interaction failed on one element:", innerErr);
-          continue;
-        }
+      if (!trigger) {
+        console.warn("Dropdown trigger not found.");
+        return;
       }
-    } catch (err) {
-      console.error("Dropdown selection failed completely:", err);
-    }
-  });
+
+      // Simulate opening the dropdown
+      trigger.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      trigger.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+      // Wait and search for the correct item
+      let found = false;
+      for (let i = 0; i < 20; i++) {
+        const allItems = Array.from(
+          document.querySelectorAll(".p-dropdown-item")
+        );
+        const option = allItems.find(
+          (el) => el.textContent.trim() === visibleText
+        );
+
+        if (option) {
+          option.scrollIntoView();
+          option.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+          option.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+          option.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          found = true;
+          break;
+        }
+
+        await sleep(200);
+      }
+
+      if (!found) console.warn(`Option "${visibleText}" not found.`);
+    },
+    dropdownXPath,
+    visibleText
+  );
 }
+
+async function selectDropdownByXPathOrFirstOption(dropdownXPath, visibleText) {
+  await garden.soil.evaluate(
+    async (dropdownXPath, visibleText) => {
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+      const trigger = document.evaluate(
+        dropdownXPath + '//p-dropdown//div[contains(@class,"p-dropdown-trigger")]',
+        document,
+        null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null
+      ).singleNodeValue;
+
+      if (!trigger) {
+        console.warn("Dropdown trigger not found.");
+        return;
+      }
+
+      trigger.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+      trigger.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+      let option = null;
+      for (let i = 0; i < 20; i++) {
+        const allItems = Array.from(document.querySelectorAll(".p-dropdown-item"));
+        option = allItems.find(el => el.textContent.trim() === visibleText) || allItems[0];
+
+        if (option) {
+          option.scrollIntoView();
+          option.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+          option.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+          option.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          return;
+        }
+
+        await sleep(200);
+      }
+
+      console.warn(`No options found in dropdown at: ${dropdownXPath}`);
+    },
+    dropdownXPath,
+    visibleText
+  );
+}
+
 
 async function tellMeAboutYourSelf(e) {
   const human = garden.will.travellers[util.getSelectedTraveler()];
@@ -480,81 +545,22 @@ async function tellMeAboutYourSelf(e) {
   );
   await showPhotoId(human, e);
 
-  await chooseMaritalStatusAndCountryCode();
+  await selectDropdownByXPathAndText(
+    SELECTORS.basicData.maritalStatusXPath,
+    "Other"
+  );
+
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  await selectDropdownByXPathOrFirstOption(
+    SELECTORS.basicData.countryCodeXPath,
+    "PUT SOMETHING HERE"
+  );
   await new Promise((resolve) => setTimeout(resolve, 100));
   await garden.soil.$eval(SELECTORS.basicData.referenceRadio, (el) =>
     el.click()
   );
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await clickNext(SELECTORS.basicData.nextButton);
-}
-
-async function chooseMaritalStatusAndCountryCode() {
-  await garden.soil.evaluate(async (countryCodeToSelect = "225") => {
-    try {
-      const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-      const openDropdownAndSelect = async (labelText, optionSelector) => {
-        try {
-          const dropdown = Array.from(
-            document.querySelectorAll("p-dropdown")
-          ).find((el) => {
-            const label = el.querySelector('[role="combobox"]');
-            return label
-              ?.getAttribute("aria-label")
-              ?.toLowerCase()
-              .includes(labelText.toLowerCase());
-          });
-
-          if (!dropdown) {
-            console.warn(`Dropdown with label "${labelText}" not found`);
-            return;
-          }
-
-          const trigger = dropdown.querySelector(".p-dropdown-trigger");
-          if (trigger)
-            trigger.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-          await sleep(300);
-
-          const label = dropdown.querySelector('[role="combobox"]');
-          const listId = label?.getAttribute("aria-controls");
-          if (!listId) return;
-
-          const list = document.getElementById(listId);
-          if (!list) return;
-
-          const option = optionSelector(list);
-          if (option) {
-            option.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-          } else {
-            console.warn(`Option not found for label "${labelText}"`);
-          }
-
-          await sleep(300);
-        } catch (err) {
-          console.warn(`Error handling dropdown for label "${labelText}"`, err);
-        }
-      };
-
-      // Select last option for Marital Status
-      await openDropdownAndSelect("Marital status", (list) => {
-        const items = list.querySelectorAll(".p-dropdown-item");
-        return items[items.length - 1] ?? null;
-      });
-
-      // Select matching country code (e.g. 225)
-      await openDropdownAndSelect("Please Select", (list) => {
-        const items = Array.from(list.querySelectorAll(".p-dropdown-item"));
-        return (
-          items.find((item) =>
-            item.textContent?.includes(countryCodeToSelect)
-          ) ?? null
-        );
-      });
-    } catch (err) {
-      console.error("Error selecting dropdown values:", err);
-    }
-  }, garden.will.system.country.telCode); // Pass the desired country code here
 }
 
 async function showPhotoId(human, e) {
@@ -691,7 +697,7 @@ async function safeClickCheckboxes(maxCount = 2) {
   await garden.soil.evaluate((maxCount) => {
     try {
       const checkboxes = Array.from(
-        document.querySelectorAll('div.p-checkbox-box')
+        document.querySelectorAll("div.p-checkbox-box")
       ).slice(0, maxCount);
 
       if (checkboxes.length < maxCount) {
