@@ -165,6 +165,10 @@ async function moreAndMore(plant) {
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await clickNext(SELECTORS.additionalData.nextButton);
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  try {
+    await clickNext(SELECTORS.additionalData.nextButton);
+  } catch {}
 }
 
 async function markTheDate(selector, value) {
@@ -481,7 +485,8 @@ async function selectDropdownByXPathOrFirstOption(dropdownXPath, visibleText) {
       const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
       const trigger = document.evaluate(
-        dropdownXPath + '//p-dropdown//div[contains(@class,"p-dropdown-trigger")]',
+        dropdownXPath +
+          '//p-dropdown//div[contains(@class,"p-dropdown-trigger")]',
         document,
         null,
         XPathResult.FIRST_ORDERED_NODE_TYPE,
@@ -498,8 +503,12 @@ async function selectDropdownByXPathOrFirstOption(dropdownXPath, visibleText) {
 
       let option = null;
       for (let i = 0; i < 20; i++) {
-        const allItems = Array.from(document.querySelectorAll(".p-dropdown-item"));
-        option = allItems.find(el => el.textContent.trim() === visibleText) || allItems[0];
+        const allItems = Array.from(
+          document.querySelectorAll(".p-dropdown-item")
+        );
+        option =
+          allItems.find((el) => el.textContent.trim() === visibleText) ||
+          allItems[0];
 
         if (option) {
           option.scrollIntoView();
@@ -509,7 +518,7 @@ async function selectDropdownByXPathOrFirstOption(dropdownXPath, visibleText) {
           return;
         }
 
-        await sleep(200);
+        await sleep(400);
       }
 
       console.warn(`No options found in dropdown at: ${dropdownXPath}`);
@@ -518,7 +527,6 @@ async function selectDropdownByXPathOrFirstOption(dropdownXPath, visibleText) {
     visibleText
   );
 }
-
 
 async function tellMeAboutYourSelf(e) {
   const human = garden.will.travellers[util.getSelectedTraveler()];
@@ -550,12 +558,12 @@ async function tellMeAboutYourSelf(e) {
     "Other"
   );
 
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 500));
   await selectDropdownByXPathOrFirstOption(
     SELECTORS.basicData.countryCodeXPath,
     "PUT SOMETHING HERE"
   );
-  await new Promise((resolve) => setTimeout(resolve, 100));
+  await new Promise((resolve) => setTimeout(resolve, 200));
   await garden.soil.$eval(SELECTORS.basicData.referenceRadio, (el) =>
     el.click()
   );
