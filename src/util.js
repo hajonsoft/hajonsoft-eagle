@@ -1038,6 +1038,10 @@ async function downloadAndResizeImage(
     return path.join(__dirname, "./dummy-image.jpg");
   }
 
+  if (!passenger.images) {
+    return path.join(__dirname, "./dummy-image.jpg");
+  }
+
   if (imageType == "passport") {
     folder = passportsFolder;
     url = passenger.images.passport;
