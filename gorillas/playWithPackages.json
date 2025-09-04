@@ -1,0 +1,28 @@
+[
+    {
+        "regex": "https://hajj.nusuk.sa/profile/dashboard",
+        "description": "Go to booking page from dashboard",
+        "tests": [
+            {
+                "selector": "#ex1-tabs-1 > table > tbody > tr:nth-child(1) > td:nth-child(1) > div > small",
+                "value": "Completed"
+            }
+        ],
+        "actions": [
+            {
+                "goto": "https://hajj.nusuk.sa/packages"
+            }
+        ]
+    },
+    {
+        "regex": "https://hajj.nusuk.sa/packages",
+        "description": "Select package",
+        "actions": [
+            {
+                "selector": "#content-packages > div > div.packageContainer > div.row > div > div > input",
+                "wait": true,
+                "type": "package name"
+            }
+        ]
+    }
+]

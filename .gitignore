@@ -1,0 +1,7 @@
+node_modules
+.DS_Store
+*.pdf
+token.json
+.github_token
+.commands
+.env
