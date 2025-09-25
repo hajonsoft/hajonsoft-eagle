@@ -8,7 +8,7 @@ const path = require("path");
 const util = require("./util");
 const { getPath } = require("./lib/getPath");
 const moment = require("moment");
-const os = require('os');
+const os = require("os");
 const kea = require("./lib/kea");
 const budgie = require("./budgie");
 const { fetchOTPFromNusuk } = require("./lib/imap");
@@ -17,18 +17,18 @@ const childProcess = require("child_process");
 const sharp = require("sharp");
 const registerCaptchaAbortController = new AbortController();
 const loginCaptchaAbortController = new AbortController();
-const { labeler } = require('./lib/labeler');
+const { labeler } = require("./lib/labeler");
 const { el } = require("date-fns/locale");
 const getLocalIP = () => {
   const interfaces = os.networkInterfaces();
   for (const iface of Object.values(interfaces)) {
     for (const config of iface) {
-      if (config.family === 'IPv4' && !config.internal) {
+      if (config.family === "IPv4" && !config.internal) {
         return config.address;
       }
     }
   }
-  return 'No external IPv4 found';
+  return "No external IPv4 found";
 };
 
 console.log(`Machine IP: ${getLocalIP()}`);
@@ -64,7 +64,8 @@ const URLS = {
   SUMMARY: "https://hajj.nusuk.sa/registration/form/step1/[0-9a-f-]+",
   SUMMARY2: "https://hajj.nusuk.sa/registration/form/step2/[0-9a-f-]+",
   PREFERENCES: "https://hajj.nusuk.sa/Registration/Preferences/[0-9a-f-]+",
-  PREFERENCES_YOURS: "https://hajj.nusuk.sa/Registration/Preferences/yours/[0-9a-f-]+",
+  PREFERENCES_YOURS:
+    "https://hajj.nusuk.sa/Registration/Preferences/yours/[0-9a-f-]+",
   REGISTRATION_SUMMARY: "https://hajj.nusuk.sa/registration/summary/[0-9a-f-]+",
   SUCCESS: "https://hajj.nusuk.sa/registration/completed",
   MEMBERS: "https://hajj.nusuk.sa/profile/myfamily/members",
@@ -72,16 +73,25 @@ const URLS = {
   DASHBOARD: "https://hajj.nusuk.sa/profile/dashboard",
   PACKAGES: "https://hajj.nusuk.sa/packages",
   PACKAGE_SUMMARY: "https://hajj.nusuk.sa/sp/package/summary/[0-9a-f-]+",
-  CONFIGURE_PACKAGE: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/rooms/configure",
-  ADDITIONAL_SERVICES: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/services/configure",
-  CONFIGURE_ADDITIONAL_SERVICES: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/services/configure",
-  CONFIGURE_FLIGHTS: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/flights/configure",
-  CONFIGURE_TRANSPORTATION: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/transportation/configure",
-  CONFIGURE_TRANSPORTATIONS: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/transportations/configure",
-  SAVE_CONFIGURATION: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/checkout",
+  CONFIGURE_PACKAGE:
+    "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/rooms/configure",
+  ADDITIONAL_SERVICES:
+    "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/services/configure",
+  CONFIGURE_ADDITIONAL_SERVICES:
+    "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/services/configure",
+  CONFIGURE_FLIGHTS:
+    "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/flights/configure",
+  CONFIGURE_TRANSPORTATION:
+    "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/transportation/configure",
+  CONFIGURE_TRANSPORTATIONS:
+    "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/transportations/configure",
+  SAVE_CONFIGURATION:
+    "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/checkout",
   REMITTANCES: "https://hajj.nusuk.sa/wallet/remittances",
-  PURCHASE_RESULT: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/result",
-  AGREE_FLIGHT: "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/flightsb2c"
+  PURCHASE_RESULT:
+    "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/result",
+  AGREE_FLIGHT:
+    "https://hajj.nusuk.sa/package/[0-9a-f-]+/booking/[0-9a-f-]+/flightsb2c",
 };
 
 function getOTPEmailAddress(email) {
@@ -167,7 +177,7 @@ const config = [
   {
     name: "verify-register-email",
     regex: URLS.VERIFY_REGISTER_EMAIL,
-    focus: "#rc-anchor-container > div.rc-anchor-content"
+    focus: "#rc-anchor-container > div.rc-anchor-content",
   },
   {
     name: "signup-password",
@@ -354,7 +364,7 @@ const config = [
   {
     name: "agree-flight",
     regex: URLS.AGREE_FLIGHT,
-  }
+  },
 ];
 
 async function send(sendData) {
@@ -370,10 +380,12 @@ async function send(sendData) {
 let timeoutId;
 const MAX_WAIT_TIME_MS = 600000;
 const handleTimeout = async () => {
-  console.error("Timeout occurred: onContentLoaded not triggered within 10 minutes.");
+  console.error(
+    "Timeout occurred: onContentLoaded not triggered within 10 minutes."
+  );
   await takeScreenShot();
   if (global.visualHeadless) {
-    return
+    return;
   } else {
     await page.browser().close();
     process.exit(0);
@@ -395,8 +407,7 @@ function readSubmissionGorilla() {
     }
     global.submissionGorilla = gorillaJSON;
     console.log("submission gorilla loaded", global.submissionGorilla);
-  } catch (error) {
-  }
+  } catch (error) {}
 }
 async function onContentLoaded(res) {
   clearTimeout(timeoutId);
@@ -409,9 +420,15 @@ async function onContentLoaded(res) {
     }
   }
   const pageUrl = await page.url();
-  console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ pageUrl", pageUrl);
+  console.log(
+    "🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ pageUrl",
+    pageUrl
+  );
   readSubmissionGorilla();
-  const beforeGorillaConfig = await util.findGorillaConfig(pageUrl, data.system.gorillaScript);
+  const beforeGorillaConfig = await util.findGorillaConfig(
+    pageUrl,
+    data.system.gorillaScript
+  );
   if (beforeGorillaConfig?.executeBefore) {
     try {
       await gorillaHandler(beforeGorillaConfig);
@@ -426,7 +443,10 @@ async function onContentLoaded(res) {
     console.log(err);
   }
 
-  const afterGorillaConfig = await util.findGorillaConfig(pageUrl, data.system.gorillaScript);
+  const afterGorillaConfig = await util.findGorillaConfig(
+    pageUrl,
+    data.system.gorillaScript
+  );
   if (afterGorillaConfig && !afterGorillaConfig.executeBefore) {
     try {
       await gorillaHandler(afterGorillaConfig);
@@ -446,12 +466,10 @@ async function pageContentHandler(currentConfig) {
   }
   if (currentConfig.focus) {
     try {
-      await page.$eval(
-        currentConfig.focus,
-        (el) => el.scrollIntoView({ behavior: "smooth", block: "start" })
+      await page.$eval(currentConfig.focus, (el) =>
+        el.scrollIntoView({ behavior: "smooth", block: "start" })
       );
-    } catch {
-    }
+    } catch {}
   }
   switch (currentConfig.name) {
     case "home":
@@ -467,8 +485,10 @@ async function pageContentHandler(currentConfig) {
           controller: {
             selector:
               "body > main > div.home-full-bg > div.container-lg.container-fluid.h-100 > div.row.z-1.position-relative.align-content-end.home-full-text > div > h3",
-            title: `Login All Passengers (${Math.min(leads.length, MAX_PARALLEL)}/${leads.length
-              })`,
+            title: `Login All Passengers (${Math.min(
+              leads.length,
+              MAX_PARALLEL
+            )}/${leads.length})`,
             arabicTitle: "تسجيل الدخول لجميع الركاب",
             name: "parallel",
             action: async () => {
@@ -503,7 +523,7 @@ async function pageContentHandler(currentConfig) {
           passenger,
           "Embassy"
         );
-      } catch (error) { }
+      } catch (error) {}
       util.incrementSelectedTraveler();
       kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
         "submissionData.nsh.status": "Submitted",
@@ -552,13 +572,17 @@ async function pageContentHandler(currentConfig) {
         },
       });
       await getOTPCode();
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       try {
-        const modal = await page.$(`body > div.swal-overlay.swal-overlay--show-modal > div`);
+        const modal = await page.$(
+          `body > div.swal-overlay.swal-overlay--show-modal > div`
+        );
         if (modal) {
-          await page.click("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button");
+          await page.click(
+            "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button"
+          );
         }
-      } catch { }
+      } catch {}
       break;
     case "signup-password":
       await util.commit(
@@ -581,10 +605,14 @@ async function pageContentHandler(currentConfig) {
 
         await util.clickWhenReady(createAccountSelector, page);
         // save the email only at this stage
-        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-          email: passenger.email,
-          phone: passenger.mobileNumber,
-        });
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            email: passenger.email,
+            phone: passenger.mobileNumber,
+          }
+        );
         clicked[currentConfig.name] = {};
         clicked[currentConfig.name][passenger.passportNumber] = true;
       }
@@ -650,7 +678,10 @@ async function pageContentHandler(currentConfig) {
         [
           {
             selector: "#ContactDetailsViewModel_Contact_MobileNumber",
-            value: () => telephoneNumber || passenger.mobileNumber || suggestPhoneNumber(util.getSelectedTraveler()),
+            value: () =>
+              telephoneNumber ||
+              passenger.mobileNumber ||
+              suggestPhoneNumber(util.getSelectedTraveler()),
           },
           {
             selector: "#ContactDetailsViewModel_Contact_StreetAddress",
@@ -703,7 +734,7 @@ async function pageContentHandler(currentConfig) {
           {
             selector: "#ContactDetailsViewModel_Contact_ZipCode",
             value: () => "123",
-          }
+          },
         ],
         passenger
       );
@@ -740,17 +771,18 @@ async function pageContentHandler(currentConfig) {
       //   "6/2024"
       // );
       // wait 500 ms for the days to load, then select the day
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // await page.click(
       //   "body > div.datepick-popup > div > div.datepick-month-row > div > table > tbody > tr:nth-child(2) > td:nth-child(6) > a"
       // );
       if (global.headless || global.visualHeadless) {
-        const nextSelector = "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
+        const nextSelector =
+          "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.d-flex.justify-content-end.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
         try {
-          await page.waitForSelector(nextSelector)
+          await page.waitForSelector(nextSelector);
           await page.click(nextSelector);
-        } catch { }
+        } catch {}
       }
       break;
     case "summary":
@@ -766,12 +798,13 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked("#HoldOtherNationalitiesNo");
       await checkIfNotChecked("#TraveledToOtherCountriesNo");
       if (global.headless || global.visualHeadless) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const nextSelector = "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const nextSelector =
+          "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
         try {
-          await page.waitForSelector(nextSelector)
+          await page.waitForSelector(nextSelector);
           await page.click(nextSelector);
-        } catch { }
+        } catch {}
       }
       break;
     case "summary2":
@@ -784,7 +817,7 @@ async function pageContentHandler(currentConfig) {
       await checkIfNotChecked("#RequiredVaccinationsBeenTakenYes");
       await checkIfNotChecked("#HaveAnyPhysicalDisabilityNo");
       await checkIfNotChecked("#ArrestedOrConvictedForTerrorismBeforeNo");
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       await util.commit(
         page,
@@ -801,11 +834,12 @@ async function pageContentHandler(currentConfig) {
         window.scrollTo(0, document.body.scrollHeight);
       });
       if (global.headless || global.visualHeadless) {
-        const nextSelector = "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
+        const nextSelector =
+          "body > main > div.system > div > div.system-content.p-3 > form > div.d-flex.align-items-md-center.justify-content-md-between.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
         try {
-          await page.waitForSelector(nextSelector)
+          await page.waitForSelector(nextSelector);
           await page.click(nextSelector);
-        } catch { }
+        } catch {}
       }
       break;
     case "preferences":
@@ -838,12 +872,13 @@ async function pageContentHandler(currentConfig) {
         {}
       );
       if (global.headless || global.visualHeadless) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const nextSelector = "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const nextSelector =
+          "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-main.btn-next.mb-3";
         try {
-          await page.waitForSelector(nextSelector)
+          await page.waitForSelector(nextSelector);
           await page.click(nextSelector);
-        } catch { }
+        } catch {}
       }
       break;
     case "registration-summary":
@@ -860,12 +895,13 @@ async function pageContentHandler(currentConfig) {
         page
       );
       if (global.headless || global.visualHeadless) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const nextSelector = "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-submit.font-semibold.text-white.mb-3";
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        const nextSelector =
+          "body > main > div.system > div > form > div.d-flex.align-items-md-center.justify-content-md-between.px-3.mb-4.flex-wrap.flex-column-reverse.flex-md-row > div.ms-auto.order-md-2.next-buttons > div > button.btn.btn-submit.font-semibold.text-white.mb-3";
         try {
-          await page.waitForSelector(nextSelector)
+          await page.waitForSelector(nextSelector);
           await page.click(nextSelector);
-        } catch { }
+        } catch {}
       }
       break;
     case "upload-documents":
@@ -891,16 +927,14 @@ async function pageContentHandler(currentConfig) {
         },
       });
       // in Companion mode do not upload documents
-      if (
-        !clicked[passenger.passportNumber + "documents"]
-      ) {
+      if (!clicked[passenger.passportNumber + "documents"]) {
         clicked[passenger.passportNumber + "documents"] = true;
         await uploadDocuments(util.getSelectedTraveler());
       }
       if (global.headless || global.visualHeadless) {
         // wait for 5 seconds
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        await page.click("#next-btn")
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        await page.click("#next-btn");
       }
       // Do you have residence Id
       // await util.clickWhenReady("#HaveValidResidencyNo", page);
@@ -908,7 +942,11 @@ async function pageContentHandler(currentConfig) {
     case "login":
       if (global.headless || global.visualHeadless) {
         if (passenger.mofaNumber?.startsWith("PENDING")) {
-          console.log("🚦 passenger", passenger.slug, "Has PENDING Application, Please clear MOFA# field to try again");
+          console.log(
+            "🚦 passenger",
+            passenger.slug,
+            "Has PENDING Application, Please clear MOFA# field to try again"
+          );
           await page.browser().close();
           process.exit(0);
         }
@@ -934,7 +972,7 @@ async function pageContentHandler(currentConfig) {
 
     case "success":
       if (global.headless || global.visualHeadless) {
-        await page.goto("https://hajj.nusuk.sa/profile/myfamily/members")
+        await page.goto("https://hajj.nusuk.sa/profile/myfamily/members");
       }
 
       // logout after 10 seconds if the user did not go to another page
@@ -949,19 +987,21 @@ async function pageContentHandler(currentConfig) {
       if (global.headless || global.visualHeadless) {
         if (data.travellers.length > 1) {
           // get all registered family members
-          await page.waitForSelector('#members-container');
+          await page.waitForSelector("#members-container");
           // Extract names inside <h6> elements
           const passengerNames = await page.evaluate(() => {
-            const container = document.querySelector('#members-container');
+            const container = document.querySelector("#members-container");
             if (!container) return [];
 
             // Select all the child divs
-            const childDivs = container.querySelectorAll('div');
+            const childDivs = container.querySelectorAll("div");
 
             // Iterate over the divs and extract the <h6> text
             const names = [];
-            childDivs.forEach(child => {
-              const h6Element = child.querySelector('div.col-12.col-md-6.col-lg-6 > a > h6');
+            childDivs.forEach((child) => {
+              const h6Element = child.querySelector(
+                "div.col-12.col-md-6.col-lg-6 > a > h6"
+              );
               if (h6Element) {
                 names.push(h6Element.innerText.trim());
               }
@@ -971,10 +1011,12 @@ async function pageContentHandler(currentConfig) {
           });
           while (true) {
             util.incrementSelectedTraveler(); // Move to the next traveler
-            const currentPassenger = data.travellers[util.getSelectedTraveler()]; // Get the current traveler
+            const currentPassenger =
+              data.travellers[util.getSelectedTraveler()]; // Get the current traveler
 
             // Combine first and last name to match the format in passengerNames
-            const fullName = `${currentPassenger.name.first} ${currentPassenger.name.last}`.trim();
+            const fullName =
+              `${currentPassenger.name.first} ${currentPassenger.name.last}`.trim();
 
             // Check if the full name exists in the passengerNames array
             if (!passengerNames.includes(fullName)) {
@@ -1004,25 +1046,26 @@ async function pageContentHandler(currentConfig) {
       util.incrementSelectedTraveler();
       break;
     case "dashboard":
-await util.commander(page, {
+      await util.commander(page, {
         controller: {
-          selector: "body > main > div.container-xxl.container-fluid.py-4 > div.row.welcome-area.mt-4 > div > h4",
+          selector:
+            "body > main > div.container-xxl.container-fluid.py-4 > div.row.welcome-area.mt-4 > div > h4",
           title: "Stop Auto Mode",
           arabicTitle: "إيقاف الوضع التلقائي",
           name: "autoModeNsk",
           action: async () => {
             global.submissionGorilla = {
-              stop: true
-            }
+              stop: true,
+            };
           },
         },
       });
-    await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       if (global.headless || global.visualHeadless) {
         const canProceed = await checkCanPay();
         if (!canProceed) {
           if (global.visualHeadless) {
-            return
+            return;
           } else {
             await page.browser().close();
             process.exit(0);
@@ -1030,29 +1073,47 @@ await util.commander(page, {
         }
         // put the package into the cart if the payment is not requested. if payment instruction is present then do not change the package
         try {
-          if (global.submissionGorilla?.package && !global.submissionGorilla?.pay) {
+          if (
+            global.submissionGorilla?.package &&
+            !global.submissionGorilla?.pay
+          ) {
             const packageId = global.submissionGorilla.package.split("/").pop();
-            console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ packageId", packageId);
-            await page.goto(`https://hajj.nusuk.sa/package/${packageId}/booking/rooms/configure`);
+            console.log(
+              "🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ packageId",
+              packageId
+            );
+            await page.goto(
+              `https://hajj.nusuk.sa/package/${packageId}/booking/rooms/configure`
+            );
             return;
           }
-        } catch { }
+        } catch {}
         try {
-          const bookingDetailsButtonTextSelector = "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a > span";
+          const bookingDetailsButtonTextSelector =
+            "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a > span";
           const bookingDetailsButtonText = await page.$eval(
             bookingDetailsButtonTextSelector,
-            (el) => { if (el) { return el.textContent } else { return null } }
+            (el) => {
+              if (el) {
+                return el.textContent;
+              } else {
+                return null;
+              }
+            }
           );
 
           if (bookingDetailsButtonText?.includes("Booking Details")) {
-            const href = await page.$eval("body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a", (el) => el.href);
+            const href = await page.$eval(
+              "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a",
+              (el) => el.href
+            );
             await page.goto(href);
             return;
           }
         } catch {
           await takeScreenShot();
           if (global.visualHeadless) {
-            return
+            return;
           } else {
             await page.browser().close();
             process.exit(0);
@@ -1061,22 +1122,28 @@ await util.commander(page, {
       }
       break;
     case "packages":
-      const packagesLabelSelector = "#choose-package > div.container-xxl.container-fluid.py-4 > div.mt-1 > p:nth-child(2)"
+      const packagesLabelSelector =
+        "#choose-package > div.container-xxl.container-fluid.py-4 > div.mt-1 > p:nth-child(2)";
       await page.waitForSelector(packagesLabelSelector);
-      await page.$eval(packagesLabelSelector, 
-        (el, g) => el.textContent = JSON.stringify(g, null, 2),
-      global.submissionGorilla);
+      await page.$eval(
+        packagesLabelSelector,
+        (el, g) => (el.textContent = JSON.stringify(g, null, 2)),
+        global.submissionGorilla
+      );
       await util.commander(page, {
         controller: {
-          selector: "#choose-package > div.container-xxl.container-fluid.py-4 > div.mt-1 > p:nth-child(3)",
+          selector:
+            "#choose-package > div.container-xxl.container-fluid.py-4 > div.mt-1 > p:nth-child(3)",
           title: "Unlock Packages",
           arabicTitle: "فتح الباقات",
           name: "revealpackages",
           action: async () => {
             await page.evaluate(() => {
-              document.querySelectorAll('.overlay-disabled').forEach(element => {
-                element.classList.remove('overlay-disabled');
-              });
+              document
+                .querySelectorAll(".overlay-disabled")
+                .forEach((element) => {
+                  element.classList.remove("overlay-disabled");
+                });
             });
           },
         },
@@ -1085,8 +1152,13 @@ await util.commander(page, {
     case "package-summary":
       if (global.submissionGorilla?.package) {
         const packageId = global.submissionGorilla.package.split("/").pop();
-        console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ packageId", packageId);
-        await page.goto(`https://hajj.nusuk.sa/package/${packageId}/booking/rooms/configure`);
+        console.log(
+          "🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ packageId",
+          packageId
+        );
+        await page.goto(
+          `https://hajj.nusuk.sa/package/${packageId}/booking/rooms/configure`
+        );
         return;
       }
       break;
@@ -1097,21 +1169,58 @@ await util.commander(page, {
         const makkahDouble = makkahBeds[1];
         const makkahTriple = makkahBeds[2];
         let makkahQuad = makkahBeds[3];
-        await configureBeds(makkahSingle, passenger, "#divMakkahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-        await configureBeds(makkahDouble, passenger, "#divMakkahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-        await configureBeds(makkahTriple, passenger, "#divMakkahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-        await configureBeds(makkahQuad, passenger, "#divMakkahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        await configureBeds(
+          makkahSingle,
+          passenger,
+          "#divMakkahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
+        await configureBeds(
+          makkahDouble,
+          passenger,
+          "#divMakkahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
+        await configureBeds(
+          makkahTriple,
+          passenger,
+          "#divMakkahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
+        await configureBeds(
+          makkahQuad,
+          passenger,
+          "#divMakkahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
         // apply the same to shifting
-        await configureBeds(makkahSingle, passenger, "#divMakkahShiftingWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-        await configureBeds(makkahDouble, passenger, "#divMakkahShiftingWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-        await configureBeds(makkahTriple, passenger, "#divMakkahShiftingWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-        await configureBeds(makkahQuad, passenger, "#divMakkahShiftingWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-
+        await configureBeds(
+          makkahSingle,
+          passenger,
+          "#divMakkahShiftingWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
+        await configureBeds(
+          makkahDouble,
+          passenger,
+          "#divMakkahShiftingWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
+        await configureBeds(
+          makkahTriple,
+          passenger,
+          "#divMakkahShiftingWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
+        await configureBeds(
+          makkahQuad,
+          passenger,
+          "#divMakkahShiftingWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
       } else {
-        await configureBeds("*", passenger, "#divMakkahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-        await configureBeds("*", passenger, "#divMakkahShiftingWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-
-
+        await configureBeds(
+          "*",
+          passenger,
+          "#divMakkahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
+        await configureBeds(
+          "*",
+          passenger,
+          "#divMakkahShiftingWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
       }
       if (global.submissionGorilla?.madinah) {
         const madinahBeds = global.submissionGorilla.madinah.split(",");
@@ -1119,36 +1228,69 @@ await util.commander(page, {
         const madinahDouble = madinahBeds[1];
         const madinahTriple = madinahBeds[2];
         let madinahQuad = madinahBeds[3];
-        await configureBeds(madinahSingle, passenger, "#divMadinahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-        await configureBeds(madinahDouble, passenger, "#divMadinahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-        await configureBeds(madinahTriple, passenger, "#divMadinahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
-        await configureBeds(madinahQuad, passenger, "#divMadinahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        await configureBeds(
+          madinahSingle,
+          passenger,
+          "#divMadinahWrapper > div:nth-child(1) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
+        await configureBeds(
+          madinahDouble,
+          passenger,
+          "#divMadinahWrapper > div:nth-child(2) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
+        await configureBeds(
+          madinahTriple,
+          passenger,
+          "#divMadinahWrapper > div:nth-child(3) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
+        await configureBeds(
+          madinahQuad,
+          passenger,
+          "#divMadinahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
       } else {
-        await configureBeds("*", passenger, "#divMadinahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity")
+        await configureBeds(
+          "*",
+          passenger,
+          "#divMadinahWrapper > div:nth-child(4) > div.px-2.fs_12.d-flex.justify-content-center.quantity-controls.mt-2.mt-lg-1 > div > button.btn.border-0.bg-lightgrey.p-0.rounded-1.ms-2.add-quantity"
+        );
       }
       await takeScreenShot();
-      await page.waitForSelector("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
-      await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await page.waitForSelector(
+        "#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button"
+      );
+      await page.click(
+        "#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.stepper-container > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button"
+      );
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       try {
-        const modal = await page.$(`body > div.swal-overlay.swal-overlay--show-modal > div`);
+        const modal = await page.$(
+          `body > div.swal-overlay.swal-overlay--show-modal > div`
+        );
         if (modal) {
-          await page.click("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button");
+          await page.click(
+            "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button"
+          );
         }
-      } catch { }
+      } catch {}
       // find this cart selector and get the href and visit it
       // body > header > nav > div > div.d-flex.align-items-center.d-lg-none > div > div > div > div > a.btn.btn-main.x-small.d-block.d-sm-inline-block.d-md-block.px-1.w-100.py-2
 
       try {
-        const href = await page.$eval("body > header > nav > div > div.d-flex.align-items-center.d-lg-none > div > div > div > div > a.btn.btn-main.x-small.d-block.d-sm-inline-block.d-md-block.px-1.w-100.py-2", (el) => el.href);
+        const href = await page.$eval(
+          "body > header > nav > div > div.d-flex.align-items-center.d-lg-none > div > div > div > div > a.btn.btn-main.x-small.d-block.d-sm-inline-block.d-md-block.px-1.w-100.py-2",
+          (el) => el.href
+        );
         await page.goto(href);
-      } catch { }
+      } catch {}
       break;
     case "additional-services":
-      await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
+      await page.click(
+        "#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button"
+      );
       if (global.headless || global.visualHeadless) {
         if (global.visualHeadless) {
-          return
+          return;
         } else {
           await page.browser().close();
           process.exit(0);
@@ -1156,70 +1298,110 @@ await util.commander(page, {
       }
       break;
     case "configure-additional-services":
-      await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button")
+      await page.click(
+        "#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div > div.mt-lg-4.pt-4.px-3.px-lg-0 > div > button"
+      );
       break;
     case "configure-flights":
       if (global.headless || global.visualHeadless) {
         try {
-          const noFlightsAvailable = await page.$eval("#frmSaveFlightContract > div > div > div > p", (el) => el.innerText);
+          const noFlightsAvailable = await page.$eval(
+            "#frmSaveFlightContract > div > div > div > p",
+            (el) => el.innerText
+          );
           if (noFlightsAvailable.includes("no flights available")) {
             await takeScreenShot();
-            await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-              mofaNumber: `NO-FLIGHTS-${moment().format('DD-MMM-YY')}`,
-              "submissionData.nsh.status": "Rejected",
-              "submissionData.nsh.rejectionReason": "No flights available",
-            });
+            await kea.updatePassenger(
+              data.system.accountId,
+              passenger.passportNumber,
+              {
+                mofaNumber: `NO-FLIGHTS-${moment().format("DD-MMM-YY")}`,
+                "submissionData.nsh.status": "Rejected",
+                "submissionData.nsh.rejectionReason": "No flights available",
+              }
+            );
             if (global.visualHeadless) {
-              await page.click("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.mt-5.mb-4 > div > div > div > button")
-              return
+              await page.click(
+                "#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.mt-5.mb-4 > div > div > div > button"
+              );
+              return;
             } else {
               await page.browser().close();
               process.exit(0);
             }
           }
-        } catch { }
+        } catch {}
       }
       break;
     case "configure-transportation":
     case "configure-transportations":
-      await page.click("#nextButton")
+      await page.click("#nextButton");
       break;
     case "save-configuration":
       if (global.headless || global.visualHeadless) {
         if (global.submissionGorilla?.pay) {
           let walletBalance = -1;
           try {
-            const walletBalanceRaw = await page.$eval("#purchaseDetailsDiv > div.purchase-details > div.total-area > div.row.mt-3 > div > div > div > div.col.text-end.total-price > span", el => el.textContent);
-            walletBalance = parseFloat(walletBalanceRaw.replace("SAR", "").replaceAll(",", "").trim());
-          } catch { }
-          const totalPriceRaw = await page.$eval("#purchaseDetailsDiv > div.purchase-details > div.total-area > div:nth-child(4) > div.col.text-end.total-price > span", el => el.textContent);
-          console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ totalPriceRaw", totalPriceRaw);
-          const totalPrice = parseFloat(totalPriceRaw.replace("SAR", "").replaceAll(",", "").trim());
+            const walletBalanceRaw = await page.$eval(
+              "#purchaseDetailsDiv > div.purchase-details > div.total-area > div.row.mt-3 > div > div > div > div.col.text-end.total-price > span",
+              (el) => el.textContent
+            );
+            walletBalance = parseFloat(
+              walletBalanceRaw.replace("SAR", "").replaceAll(",", "").trim()
+            );
+          } catch {}
+          const totalPriceRaw = await page.$eval(
+            "#purchaseDetailsDiv > div.purchase-details > div.total-area > div:nth-child(4) > div.col.text-end.total-price > span",
+            (el) => el.textContent
+          );
+          console.log(
+            "🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ totalPriceRaw",
+            totalPriceRaw
+          );
+          const totalPrice = parseFloat(
+            totalPriceRaw.replace("SAR", "").replaceAll(",", "").trim()
+          );
           await takeScreenShot();
           if (walletBalance >= totalPrice) {
-            console.log("Wallet balance is sufficient to pay", walletBalance, ">=", totalPrice);
+            console.log(
+              "Wallet balance is sufficient to pay",
+              walletBalance,
+              ">=",
+              totalPrice
+            );
             await provokeMaleGorilla();
           } else {
             if (walletBalance === -1) {
               try {
-                const reasonWalletBalance = await page.$eval("#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.alert.alert-primary.mt-4.py-2.px-3.rounded-2 > div > div > div > div > div.ms-3 > small > span", el => el.textContent);
-                await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-                  mofaNumber: `NO-CAPACITY-${moment().format('DD-MMM-YY')}`,
-                  "submissionData.nsh.status": "Rejected",
-                  "submissionData.nsh.rejectionReason": reasonWalletBalance,
-                });
-              } catch { }
+                const reasonWalletBalance = await page.$eval(
+                  "#roomingConfig > div > div > div.page-container.px-4.pt-4.px-xl-5.pt-md-5 > div.row.mt-4 > div > div.alert.alert-primary.mt-4.py-2.px-3.rounded-2 > div > div > div > div > div.ms-3 > small > span",
+                  (el) => el.textContent
+                );
+                await kea.updatePassenger(
+                  data.system.accountId,
+                  passenger.passportNumber,
+                  {
+                    mofaNumber: `NO-CAPACITY-${moment().format("DD-MMM-YY")}`,
+                    "submissionData.nsh.status": "Rejected",
+                    "submissionData.nsh.rejectionReason": reasonWalletBalance,
+                  }
+                );
+              } catch {}
             } else {
-              await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-                mofaNumber: `NO-WALLET-${moment().format('DD-MMM-YY')}`,
-                "submissionData.nsh.status": "Rejected",
-                "submissionData.nsh.rejectionReason": "Unable to find the wallet balance in save-configuration page",
-              });
+              await kea.updatePassenger(
+                data.system.accountId,
+                passenger.passportNumber,
+                {
+                  mofaNumber: `NO-WALLET-${moment().format("DD-MMM-YY")}`,
+                  "submissionData.nsh.status": "Rejected",
+                  "submissionData.nsh.rejectionReason":
+                    "Unable to find the wallet balance in save-configuration page",
+                }
+              );
             }
             if (global.visualHeadless) {
-              return
-            }
-            else {
+              return;
+            } else {
               await page.browser().close();
               process.exit(0);
             }
@@ -1229,11 +1411,13 @@ await util.commander(page, {
       break;
     case "remittances":
       const found = await page.evaluate(() => {
-        const rows = document.querySelectorAll('body > main > div > div > div > div.profile-container.theContent.p-4.p-md-5 > div > div:nth-child(3) > div > div.table-responsive > table > tbody tr');
+        const rows = document.querySelectorAll(
+          "body > main > div > div > div > div.profile-container.theContent.p-4.p-md-5 > div > div:nth-child(3) > div > div.table-responsive > table > tbody tr"
+        );
         for (let row of rows) {
-          const cells = row.querySelectorAll('td');
+          const cells = row.querySelectorAll("td");
           for (let cell of cells) {
-            if (cell.textContent.includes('Purchase package')) {
+            if (cell.textContent.includes("Purchase package")) {
               return true; // If the text is found, return true
             }
           }
@@ -1243,13 +1427,17 @@ await util.commander(page, {
       if (found) {
         console.log("Package has been purchased");
         await takeScreenShot();
-        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-          mofaNumber: `Purchased-${moment().format('DD-MMM-YY')}`,
-          "submissionData.nsh.status": "Rejected",
-          "submissionData.nsh.rejectionReason": "Package has been purchased",
-        });
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            mofaNumber: `Purchased-${moment().format("DD-MMM-YY")}`,
+            "submissionData.nsh.status": "Rejected",
+            "submissionData.nsh.rejectionReason": "Package has been purchased",
+          }
+        );
         if (global.visualHeadless) {
-          return
+          return;
         } else {
           await page.browser().close();
           process.exit(0);
@@ -1260,20 +1448,30 @@ await util.commander(page, {
     case "purchase-result":
       // wait for confirmed then exit
       try {
-        await page.waitForSelector("#booking-result-6 > div > div > h4")
+        await page.waitForSelector("#booking-result-6 > div > div > h4");
         await takeScreenShot();
-        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-          mofaNumber: `Purchased-${moment().format('DD-MMM-YY')}`,
-          "submissionData.nsh.status": "Submitted",
-        });
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            mofaNumber: `Purchased-${moment().format("DD-MMM-YY")}`,
+            "submissionData.nsh.status": "Submitted",
+          }
+        );
         await page.browser().close();
         process.exit(0);
-      } catch { }
+      } catch {}
 
       break;
     case "agree-flight":
-      await util.clickWhenReady("#__next > div > div > div > main > div.MuiContainer-root.MuiContainer-maxWidthLg.muiltr-1qsxih2 > form > div.MuiGrid-root.MuiGrid-container.muiltr-1d3bbye > div > div:nth-child(1) > div:nth-child(1) > label > div > span > input", page);
-      await util.clickWhenReady("#__next > div > div > div > main > div.MuiContainer-root.MuiContainer-maxWidthLg.muiltr-1qsxih2 > form > div.MuiGrid-root.MuiGrid-container.jss1381.muiltr-8rnkcc > div.MuiGrid-root.MuiGrid-container.MuiGrid-item.MuiGrid-grid-xs-6.muiltr-1l2zjop > button", page);
+      await util.clickWhenReady(
+        "#__next > div > div > div > main > div.MuiContainer-root.MuiContainer-maxWidthLg.muiltr-1qsxih2 > form > div.MuiGrid-root.MuiGrid-container.muiltr-1d3bbye > div > div:nth-child(1) > div:nth-child(1) > label > div > span > input",
+        page
+      );
+      await util.clickWhenReady(
+        "#__next > div > div > div > main > div.MuiContainer-root.MuiContainer-maxWidthLg.muiltr-1qsxih2 > form > div.MuiGrid-root.MuiGrid-container.jss1381.muiltr-8rnkcc > div.MuiGrid-root.MuiGrid-container.MuiGrid-item.MuiGrid-grid-xs-6.muiltr-1l2zjop > button",
+        page
+      );
       break;
     default:
       break;
@@ -1284,56 +1482,89 @@ async function checkCanPay() {
   if (global.submissionGorilla?.pay) {
     const passenger = data.travellers[util.getSelectedTraveler()];
     try {
-      const walletBalanceSelector = "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div.col-12.col-md-6.active-card.mb-2 > div > div.mt-0 > h4";
+      const walletBalanceSelector =
+        "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div.col-12.col-md-6.active-card.mb-2 > div > div.mt-0 > h4";
       try {
         await page.waitForSelector(walletBalanceSelector);
       } catch {
         await takeScreenShot();
-        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-          mofaNumber: `NO-WALLET-${moment().format('DD-MMM-YY')}`,
-          "submissionData.nsh.status": "Rejected",
-          "submissionData.nsh.rejectionReason": "No Wallet balance found",
-        });
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            mofaNumber: `NO-WALLET-${moment().format("DD-MMM-YY")}`,
+            "submissionData.nsh.status": "Rejected",
+            "submissionData.nsh.rejectionReason": "No Wallet balance found",
+          }
+        );
         return false;
       }
-      const dashboardBalanceRaw = await page.$eval(walletBalanceSelector, (el) => el.textContent);
-      const dashboardWalletBalance = parseFloat(dashboardBalanceRaw.replace("SAR", "").replace(",", "").trim());
-      const dashboardTotalPriceSelector = "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.booking-price > h6 > span.font-bold.package-price.text-uppercase";
+      const dashboardBalanceRaw = await page.$eval(
+        walletBalanceSelector,
+        (el) => el.textContent
+      );
+      const dashboardWalletBalance = parseFloat(
+        dashboardBalanceRaw.replace("SAR", "").replace(",", "").trim()
+      );
+      const dashboardTotalPriceSelector =
+        "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.booking-price > h6 > span.font-bold.package-price.text-uppercase";
       try {
         await page.waitForSelector(dashboardTotalPriceSelector);
       } catch {
         await takeScreenShot();
-        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-          mofaNumber: `NO-PKG-${moment().format('DD-MMM-YY')}`,
-          "submissionData.nsh.status": "Rejected",
-          "submissionData.nsh.rejectionReason": "No Package selected",
-        });
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            mofaNumber: `NO-PKG-${moment().format("DD-MMM-YY")}`,
+            "submissionData.nsh.status": "Rejected",
+            "submissionData.nsh.rejectionReason": "No Package selected",
+          }
+        );
         return false;
       }
 
-      const dashboardTotalPriceRaw = await page.$eval(dashboardTotalPriceSelector, (el) => el.textContent);
-      const dashboardTotalPrice = parseFloat(dashboardTotalPriceRaw.replace("SAR", "").replace(",", "").trim());
-      console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ dashboardTotalPrice", dashboardTotalPrice);
-      console.log("🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ dashboardWalletBalance", dashboardWalletBalance);
+      const dashboardTotalPriceRaw = await page.$eval(
+        dashboardTotalPriceSelector,
+        (el) => el.textContent
+      );
+      const dashboardTotalPrice = parseFloat(
+        dashboardTotalPriceRaw.replace("SAR", "").replace(",", "").trim()
+      );
+      console.log(
+        "🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ dashboardTotalPrice",
+        dashboardTotalPrice
+      );
+      console.log(
+        "🚀 ~ file: nsh.js ~ line 139 ~ onContentLoaded ~ dashboardWalletBalance",
+        dashboardWalletBalance
+      );
       if (dashboardWalletBalance < dashboardTotalPrice) {
         await takeScreenShot();
-        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-          mofaNumber: `NSF-${moment().format('DD-MMM-YY')}`,
-          "submissionData.nsh.status": "Rejected",
-          "submissionData.nsh.rejectionReason": "Wallet balance is not enough to pay",
-        });
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            mofaNumber: `NSF-${moment().format("DD-MMM-YY")}`,
+            "submissionData.nsh.status": "Rejected",
+            "submissionData.nsh.rejectionReason":
+              "Wallet balance is not enough to pay",
+          }
+        );
         await page.goto("https://hajj.nusuk.sa/wallet/remittances");
-        await new Promise(resolve => setTimeout(resolve, 5000)); // wait long enough untill remittances page is loaded
+        await new Promise((resolve) => setTimeout(resolve, 5000)); // wait long enough untill remittances page is loaded
         return false;
       } else {
-        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-          mofaNumber: `OK-${moment().format('DD-MMM-YY')}`,
-        });
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            mofaNumber: `OK-${moment().format("DD-MMM-YY")}`,
+          }
+        );
         return true;
       }
-    } catch {
-
-    }
+    } catch {}
   }
 
   return false;
@@ -1360,7 +1591,7 @@ async function provokeMaleGorilla() {
     console.log("'Purchase Package' button not found.");
     const passenger = data.travellers[util.getSelectedTraveler()];
     await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-      mofaNumber: `NO-BTN-${moment().format('DD-MMM-YY')}`,
+      mofaNumber: `NO-BTN-${moment().format("DD-MMM-YY")}`,
       "submissionData.nsh.status": "Rejected",
       "submissionData.nsh.rejectionReason": "Purchase button not present",
     });
@@ -1387,8 +1618,7 @@ async function configureBeds(bedCount, passenger, selector) {
     if (isDisabled) {
       console.log("Button is disabled. Exiting function.");
     }
-  } catch {
-  }
+  } catch {}
   try {
     if (bedCount) {
       let bedCountInt = 0;
@@ -1411,7 +1641,7 @@ async function configureBeds(bedCount, passenger, selector) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
-  } catch { }
+  } catch {}
 }
 
 const gorillaMemory = {};
@@ -1422,7 +1652,7 @@ async function takeScreenShot(elementSelector) {
   if (elementSelector) {
     screenshotElement = await page.$(elementSelector);
   }
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   // save screenshot to kea
   try {
     await util.screenShotToKea(
@@ -1431,14 +1661,13 @@ async function takeScreenShot(elementSelector) {
       passenger,
       "Embassy"
     );
-  } catch (error) { }
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  } catch (error) {}
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 }
 
 async function gorillaHandler(gorillaConfig) {
-  console.log(gorillaConfig)
+  console.log(gorillaConfig);
   const actions = gorillaConfig?.actions;
-
 
   for (const action of actions) {
     if (gorillaMemory[action.id]) {
@@ -1446,11 +1675,11 @@ async function gorillaHandler(gorillaConfig) {
     }
     gorillaMemory[action.id] = true;
     if (action.goto) {
-      await page.goto(action.goto)
+      await page.goto(action.goto);
       return;
     }
     if (action.timeout) {
-      await new Promise(resolve => setTimeout(resolve, action.timeout));
+      await new Promise((resolve) => setTimeout(resolve, action.timeout));
     }
     if (action.type) {
       await util.commit(
@@ -1468,44 +1697,51 @@ async function gorillaHandler(gorillaConfig) {
     if (action.click) {
       if (action.wait) {
         if (selector.startsWith("//")) {
-
         } else {
-          await page.waitForSelector(action.selector)
+          await page.waitForSelector(action.selector);
         }
       }
       if (selector.startsWith("//")) {
         const [element] = await page.$x(action.selector);
-        await page.click(element)
+        await page.click(element);
       } else {
-        await page.click(action.selector)
+        await page.click(action.selector);
       }
     }
     if (action.screenshot) {
       await takeScreenShot();
     }
   }
-
 }
 
 async function handleDialogBox(passenger, saveReason = true) {
   try {
     // Define selectors for modal text, title, and the OK button
-    const modalContentSelector = "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text";
-    const modalTitleSelector = "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-title";
-    const okButtonSelector = "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button";
+    const modalContentSelector =
+      "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text";
+    const modalTitleSelector =
+      "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-title";
+    const okButtonSelector =
+      "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button";
 
     // Wait for the OK button to appear (indicating the dialog is present)
-    await page.waitForSelector(okButtonSelector, { timeout: 5000 }).catch(() => {
-      console.warn("Dialog box did not appear.");
-      return null;
-    });
+    await page
+      .waitForSelector(okButtonSelector, { timeout: 5000 })
+      .catch(() => {
+        console.warn("Dialog box did not appear.");
+        return null;
+      });
 
     // Check for text content
-    const modalContent = await page.$eval(modalContentSelector, (e) => e.textContent.trim()).catch(() => null);
+    const modalContent = await page
+      .$eval(modalContentSelector, (e) => e.textContent.trim())
+      .catch(() => null);
 
     // Check for title content if the text is empty
     const modalTitle = !modalContent
-      ? await page.$eval(modalTitleSelector, (e) => e.textContent.trim()).catch(() => null)
+      ? await page
+          .$eval(modalTitleSelector, (e) => e.textContent.trim())
+          .catch(() => null)
       : null;
 
     // Determine the rejection reason
@@ -1515,7 +1751,11 @@ async function handleDialogBox(passenger, saveReason = true) {
       console.log(`Rejection Reason: ${rejectionReason}`);
 
       // Update passenger status and rejection reason
-      if (rejectionReason.includes("The applicant already has pending application")) {
+      if (
+        rejectionReason.includes(
+          "The applicant already has pending application"
+        )
+      ) {
         // close the browser and exit
         await kea.updatePassenger(
           data.system.accountId,
@@ -1523,7 +1763,7 @@ async function handleDialogBox(passenger, saveReason = true) {
           {
             "submissionData.nsk.status": "Rejected",
             "submissionData.nsk.rejectionReason": rejectionReason,
-            mofaNumber: `PENDING-${moment().format('DD-MMM-YY')}`,
+            mofaNumber: `PENDING-${moment().format("DD-MMM-YY")}`,
           }
         );
         await page.browser().close();
@@ -1551,8 +1791,6 @@ async function handleDialogBox(passenger, saveReason = true) {
   }
 }
 
-
-
 function suggestEmail(selectedTraveler, companion = false) {
   const passenger = data.travellers[selectedTraveler];
   if (passenger.email) {
@@ -1561,8 +1799,9 @@ function suggestEmail(selectedTraveler, companion = false) {
   const domain = data.system.username.includes("@")
     ? data.system.username.split("@")[1]
     : data.system.username;
-  const friendlyName = `${passenger.name.first}.${companion ? "companion." : ""
-    }${passenger.passportNumber}@${domain}`
+  const friendlyName = `${passenger.name.first}.${
+    companion ? "companion." : ""
+  }${passenger.passportNumber}@${domain}`
     .toLowerCase()
     .replace(/ /g, "");
   const email = friendlyName;
@@ -1578,7 +1817,7 @@ function suggestPhoneNumber(selectedTraveler) {
   }
 
   // Get the USA area code 949 (as an example)
-  const areaCode = '949';
+  const areaCode = "949";
 
   // Generate a valid phone number based on the current time
   let generatedPhoneNumber = generateSequentialPhoneNumber(areaCode);
@@ -1598,10 +1837,9 @@ function suggestPhoneNumber(selectedTraveler) {
 function generateSequentialPhoneNumber(areaCode) {
   const now = new Date();
   const day = now.getDate().toString(); // Day in DD format
-  const hour = now.getHours().toString().padStart(2, '0'); // Hour in HH format
-  const minute = now.getMinutes().toString().padStart(2, '0'); // Minute in MM format
-  const second = now.getSeconds().toString().padStart(2, '0'); // Second in SS format
-
+  const hour = now.getHours().toString().padStart(2, "0"); // Hour in HH format
+  const minute = now.getMinutes().toString().padStart(2, "0"); // Minute in MM format
+  const second = now.getSeconds().toString().padStart(2, "0"); // Second in SS format
 
   // Generate a number between 2 and 9 based on the current day
   const hashedDay = (day % 8) + 2; // Map the day (1-31) to a number between 2 and 9
@@ -1740,10 +1978,10 @@ function adjustCountryName(countryName) {
 function getNationalityUUID(nationalities, countryName) {
   const adjustedCountryName = adjustCountryName(countryName);
   return nationalities.find(
-    (n) => n.name.toLowerCase().trim() === adjustedCountryName.toLowerCase().trim()
+    (n) =>
+      n.name.toLowerCase().trim() === adjustedCountryName.toLowerCase().trim()
   )?.uuid;
 }
-
 
 async function addNewMember(selectedTraveler) {
   emailCodeCounter = 0;
@@ -1752,7 +1990,7 @@ async function addNewMember(selectedTraveler) {
   await util.clickWhenReady(addCompanionSelector, page);
   // wait for the popup to appear, then type the email address, also store the email address with the companion text in it
   const email = suggestEmail(selectedTraveler, true);
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   await page.waitForSelector("#AddMemberViewModel_Email");
   const passenger = data.travellers[selectedTraveler];
   passenger.email = email;
@@ -1795,28 +2033,33 @@ async function addNewMember(selectedTraveler) {
     // Wait for the span with ID #emailVerifiedSpan to appear and have the text "Email verified"
     await page.waitForFunction(
       () => {
-        const span = document.querySelector('#emailVerifiedSpan');
-        return span && span.textContent.trim() === 'Email verified';
+        const span = document.querySelector("#emailVerifiedSpan");
+        return span && span.textContent.trim() === "Email verified";
       },
       { timeout: 120000 } // Set a timeout of 10 seconds (adjust as needed)
     );
-    console.log('Email verified span is present and has the correct value.');
+    console.log("Email verified span is present and has the correct value.");
     await util.commit(
       page,
       [
         {
           selector: "#AddMemberViewModel_Relation",
-          value: (row) => row.gender === "Male" ? "27a4b628-0cf2-43b6-9364-053855f580c9" : "f8350217-d93d-4e7b-a68c-74766360e3f8",
-        }
+          value: (row) =>
+            row.gender === "Male"
+              ? "27a4b628-0cf2-43b6-9364-053855f580c9"
+              : "f8350217-d93d-4e7b-a68c-74766360e3f8",
+        },
       ],
       passenger
     );
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
     await page.click("#submitAddMember");
   } catch (error) {
-    console.error('Error: The "Email verified" span did not appear within the timeout period.', error);
+    console.error(
+      'Error: The "Email verified" span did not appear within the timeout period.',
+      error
+    );
   }
-
 }
 const usedCodes = {};
 function codeUsed(code) {
@@ -1834,7 +2077,10 @@ async function signup_step1(selectedTraveler) {
   // store temporarily in the passenger object
   passenger.email = emailAddress;
   passenger.mobileNumber = telephoneNumber;
-  const nationality = getNationalityUUID(nationalities, data.system.country.name);
+  const nationality = getNationalityUUID(
+    nationalities,
+    data.system.country.name
+  );
 
   await util.commit(
     page,
@@ -1852,7 +2098,7 @@ async function signup_step1(selectedTraveler) {
   );
   //
   // wait for all javascript functions to execute
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   await checkIfNotChecked("#chkResidenceCountry");
   await checkIfNotChecked("#SignupViewModel_AgreeToTermsAndCondition");
   await checkIfNotChecked("#SignupViewModel_SubscribeToNewsLetter");
@@ -1891,7 +2137,7 @@ async function loginPassenger(selectedTraveler) {
   const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
   var data = JSON.parse(rawData);
   const passenger = data.travellers[selectedTraveler];
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   await util.commit(
     page,
     [
@@ -1931,24 +2177,35 @@ async function loginPassenger(selectedTraveler) {
       "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.mt-5.w-100";
     await util.clickWhenReady(loginButtonSelector, page);
     try {
-      await page.waitForSelector("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text", { timeout: 2000 }).catch(() => { });
-      const loginFailedMessage = await page.$eval("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text", (el) => el.innerText);
+      await page
+        .waitForSelector(
+          "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
+          { timeout: 2000 }
+        )
+        .catch(() => {});
+      const loginFailedMessage = await page.$eval(
+        "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
+        (el) => el.innerText
+      );
       if (loginFailedMessage) {
-        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-          mofaNumber: `LOGIN-FAILED-${moment().format('DD-MMM-YY')}`,
-          "submissionData.nsh.status": "Rejected",
-          "submissionData.nsh.rejectionReason": loginFailedMessage,
-        });
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            mofaNumber: `LOGIN-FAILED-${moment().format("DD-MMM-YY")}`,
+            "submissionData.nsh.status": "Rejected",
+            "submissionData.nsh.rejectionReason": loginFailedMessage,
+          }
+        );
         if (loginFailedMessage.includes("not verified")) {
-          await page.click("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button");
+          await page.click(
+            "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button"
+          );
         }
         loginRetries[selectedTraveler] += 1;
         await loginPassenger(selectedTraveler);
       }
-    } catch {
-
-    }
-
+    } catch {}
   }
 }
 
@@ -2111,8 +2368,7 @@ async function uploadFakePassport() {
   const blankPhotoPath = path.join(__dirname, "dummy-nusuk-hajj-photo.jpg");
   await util.commitFile("#personalPhoto", blankPhotoPath);
 
-  await new Promise(resolve => setTimeout(resolve, 1000));
-
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
   await page.waitForSelector("#passportPhoto");
   const blankPassportPath = path.join(
@@ -2123,7 +2379,9 @@ async function uploadFakePassport() {
 }
 
 function formatTime(seconds) {
-  const minutes = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const minutes = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, "0");
   const secs = (seconds % 60).toString().padStart(2, "0");
   return `00:${minutes}:${secs}`;
 }
@@ -2149,15 +2407,19 @@ async function pasteOTPCode(err, code) {
               (el.innerText = `Checking email ${i}/00:02:30 فحص البريد`),
             formatTime(emailCodeCounter * 3)
           );
-        } catch { }
+        } catch {}
         getOTPCode();
       } else {
         const passenger = data.travellers[util.getSelectedTraveler()];
-        await kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
-          mofaNumber: `NO-OTP-${moment().format('DD-MMM-YY')}`,
-          "submissionData.nsh.status": "Rejected",
-          "submissionData.nsh.rejectionReason": "No OTP code received",
-        });
+        await kea.updatePassenger(
+          data.system.accountId,
+          passenger.passportNumber,
+          {
+            mofaNumber: `NO-OTP-${moment().format("DD-MMM-YY")}`,
+            "submissionData.nsh.status": "Rejected",
+            "submissionData.nsh.rejectionReason": "No OTP code received",
+          }
+        );
         await page.browser().close();
         process.exit(0);
       }
@@ -2181,7 +2443,7 @@ async function pasteOTPCode(err, code) {
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
         emailCodeCounter
       );
-    } catch { }
+    } catch {}
 
     return;
   }
@@ -2221,7 +2483,7 @@ async function pasteOTPCodeCompanion(err, code) {
               (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
             emailCodeCounter
           );
-        } catch { }
+        } catch {}
         getCompanionOTPCode();
       }
     }, 3000);
@@ -2244,7 +2506,7 @@ async function pasteOTPCodeCompanion(err, code) {
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
         emailCodeCounter
       );
-    } catch { }
+    } catch {}
 
     return;
   }
@@ -2281,8 +2543,7 @@ async function closeAccountCreatedSuccessModal() {
       await page.click(
         "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button"
       );
-      return new Promise(resolve => setTimeout(resolve, 500));
-
+      return new Promise((resolve) => setTimeout(resolve, 500));
     }
   } catch (e) {
     console.log(e);
@@ -2330,8 +2591,7 @@ async function summaryResidence(selectedTraveler) {
     } else {
       checkIfNotChecked("#expiryDateNotSpecified");
     }
-  } catch (e) {
-  }
+  } catch (e) {}
 }
 
 async function completeRegistration(selectedTraveler) {
@@ -2416,51 +2676,86 @@ async function completeRegistration(selectedTraveler) {
       },
       {
         selector: "#PassportSummaryViewModel_CityId",
-        value: () => "3ccb61fc-5947-4469-915f-884ed1b9666d"
-      }
+        value: () =>
+          submission.integration.city || "3ccb61fc-5947-4469-915f-884ed1b9666d",
+      },
     ],
     passenger
   );
 
-  await labeler(page, passenger.dob.dmmmy, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(11) > div > div.col-md-6.font-semibold.align-self-center")
-  await labeler(page, passenger.gender, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(13) > div > div.col-md-6.font-semibold.align-self-center")
-  await labeler(page, passenger.passportNumber, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(15) > div > div.col-md-6.font-semibold.align-self-center")
+  await labeler(
+    page,
+    passenger.dob.dmmmy,
+    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(11) > div > div.col-md-6.font-semibold.align-self-center"
+  );
+  await labeler(
+    page,
+    passenger.gender,
+    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(13) > div > div.col-md-6.font-semibold.align-self-center"
+  );
+  await labeler(
+    page,
+    passenger.passportNumber,
+    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(15) > div > div.col-md-6.font-semibold.align-self-center"
+  );
 
-  await labeler(page, passenger.passIssueDt.dmmmy, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(17) > div > div.col-md-6.font-semibold.align-self-center")
-  await labeler(page, passenger.passExpireDt.dmmmy, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(18) > div > div.col-md-6.font-semibold.align-self-center")
-  await labeler(page, passenger.placeOfIssue, "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(16) > div > div.col-md-6.font-semibold.align-self-center")
+  await labeler(
+    page,
+    passenger.passIssueDt.dmmmy,
+    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(17) > div > div.col-md-6.font-semibold.align-self-center"
+  );
+  await labeler(
+    page,
+    passenger.passExpireDt.dmmmy,
+    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(18) > div > div.col-md-6.font-semibold.align-self-center"
+  );
+  await labeler(
+    page,
+    passenger.placeOfIssue,
+    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(16) > div > div.col-md-6.font-semibold.align-self-center"
+  );
 
-  await enterDate("#PassportSummaryViewModel_BirthDate", passenger.dob.dmmmy)
-  await enterDate("#PassportSummaryViewModel_IssueDate", passenger.passIssueDt.dmmmy)
-  await enterDate("#PassportSummaryViewModel_ExpiryDate", passenger.passExpireDt.dmmmy)
+  await enterDate("#PassportSummaryViewModel_BirthDate", passenger.dob.dmmmy);
+  await enterDate(
+    "#PassportSummaryViewModel_IssueDate",
+    passenger.passIssueDt.dmmmy
+  );
+  await enterDate(
+    "#PassportSummaryViewModel_ExpiryDate",
+    passenger.passExpireDt.dmmmy
+  );
 
   kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
     "submissionData.nsh.status": "Submitted",
   });
 
   if (global.headless || global.visualHeadless) {
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    await page.click("#submitBtn")
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await page.click("#submitBtn");
     try {
-      await page.waitForSelector("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div:nth-child(2) > button");
-      await page.click("body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div:nth-child(2) > button");
+      await page.waitForSelector(
+        "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div:nth-child(2) > button"
+      );
+      await page.click(
+        "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div:nth-child(2) > button"
+      );
       await handleDialogBox(passenger);
-    } catch { }
+    } catch {}
   }
 }
 
 async function enterDate(selector, value) {
-  const elementValue = await page.$eval(
-    selector,
-    (el) => el.value
-  );
+  const elementValue = await page.$eval(selector, (el) => el.value);
 
   if (!elementValue) {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    await page.evaluate((params) => {
-      const ele = document.querySelector(params[0]);
-      ele.value = params[1];
-    }, [selector, value]);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await page.evaluate(
+      (params) => {
+        const ele = document.querySelector(params[0]);
+        ele.value = params[1];
+      },
+      [selector, value]
+    );
   }
 }
 
@@ -2477,7 +2772,9 @@ async function runParallel() {
   let monitorWidth = 1920;
   let monitorHeight = 1080;
   if (!nusukParallel) {
-    selectedParallelTraveller = await page.$eval("#hajonsoft_select", (el) => Number(el.value));
+    selectedParallelTraveller = await page.$eval("#hajonsoft_select", (el) =>
+      Number(el.value)
+    );
     startIndex = Math.max(0, selectedParallelTraveller - 1); // Convert 1-based to 0-based
     monitorWidth = await page.evaluate(() => screen.width);
     monitorHeight = await page.evaluate(() => screen.height);
@@ -2495,11 +2792,12 @@ async function runParallel() {
         return `"${v}"`;
       }
       if (v.startsWith("--submissionId")) {
-        return `${v} --passengerIds=${passenger.id
-          } --auto -windowed --index=${index}/${Math.min(
-            leads.length,
-            MAX_PARALLEL
-          )} --monitor-width=${monitorWidth} --monitor-height=${monitorHeight} --visualHeadless`;
+        return `${v} --passengerIds=${
+          passenger.id
+        } --auto -windowed --index=${index}/${Math.min(
+          leads.length,
+          MAX_PARALLEL
+        )} --monitor-width=${monitorWidth} --monitor-height=${monitorHeight} --visualHeadless`;
       }
       if (v.startsWith("--passengerId")) {
         return ` --visualHeadless `;
@@ -2550,7 +2848,6 @@ async function runParallel() {
 }
 
 module.exports = { send };
-
 
 // TODO: Refactor opprtunities
 //  2- modularize the code on seaparate files
