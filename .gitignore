@@ -4,4 +4,3 @@ node_modules
 token.json
 .github_token
 .commands
-.env
