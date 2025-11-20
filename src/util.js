@@ -233,7 +233,67 @@ async function initPage(config, onContentLoaded, data) {
   if (global.debug || (!isCloudRun && !isHeadless)) {
     launchOptions.executablePath = getChromePath();
   }
-  browser = await puppeteer.launch(launchOptions);
+
+  // Check if we're in nsh mode and should connect to existing browser
+    const existingDataRaw = fs.readFileSync(getPath("data.json"), "utf8");
+  const existingData = JSON.parse(existingDataRaw);
+  const isNshMode = existingData?.system?.name === "nsh";
+  if (isNshMode) {
+    const remoteDebuggingPort = process.env.REMOTE_DEBUGGING_PORT || "9222";
+    const browserURL = `http://localhost:${remoteDebuggingPort}`;
+    
+    try {
+      console.log(`NSH Mode: Attempting to connect to browser at ${browserURL}`);
+      browser = await puppeteer.connect({
+        browserURL,
+        defaultViewport,
+      });
+      console.log("NSH Mode: Successfully connected to existing browser session");
+    } catch (connectError) {
+      console.log(`NSH Mode: Failed to connect to existing browser: ${connectError.message}`);
+      console.log("NSH Mode: Launching Chrome in remote debugging mode");
+      
+      // Launch Chrome in remote debugging mode with platform-specific command
+      const { exec } = require("child_process");
+      const targetUrl = "https://hajj.nusuk.sa";
+      
+      let chromeCommand;
+      if (os.platform() === "darwin") {
+        // macOS command
+        chromeCommand = `open -na "Google Chrome" --args --remote-debugging-port=${remoteDebuggingPort} "${targetUrl}"`;
+      } else if (os.platform() === "win32") {
+        // Windows command
+        const chromePath = launchOptions.executablePath || getChromePath();
+        chromeCommand = `"${chromePath}" --remote-debugging-port=${remoteDebuggingPort} "${targetUrl}"`;
+      } else {
+        // Linux command
+        chromeCommand = `google-chrome --remote-debugging-port=${remoteDebuggingPort} "${targetUrl}" &`;
+      }
+      
+      console.log(`NSH Mode: Executing command: ${chromeCommand}`);
+      exec(chromeCommand, (error) => {
+        if (error) {
+          console.error(`NSH Mode: Error launching Chrome: ${error.message}`);
+        }
+      });
+      
+      // Wait for Chrome to start
+      console.log("NSH Mode: Waiting for Chrome to start...");
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      
+      console.log("NSH Mode: Chrome launched successfully in debugging mode.");
+      console.log(`NSH Mode: Chrome is running on port ${remoteDebuggingPort}`);
+      console.log("NSH Mode: You can now work with Chrome normally.");
+      console.log("NSH Mode: Run the program again to connect and automate.");
+      console.log("NSH Mode: Exiting...");
+      
+      // Exit the process to let user work with Chrome
+      process.exit(0);
+    }
+  } else {
+    browser = await puppeteer.launch(launchOptions);
+  }
+  
   const pages = await browser.pages();
   page = pages[0];
   await page.bringToFront();
