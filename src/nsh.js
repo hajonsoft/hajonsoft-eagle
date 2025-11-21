@@ -200,7 +200,7 @@ const config = [
     regex: URLS.UPLOAD_DOCUMENTS,
     controller: {
       selector:
-        "body > main > div.system > div > div.sys-page-title.px-3.py-4.mb-4 > div.row > div:nth-child(1)",
+        "#upload-documents-title",
       name: "upload_documents",
       action: async () => {
         const selectedTraveler = await page.$eval(

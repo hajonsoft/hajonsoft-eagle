@@ -27,6 +27,7 @@ const vaccineFolder = path.join(homedir, "hajonsoft", "vaccine");
 const VISION_DEFICIENCY = "none";
 const kea = require("./lib/kea");
 const { array } = require("yargs");
+const { connect } = require("http2");
 
 const MRZ_TD3_LINE_LENGTH = 44;
 
@@ -233,67 +234,10 @@ async function initPage(config, onContentLoaded, data) {
   if (global.debug || (!isCloudRun && !isHeadless)) {
     launchOptions.executablePath = getChromePath();
   }
-
-  // Check if we're in nsh mode and should connect to existing browser
-    const existingDataRaw = fs.readFileSync(getPath("data.json"), "utf8");
-  const existingData = JSON.parse(existingDataRaw);
-  const isNshMode = existingData?.system?.name === "nsh";
-  if (isNshMode) {
-    const remoteDebuggingPort = process.env.REMOTE_DEBUGGING_PORT || "9222";
-    const browserURL = `http://localhost:${remoteDebuggingPort}`;
-    
-    try {
-      console.log(`NSH Mode: Attempting to connect to browser at ${browserURL}`);
-      browser = await puppeteer.connect({
-        browserURL,
-        defaultViewport,
-      });
-      console.log("NSH Mode: Successfully connected to existing browser session");
-    } catch (connectError) {
-      console.log(`NSH Mode: Failed to connect to existing browser: ${connectError.message}`);
-      console.log("NSH Mode: Launching Chrome in remote debugging mode");
-      
-      // Launch Chrome in remote debugging mode with platform-specific command
-      const { exec } = require("child_process");
-      const targetUrl = "https://hajj.nusuk.sa";
-      
-      let chromeCommand;
-      if (os.platform() === "darwin") {
-        // macOS command
-        chromeCommand = `open -na "Google Chrome" --args --remote-debugging-port=${remoteDebuggingPort} "${targetUrl}"`;
-      } else if (os.platform() === "win32") {
-        // Windows command
-        const chromePath = launchOptions.executablePath || getChromePath();
-        chromeCommand = `"${chromePath}" --remote-debugging-port=${remoteDebuggingPort} "${targetUrl}"`;
-      } else {
-        // Linux command
-        chromeCommand = `google-chrome --remote-debugging-port=${remoteDebuggingPort} "${targetUrl}" &`;
-      }
-      
-      console.log(`NSH Mode: Executing command: ${chromeCommand}`);
-      exec(chromeCommand, (error) => {
-        if (error) {
-          console.error(`NSH Mode: Error launching Chrome: ${error.message}`);
-        }
-      });
-      
-      // Wait for Chrome to start
-      console.log("NSH Mode: Waiting for Chrome to start...");
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      
-      console.log("NSH Mode: Chrome launched successfully in debugging mode.");
-      console.log(`NSH Mode: Chrome is running on port ${remoteDebuggingPort}`);
-      console.log("NSH Mode: You can now work with Chrome normally.");
-      console.log("NSH Mode: Run the program again to connect and automate.");
-      console.log("NSH Mode: Exiting...");
-      
-      // Exit the process to let user work with Chrome
-      process.exit(0);
-    }
-  } else {
+  const connected = await connectOrOpenDisconnectedChrome();
+  if (!connected) {
     browser = await puppeteer.launch(launchOptions);
   }
-  
   const pages = await browser.pages();
   page = pages[0];
   await page.bringToFront();
@@ -303,7 +247,7 @@ async function initPage(config, onContentLoaded, data) {
     await pauseMessage(page, 5);
     try {
       await dialog.accept();
-    } catch {}
+    } catch { }
   });
 
   if (process.argv.length > 2) {
@@ -336,7 +280,7 @@ async function initPage(config, onContentLoaded, data) {
   } else {
     fs.readdir(vaccineFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(vaccineFolder, file), (err) => {});
+        fs.unlink(path.join(vaccineFolder, file), (err) => { });
       }
     });
   }
@@ -346,6 +290,73 @@ async function initPage(config, onContentLoaded, data) {
   // });
 
   return page;
+}
+
+async function connectOrOpenDisconnectedChrome() {
+  const rawData = fs.readFileSync(getPath("data.json"), "utf8");
+  const dataJson = JSON.parse(rawData);
+  const nshMode = dataJson?.system?.name === "nsh";
+  if (nshMode) {
+    const remoteDebuggingPort = process.env.REMOTE_DEBUGGING_PORT || "9222";
+    const browserURL = `http://127.0.0.1:${remoteDebuggingPort}`;
+    try {
+      console.log(`NSH Mode: Attempting to connect to browser at ${browserURL}`);
+      browser = await puppeteer.connect({
+        browserURL,
+        defaultViewport,
+      });
+      console.log("NSH Mode: Successfully connected to existing browser session");
+      return true;
+    } catch (connectError) {
+      console.log(`NSH Mode: Failed to connect to existing browser: ${connectError.message}`);
+      console.log("NSH Mode: Launching Chrome in remote debugging mode");
+
+      // Launch Chrome in remote debugging mode with platform-specific command
+      const { exec } = require("child_process");
+      const targetUrl = "https://hajj.nusuk.sa";
+
+      let chromeCommand;
+      if (os.platform() === "darwin") {
+        // macOS command
+        chromeCommand = `/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \
+          --remote-debugging-port=${remoteDebuggingPort} \
+          --user-data-dir=/tmp/chrome-profile \
+          "${targetUrl}"`;
+      } else if (os.platform() === "win32") {
+        // Windows command
+        const chromePath = getChromePath();
+        chromeCommand = `"${chromePath}" --remote-debugging-port=${remoteDebuggingPort} \
+          --user-data-dir=/tmp/chrome-profile \
+          "${targetUrl}"`;
+      } else {
+        // Linux command
+        chromeCommand = `google-chrome --remote-debugging-port=${remoteDebuggingPort} \
+          --user-data-dir=/tmp/chrome-profile \
+          "${targetUrl}" &`;
+      }
+
+      console.log(`NSH Mode: Executing command: ${chromeCommand}`);
+      exec(chromeCommand, (error) => {
+        if (error) {
+          console.error(`NSH Mode: Error launching Chrome: ${error.message}`);
+        }
+      });
+
+      // Wait for Chrome to start
+      console.log("NSH Mode: Waiting for Chrome to start...");
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      console.log("NSH Mode: Chrome launched successfully in debugging mode.");
+      console.log(`NSH Mode: Chrome is running on port ${remoteDebuggingPort}`);
+      console.log("NSH Mode: You can now work with Chrome normally.");
+      console.log("NSH Mode: Run the program again to connect and automate.");
+      console.log("NSH Mode: Exiting...");
+
+      // Exit the process to let user work with Chrome
+      process.exit(0);
+    }
+  }
+
 }
 
 async function newPage(onNewPageLoaded, onNewPageClosed) {
@@ -359,7 +370,7 @@ async function createControlsFile(
   url,
   container,
   xPath,
-  fieldFunction = async () => {}
+  fieldFunction = async () => { }
 ) {
   const logFolder = getPath("log");
   if (!fs.existsSync(logFolder)) {
@@ -449,8 +460,7 @@ function findConfig(url, config) {
   if (urlConfig) {
     infoMessage(
       page,
-      `✈️  Workflow: ${urlConfig.name} ${
-        urlConfig.url || urlConfig.regex
+      `✈️  Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex
       } ${timeElapsed()} seconds`,
       2
     );
@@ -659,7 +669,7 @@ function getMofaImportString(passenger) {
       const importJSON = JSON.parse(importContent);
       return " - MOFA: " + importJSON?.status;
     }
-  } catch {}
+  } catch { }
   return "";
 }
 
@@ -668,19 +678,16 @@ function getOptionNode(passenger, cursor) {
   <div style="width: 100%; display: flex; align-items: center; gap: 1rem; background-color: yellow; height: 200px;">
     <div>${cursor + 1}- </div>
     <div>
-    ${
-      passenger.nationality?.isArabic
-        ? passenger?.nameArabic?.given + " " + passenger.nameArabic.last
-        : passenger.name.full
-    } - ${passenger.passportNumber} - ${passenger?.nationality?.name} - ${
-    passenger?.gender || "gender"
-  } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(
-    passenger
-  )}${
-    passenger.email?.includes(".companion") || passenger.isCompanion
+    ${passenger.nationality?.isArabic
+      ? passenger?.nameArabic?.given + " " + passenger.nameArabic.last
+      : passenger.name.full
+    } - ${passenger.passportNumber} - ${passenger?.nationality?.name} - ${passenger?.gender || "gender"
+    } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(
+      passenger
+    )}${passenger.email?.includes(".companion") || passenger.isCompanion
       ? "(companion)"
       : ""
-  }
+    }
     </div>
   </div>
   `;
@@ -712,8 +719,7 @@ async function controller(page, structure, travellers) {
       // .filter((t) => !t.email.includes(".companion"))
       .map(
         (traveller, cursor) =>
-          `<option value="${cursor}" ${
-            cursor == lastTraveler ? "selected" : ""
+          `<option value="${cursor}" ${cursor == lastTraveler ? "selected" : ""
           }>
           ${getOptionNode(traveller, cursor)}
           </option>`
@@ -722,9 +728,8 @@ async function controller(page, structure, travellers) {
 
   try {
     await page.waitForSelector(structure.controller.selector);
-    const controllerHandleMethod = `handleEagle${
-      structure.controller.name || "Send"
-    }Click`;
+    const controllerHandleMethod = `handleEagle${structure.controller.name || "Send"
+      }Click`;
     const htmlFileName = path.join(__dirname, "assets", "controller.html");
     let html = fs.readFileSync(htmlFileName, "utf8");
     let isLooping = false;
@@ -744,7 +749,7 @@ async function controller(page, structure, travellers) {
         const htmlContent = params[4];
         const pax = params[5];
         const lastTraveler = params[6];
-        const isLooping = params[7];  
+        const isLooping = params[7];
         const paxLabel = `${pax.length}`;
         container.outerHTML = `${htmlContent
           .replace(/{handleMethodName}/, handleMethodName)
@@ -754,9 +759,9 @@ async function controller(page, structure, travellers) {
           .replace(/{pax}/, paxLabel)
           .replace(/{current}/, (parseInt(lastTraveler) + 1).toString())
           .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`.replace(
-          /{sendall}/,
-          "Continuous مستمر"
-        );
+            /{sendall}/,
+            "Continuous مستمر"
+          );
       },
       [
         structure,
@@ -789,19 +794,19 @@ async function controller(page, structure, travellers) {
       await page.exposeFunction("getVisaCount", getVisaCount);
       await page.exposeFunction(
         "handleWTUClick",
-        structure.controller.wtuAction || (() => {})
+        structure.controller.wtuAction || (() => { })
       );
       await page.exposeFunction(
         "handleGMAClick",
-        structure.controller.gmaAction || (() => {})
+        structure.controller.gmaAction || (() => { })
       );
       await page.exposeFunction(
         "handleBAUClick",
-        structure.controller.bauAction || (() => {})
+        structure.controller.bauAction || (() => { })
       );
       await page.exposeFunction(
         "handleTWFClick",
-        structure.controller.twfAction || (() => {})
+        structure.controller.twfAction || (() => { })
       );
       await page.exposeFunction(
         "handleLoadImportedOnlyClick",
@@ -809,7 +814,7 @@ async function controller(page, structure, travellers) {
       );
       await page.exposeFunction(
         "handleNSKClick",
-        structure.controller.nskAction || (() => {})
+        structure.controller.nskAction || (() => { })
       );
       await page.exposeFunction("closeBrowser", closeBrowser);
     }
@@ -824,7 +829,7 @@ function registerLoop() {
 }
 function unregisterLoop() {
   if (fs.existsSync(getPath("loop.txt"))) {
-    fs.unlink(getPath("loop.txt"), (err) => {});
+    fs.unlink(getPath("loop.txt"), (err) => { });
   }
 }
 function getVisaCount() {
@@ -856,9 +861,8 @@ async function commander(page, structure, travellers) {
     await page.waitForSelector(structure.controller.selector, {
       timeout: 0,
     });
-    const controllerHandleMethod = `handleEagle${
-      structure.controller.name || "Budgie"
-    }Click`;
+    const controllerHandleMethod = `handleEagle${structure.controller.name || "Budgie"
+      }Click`;
     const isLoop = fs.existsSync(getPath("loop.txt"));
 
     const htmlFileName = path.join(__dirname, "assets", "commander.html");
@@ -882,8 +886,8 @@ async function commander(page, structure, travellers) {
           .replace(
             /{title}/g,
             structureParam.controller.title +
-              " " +
-              structureParam.controller.arabicTitle
+            " " +
+            structureParam.controller.arabicTitle
           );
         container.outerHTML = controller.keepOriginalElement
           ? `<div>${container.outerHTML}${htmlContent}</div>`
@@ -948,7 +952,7 @@ async function handleLoadImportedOnlyClick() {
           passportNumber: jsonData.passportNumber,
         });
       }
-    } catch {}
+    } catch { }
   }
 
   const data = {
@@ -1139,8 +1143,7 @@ async function downloadAndResizeImage(
   let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
   const resizedPath = path.join(
     folder,
-    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.${
-      convertToPNG ? "png" : "jpg"
+    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.${convertToPNG ? "png" : "jpg"
     }`
   );
 
@@ -1624,7 +1627,7 @@ async function SolveIamNotARobot(responseSelector, url, siteKey, signal) {
       // wait 5 seconds
       await new Promise((resolve) => setTimeout(resolve, 5000));
     }
-  } catch {}
+  } catch { }
 }
 const premiumSupportAlert = async (page, selector, data) => {
   await page.waitForSelector(selector);
@@ -1890,35 +1893,31 @@ async function clickWhenReady(selector, page) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
-  } catch {}
+  } catch { }
 }
 
 function generateMRZ(passenger) {
   console.log(passenger);
   try {
     // LINE 1
-    const codeLine1 = `P<${
-      passenger.nationality.code
-    }${passenger.name.last.replace(/ /g, "<")}<<${passenger.name.given.replace(
-      / /g,
-      "<"
-    )}`
+    const codeLine1 = `P<${passenger.nationality.code
+      }${passenger.name.last.replace(/ /g, "<")}<<${passenger.name.given.replace(
+        / /g,
+        "<"
+      )}`
       .padEnd(MRZ_TD3_LINE_LENGTH, "<")
       .substring(0, MRZ_TD3_LINE_LENGTH);
     // LINE 2
     const icaoPassportNumber = passenger.passportNumber.padEnd(9, "<");
-    const birthDate = `${passenger.dob.yyyy.substring(2)}${passenger.dob.mm}${
-      passenger.dob.dd
-    }`;
-    const expiryDate = `${passenger.passExpireDt.yyyy.substring(2)}${
-      passenger.passExpireDt.mm
-    }${passenger.passExpireDt.dd}`;
+    const birthDate = `${passenger.dob.yyyy.substring(2)}${passenger.dob.mm}${passenger.dob.dd
+      }`;
+    const expiryDate = `${passenger.passExpireDt.yyyy.substring(2)}${passenger.passExpireDt.mm
+      }${passenger.passExpireDt.dd}`;
     const gender = passenger.gender.substring(0, 1).toUpperCase();
-    let codeLine2 = `${icaoPassportNumber}${checkDigit(icaoPassportNumber)}${
-      passenger.nationality.code
-    }${birthDate}${checkDigit(birthDate)}${gender}${expiryDate}${checkDigit(
-      expiryDate
-    )}`;
+    let codeLine2 = `${icaoPassportNumber}${checkDigit(icaoPassportNumber)}${passenger.nationality.code
+      }${birthDate}${checkDigit(birthDate)}${gender}${expiryDate}${checkDigit(
+        expiryDate
+      )}`;
 
     if (codeLine2.length) {
       const filler = "<".repeat(MRZ_TD3_LINE_LENGTH - 2 - codeLine2.length);
@@ -1929,8 +1928,8 @@ function generateMRZ(passenger) {
       // letters that are a part of the number fields and their check digits.
       const compositeCheckDigit = checkDigit(
         codeLine2.substring(0, 10) +
-          codeLine2.substring(13, 20) +
-          codeLine2.substring(21, 43)
+        codeLine2.substring(13, 20) +
+        codeLine2.substring(21, 43)
       );
       codeLine2 += compositeCheckDigit.replace(/[-]/g, "<");
     }
