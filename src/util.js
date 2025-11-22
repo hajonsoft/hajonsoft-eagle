@@ -302,8 +302,7 @@ async function connectOrOpenDisconnectedChrome() {
     try {
       console.log(`NSH Mode: Attempting to connect to browser at ${browserURL}`);
       browser = await puppeteer.connect({
-        browserURL,
-        defaultViewport,
+        browserURL
       });
       console.log("NSH Mode: Successfully connected to existing browser session");
       return true;
@@ -356,6 +355,7 @@ async function connectOrOpenDisconnectedChrome() {
       process.exit(0);
     }
   }
+  return false;
 
 }
 
