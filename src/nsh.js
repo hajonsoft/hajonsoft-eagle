@@ -277,7 +277,7 @@ const config = [
     controller: {
       name: "login",
       selector:
-        "#navbarNav > div > ul.navbar-nav.align-items-center.flex-lg-grow-1.justify-content-lg-around",
+        "#main-content > section > div > div > div.col-12.col-md-7.col-lg-5 > nav",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -375,7 +375,8 @@ async function send(sendData) {
     return;
   }
   page = await util.initPage(config, onContentLoaded);
-  await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
+  // await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
+  await signup_step1(util.getSelectedTraveler());
 }
 let timeoutId;
 const MAX_WAIT_TIME_MS = 600000;
@@ -2103,29 +2104,29 @@ async function signup_step1(selectedTraveler) {
   await checkIfNotChecked("#SignupViewModel_AgreeToTermsAndCondition");
   await checkIfNotChecked("#SignupViewModel_SubscribeToNewsLetter");
   await util.infoMessage(page, "Captcha ...");
-  const captchaCode = await util.SolveIamNotARobot(
-    "#g-recaptcha-response",
-    URLS.SIGN_UP,
-    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek",
-    registerCaptchaAbortController.signal
-  );
+  // const captchaCode = await util.SolveIamNotARobot(
+  //   "#g-recaptcha-response",
+  //   URLS.SIGN_UP,
+  //   "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek",
+  //   registerCaptchaAbortController.signal
+  // );
 
-  if (captchaCode) {
-    await page.click(
-      "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.px-5.mt-5.w-100"
-    );
-  }
+  // if (captchaCode) {
+  //   await page.click(
+  //     "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.px-5.mt-5.w-100"
+  //   );
+  // }
 
-  if (!captchaCode) {
-    await util.infoMessage(page, "Manual captcha required ...");
-    if (clicked?.["signup_1"]?.[passenger.passportNumber]) {
-      return;
-    } else {
-      await signup_step1(selectedTraveler);
-      clicked["signup_1"] = {};
-      clicked["signup_1"][passenger.passportNumber] = true;
-    }
-  }
+  // if (!captchaCode) {
+  //   await util.infoMessage(page, "Manual captcha required ...");
+  //   if (clicked?.["signup_1"]?.[passenger.passportNumber]) {
+  //     return;
+  //   } else {
+  //     await signup_step1(selectedTraveler);
+  //     clicked["signup_1"] = {};
+  //     clicked["signup_1"][passenger.passportNumber] = true;
+  //   }
+  // }
 }
 
 async function loginPassenger(selectedTraveler) {
