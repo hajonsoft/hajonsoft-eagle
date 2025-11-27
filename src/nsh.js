@@ -161,7 +161,7 @@ const config = [
     name: "signup-step1",
     url: URLS.SIGN_UP,
     controller: {
-      selector: "body > header > nav > div",
+      selector: "#main-content > section > div > div > div.col-12.col-md-7.col-lg-5 > h1",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -375,8 +375,13 @@ async function send(sendData) {
     return;
   }
   page = await util.initPage(config, onContentLoaded);
-  // await page.goto(config[0].url, { waitUntil: "domcontentloaded" });
-  await signup_step1(util.getSelectedTraveler());
+  const url = await page.url();
+  if (url === URLS.SIGN_UP) {
+    await signup_step1(util.getSelectedTraveler("nsh"));
+  } else {
+    await loginPassenger(util.getSelectedTraveler("nsh"));
+
+  }
 }
 let timeoutId;
 const MAX_WAIT_TIME_MS = 600000;
@@ -408,7 +413,7 @@ function readSubmissionGorilla() {
     }
     global.submissionGorilla = gorillaJSON;
     console.log("submission gorilla loaded", global.submissionGorilla);
-  } catch (error) {}
+  } catch (error) { }
 }
 async function onContentLoaded(res) {
   clearTimeout(timeoutId);
@@ -470,7 +475,7 @@ async function pageContentHandler(currentConfig) {
       await page.$eval(currentConfig.focus, (el) =>
         el.scrollIntoView({ behavior: "smooth", block: "start" })
       );
-    } catch {}
+    } catch { }
   }
   switch (currentConfig.name) {
     case "home":
@@ -524,7 +529,7 @@ async function pageContentHandler(currentConfig) {
           passenger,
           "Embassy"
         );
-      } catch (error) {}
+      } catch (error) { }
       util.incrementSelectedTraveler();
       kea.updatePassenger(data.system.accountId, passenger.passportNumber, {
         "submissionData.nsh.status": "Submitted",
@@ -553,7 +558,7 @@ async function pageContentHandler(currentConfig) {
       // loginCaptchaAbortController.abort();
 
       await page.waitForSelector(
-        "#otp-inputs > input.form-control.signup-otp.me-1",
+        "#otp-inputs > input:nth-child(2)",
         { visible: true }
       );
 
@@ -562,7 +567,7 @@ async function pageContentHandler(currentConfig) {
       await util.commander(page, {
         controller: {
           selector:
-            "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > p",
+            "#otp-heading",
           title: "Get Code",
           arabicTitle: "احصل عالرمز",
           name: "otp",
@@ -576,14 +581,14 @@ async function pageContentHandler(currentConfig) {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       try {
         const modal = await page.$(
-          `body > div.swal-overlay.swal-overlay--show-modal > div`
+          `#otp-inputs > input:nth-child(2)`
         );
         if (modal) {
           await page.click(
             "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button"
           );
         }
-      } catch {}
+      } catch { }
       break;
     case "signup-password":
       await util.commit(
@@ -783,7 +788,7 @@ async function pageContentHandler(currentConfig) {
         try {
           await page.waitForSelector(nextSelector);
           await page.click(nextSelector);
-        } catch {}
+        } catch { }
       }
       break;
     case "summary":
@@ -805,7 +810,7 @@ async function pageContentHandler(currentConfig) {
         try {
           await page.waitForSelector(nextSelector);
           await page.click(nextSelector);
-        } catch {}
+        } catch { }
       }
       break;
     case "summary2":
@@ -840,7 +845,7 @@ async function pageContentHandler(currentConfig) {
         try {
           await page.waitForSelector(nextSelector);
           await page.click(nextSelector);
-        } catch {}
+        } catch { }
       }
       break;
     case "preferences":
@@ -879,7 +884,7 @@ async function pageContentHandler(currentConfig) {
         try {
           await page.waitForSelector(nextSelector);
           await page.click(nextSelector);
-        } catch {}
+        } catch { }
       }
       break;
     case "registration-summary":
@@ -902,7 +907,7 @@ async function pageContentHandler(currentConfig) {
         try {
           await page.waitForSelector(nextSelector);
           await page.click(nextSelector);
-        } catch {}
+        } catch { }
       }
       break;
     case "upload-documents":
@@ -1088,7 +1093,7 @@ async function pageContentHandler(currentConfig) {
             );
             return;
           }
-        } catch {}
+        } catch { }
         try {
           const bookingDetailsButtonTextSelector =
             "body > main > div.container-xxl.container-fluid.py-4 > div:nth-child(3) > div.col-12.col-xl-8.main-content > div.row.cards > div:nth-child(1) > div > div > div > div:nth-child(4) > div > div.text-end > a > span";
@@ -1273,7 +1278,7 @@ async function pageContentHandler(currentConfig) {
             "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button"
           );
         }
-      } catch {}
+      } catch { }
       // find this cart selector and get the href and visit it
       // body > header > nav > div > div.d-flex.align-items-center.d-lg-none > div > div > div > div > a.btn.btn-main.x-small.d-block.d-sm-inline-block.d-md-block.px-1.w-100.py-2
 
@@ -1283,7 +1288,7 @@ async function pageContentHandler(currentConfig) {
           (el) => el.href
         );
         await page.goto(href);
-      } catch {}
+      } catch { }
       break;
     case "additional-services":
       await page.click(
@@ -1331,7 +1336,7 @@ async function pageContentHandler(currentConfig) {
               process.exit(0);
             }
           }
-        } catch {}
+        } catch { }
       }
       break;
     case "configure-transportation":
@@ -1350,7 +1355,7 @@ async function pageContentHandler(currentConfig) {
             walletBalance = parseFloat(
               walletBalanceRaw.replace("SAR", "").replaceAll(",", "").trim()
             );
-          } catch {}
+          } catch { }
           const totalPriceRaw = await page.$eval(
             "#purchaseDetailsDiv > div.purchase-details > div.total-area > div:nth-child(4) > div.col.text-end.total-price > span",
             (el) => el.textContent
@@ -1387,7 +1392,7 @@ async function pageContentHandler(currentConfig) {
                     "submissionData.nsh.rejectionReason": reasonWalletBalance,
                   }
                 );
-              } catch {}
+              } catch { }
             } else {
               await kea.updatePassenger(
                 data.system.accountId,
@@ -1461,7 +1466,7 @@ async function pageContentHandler(currentConfig) {
         );
         await page.browser().close();
         process.exit(0);
-      } catch {}
+      } catch { }
 
       break;
     case "agree-flight":
@@ -1565,7 +1570,7 @@ async function checkCanPay() {
         );
         return true;
       }
-    } catch {}
+    } catch { }
   }
 
   return false;
@@ -1619,7 +1624,7 @@ async function configureBeds(bedCount, passenger, selector) {
     if (isDisabled) {
       console.log("Button is disabled. Exiting function.");
     }
-  } catch {}
+  } catch { }
   try {
     if (bedCount) {
       let bedCountInt = 0;
@@ -1642,7 +1647,7 @@ async function configureBeds(bedCount, passenger, selector) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
-  } catch {}
+  } catch { }
 }
 
 const gorillaMemory = {};
@@ -1662,7 +1667,7 @@ async function takeScreenShot(elementSelector) {
       passenger,
       "Embassy"
     );
-  } catch (error) {}
+  } catch (error) { }
   await new Promise((resolve) => setTimeout(resolve, 1000));
 }
 
@@ -1741,8 +1746,8 @@ async function handleDialogBox(passenger, saveReason = true) {
     // Check for title content if the text is empty
     const modalTitle = !modalContent
       ? await page
-          .$eval(modalTitleSelector, (e) => e.textContent.trim())
-          .catch(() => null)
+        .$eval(modalTitleSelector, (e) => e.textContent.trim())
+        .catch(() => null)
       : null;
 
     // Determine the rejection reason
@@ -1794,15 +1799,14 @@ async function handleDialogBox(passenger, saveReason = true) {
 
 function suggestEmail(selectedTraveler, companion = false) {
   const passenger = data.travellers[selectedTraveler];
-  if (passenger.email) {
+  if (passenger.email ) {
     return passenger.email.split("/")[0];
   }
   const domain = data.system.username.includes("@")
     ? data.system.username.split("@")[1]
     : data.system.username;
-  const friendlyName = `${passenger.name.first}.${
-    companion ? "companion." : ""
-  }${passenger.passportNumber}@${domain}`
+  const friendlyName = `${passenger.name.first}.${companion ? "companion." : ""
+    }${passenger.passportNumber}@${domain}`
     .toLowerCase()
     .replace(/ /g, "");
   const email = friendlyName;
@@ -1898,31 +1902,31 @@ async function loginOrRegister(selectedTraveler) {
 async function getOTPCode() {
   const passenger = data.travellers[util.getSelectedTraveler()];
   await page.$eval(
-    "#otpForm > label",
+    "#otpForm > div.dga-input-field > label",
     (el, email) => (el.innerText = `${email.split("/")[0]}`),
-    passenger.email || emailAddress
+    passenger.email || emailAddress || suggestEmail(util.getSelectedTraveler("nsh"))
   );
-  if (!canGetCode(passenger.email || emailAddress, data.system.username)) {
+  if (!canGetCode(passenger.email || emailAddress || suggestPhoneNumber(util.getSelectedTraveler("nsh")), data.system.username)) {
     await util.infoMessage(page, "Manual code required or try again!");
     return;
   }
 
   // If the page contain the word Registration, then registration. If it contains "OTP Verification"
   const pageMode = await page.$eval(
-    "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div > ol > li.breadcrumb-item.small.active",
+    "#main-content > section > div > div > div.col-12.col-md-7.col-lg-5 > nav > ul > li:nth-child(2) > span",
     (el) => el.innerText
   );
   await page.$eval(
-    "#otpForm > label",
+    "#otp-instructions",
     (el, email, fromString) =>
       (el.innerText = `${email.split("/")[0]} ${fromString}`),
-    passenger.email || emailAddress,
+    passenger.email || emailAddress || suggestEmail(util.getSelectedTraveler("nsh")),
     `from (admin@${data.system.username.replace("@", "")})`
   );
   try {
     if (pageMode.includes("Registration") || pageMode.includes("التسجيل")) {
       await fetchOTPFromNusuk(
-        getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
+        getOTPEmailAddress((passenger.email || emailAddress || suggestEmail(util.getSelectedTraveler("nsh"))).split("/")[0]),
         data.system.adminEmailPassword,
         ["Email Activation", "تفعيل البريد الالكتروني"],
         pasteOTPCode,
@@ -1933,7 +1937,7 @@ async function getOTPCode() {
       pageMode.includes("التثبت من رمز التحقق")
     ) {
       await fetchOTPFromNusuk(
-        getOTPEmailAddress((passenger.email || emailAddress).split("/")[0]),
+        getOTPEmailAddress((passenger.email || emailAddress || suggestEmail(util.getSelectedTraveler("nsh"))).split("/")[0]),
         data.system.adminEmailPassword,
         ["One Time Password", "رمز سري لمرة واحدة"],
         pasteOTPCode,
@@ -2103,7 +2107,7 @@ async function signup_step1(selectedTraveler) {
   await checkIfNotChecked("#chkResidenceCountry");
   await checkIfNotChecked("#SignupViewModel_AgreeToTermsAndCondition");
   await checkIfNotChecked("#SignupViewModel_SubscribeToNewsLetter");
-  await util.infoMessage(page, "Captcha ...");
+  // await util.infoMessage(page, "Captcha ...");
   // const captchaCode = await util.SolveIamNotARobot(
   //   "#g-recaptcha-response",
   //   URLS.SIGN_UP,
@@ -2135,8 +2139,18 @@ async function loginPassenger(selectedTraveler) {
   if (url.toLowerCase() !== URLS.LOGIN.toLowerCase()) {
     return;
   }
+
+
   const rawData = fs.readFileSync(getPath("data.json"), "utf-8");
   var data = JSON.parse(rawData);
+  // const loginConfig = config.find(c => c.name === "login");
+  // if (loginConfig?.controller) {
+  //   try {
+  //     await util.controller(page, loginConfig, data.travellers);
+  //   } catch (error) {
+  //     console.error("Error in login controller:", error);
+  //   }
+  // }
   const passenger = data.travellers[selectedTraveler];
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await util.commit(
@@ -2144,7 +2158,7 @@ async function loginPassenger(selectedTraveler) {
     [
       {
         selector: "#LogInViewModel_Email",
-        value: (row) => (row.email || emailAddress).split("/")[0],
+        value: (row) => (row.email || emailAddress || suggestEmail(selectedTraveler)).split("/")[0],
       },
 
       {
@@ -2155,59 +2169,59 @@ async function loginPassenger(selectedTraveler) {
     passenger
   );
 
-  util.infoMessage(page, `Captcha ...`);
-  const loginCaptchaValue = await util.SolveIamNotARobot(
-    "#g-recaptcha-response",
-    URLS.LOGIN,
-    "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek",
-    loginCaptchaAbortController.signal
-  );
+  // util.infoMessage(page, `Captcha ...`);
+  // const loginCaptchaValue = await util.SolveIamNotARobot(
+  //   "#g-recaptcha-response",
+  //   URLS.LOGIN,
+  //   "6LcNy-0jAAAAAJDOXjYW4z7yV07DWyivFD1mmjek",
+  //   loginCaptchaAbortController.signal
+  // );
 
-  if (!loginCaptchaValue) {
-    util.infoMessage(page, `Manual captcha required`);
-    if ((loginRetries[selectedTraveler] || 0) < 3) {
-      if (!loginRetries[selectedTraveler]) {
-        loginRetries[selectedTraveler] = 0;
-      }
-      loginRetries[selectedTraveler] += 1;
-      await loginPassenger(selectedTraveler);
-    }
-  } else {
-    util.infoMessage(page, `Login ...`);
-    const loginButtonSelector =
-      "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.mt-5.w-100";
-    await util.clickWhenReady(loginButtonSelector, page);
-    try {
-      await page
-        .waitForSelector(
-          "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
-          { timeout: 2000 }
-        )
-        .catch(() => {});
-      const loginFailedMessage = await page.$eval(
-        "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
-        (el) => el.innerText
-      );
-      if (loginFailedMessage) {
-        await kea.updatePassenger(
-          data.system.accountId,
-          passenger.passportNumber,
-          {
-            mofaNumber: `LOGIN-FAILED-${moment().format("DD-MMM-YY")}`,
-            "submissionData.nsh.status": "Rejected",
-            "submissionData.nsh.rejectionReason": loginFailedMessage,
-          }
-        );
-        if (loginFailedMessage.includes("not verified")) {
-          await page.click(
-            "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button"
-          );
-        }
-        loginRetries[selectedTraveler] += 1;
-        await loginPassenger(selectedTraveler);
-      }
-    } catch {}
-  }
+  // if (!loginCaptchaValue) {
+  //   util.infoMessage(page, `Manual captcha required`);
+  //   if ((loginRetries[selectedTraveler] || 0) < 3) {
+  //     if (!loginRetries[selectedTraveler]) {
+  //       loginRetries[selectedTraveler] = 0;
+  //     }
+  //     loginRetries[selectedTraveler] += 1;
+  //     await loginPassenger(selectedTraveler);
+  //   }
+  // } else {
+  //   util.infoMessage(page, `Login ...`);
+  //   const loginButtonSelector =
+  //     "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > input.btn.btn-main.mt-5.w-100";
+  //   await util.clickWhenReady(loginButtonSelector, page);
+  //   try {
+  //     await page
+  //       .waitForSelector(
+  //         "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
+  //         { timeout: 2000 }
+  //       )
+  //       .catch(() => { });
+  //     const loginFailedMessage = await page.$eval(
+  //       "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-text",
+  //       (el) => el.innerText
+  //     );
+  //     if (loginFailedMessage) {
+  //       await kea.updatePassenger(
+  //         data.system.accountId,
+  //         passenger.passportNumber,
+  //         {
+  //           mofaNumber: `LOGIN-FAILED-${moment().format("DD-MMM-YY")}`,
+  //           "submissionData.nsh.status": "Rejected",
+  //           "submissionData.nsh.rejectionReason": loginFailedMessage,
+  //         }
+  //       );
+  //       if (loginFailedMessage.includes("not verified")) {
+  //         await page.click(
+  //           "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button"
+  //         );
+  //       }
+  //       loginRetries[selectedTraveler] += 1;
+  //       await loginPassenger(selectedTraveler);
+  //     }
+  //   } catch { }
+  // }
 }
 
 async function uploadDocuments(selectedTraveler) {
@@ -2408,7 +2422,7 @@ async function pasteOTPCode(err, code) {
               (el.innerText = `Checking email ${i}/00:02:30 فحص البريد`),
             formatTime(emailCodeCounter * 3)
           );
-        } catch {}
+        } catch { }
         getOTPCode();
       } else {
         const passenger = data.travellers[util.getSelectedTraveler()];
@@ -2444,7 +2458,7 @@ async function pasteOTPCode(err, code) {
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
         emailCodeCounter
       );
-    } catch {}
+    } catch { }
 
     return;
   }
@@ -2455,7 +2469,7 @@ async function pasteOTPCode(err, code) {
     page,
     [
       {
-        selector: "#otp-inputs > input.form-control.signup-otp.me-1",
+        selector: "#otp-inputs > input:nth-child(2)",
         value: () => code,
       },
     ],
@@ -2484,7 +2498,7 @@ async function pasteOTPCodeCompanion(err, code) {
               (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
             emailCodeCounter
           );
-        } catch {}
+        } catch { }
         getCompanionOTPCode();
       }
     }, 3000);
@@ -2507,7 +2521,7 @@ async function pasteOTPCodeCompanion(err, code) {
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
         emailCodeCounter
       );
-    } catch {}
+    } catch { }
 
     return;
   }
@@ -2592,7 +2606,7 @@ async function summaryResidence(selectedTraveler) {
     } else {
       checkIfNotChecked("#expiryDateNotSpecified");
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 async function completeRegistration(selectedTraveler) {
@@ -2741,7 +2755,7 @@ async function completeRegistration(selectedTraveler) {
         "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div:nth-child(2) > button"
       );
       await handleDialogBox(passenger);
-    } catch {}
+    } catch { }
   }
 }
 
@@ -2793,12 +2807,11 @@ async function runParallel() {
         return `"${v}"`;
       }
       if (v.startsWith("--submissionId")) {
-        return `${v} --passengerIds=${
-          passenger.id
-        } --auto -windowed --index=${index}/${Math.min(
-          leads.length,
-          MAX_PARALLEL
-        )} --monitor-width=${monitorWidth} --monitor-height=${monitorHeight} --visualHeadless`;
+        return `${v} --passengerIds=${passenger.id
+          } --auto -windowed --index=${index}/${Math.min(
+            leads.length,
+            MAX_PARALLEL
+          )} --monitor-width=${monitorWidth} --monitor-height=${monitorHeight} --visualHeadless`;
       }
       if (v.startsWith("--passengerId")) {
         return ` --visualHeadless `;

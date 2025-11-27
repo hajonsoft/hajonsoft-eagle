@@ -299,10 +299,40 @@ async function connectOrOpenDisconnectedChrome() {
   if (nshMode) {
     const remoteDebuggingPort = process.env.REMOTE_DEBUGGING_PORT || "9222";
     const browserURL = `http://127.0.0.1:${remoteDebuggingPort}`;
+    
+    // Calculate defaultViewport for NSH mode connection
+    let defaultViewport = null;
+    if (process.argv.includes("--auto")) {
+      const autoIndexArg = process.argv.find((c) => c.startsWith("--index"));
+      if (autoIndexArg) {
+        const indexArray = autoIndexArg.split("=")?.[1]?.split("/");
+        if (indexArray.length === 2) {
+          const monitorWidth = parseInt(
+            process.argv
+              .find((c) => c.startsWith("--monitor-width"))
+              ?.split("=")?.[1]
+          );
+          const monitorHeight = parseInt(
+            process.argv
+              .find((c) => c.startsWith("--monitor-height"))
+              ?.split("=")?.[1]
+          );
+          
+          if (monitorWidth && monitorHeight) {
+            defaultViewport = {
+              width: monitorWidth,
+              height: monitorHeight,
+            };
+          }
+        }
+      }
+    }
+    
     try {
       console.log(`NSH Mode: Attempting to connect to browser at ${browserURL}`);
       browser = await puppeteer.connect({
-        browserURL
+        browserURL,
+        defaultViewport
       });
       console.log("NSH Mode: Successfully connected to existing browser session");
       return true;
@@ -994,9 +1024,19 @@ const getRange = () => {
   }
   return "";
 };
-function getSelectedTraveler() {
+function getSelectedTraveler(override) {
   const data = JSON.parse(fs.readFileSync(getPath("data.json"), "utf8"));
-  const value = global.run.selectedTraveller;
+  let value = global.run.selectedTraveller;
+  if (override) {
+    const overrideFile = getPath(override);
+    if (fs.existsSync(overrideFile)) {
+      const overrideValue = fs.readFileSync(overrideFile, "utf8");
+      value = overrideValue;
+    } else {
+      fs.writeFileSync(getPath(override), "0", "utf8");
+      value = 0;
+    }
+  }
   if (parseInt(value) >= data.travellers.length) {
     // Force reset the counter and avoid looping
     if (global.headless) {
@@ -1020,15 +1060,18 @@ function getSelectedTraveler() {
   return value;
 }
 
-function incrementSelectedTraveler(overrideValue) {
-  const selectedTraveler = getSelectedTraveler();
+function incrementSelectedTraveler(override) {
+  const selectedTraveler = getSelectedTraveler(override);
   const nextTraveler = parseInt(selectedTraveler) + 1;
-  setSelectedTraveller(nextTraveler);
+  setSelectedTraveller(nextTraveler, override);
   return nextTraveler;
 }
 
-function setSelectedTraveller(value) {
-  getSelectedTraveler(); // Make sure the file exists
+function setSelectedTraveller(value, override) {
+  getSelectedTraveler(override); // Make sure the file exists
+  if (override) {
+    fs.writeFileSync(getPath(override, value))
+  }
   kea.updateSelectedTraveller(value);
   return value;
 }
