@@ -855,6 +855,7 @@ async function controller(page, structure, travellers) {
         structure.controller.nskAction || (() => { })
       );
       await page.exposeFunction("closeBrowser", closeBrowser);
+      await page.exposeFunction("handleCloseClick", handleCloseClick);
     }
   } catch (err) {
     // console.log(err);
@@ -882,6 +883,28 @@ function getVisaCount() {
 }
 async function closeBrowser() {
   await browser.close();
+}
+
+async function handleCloseClick() {
+  try {
+    // Change controller background color to indicate closing
+    await page.evaluate(() => {
+      const eagleContainer = document.getElementById('eagle_container');
+      if (eagleContainer) {
+        eagleContainer.style.backgroundColor = '#FF6B6B'; // Red color to indicate closing
+      }
+    });
+    
+    // Wait a moment for visual feedback
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    page.reload();
+    process.exit(0);
+
+  } catch (error) {
+    console.log('Error refreshing page:', error);
+    process.exit(0);
+  }
 }
 async function commander(page, structure, travellers) {
   if (global.headless) {
@@ -1032,19 +1055,9 @@ const getRange = () => {
   }
   return "";
 };
-function getSelectedTraveler(override) {
+function getSelectedTraveler() {
   const data = JSON.parse(fs.readFileSync(getPath("data.json"), "utf8"));
   let value = global.run.selectedTraveller;
-  if (override) {
-    const overrideFile = getPath(override);
-    if (fs.existsSync(overrideFile)) {
-      const overrideValue = fs.readFileSync(overrideFile, "utf8");
-      value = overrideValue;
-    } else {
-      fs.writeFileSync(getPath(override), "0", "utf8");
-      value = 0;
-    }
-  }
   if (parseInt(value) >= data.travellers.length) {
     // Force reset the counter and avoid looping
     if (global.headless) {
@@ -1068,18 +1081,15 @@ function getSelectedTraveler(override) {
   return value;
 }
 
-function incrementSelectedTraveler(override) {
-  const selectedTraveler = getSelectedTraveler(override);
+function incrementSelectedTraveler() {
+  const selectedTraveler = getSelectedTraveler();
   const nextTraveler = parseInt(selectedTraveler) + 1;
-  setSelectedTraveller(nextTraveler, override);
+  setSelectedTraveller(nextTraveler);
   return nextTraveler;
 }
 
-function setSelectedTraveller(value, override) {
-  getSelectedTraveler(override); // Make sure the file exists
-  if (override) {
-    fs.writeFileSync(getPath(override, value))
-  }
+function setSelectedTraveller(value) {
+  getSelectedTraveler(); // Make sure the file exists
   kea.updateSelectedTraveller(value);
   return value;
 }
