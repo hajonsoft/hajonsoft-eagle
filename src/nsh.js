@@ -161,7 +161,7 @@ const config = [
     name: "signup-step1",
     url: URLS.SIGN_UP,
     controller: {
-      selector: "#main-content > section > div > div > div.col-12.col-md-7.col-lg-5 > h1",
+      selector: "#main-nav",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -218,7 +218,7 @@ const config = [
     name: "complete-registration",
     regex: URLS.COMPLETE_REGISTRATION,
     controller: {
-      selector: "body > main > div.system > div > div > div.row > div > p",
+      selector: "#main-nav",
       name: "complete_registration",
       action: async () => {
         const selectedTraveler = await page.$eval(
@@ -242,7 +242,7 @@ const config = [
     controller: {
       name: "summary",
       selector:
-        "body > main > div.system > div > div.sys-page-title.px-3.py-4.mb-4 > div.row > div > p",
+        "#main-nav",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -277,7 +277,7 @@ const config = [
     controller: {
       name: "login",
       selector:
-        "#main-content > section > div > div > div.col-12.col-md-7.col-lg-5 > nav",
+        "#main-nav",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -300,7 +300,7 @@ const config = [
     controller: {
       name: "members",
       selector:
-        "body > main > div > div > div > div.profile-container.p-4.p-md-5 > div.profile-title.ps-4.pe-3",
+        "#main-nav",
       action: async () => {
         const selectedTraveler = await page.$eval(
           "#hajonsoft_select",
@@ -375,13 +375,7 @@ async function send(sendData) {
     return;
   }
   page = await util.initPage(config, onContentLoaded);
-  const url = await page.url();
-  if (url === URLS.SIGN_UP) {
-    await signup_step1(util.getSelectedTraveler("nsh"));
-  } else {
-    await loginPassenger(util.getSelectedTraveler("nsh"));
-
-  }
+  onContentLoaded();
 }
 let timeoutId;
 const MAX_WAIT_TIME_MS = 600000;
@@ -1799,7 +1793,7 @@ async function handleDialogBox(passenger, saveReason = true) {
 
 function suggestEmail(selectedTraveler, companion = false) {
   const passenger = data.travellers[selectedTraveler];
-  if (passenger.email ) {
+  if (passenger.email) {
     return passenger.email.split("/")[0];
   }
   const domain = data.system.username.includes("@")
@@ -2690,9 +2684,9 @@ async function completeRegistration(selectedTraveler) {
         value: (row) => nationality,
       },
       {
-        selector: "#PassportSummaryViewModel_CityId",
+        selector: "#PassportSummaryViewModel_CityName",
         value: () =>
-          submission.integration.city || "3ccb61fc-5947-4469-915f-884ed1b9666d",
+          data.system.country.name,
       },
     ],
     passenger
@@ -2701,33 +2695,33 @@ async function completeRegistration(selectedTraveler) {
   await labeler(
     page,
     passenger.dob.dmmmy,
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(11) > div > div.col-md-6.font-semibold.align-self-center"
+    "#summary-from > div:nth-child(1) > div:nth-child(2) > div.row > div > div > div:nth-child(11) > div > label"
   );
   await labeler(
     page,
     passenger.gender,
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(13) > div > div.col-md-6.font-semibold.align-self-center"
+    "#summary-from > div:nth-child(1) > div:nth-child(2) > div.row > div > div > div:nth-child(13) > div > label"
   );
   await labeler(
     page,
     passenger.passportNumber,
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(15) > div > div.col-md-6.font-semibold.align-self-center"
+    "#summary-from > div:nth-child(1) > div:nth-child(2) > div.row > div > div > div:nth-child(15) > div > label"
   );
 
   await labeler(
     page,
     passenger.passIssueDt.dmmmy,
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(17) > div > div.col-md-6.font-semibold.align-self-center"
+    "#summary-from > div:nth-child(1) > div:nth-child(2) > div.row > div > div > div:nth-child(17) > div > label"
   );
   await labeler(
     page,
     passenger.passExpireDt.dmmmy,
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(18) > div > div.col-md-6.font-semibold.align-self-center"
+    "#summary-from > div:nth-child(1) > div:nth-child(2) > div.row > div > div > div:nth-child(18) > div > label"
   );
   await labeler(
     page,
     passenger.placeOfIssue,
-    "#summary-from > div.system-content.p-3 > div.d-flex.flex-column-reverse.flex-lg-row.mb-5 > div.col-xl-9.col-lg-8 > div:nth-child(1) > ul > li:nth-child(16) > div > div.col-md-6.font-semibold.align-self-center"
+    "#summary-from > div:nth-child(1) > div:nth-child(2) > div.row > div > div > div:nth-child(16) > div > label"
   );
 
   await enterDate("#PassportSummaryViewModel_BirthDate", passenger.dob.dmmmy);
