@@ -343,24 +343,32 @@ async function connectOrOpenDisconnectedChrome() {
       // Launch Chrome in remote debugging mode with platform-specific command
       const { exec } = require("child_process");
       const targetUrl = "https://hajj.nusuk.sa";
+      
+      // Platform-specific user data directory
+      let userDataDir;
+      if (os.platform() === "win32") {
+        userDataDir = path.join(os.tmpdir(), "chrome-profile");
+      } else {
+        userDataDir = "/tmp/chrome-profile";
+      }
 
       let chromeCommand;
       if (os.platform() === "darwin") {
         // macOS command
         chromeCommand = `/Applications/Google\\ Chrome.app/Contents/MacOS/Google\\ Chrome \
           --remote-debugging-port=${remoteDebuggingPort} \
-          --user-data-dir=/tmp/chrome-profile \
+          --user-data-dir="${userDataDir}" \
           "${targetUrl}"`;
       } else if (os.platform() === "win32") {
         // Windows command
         const chromePath = getChromePath();
         chromeCommand = `"${chromePath}" --remote-debugging-port=${remoteDebuggingPort} \
-          --user-data-dir=/tmp/chrome-profile \
+          --user-data-dir="${userDataDir}" \
           "${targetUrl}"`;
       } else {
         // Linux command
         chromeCommand = `google-chrome --remote-debugging-port=${remoteDebuggingPort} \
-          --user-data-dir=/tmp/chrome-profile \
+          --user-data-dir="${userDataDir}" \
           "${targetUrl}" &`;
       }
 
