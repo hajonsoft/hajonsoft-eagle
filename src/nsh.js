@@ -906,18 +906,31 @@ async function pageContentHandler(currentConfig) {
       break;
     case "upload-documents":
       // Close the modal by clicking this element if it is in the DOM
-      const documentGuideSelector =
-        "#uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span";
-      await util.clickWhenReady(documentGuideSelector, page);
+      // const documentGuideSelector =
+      //   "#uploadDocumentsGuide > div > div > div > div.d-flex.align-items-center.justify-content-between > span";
+      // await util.clickWhenReady(documentGuideSelector, page);
 
-      await page.evaluate(() => {
-        window.scrollTo(0, document.body.scrollHeight);
+      // await page.evaluate(() => {
+      //   window.scrollTo(0, document.body.scrollHeight);
+      // });
+
+      await util.commander(page, {
+        controller: {
+          selector:
+            "#upload-documents-description",
+          title: "Upload Original",
+          arabicTitle: "تحميل الأصلي",
+          name: "uploadOriginalCommander",
+          action: async () => {
+            await uploadDocuments(util.getSelectedTraveler(), true);
+          },
+        },
       });
 
       await util.commander(page, {
         controller: {
           selector:
-            "body > main > div.system > div > div.sys-page-title.px-3.py-4.mb-4 > div.row > div.align-self-end.col-md-6",
+            "#dga-inner-page-header > div > div > div > a",
           title: "Upload Sample",
           arabicTitle: "تحميل عينات",
           name: "uploadDocumentsCommander",
@@ -926,6 +939,7 @@ async function pageContentHandler(currentConfig) {
           },
         },
       });
+
       // in Companion mode do not upload documents
       if (!clicked[passenger.passportNumber + "documents"]) {
         clicked[passenger.passportNumber + "documents"] = true;
@@ -2022,7 +2036,7 @@ async function addNewMember(selectedTraveler) {
   });
 
   await page.$eval(
-    "#OTPModal > div > div > div > form > label",
+    "#otp-inputs > input:nth-child(1)",
     (el, params) =>
       (el.innerText = `${params[0].split("/")[0]} from (admin@${params[1]})`),
     [passenger.email || emailAddress, data.system.username]
@@ -2218,7 +2232,7 @@ async function loginPassenger(selectedTraveler) {
   // }
 }
 
-async function uploadDocuments(selectedTraveler) {
+async function uploadDocuments(selectedTraveler, isUseOriginal = false) {
   const passenger = data.travellers[selectedTraveler];
   const isPassportNotUploaded = await page.$("#passportPhoto");
   if (isPassportNotUploaded) {
@@ -2226,16 +2240,27 @@ async function uploadDocuments(selectedTraveler) {
     //   timeout: 0,
     // });
 
-    const resizedPassportPath = await util.downloadAndResizeImage(
-      passenger,
-      400,
-      800,
-      "passport",
-      400,
-      1024,
-      true
-    );
-    await util.commitFile("#passportPhoto", resizedPassportPath);
+    if (isUseOriginal) {
+      const passportPath = path.join(
+        util.passportsFolder,
+        `${passenger.passportNumber}.jpg`
+      );
+      await util.downloadImage(passenger.images.passport, passportPath);
+
+      await util.commitFile("#passportPhoto", passportPath);
+      return;
+    } else {
+      const resizedPassportPath = await util.downloadAndResizeImage(
+        passenger,
+        400,
+        800,
+        "passport",
+        400,
+        1024,
+        true
+      );
+      await util.commitFile("#passportPhoto", resizedPassportPath);
+    }
   }
 
   // const passportPath = path.join(
@@ -2526,7 +2551,7 @@ async function pasteOTPCodeCompanion(err, code) {
     page,
     [
       {
-        selector: "#otp-inputs > input.form-control.form-input-otp.me-1",
+        selector: "#otp-inputs > input:nth-child(1)",
         value: () => code,
       },
     ],
