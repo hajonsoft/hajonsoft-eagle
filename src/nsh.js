@@ -600,11 +600,7 @@ async function pageContentHandler(currentConfig) {
         passenger
       );
       if (!clicked?.[currentConfig.name]?.[passenger.passportNumber]) {
-        const createAccountSelector =
-          "body > main > div.signup > div > div.container-lg.container-fluid.position-relative.h-100 > div > div > div.row > div > form > button";
 
-        await util.clickWhenReady(createAccountSelector, page);
-        // save the email only at this stage
         await kea.updatePassenger(
           data.system.accountId,
           passenger.passportNumber,
@@ -613,6 +609,12 @@ async function pageContentHandler(currentConfig) {
             phone: passenger.mobileNumber,
           }
         );
+
+        const createAccountSelector =
+          "body > div.swal-overlay.swal-overlay--show-modal > div > div.swal-footer > div > button";
+
+        await util.clickWhenReady(createAccountSelector, page);
+        // save the email only at this stage
         clicked[currentConfig.name] = {};
         clicked[currentConfig.name][passenger.passportNumber] = true;
       }
