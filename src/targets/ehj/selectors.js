@@ -4,7 +4,7 @@ const { add } = require("lodash");
 const SELECTORS = {
   login: {
     username:
-      "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.form-mb > g-input-text > div > input",
+      "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.form-mb > g-input-text > div > div.input-text-wrapper-class > input",
     password:
       "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.mb-2 > p-password > div > input",
   },
@@ -24,10 +24,12 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card > div > div.body.collapse.show > div.choices-container.justify-content-start > div:nth-child(2) > label > div > p-radiobutton > div > div.p-radiobutton-box",
     manualEntry:
       "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card > div > div.body.collapse.show > div.choices-container.justify-content-start > div:nth-child(1) > label > div > p-radiobutton > div > div.p-radiobutton-box",
+    helloControllerHeader:
+      "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card:nth-child(1) > div > div.card-header.mb-0.cursor-pointer.d-flex.justify-content-between.align-items-center.ng-star-inserted",
     startScanButton:
       "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div.passport-upload.mb-4.ng-star-inserted > button",
     passportPhotoButton:
-      "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div > button",
+      "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > div:nth-child(6) > button",
     passportPhotoInput:
       "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card.ng-star-inserted > div > div.body.collapse.show > div > div > div.col-md-8 > input",
     confirmScanButton:

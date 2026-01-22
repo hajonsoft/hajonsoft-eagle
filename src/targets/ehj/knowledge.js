@@ -2,7 +2,7 @@ const { SELECTORS } = require("./selectors.js");
 const {
   feedPlant,
   secure,
-  showController,
+  showHelloController,
   whereDoYouLive,
   tellMeAboutYourSelf,
   recheck,
@@ -36,15 +36,15 @@ const knowledge = {
       needs: [SELECTORS.login.username, SELECTORS.login.password],
       action: (e) => feedPlant(e),
     },
-    challenge: {
-      url: `pub/login`,
-      needs: [
-        SELECTORS.loginOtp.firstDigit,
-        SELECTORS.loginOtp.label,
-        SELECTORS.loginOtp.h1,
-      ],
-      action: (e) => secure(e),
-    },
+    // challenge: {
+    //   url: `pub/login`,
+    //   needs: [
+    //     SELECTORS.loginOtp.firstDigit,
+    //     SELECTORS.loginOtp.label,
+    //     SELECTORS.loginOtp.h1,
+    //   ],
+    //   action: (e) => secure(e),
+    // },
     welcome: {
       url: `protected/hm/dashboard/requestsDashboard`,
       // should skip in automation
@@ -55,7 +55,7 @@ const knowledge = {
         SELECTORS.dataEntry.automaticScan,
         SELECTORS.dataEntry.manualEntry,
       ],
-      action: (e) => showController(e),
+      action: (e) => showHelloController(e),
     },
     edit: {
       url: `protected-applicant-st/add/Identity-and-residence\?id=`,

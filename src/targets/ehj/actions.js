@@ -13,13 +13,13 @@ let howManyTimes = 0;
 let mind = null;
 let sent = {};
 
-async function showController() {
+async function showHelloController() {
   await util.controller(
     garden.soil,
     {
       controller: {
         selector:
-          "#content > div > app-applicant-add > app-data-entry-method > div > app-main-card:nth-child(1) > div > div.card-header.mb-0.cursor-pointer.ng-star-inserted > h3",
+          SELECTORS.dataEntry.helloControllerHeader,
         action: async () => {
           const selectedTraveler = await garden.soil.$eval(
             "#hajonsoft_select",
@@ -816,7 +816,7 @@ async function enterGarden() {
   await garden.soil.click(SELECTORS.groupList.newGroupButton);
 }
 module.exports = {
-  showController,
+  showHelloController,
   showEditController,
   eatApple,
   feedPlant,
