@@ -32,19 +32,19 @@ function getLogFile() {
 
 let startTime;
 let autoMode = true;
-const defaultDomain = "https://umrahmasar.nusuk.sa/bsp";
+const defaultDomain = "https://masar.nusuk.sa";
 const config = [
   {
     name: "login",
-    url: `${defaultDomain}/Identity/Index`,
-    regex: `${defaultDomain}/Identity/Index`,
+    url: `${defaultDomain}/pub/login`,
+    regex: `${defaultDomain}/pub/login`,
     details: [
       {
-        selector: "#userName",
+        selector: "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.form-mb > g-input-text > div > div.input-text-wrapper-class > input",
         value: (row) => row.username,
       },
       {
-        selector: "#password",
+        selector: "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.mb-2 > p-password > div > input",
         value: (row) => row.password,
       },
     ],
@@ -332,20 +332,20 @@ async function pageContentHandler(currentConfig) {
   switch (currentConfig.name) {
     case "login":
       await util.commit(page, currentConfig.details, data.system);
-      const code = await util.commitCaptchaTokenWithSelector(
-        page,
-        "#img-captcha",
-        "#CaptchaCode",
-        5
-      );
-      if (
-        code &&
-        data.system.username &&
-        data.system.password &&
-        !downloadVisaMode
-      ) {
-        await page.click("#kt_login_signin_submit");
-      }
+      // const code = await util.commitCaptchaTokenWithSelector(
+      //   page,
+      //   "#img-captcha",
+      //   "#CaptchaCode",
+      //   5
+      // );
+      // if (
+      //   code &&
+      //   data.system.username &&
+      //   data.system.password &&
+      //   !downloadVisaMode
+      // ) {
+      //   await page.click("#kt_login_signin_submit");
+      // }
       break;
     case "otp":
       if (!data.system.ehajCode) {
