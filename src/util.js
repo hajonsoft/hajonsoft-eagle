@@ -293,9 +293,16 @@ async function initPage(config, onContentLoaded, data) {
 }
 
 async function connectOrOpenDisconnectedChrome() {
+  // Configuration for systems that require remote debugging mode
+  const systemConfigs = {
+    nsh: { targetUrl: "https://hajj.nusuk.sa" },
+    nsk: { targetUrl: "https://masar.nusuk.sa" }
+  };
+
   const rawData = fs.readFileSync(getPath("data.json"), "utf8");
   const dataJson = JSON.parse(rawData);
-  const nshMode = dataJson?.system?.name === "nsh";
+  const systemName = dataJson?.system?.name;
+  const nshMode = systemConfigs.hasOwnProperty(systemName);
   if (nshMode) {
     const remoteDebuggingPort = process.env.REMOTE_DEBUGGING_PORT || "9222";
     const browserURL = `http://127.0.0.1:${remoteDebuggingPort}`;
@@ -342,7 +349,7 @@ async function connectOrOpenDisconnectedChrome() {
 
       // Launch Chrome in remote debugging mode with platform-specific command
       const { exec } = require("child_process");
-      const targetUrl = "https://hajj.nusuk.sa";
+      const targetUrl = systemConfigs[systemName]?.targetUrl || "https://hajj.nusuk.sa";
       
       // Platform-specific user data directory
       let userDataDir;
