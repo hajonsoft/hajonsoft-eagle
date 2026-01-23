@@ -37,6 +37,7 @@ const SELECTORS = {
     nextButton:
       "#content > div > app-applicant-add > app-data-entry-method > action-btns > div > div > button",
     spinnerImage: "g-spinner > div > img",
+    editControllerLabel: "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.card-header.mb-0.cursor-pointer.d-flex.justify-content-between.align-items-center.ng-star-inserted",
   },
   identityAndResidence: {
     nationalityHeader: "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(1) > div > app-main-card > div > div.card-header.mb-0.cursor-pointer.ng-star-inserted > h3",
@@ -53,9 +54,11 @@ const SELECTORS = {
     PassIssueDate:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > label",
     placeOfIssue:
-      "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(5) > g-input-text > div > input",
+      "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(5) > g-input-text > div > div.input-text-wrapper-class > input",
     passIssueDataCalendarField:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > p-calendar > span > input",
+    placeOfBirth:
+      "#content > div > app-applicant-add > app-identity-and-residence > form > div.ng-pristine.ng-invalid.ng-touched > app-main-card > div > div.body.collapse.show > div:nth-child(1) > div:nth-child(8) > g-input-text > div > div.input-text-wrapper-class > input",
     residenceIdImage:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div.row > div:nth-child(1) > g-attachment-upload > div.form-control.file-upload.enabled > div.upload-info-container > input",
     residenceIdNumber:
@@ -82,7 +85,7 @@ const SELECTORS = {
     lastNameArabic:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div:nth-child(2) > div:nth-child(7) > g-input-text > div > input",
     email:
-      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div.col-md-12 > div > div > g-input-text > div > input",
+      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(3) > app-main-card > div > div.body.collapse.show > div > div.col-md-12 > div > div > g-input-text > div > div.input-text-wrapper-class > input",
     maritalStatusXPath:
       '//*[@id="content"]/div/app-applicant-add/app-add-basic-data/form/div[1]/div[1]/app-main-card/div/div[2]/div[2]/div[5]/g-dropdown',
     countryCodeXPath:
@@ -90,17 +93,17 @@ const SELECTORS = {
     placeOfBirth:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div:nth-child(2) > div:nth-child(8) > g-input-text > div > input",
     placeOfBirthLabel:
-      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div:nth-child(2) > div:nth-child(8) > g-input-text > div > label",
+      "#content > div > app-applicant-add > app-identity-and-residence > form > div.ng-pristine.ng-invalid.ng-touched > app-main-card > div > div.body.collapse.show > div:nth-child(1) > div:nth-child(8) > g-input-text > div > label",
     residentialAddress:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div:nth-child(2) > div:nth-child(6) > g-input-text > div > input",
     phoneNumber:
-      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > div > div.col-md-8 > g-input-text > div > input",
+      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(3) > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > div > div.col-md-8 > g-input-text > div > div.input-text-wrapper-class > input",
     zipCode:
-      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div:nth-child(4) > g-input-text > div > input",
+      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(3) > app-main-card > div > div.body.collapse.show > div > div:nth-child(4) > g-input-text > div > div > input",
     mailBox:
-      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div:nth-child(5) > g-input-text > div > input",
+      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(3) > app-main-card > div > div.body.collapse.show > div > div:nth-child(5) > g-input-text > div > div > input",
     photoInput:
-      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div.row.mb-3 > div:nth-child(1) > g-attachment-upload > div.form-control.file-upload.enabled > div.upload-info-container > input",
+      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div > div:nth-child(1) > g-attachment-upload > div.form-control.file-upload.enabled > div.upload-info-container > input",
     referenceRadio:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.col-md-12 > app-main-card > div > div.body.collapse.show > div > div.col-md-12.mt-3 > div > div.choice-box.flex-row.align-items-ceter.d-flex.align-items-center.justify-content-center.gap-3 > p-radiobutton > div > div.p-radiobutton-box",
     nextButton:
@@ -152,11 +155,11 @@ const SELECTORS = {
     vaccineTakenYes:
       "#content > div > app-applicant-add > app-questionnaire > app-main-card > div > div.body.collapse.show > form > div > div:nth-child(16) > div > div > div.main-question > div > div > div:nth-child(1) > label > p-radiobutton > div > div.p-radiobutton-box.p-highlight",
     vaccineClarificationInput:
-      "#content > div > app-applicant-add > app-questionnaire > app-main-card > div > div.body.collapse.show > form > div > div:nth-child(16) > div > div > div.question-details.ng-star-inserted > div > div > g-text-area > div:nth-child(2) > textarea",
+      "#content > div > app-applicant-add > app-questionnaire > app-main-card > div > div.body.collapse.show > form > div > div:nth-child(16) > div > div > div.question-details.ng-star-inserted > div > div > g-text-area > div:nth-child(2) > div.input-text-area-wrapper-class > textarea",
     vaccinePledgeYes:
       "#content > div > app-applicant-add > app-questionnaire > app-main-card > div > div.body.collapse.show > form > div > div:nth-child(17) > div > div > div.main-question > div > div > div:nth-child(1) > label > p-radiobutton > div > div.p-radiobutton-box.p-highlight",
     vaccinePledgeClarificationInput:
-      "#content > div > app-applicant-add > app-questionnaire > app-main-card > div > div.body.collapse.show > form > div > div:nth-child(17) > div > div > div.question-details.ng-star-inserted > div > div > g-text-area > div:nth-child(2) > textarea",
+      "#content > div > app-applicant-add > app-questionnaire > app-main-card > div > div.body.collapse.show > form > div > div:nth-child(17) > div > div > div.question-details.ng-star-inserted > div > div > g-text-area > div:nth-child(2) > div.input-text-area-wrapper-class > textarea",
     nextButton:
       "#content > div > app-applicant-add > app-questionnaire > action-btns > div > div > button",
   },

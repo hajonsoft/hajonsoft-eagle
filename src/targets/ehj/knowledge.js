@@ -82,24 +82,45 @@ const knowledge = {
           selector: SELECTORS.identityAndResidence.placeOfIssue,
           value: (row) => row.placeOfIssue,
         },
+        {
+          selector: SELECTORS.identityAndResidence.placeOfBirth,
+          value: (row) => row.placeOfBirth || row.nationality.name, 
+        },
       ],
       action: (e) => whereDoYouLive(e),
     },
     moreGettingToKnow: {
       url: `protected-applicant-st/add/basic-data`,
-      needs: [SELECTORS.basicData.fatherName, SELECTORS.basicData.email],
+      needs: [SELECTORS.basicData.email],
       slots: [
         {
           selector: SELECTORS.basicData.email,
           value: (row) => row.email,
         },
         {
-          selector: SELECTORS.basicData.placeOfBirth,
-          value: (row) => row.birthPlace || row.nationality.name,
+          selector: SELECTORS.basicData.phoneNumber,
+          value: (row) => "9495221000",
         },
         {
-          selector: SELECTORS.basicData.residentialAddress,
-          value: (row) => row.birthPlace,
+          selector: SELECTORS.basicData.zipCode,
+          value: (row) => "12345",
+        },
+        {
+          selector: SELECTORS.basicData.mailBox,
+          value: (row) => "12345",
+        },
+      ],
+      action: (e) => {
+        tellMeAboutYourSelf(e);
+      },
+    },
+    moreGettingToKnowEdit: {
+      url: `protected-applicant-st/add/basic-data\?id=`,
+      needs: [SELECTORS.basicData.email],
+      slots: [
+        {
+          selector: SELECTORS.basicData.email,
+          value: (row) => row.email,
         },
         {
           selector: SELECTORS.basicData.phoneNumber,
@@ -192,7 +213,7 @@ const knowledge = {
       action: (e) => {
         feedPlant(e);
       },
-    }
+    },
   },
   begin: (garden) => {
     soil = garden.soil;

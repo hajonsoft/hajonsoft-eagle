@@ -18,12 +18,11 @@ async function showHelloController() {
     garden.soil,
     {
       controller: {
-        selector:
-          SELECTORS.dataEntry.helloControllerHeader,
+        selector: SELECTORS.dataEntry.helloControllerHeader,
         action: async () => {
           const selectedTraveler = await garden.soil.$eval(
             "#hajonsoft_select",
-            (el) => el.value
+            (el) => el.value,
           );
           if (selectedTraveler) {
             util.setSelectedTraveller(selectedTraveler);
@@ -32,24 +31,22 @@ async function showHelloController() {
         },
       },
     },
-    garden.will.travellers
+    garden.will.travellers,
   );
 
   await eatApple();
 }
-
 
 async function showEditController() {
   await util.controller(
     garden.soil,
     {
       controller: {
-        selector:
-          "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(1) > div > app-main-card > div > div.card-header.mb-0.cursor-pointer.ng-star-inserted > h3",
+        selector: SELECTORS.dataEntry.editControllerHeader,
         action: async () => {
           const selectedTraveler = await garden.soil.$eval(
             "#hajonsoft_select",
-            (el) => el.value
+            (el) => el.value,
           );
           if (selectedTraveler) {
             util.setSelectedTraveller(selectedTraveler);
@@ -58,9 +55,8 @@ async function showEditController() {
         },
       },
     },
-    garden.will.travellers
+    garden.will.travellers,
   );
-
 }
 
 async function eatApple() {
@@ -83,14 +79,6 @@ async function simulateScan(paxNumber) {
   await scan(paxNumber);
   await new Promise((resolve) => setTimeout(resolve, 2000));
   await garden.soil.waitForSelector(SELECTORS.dataEntry.passportPhotoButton);
-  const areYouReady = await util.downloadAndResizeImage(
-    human,
-    200,
-    200,
-    "passport"
-  );
-  await util.commitFile(SELECTORS.dataEntry.passportPhotoInput, areYouReady);
-  await new Promise((resolve) => setTimeout(resolve, 2000));
   try {
     const success = await waitForPleaseWaitToDisappear();
     if (success) {
@@ -99,7 +87,7 @@ async function simulateScan(paxNumber) {
       });
       await util.clickWhenReady(
         SELECTORS.dataEntry.confirmScanButton,
-        garden.soil
+        garden.soil,
       );
 
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -114,12 +102,22 @@ async function simulateScan(paxNumber) {
       }
     }
   } catch {}
+
+  const areYouReady = await util.downloadAndResizeImage(
+    human,
+    600,
+    800,
+    "passport",
+  );
+  console.log("📢[ehj.js:464]: resized passport location: ", areYouReady);
+  await util.commitFile(SELECTORS.dataEntry.passportPhotoInput, areYouReady);
+  await new Promise((resolve) => setTimeout(resolve, 2000));
 }
 
 async function scan(paxNumber) {
   await util.infoMessage(
     garden.soil,
-    `${parseInt(paxNumber.toString()) + 1}/${garden.will.travellers.length}`
+    `${parseInt(paxNumber.toString()) + 1}/${garden.will.travellers.length}`,
   );
   if (paxNumber == "-1") {
     const browser = await garden.soil.browser();
@@ -184,7 +182,7 @@ async function moreAndMore(plant) {
   await markTheDate(SELECTORS.additionalData.dateIntoKSA, "18-05-2025");
   try {
     await garden.soil.$eval(SELECTORS.additionalData.notEmployed, (el) =>
-      el.click()
+      el.click(),
     );
   } catch {}
 
@@ -210,7 +208,7 @@ async function markTheDate(selector, value) {
         value: (row) => value,
       },
     ],
-    {}
+    {},
   );
 }
 async function advance() {
@@ -249,7 +247,7 @@ async function plantSeeds() {
         SELECTORS.loginOtp.label,
         (el, i) =>
           (el.innerText = `Checking email ${i}/50  فحص البريد الإلكتروني`),
-        howManyTimes
+        howManyTimes,
       );
       try {
         await someEmailStuff(
@@ -257,13 +255,13 @@ async function plantSeeds() {
           "Hajonsoft123",
           ["رمز التحقق|Verification Code", "رمز التحقق|Verification Code"],
           (err, code) => someSecurityThings(err, code),
-          "hajonsoft.net"
+          "hajonsoft.net",
         );
       } catch (e) {
         await util.infoMessage(
           garden.soil,
           "Manual code required or try again!",
-          e
+          e,
         );
       }
     }
@@ -281,7 +279,7 @@ async function someSecurityThings(err, code) {
         await garden.soil.$eval(
           SELECTORS.loginOtp.label,
           (el, message) => (el.innerText = message),
-          err
+          err,
         );
         return;
       }
@@ -289,7 +287,7 @@ async function someSecurityThings(err, code) {
         SELECTORS.loginOtp.label,
         (el, i) =>
           (el.innerText = `Checking email ${i++}/50  فحص البريد الإلكتروني`),
-        howManyTimes
+        howManyTimes,
       );
     } catch {}
 
@@ -306,14 +304,14 @@ async function someSecurityThings(err, code) {
         value: () => code,
       },
     ],
-    {}
+    {},
   );
   clearInterval(mind);
   mind = null;
   await util.infoMessage(
     garden.soil,
     "Code has been pasted successfully",
-    null
+    null,
   );
 }
 
@@ -325,34 +323,44 @@ async function whereDoYouLive(e) {
     SELECTORS.identityAndResidence.PassIssueDate,
     (el, passportData) =>
       (el.textContent = `Passport Issue Date: ${passportData.passIssueDt.dd}-${passportData.passIssueDt.mm}-${passportData.passIssueDt.yyyy}`),
-    human
+    human,
   );
   await markTheDate(
     SELECTORS.identityAndResidence.passIssueDataCalendarField,
-    `${human.passIssueDt.dd}-${human.passIssueDt.mm}-${human.passIssueDt.yyyy}`
+    `${human.passIssueDt.dd}-${human.passIssueDt.mm}-${human.passIssueDt.yyyy}`,
   );
   await garden.soil.$eval(SELECTORS.identityAndResidence.placeOfIssue, (el) =>
-    el.click()
+    el.click(),
   );
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await selectDropdownByXPathOrFirstOption(
     SELECTORS.identityAndResidence.embassyXPath,
-    "PUT YOUR EMBASSY NAME HERE"
+    "PUT YOUR EMBASSY NAME HERE",
   );
   await selectDropdownByXPathAndText(
     SELECTORS.identityAndResidence.passportTypeXPath,
-    "Normal"
+    "Normal",
   );
+  await garden.soil.$eval(
+    SELECTORS.basicData.placeOfBirthLabel,
+    (el, pass) => (el.textContent = `Place of Birth: ${pass.birthPlace || "N/A"}`),
+    garden.will.travellers[util.getSelectedTraveler()],
+  );
+  await selectDropdownByXPathAndText(
+    SELECTORS.basicData.maritalStatusXPath,
+    "Other",
+  );
+
   try {
     await garden.soil.$eval(SELECTORS.identityAndResidence.normalHajj, (el) =>
-      el.click()
+      el.click(),
     );
   } catch {}
 
   // Residence
   try {
     const residenceImage = await garden.soil.$(
-      SELECTORS.identityAndResidence.residenceIdImage
+      SELECTORS.identityAndResidence.residenceIdImage,
     );
     if (residenceImage) {
       // if (garden.will.travellers[util.getSelectedTraveler()].images.id) {
@@ -372,11 +380,10 @@ async function editResidence() {
   const human = garden.will.travellers[util.getSelectedTraveler()];
   await util.commit(garden.soil, e.slots, human);
 
-
   // Residence
   try {
     const residenceImage = await garden.soil.$(
-      SELECTORS.identityAndResidence.residenceIdImage
+      SELECTORS.identityAndResidence.residenceIdImage,
     );
     if (residenceImage) {
       // if (garden.will.travellers[util.getSelectedTraveler()].images.id) {
@@ -396,7 +403,7 @@ async function plantTomato(human) {
     human,
     200,
     200,
-    "id"
+    "id",
   );
   await util.commitFile(SELECTORS.dataEntry.residenceIdImage, myResidenceId);
   await util.commit(
@@ -407,16 +414,16 @@ async function plantTomato(human) {
         value: (row) => row.residenceId,
       },
     ],
-    human
+    human,
   );
 
   await markTheDate(
     SELECTORS.identityAndResidence.residenceIdIssueDate,
-    `${human.idIssueDt.dd}-${human.idIssueDt.mm}-${human.idIssueDt.yyyy}`
+    `${human.idIssueDt.dd}-${human.idIssueDt.mm}-${human.idIssueDt.yyyy}`,
   );
   await markTheDate(
     SELECTORS.identityAndResidence.residenceIdExpireDate,
-    `${human.idExpireDt.dd}-${human.idExpireDt.mm}-${human.idExpireDt.yyyy}`
+    `${human.idExpireDt.dd}-${human.idExpireDt.mm}-${human.idExpireDt.yyyy}`,
   );
 }
 
@@ -425,11 +432,11 @@ async function plantApple(human) {
     human,
     200,
     200,
-    "passport"
+    "passport",
   );
   await util.commitFile(
     SELECTORS.identityAndResidence.residenceIdImage,
-    myPassport
+    myPassport,
   );
   await util.commit(
     garden.soil,
@@ -439,15 +446,15 @@ async function plantApple(human) {
         value: (row) => row.passportNumber,
       },
     ],
-    human
+    human,
   );
   await markTheDate(
     SELECTORS.identityAndResidence.residenceIdIssueDate,
-    `${human.passIssueDt.dd}-${human.passIssueDt.mm}-${human.passIssueDt.yyyy}`
+    `${human.passIssueDt.dd}-${human.passIssueDt.mm}-${human.passIssueDt.yyyy}`,
   );
   await markTheDate(
     SELECTORS.identityAndResidence.residenceIdExpireDate,
-    `${human.passExpireDt.dd}-${human.passExpireDt.mm}-${human.passExpireDt.yyyy}`
+    `${human.passExpireDt.dd}-${human.passExpireDt.mm}-${human.passExpireDt.yyyy}`,
   );
   await garden.soil.click(SELECTORS.identityAndResidence.placeOfIssue);
 }
@@ -487,7 +494,7 @@ async function selectDropdownByXPathAndText(dropdownXPath, visibleText) {
         document,
         null,
         XPathResult.FIRST_ORDERED_NODE_TYPE,
-        null
+        null,
       ).singleNodeValue;
 
       if (!trigger) {
@@ -503,10 +510,10 @@ async function selectDropdownByXPathAndText(dropdownXPath, visibleText) {
       let found = false;
       for (let i = 0; i < 20; i++) {
         const allItems = Array.from(
-          document.querySelectorAll(".p-dropdown-item")
+          document.querySelectorAll(".p-dropdown-item"),
         );
         const option = allItems.find(
-          (el) => el.textContent.trim() === visibleText
+          (el) => el.textContent.trim() === visibleText,
         );
 
         if (option) {
@@ -524,7 +531,7 @@ async function selectDropdownByXPathAndText(dropdownXPath, visibleText) {
       if (!found) console.warn(`Option "${visibleText}" not found.`);
     },
     dropdownXPath,
-    visibleText
+    visibleText,
   );
 }
 
@@ -539,7 +546,7 @@ async function selectDropdownByXPathOrFirstOption(dropdownXPath, visibleText) {
         document,
         null,
         XPathResult.FIRST_ORDERED_NODE_TYPE,
-        null
+        null,
       ).singleNodeValue;
 
       if (!trigger) {
@@ -553,7 +560,7 @@ async function selectDropdownByXPathOrFirstOption(dropdownXPath, visibleText) {
       let option = null;
       for (let i = 0; i < 20; i++) {
         const allItems = Array.from(
-          document.querySelectorAll(".p-dropdown-item")
+          document.querySelectorAll(".p-dropdown-item"),
         );
         option =
           allItems.find((el) => el.textContent.trim() === visibleText) ||
@@ -573,7 +580,7 @@ async function selectDropdownByXPathOrFirstOption(dropdownXPath, visibleText) {
       console.warn(`No options found in dropdown at: ${dropdownXPath}`);
     },
     dropdownXPath,
-    visibleText
+    visibleText,
   );
 }
 
@@ -592,29 +599,19 @@ async function tellMeAboutYourSelf(e) {
         value: (row) => askWomanNumber(row),
       },
     ],
-    human
+    human,
   );
 
-  await garden.soil.$eval(
-    SELECTORS.basicData.placeOfBirthLabel,
-    (el, pass) => (el.textContent = `Place of Birth: ${pass.birthPlace}`),
-    garden.will.travellers[util.getSelectedTraveler()]
-  );
   await showPhotoId(human, e);
-
-  await selectDropdownByXPathAndText(
-    SELECTORS.basicData.maritalStatusXPath,
-    "Other"
-  );
 
   await new Promise((resolve) => setTimeout(resolve, 500));
   await selectDropdownByXPathOrFirstOption(
     SELECTORS.basicData.countryCodeXPath,
-    "PUT SOMETHING HERE"
+    "PUT SOMETHING HERE",
   );
   await new Promise((resolve) => setTimeout(resolve, 200));
   await garden.soil.$eval(SELECTORS.basicData.referenceRadio, (el) =>
-    el.click()
+    el.click(),
   );
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await clickNext(SELECTORS.basicData.nextButton);
@@ -625,7 +622,7 @@ async function showPhotoId(human, e) {
     human,
     480,
     640,
-    "photo"
+    "photo",
   );
   await util.commitFile(SELECTORS.basicData.photoInput, handInPocket);
 }
@@ -640,14 +637,14 @@ async function answerQuestions() {
       {
         selector: SELECTORS.questions.vaccineClarificationInput,
         value: () =>
-          "COVID-19, Yellow Fever, Meningococcal (ACWY), Hepatitis A & B, Influenza, Polio",
+          "COVID19 and Yellow Fever",
       },
       {
         selector: SELECTORS.questions.vaccinePledgeClarificationInput,
         value: () => "I CONFIRM",
       },
     ],
-    {}
+    {},
   );
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await util.clickWhenReady(SELECTORS.questions.nextButton, garden.soil);
@@ -728,7 +725,7 @@ async function recheck() {
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await garden.soil.evaluate(() => {
     const container = document.querySelector(
-      "#content > div > app-applicant-add > app-review-application"
+      "#content > div > app-applicant-add > app-review-application",
     );
     if (container) {
       const lastChild = container.lastElementChild;
@@ -754,7 +751,7 @@ async function safeClickCheckboxes(maxCount = 2) {
   await garden.soil.evaluate((maxCount) => {
     try {
       const checkboxes = Array.from(
-        document.querySelectorAll("div.p-checkbox-box")
+        document.querySelectorAll("div.p-checkbox-box"),
       ).slice(0, maxCount);
 
       if (checkboxes.length < maxCount) {
@@ -792,11 +789,11 @@ async function showApplicantListCommander(e) {
                 return cell ? cell.textContent.trim() : null;
               })
               .filter(Boolean); // Removes nulls if any cell was missing
-          }
+          },
         );
 
         garden.will.travellers = garden.will.travellers.filter(
-          (t) => !processedPassportNumbers.includes(t.passportNumber)
+          (t) => !processedPassportNumbers.includes(t.passportNumber),
         );
         fs.writeFileSync(getPath("data.json"), JSON.stringify(garden.will));
       },
@@ -830,5 +827,5 @@ module.exports = {
   showApplicantListCommander,
   garden,
   moreAndMore,
-  enterGarden
+  enterGarden,
 };
