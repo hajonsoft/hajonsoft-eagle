@@ -341,11 +341,12 @@ async function whereDoYouLive(e) {
     SELECTORS.identityAndResidence.passportTypeXPath,
     "Normal",
   );
-  await garden.soil.$eval(
-    SELECTORS.basicData.placeOfBirthLabel,
-    (el, pass) => (el.textContent = `Place of Birth: ${pass.birthPlace || "N/A"}`),
-    garden.will.travellers[util.getSelectedTraveler()],
-  );
+  // await garden.soil.$eval(
+  //   SELECTORS.basicData.placeOfBirthLabel,
+  //   (el, pass) =>
+  //     (el.textContent = `Place of Birth: ${pass.birthPlace || "N/A"}`),
+  //   garden.will.travellers[util.getSelectedTraveler()],
+  // );
   await selectDropdownByXPathAndText(
     SELECTORS.basicData.maritalStatusXPath,
     "Other",
@@ -624,6 +625,11 @@ async function showPhotoId(human, e) {
     640,
     "photo",
   );
+  garden.soil.$eval(
+    SELECTORS.basicData.photoLabel,
+    (el, hip) => (el.innerText = hip),
+    handInPocket,
+  );
   await util.commitFile(SELECTORS.basicData.photoInput, handInPocket);
 }
 
@@ -636,8 +642,7 @@ async function answerQuestions() {
     [
       {
         selector: SELECTORS.questions.vaccineClarificationInput,
-        value: () =>
-          "COVID19 and Yellow Fever",
+        value: () => "COVID19 and Yellow Fever",
       },
       {
         selector: SELECTORS.questions.vaccinePledgeClarificationInput,

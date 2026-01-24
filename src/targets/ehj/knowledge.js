@@ -36,15 +36,15 @@ const knowledge = {
       needs: [SELECTORS.login.username, SELECTORS.login.password],
       action: (e) => feedPlant(e),
     },
-    // challenge: {
-    //   url: `pub/login`,
-    //   needs: [
-    //     SELECTORS.loginOtp.firstDigit,
-    //     SELECTORS.loginOtp.label,
-    //     SELECTORS.loginOtp.h1,
-    //   ],
-    //   action: (e) => secure(e),
-    // },
+    challenge: {
+      url: `pub/login`,
+      needs: [
+        SELECTORS.loginOtp.firstDigit,
+        SELECTORS.loginOtp.label,
+        SELECTORS.loginOtp.h1,
+      ],
+      action: (e) => secure(e),
+    },
     welcome: {
       url: `protected/hm/dashboard/requestsDashboard`,
       // should skip in automation
@@ -84,7 +84,7 @@ const knowledge = {
         },
         {
           selector: SELECTORS.identityAndResidence.placeOfBirth,
-          value: (row) => row.placeOfBirth || row.nationality.name, 
+          value: (row) => row.birthPlace || row.nationality.name,
         },
       ],
       action: (e) => whereDoYouLive(e),
