@@ -37,12 +37,15 @@ const SELECTORS = {
     nextButton:
       "#content > div > app-applicant-add > app-data-entry-method > action-btns > div > div > button",
     spinnerImage: "g-spinner > div > img",
-    editControllerLabel: "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.card-header.mb-0.cursor-pointer.d-flex.justify-content-between.align-items-center.ng-star-inserted",
+    editControllerLabel:
+      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.card-header.mb-0.cursor-pointer.d-flex.justify-content-between.align-items-center.ng-star-inserted",
   },
   identityAndResidence: {
-    nationalityHeader: "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(1) > div > app-main-card > div > div.card-header.mb-0.cursor-pointer.ng-star-inserted > h3",
+    nationalityHeader:
+      "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(1) > div > app-main-card > div > div.card-header.mb-0.cursor-pointer.ng-star-inserted > h3",
     firstEmbassyOption: "#dropDownId_list > p-dropdownitem:nth-child(1) > li",
-    embassyXPath: '//*[@id="content"]/div/app-applicant-add/app-identity-and-residence/form/div[1]/div/app-main-card/div/div[2]/div/div[2]/g-dropdown',
+    embassyXPath:
+      '//*[@id="content"]/div/app-applicant-add/app-identity-and-residence/form/div[1]/div/app-main-card/div/div[2]/div/div[2]/g-dropdown',
     passportTypeXPath:
       '//*[@id="content"]/div/app-applicant-add/app-identity-and-residence/form/div[2]/div/app-main-card/div/div[2]/div/div[2]/g-dropdown',
     normalHajj:
@@ -67,9 +70,12 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > p-calendar > span > input",
     residenceIdExpireDate:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(4) > g-calendar > p-calendar > span > input",
-    residenceIdIssueDateLabel: "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > label",
-    residenceIdExpireDateLabel: "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(4) > g-calendar > label",
-    residenceIdLabel: "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-input-text > div > label",
+    residenceIdIssueDateLabel:
+      "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > label",
+    residenceIdExpireDateLabel:
+      "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(4) > g-calendar > label",
+    residenceIdLabel:
+      "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-input-text > div > label",
     nextButton:
       "#content > div > app-applicant-add > app-identity-and-residence > action-btns > div > div > button",
   },
@@ -89,7 +95,7 @@ const SELECTORS = {
     maritalStatusXPath:
       '//*[@id="content"]/div/app-applicant-add/app-add-basic-data/form/div[1]/div[1]/app-main-card/div/div[2]/div[2]/div[5]/g-dropdown',
     countryCodeXPath:
-      '//*[@id="content"]/div/app-applicant-add/app-add-basic-data/form/div[1]/div[2]/app-main-card/div/div[2]/div/div[2]/div/div[1]/g-dropdown',
+      '//*[@id="content"]/div/app-applicant-add/app-add-basic-data/form/div[1]/div[3]/app-main-card/div/div[2]/div/div[2]/div/div[1]/g-dropdown',
     placeOfBirth:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div:nth-child(2) > div:nth-child(8) > g-input-text > div > input",
     placeOfBirthLabel:
@@ -106,6 +112,8 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div > div:nth-child(1) > g-attachment-upload > div.form-control.file-upload.enabled > div.upload-info-container > input",
     photoLabel:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div > div:nth-child(1) > g-attachment-upload > label",
+    mainApplicantRadio:
+      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div > div > div.choice-box.flex-row.align-items-ceter.d-flex.align-items-center.justify-content-center.gap-3 > p-radiobutton",
     referenceRadio:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.col-md-12 > app-main-card > div > div.body.collapse.show > div > div.col-md-12.mt-3 > div > div.choice-box.flex-row.align-items-ceter.d-flex.align-items-center.justify-content-center.gap-3 > p-radiobutton > div > div.p-radiobutton-box",
     nextButton:
@@ -191,15 +199,17 @@ const SELECTORS = {
       "body > app-root > app-dynamic-layout > app-shared-layout > div > div > div > app-group-management > app-mutamer-group-list > app-group-states > div > div.group__header > div.group__header-actions.ng-star-inserted > button",
   },
   madamAfaf: {
-    groupNameInput: "#stepper_parent > app-create-group > div > app-haj-main-card > div > div.body.collapse.show > form > div.row > div > div > div:nth-child(1) > input"
+    groupNameInput:
+      "#stepper_parent > app-create-group > div > app-haj-main-card > div > div.body.collapse.show > form > div.row > div > div > div:nth-child(1) > input",
   },
   mutamerList: {
     addMutamerButton:
       "body > app-root > app-dynamic-layout > app-shared-layout > div > div > div > app-mutamer > app-mutamer-list > div > div > div > div.mutamer__header-actions.ng-star-inserted > button",
   },
   addMutamer: {
-    chooseFileButton: "#stepper_parent > app-form-passport-info > app-haj-main-card > div > div.body.collapse.show > div > div.container__notes.col-9 > div.container__notes__upload.rounded-3.p-4 > div.container__notes__upload__button > button",
-  }
+    chooseFileButton:
+      "#stepper_parent > app-form-passport-info > app-haj-main-card > div > div.body.collapse.show > div > div.container__notes.col-9 > div.container__notes__upload.rounded-3.p-4 > div.container__notes__upload__button > button",
+  },
 };
 
 module.exports = {

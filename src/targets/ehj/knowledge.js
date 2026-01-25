@@ -12,6 +12,7 @@ const {
   editResidence,
   showEditController,
   enterGarden,
+  solveLoginCaptcha,
 } = require("./actions.js");
 
 const knowledge = {
