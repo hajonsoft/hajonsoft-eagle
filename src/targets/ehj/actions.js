@@ -89,17 +89,6 @@ async function simulateScan(paxNumber) {
         SELECTORS.dataEntry.confirmScanButton,
         garden.soil,
       );
-
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Check if next button is visible and clickable
-      const nextButton = await garden.soil.$(SELECTORS.dataEntry.nextButton, {
-        visible: true,
-      });
-      if (nextButton) {
-        await util.clickWhenReady(SELECTORS.dataEntry.nextButton, garden.soil);
-      } else {
-        console.log("Next button is not visible or clickable.");
-      }
     }
   } catch {}
 
@@ -112,6 +101,17 @@ async function simulateScan(paxNumber) {
   console.log("📢[ehj.js:464]: resized passport location: ", areYouReady);
   await util.commitFile(SELECTORS.dataEntry.passportPhotoInput, areYouReady);
   await new Promise((resolve) => setTimeout(resolve, 2000));
+
+  try {
+    const nextButton = await garden.soil.$(SELECTORS.dataEntry.nextButton, {
+      visible: true,
+    });
+    if (nextButton) {
+      await util.clickWhenReady(SELECTORS.dataEntry.nextButton, garden.soil);
+    } else {
+      console.log("Next button is not visible or clickable.");
+    }
+  } catch {}
 }
 
 async function scan(paxNumber) {
@@ -603,19 +603,24 @@ async function tellMeAboutYourSelf(e) {
     human,
   );
 
-  await showPhotoId(human, e);
-
   await new Promise((resolve) => setTimeout(resolve, 500));
   await selectDropdownByXPathOrFirstOption(
     SELECTORS.basicData.countryCodeXPath,
     "PUT SOMETHING HERE",
   );
   await new Promise((resolve) => setTimeout(resolve, 200));
+  await garden.soil.$eval(SELECTORS.basicData.mainApplicantRadio, (el) =>
+    el.click(),
+  );
+
   await garden.soil.$eval(SELECTORS.basicData.referenceRadio, (el) =>
     el.click(),
   );
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  await clickNext(SELECTORS.basicData.nextButton);
+
+  await showPhotoId(human, e);
+
+  // await new Promise((resolve) => setTimeout(resolve, 1000));
+  // await clickNext(SELECTORS.basicData.nextButton);
 }
 
 async function showPhotoId(human, e) {
@@ -817,6 +822,14 @@ async function showApplicantListCommander(e) {
 async function enterGarden() {
   await garden.soil.click(SELECTORS.groupList.newGroupButton);
 }
+
+async function solveLoginCaptcha(e) {
+  await util.SolveIamNotARobot(
+    "#g-recaptcha-response",
+    "",
+    "6Le-3OwpAAAAAARztuPscqBNbpEY3okMkd7dCoyx",
+  );
+}
 module.exports = {
   showHelloController,
   showEditController,
@@ -833,4 +846,5 @@ module.exports = {
   garden,
   moreAndMore,
   enterGarden,
+  solveLoginCaptcha,
 };
