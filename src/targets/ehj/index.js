@@ -109,19 +109,19 @@ async function checkFreshness(needs) {
       const good = await garden.soil.$(selector);
       const found = !!good;
       
-      if (found) {
-        console.log(`🌱 ${selector} has sprouted in the soil!`);
-      }
+      // if (found) {
+      //   console.log(`🌱 ${selector} has sprouted in the soil!`);
+      // }
       
       return found;
     })
   );
 
   // Log selectors that haven't sprouted yet
-  const dormantSeeds = validNeeds.filter((selector, index) => !soul[index]);
-  if (dormantSeeds.length > 0) {
-    console.log(`🌰 Seeds still dormant, waiting to sprout: ${dormantSeeds.join(', ')}`);
-  }
+  // const dormantSeeds = validNeeds.filter((selector, index) => !soul[index]);
+  // if (dormantSeeds.length > 0) {
+  //   console.log(`🌰 Seeds still dormant, waiting to sprout: ${dormantSeeds.join(', ')}`);
+  // }
 
   return soul.every(Boolean); // All selectors matched
 }
