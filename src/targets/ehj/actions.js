@@ -179,7 +179,7 @@ async function moreAndMore(plant) {
   feedPlant(plant);
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  await markTheDate(SELECTORS.additionalData.dateIntoKSA, "18-05-2025");
+  await markTheDate(SELECTORS.additionalData.dateIntoKSA, "13-05-2026");
   try {
     await garden.soil.$eval(SELECTORS.additionalData.notEmployed, (el) =>
       el.click(),

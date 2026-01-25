@@ -144,10 +144,6 @@ const knowledge = {
       needs: [SELECTORS.additionalData.expectedLength],
       slots: [
         {
-          selector: SELECTORS.additionalData.flightNumber,
-          value: (row) => "SV25",
-        },
-        {
           selector: SELECTORS.additionalData.expectedLength,
           value: (row) => "20",
         },

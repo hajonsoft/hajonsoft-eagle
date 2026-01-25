@@ -115,7 +115,7 @@ const SELECTORS = {
     notEmployed:
       "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(1) > div > app-main-card > div > div.body.collapse.show > div > div.col-md-6.mt-3 > div > div:nth-child(1) > div > p-radiobutton > div > div.p-radiobutton-box",
     expectedLength:
-      "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-input-text > div > input",
+      "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-input-text > div > div > input",
     flightNumber:
       "#content > div > app-applicant-add > app-additional-data > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-input-text > div > input",
     dateIntoKSA:
