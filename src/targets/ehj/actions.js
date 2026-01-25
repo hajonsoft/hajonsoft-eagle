@@ -790,7 +790,7 @@ async function showApplicantListCommander(e) {
           (rows) => {
             return rows
               .map((row) => {
-                const cell = row.querySelector("td:nth-child(5) span span");
+                const cell = row.querySelector("td:nth-child(6) span span");
                 return cell ? cell.textContent.trim() : null;
               })
               .filter(Boolean); // Removes nulls if any cell was missing
