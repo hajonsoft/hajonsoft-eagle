@@ -329,9 +329,7 @@ async function whereDoYouLive(e) {
     SELECTORS.identityAndResidence.passIssueDataCalendarField,
     `${human.passIssueDt.dd}-${human.passIssueDt.mm}-${human.passIssueDt.yyyy}`,
   );
-  await garden.soil.$eval(SELECTORS.identityAndResidence.placeOfIssue, (el) =>
-    el.click(),
-  );
+
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await selectDropdownByXPathOrFirstOption(
     SELECTORS.identityAndResidence.embassyXPath,
@@ -372,6 +370,19 @@ async function whereDoYouLive(e) {
     }
   } catch {}
 
+  await garden.soil.$eval(SELECTORS.identityAndResidence.placeOfBirth, (el) =>
+    el.click(),
+  );
+  await util.commit(
+    garden.soil,
+    [
+      {
+        selector: SELECTORS.identityAndResidence.placeOfBirth,
+        value: (row) => row.birthPlace || row.nationality.name,
+      },
+    ],
+    human,
+  );
   await new Promise((resolve) => setTimeout(resolve, 1000));
   await clickNext(SELECTORS.identityAndResidence.nextButton);
 }

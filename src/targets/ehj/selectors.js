@@ -54,6 +54,8 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-dropdown > p-dropdown > div",
     embassy:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(1) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-dropdown > p-dropdown",
+    maritalStatusXPath:
+      '//*[@id="content"]/div/app-applicant-add/app-add-basic-data/form/div[1]/div[1]/app-main-card/div/div[2]/div[2]/div[5]/g-dropdown',
     PassIssueDate:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > label",
     placeOfIssue:
@@ -61,7 +63,7 @@ const SELECTORS = {
     passIssueDataCalendarField:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > p-calendar > span > input",
     placeOfBirth:
-      "#content > div > app-applicant-add > app-identity-and-residence > form > div.ng-pristine.ng-invalid.ng-touched > app-main-card > div > div.body.collapse.show > div:nth-child(1) > div:nth-child(8) > g-input-text > div > div.input-text-wrapper-class > input",
+      "#content > div > app-applicant-add > app-identity-and-residence > form > div > app-main-card > div > div.body.collapse.show > div:nth-child(1) > div:nth-child(8) > g-input-text > div > div.input-text-wrapper-class > input",
     residenceIdImage:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div.row.ng-star-inserted > div > app-main-card > div > div.body.collapse.show > div > div.row > div:nth-child(1) > g-attachment-upload > div.form-control.file-upload.enabled > div.upload-info-container > input",
     residenceIdNumber:
@@ -92,8 +94,6 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div:nth-child(2) > div:nth-child(7) > g-input-text > div > input",
     email:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(3) > app-main-card > div > div.body.collapse.show > div > div.col-md-12 > div > div > g-input-text > div > div.input-text-wrapper-class > input",
-    maritalStatusXPath:
-      '//*[@id="content"]/div/app-applicant-add/app-add-basic-data/form/div[1]/div[1]/app-main-card/div/div[2]/div[2]/div[5]/g-dropdown',
     countryCodeXPath:
       '//*[@id="content"]/div/app-applicant-add/app-add-basic-data/form/div[1]/div[3]/app-main-card/div/div[2]/div/div[2]/div/div[1]/g-dropdown',
     placeOfBirth:
@@ -113,7 +113,7 @@ const SELECTORS = {
     photoLabel:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div.col-md-12.col-sm-12 > app-main-card > div > div.body.collapse.show > div > div:nth-child(1) > g-attachment-upload > label",
     mainApplicantRadio:
-      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div > div > div.choice-box.flex-row.align-items-ceter.d-flex.align-items-center.justify-content-center.gap-3 > p-radiobutton",
+      "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div > div > div.choice-box.flex-row.align-items-ceter.d-flex.align-items-center.justify-content-center.gap-3 > p-radiobutton > div > div.p-radiobutton-box",
     referenceRadio:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.col-md-12 > app-main-card > div > div.body.collapse.show > div > div.col-md-12.mt-3 > div > div.choice-box.flex-row.align-items-ceter.d-flex.align-items-center.justify-content-center.gap-3 > p-radiobutton > div > div.p-radiobutton-box",
     nextButton:
