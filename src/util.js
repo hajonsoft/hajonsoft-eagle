@@ -1961,7 +1961,9 @@ async function clickWhenReady(selector, page) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
-  } catch { }
+  } catch (e){
+    console.log(e)
+   }
 }
 
 function generateMRZ(passenger) {
