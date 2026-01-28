@@ -116,6 +116,8 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div > div > div.choice-box.flex-row.align-items-ceter.d-flex.align-items-center.justify-content-center.gap-3 > p-radiobutton > div > div.p-radiobutton-box",
     referenceRadio:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.col-md-12 > app-main-card > div > div.body.collapse.show > div > div.col-md-12.mt-3 > div > div.choice-box.flex-row.align-items-ceter.d-flex.align-items-center.justify-content-center.gap-3 > p-radiobutton > div > div.p-radiobutton-box",
+    confirmPhotoButton:
+      "#content > div > app-applicant-add > app-add-basic-data > app-photo-validation > p-dialog > div > div > div:nth-child(3) > button",
     nextButton:
       "#content > div > app-applicant-add > app-add-basic-data > form > action-btns > div > div > button",
   },

@@ -339,14 +339,9 @@ async function whereDoYouLive(e) {
     SELECTORS.identityAndResidence.passportTypeXPath,
     "Normal",
   );
-  // await garden.soil.$eval(
-  //   SELECTORS.basicData.placeOfBirthLabel,
-  //   (el, pass) =>
-  //     (el.textContent = `Place of Birth: ${pass.birthPlace || "N/A"}`),
-  //   garden.will.travellers[util.getSelectedTraveler()],
-  // );
+
   await selectDropdownByXPathAndText(
-    SELECTORS.basicData.maritalStatusXPath,
+    SELECTORS.identityAndResidence.maritalStatusXPath,
     "Other",
   );
 
@@ -647,6 +642,10 @@ async function showPhotoId(human, e) {
     handInPocket,
   );
   await util.commitFile(SELECTORS.basicData.photoInput, handInPocket);
+  await util.clickWhenReady(
+    SELECTORS.basicData.confirmPhotoButton,
+    garden.soil,
+  );
 }
 
 async function answerQuestions() {
@@ -794,6 +793,13 @@ async function safeClickCheckboxes(maxCount = 2) {
 }
 
 async function showApplicantListCommander(e) {
+  try {
+    if (fs.existsSync(getPath("loop.txt"))) {
+      util.incrementSelectedTraveler();
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await util.clickWhenReady(SELECTORS.applicantList.addPilgrimsButton, garden.soil);
+    }
+  } catch {}
   await util.commander(garden.soil, {
     controller: {
       selector: SELECTORS.applicantList.title,
@@ -820,14 +826,6 @@ async function showApplicantListCommander(e) {
       },
     },
   });
-
-  try {
-    if (fs.existsSync(getPath("loop.txt"))) {
-      util.incrementSelectedTraveler();
-      await new Promise((resolve) => setTimeout(resolve, 10000));
-      await garden.soil.click(SELECTORS.applicantList.addPilgrimsButton);
-    }
-  } catch {}
 }
 
 async function enterGarden() {
