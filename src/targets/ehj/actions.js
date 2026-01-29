@@ -2,7 +2,9 @@ const { getPath } = require("../../lib/getPath");
 const { fetchOTPForMasar: someEmailStuff } = require("../../lib/imap");
 const util = require("../../util");
 const { SELECTORS } = require("./selectors");
+const kea = require("../../lib/kea");
 const fs = require("fs");
+const moment = require("moment-hijri");
 
 const garden = {
   soil: null,
@@ -179,7 +181,8 @@ async function moreAndMore(plant) {
   feedPlant(plant);
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
-  await markTheDate(SELECTORS.additionalData.dateIntoKSA, "13-05-2026");
+  const dateIntoKSA = calculate25DulQiaada();
+  await markTheDate(SELECTORS.additionalData.dateIntoKSA, dateIntoKSA);
   try {
     await garden.soil.$eval(SELECTORS.additionalData.notEmployed, (el) =>
       el.click(),
@@ -364,7 +367,7 @@ async function whereDoYouLive(e) {
       // }
     }
   } catch {}
-
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   await garden.soil.$eval(SELECTORS.identityAndResidence.placeOfBirth, (el) =>
     el.click(),
   );
@@ -378,8 +381,10 @@ async function whereDoYouLive(e) {
     ],
     human,
   );
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  await clickNext(SELECTORS.identityAndResidence.nextButton);
+  if (fs.existsSync(getPath("loop.txt"))) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await clickNext(SELECTORS.identityAndResidence.nextButton);
+  }
 }
 
 async function editResidence() {
@@ -622,11 +627,18 @@ async function tellMeAboutYourSelf(e) {
   await garden.soil.$eval(SELECTORS.basicData.referenceRadio, (el) =>
     el.click(),
   );
+  // choose reference from dropdown
+  await selectDropdownByXPathAndText(
+    SELECTORS.basicData.referenceXPath,
+    garden.will.info.caravan,
+  );
 
   await showPhotoId(human, e);
 
-  // await new Promise((resolve) => setTimeout(resolve, 1000));
-  // await clickNext(SELECTORS.basicData.nextButton);
+  if (fs.existsSync(getPath("loop.txt"))) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await clickNext(SELECTORS.basicData.nextButton);
+  }
 }
 
 async function showPhotoId(human, e) {
@@ -765,6 +777,15 @@ async function recheck() {
   await new Promise((resolve) => setTimeout(resolve, 1000));
   // Click the "Next" button
   await clickNext(SELECTORS.reviewApplication.nextButton);
+  const paxNumber = util.getSelectedTraveler();
+  const human = garden.will.travellers[paxNumber];
+  await kea.updatePassenger(
+    garden.will.system.accountId,
+    human.passportNumber,
+    {
+      "submissionData.ehj.status": "Submitted",
+    },
+  );
 }
 
 async function safeClickCheckboxes(maxCount = 2) {
@@ -796,8 +817,11 @@ async function showApplicantListCommander(e) {
   try {
     if (fs.existsSync(getPath("loop.txt"))) {
       util.incrementSelectedTraveler();
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-      await util.clickWhenReady(SELECTORS.applicantList.addPilgrimsButton, garden.soil);
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await util.clickWhenReady(
+        SELECTORS.applicantList.addPilgrimsButton,
+        garden.soil,
+      );
     }
   } catch {}
   await util.commander(garden.soil, {
@@ -839,6 +863,43 @@ async function solveLoginCaptcha(e) {
     "6Le-3OwpAAAAAARztuPscqBNbpEY3okMkd7dCoyx",
   );
 }
+
+/**
+ * Calculate the Gregorian date for 25 Dhu Al-Qidah (Dul Qiaada) of the current or next Hijri year
+ * @returns {string} Date in DD-MM-YYYY format
+ */
+function calculate25DulQiaada() {
+  // Get current Hijri date
+  const now = moment().locale("en");
+  const currentHijriYear = now.iYear();
+  const currentHijriMonth = now.iMonth(); // 0-11, where 10 is Dhu Al-Qidah
+  const currentHijriDate = now.iDate();
+
+  // Dhu Al-Qidah is month 11 (0-indexed, so 10)
+  const dulQiaadaMonth = 10;
+  const targetDate = 25;
+
+  let targetYear = currentHijriYear;
+
+  // If we're past 25 Dhu Al-Qidah this year, use next year
+  if (
+    currentHijriMonth > dulQiaadaMonth ||
+    (currentHijriMonth === dulQiaadaMonth && currentHijriDate > targetDate)
+  ) {
+    targetYear = currentHijriYear + 1;
+  }
+
+  // Create Hijri date for 25 Dhu Al-Qidah of target year
+  const hijriDate = moment()
+    .locale("en")
+    .iYear(targetYear)
+    .iMonth(dulQiaadaMonth)
+    .iDate(targetDate);
+
+  // Convert to Gregorian and format as DD-MM-YYYY
+  return hijriDate.format("DD-MM-YYYY");
+}
+
 module.exports = {
   showHelloController,
   showEditController,
