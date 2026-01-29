@@ -48,14 +48,14 @@ const SELECTORS = {
       '//*[@id="content"]/div/app-applicant-add/app-identity-and-residence/form/div[1]/div/app-main-card/div/div[2]/div/div[2]/g-dropdown',
     passportTypeXPath:
       '//*[@id="content"]/div/app-applicant-add/app-identity-and-residence/form/div[2]/div/app-main-card/div/div[2]/div/div[2]/g-dropdown',
+    maritalStatusXPath:
+      '//*[@id="content"]/div/app-applicant-add/app-identity-and-residence/form/div[3]/app-main-card/div/div[2]/div[1]/div[5]/g-dropdown',
     normalHajj:
       "#content > div > app-applicant-add > app-identity-and-residence > form > app-main-card > div > div.body.collapse.show > div > div > div:nth-child(1) > label > div > p-radiobutton > div > div.p-radiobutton-box",
     normalPassport:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-dropdown > p-dropdown > div",
     embassy:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(1) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(2) > g-dropdown > p-dropdown",
-    maritalStatusXPath:
-      '//*[@id="content"]/div/app-applicant-add/app-add-basic-data/form/div[1]/div[1]/app-main-card/div/div[2]/div[2]/div[5]/g-dropdown',
     PassIssueDate:
       "#content > div > app-applicant-add > app-identity-and-residence > form > div:nth-child(2) > div > app-main-card > div > div.body.collapse.show > div > div:nth-child(3) > g-calendar > label",
     placeOfIssue:
@@ -116,6 +116,8 @@ const SELECTORS = {
       "#content > div > app-applicant-add > app-add-basic-data > form > div.row > div:nth-child(2) > app-main-card > div > div.body.collapse.show > div > div > div > div.choice-box.flex-row.align-items-ceter.d-flex.align-items-center.justify-content-center.gap-3 > p-radiobutton > div > div.p-radiobutton-box",
     referenceRadio:
       "#content > div > app-applicant-add > app-add-basic-data > form > div.col-md-12 > app-main-card > div > div.body.collapse.show > div > div.col-md-12.mt-3 > div > div.choice-box.flex-row.align-items-ceter.d-flex.align-items-center.justify-content-center.gap-3 > p-radiobutton > div > div.p-radiobutton-box",
+    referenceXPath:
+      '//*[@id="content"]/div/app-applicant-add/app-add-basic-data/form/div[2]/app-main-card/div/div[2]/div/div[2]/g-dropdown',
     confirmPhotoButton:
       "#content > div > app-applicant-add > app-add-basic-data > app-photo-validation > p-dialog > div > div > div:nth-child(3) > button",
     nextButton:
