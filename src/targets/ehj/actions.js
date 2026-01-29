@@ -635,8 +635,10 @@ async function tellMeAboutYourSelf(e) {
 
   await showPhotoId(human, e);
 
-  // await new Promise((resolve) => setTimeout(resolve, 1000));
-  // await clickNext(SELECTORS.basicData.nextButton);
+  if (fs.existsSync(getPath("loop.txt"))) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await clickNext(SELECTORS.basicData.nextButton);
+  }
 }
 
 async function showPhotoId(human, e) {
@@ -868,7 +870,7 @@ async function solveLoginCaptcha(e) {
  */
 function calculate25DulQiaada() {
   // Get current Hijri date
-  const now = moment().locale('en');
+  const now = moment().locale("en");
   const currentHijriYear = now.iYear();
   const currentHijriMonth = now.iMonth(); // 0-11, where 10 is Dhu Al-Qidah
   const currentHijriDate = now.iDate();
@@ -889,7 +891,7 @@ function calculate25DulQiaada() {
 
   // Create Hijri date for 25 Dhu Al-Qidah of target year
   const hijriDate = moment()
-    .locale('en')
+    .locale("en")
     .iYear(targetYear)
     .iMonth(dulQiaadaMonth)
     .iDate(targetDate);
