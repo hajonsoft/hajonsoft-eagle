@@ -669,7 +669,7 @@ async function answerQuestions() {
     [
       {
         selector: SELECTORS.questions.vaccineClarificationInput,
-        value: () => "COVID19 and Yellow Fever",
+        value: () => "Yellow Fever, Meningitis, and Influenza.",
       },
       {
         selector: SELECTORS.questions.vaccinePledgeClarificationInput,
