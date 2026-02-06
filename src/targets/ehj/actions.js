@@ -321,6 +321,7 @@ async function someSecurityThings(err, code) {
 async function whereDoYouLive(e) {
   await new Promise((resolve) => setTimeout(resolve, 1000));
   const human = garden.will.travellers[util.getSelectedTraveler()];
+  await new Promise((resolve) => setTimeout(resolve, 1000));
   await util.commit(garden.soil, e.slots, human);
   await garden.soil.$eval(
     SELECTORS.identityAndResidence.PassIssueDate,
