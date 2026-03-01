@@ -239,12 +239,8 @@ async function initPage(config, onContentLoaded, data) {
     browser = await puppeteer.launch(launchOptions);
   }
   const allPages = await browser.pages();
-  console.log(
-    "All open pages:",
-    allPages.map((p) => p.url()),
-  );
-  const pages = allPages.find((p) => !p.url().startsWith("chrome://"));
-  page = pages[0];
+  page = allPages[0];
+  console.log(page.url());
   if (!page) {
     console.log("No existing page found, opening a new page.");
     process.exit(1);
