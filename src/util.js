@@ -239,6 +239,7 @@ async function initPage(config, onContentLoaded, data) {
     browser = await puppeteer.launch(launchOptions);
   }
   const allPages = await browser.pages();
+  console.log("All open pages:", allPages.map((p) => p.url()));
   page = allPages[0];
   console.log(page.url());
   if (!page) {
