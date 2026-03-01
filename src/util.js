@@ -68,7 +68,7 @@ function getChromePath() {
         "Google",
         "Chrome",
         "Application",
-        "chrome.exe",
+        "chrome.exe"
       );
       if (fs.existsSync(userPath)) {
         console.log(os.platform(), userPath);
@@ -82,14 +82,14 @@ function getChromePath() {
         return windows32ChromePath;
       }
       throw new Error(
-        `Google Chrome not found at ${windows32ChromePath} or ${windows46ChromePath}`,
+        `Google Chrome not found at ${windows32ChromePath} or ${windows46ChromePath}`
       );
   }
 }
 
 function getIssuingCountry(passenger) {
   const issuingCountry = nationalities.nationalities.find(
-    (nationality) => nationality.code === passenger.codeline.substring(2, 5),
+    (nationality) => nationality.code === passenger.codeline.substring(2, 5)
   );
   return issuingCountry;
 }
@@ -113,7 +113,7 @@ async function initPage(config, onContentLoaded, data) {
   }
 
   const isHeadless = Boolean(
-    process.argv.find((c) => c.startsWith("--headless")),
+    process.argv.find((c) => c.startsWith("--headless"))
   );
 
   let defaultViewport = null;
@@ -125,12 +125,12 @@ async function initPage(config, onContentLoaded, data) {
         const monitorWidth = parseInt(
           process.argv
             .find((c) => c.startsWith("--monitor-width"))
-            ?.split("=")?.[1],
+            ?.split("=")?.[1]
         );
         const monitorHeight = parseInt(
           process.argv
             .find((c) => c.startsWith("--monitor-height"))
-            ?.split("=")?.[1],
+            ?.split("=")?.[1]
         );
 
         const index = parseInt(indexArray[0]);
@@ -212,7 +212,7 @@ async function initPage(config, onContentLoaded, data) {
 
         args.push(
           `--window-size=${boxWidth},${boxHeight}`,
-          `--window-position=${xPos},${yPos}`,
+          `--window-position=${xPos},${yPos}`
         );
         defaultViewport = {
           width: monitorWidth,
@@ -238,9 +238,8 @@ async function initPage(config, onContentLoaded, data) {
   if (!connected) {
     browser = await puppeteer.launch(launchOptions);
   }
-  const page = await browser.pages.find(
-    (p) => !p.url().startsWith("chrome://"),
-  );
+  const allPages = await browser.pages();
+  const pages = allPages.find(p => !p.url().startsWith('chrome://'));
   page = pages[0];
   await page.bringToFront();
   page.on("domcontentloaded", onContentLoaded);
@@ -249,7 +248,7 @@ async function initPage(config, onContentLoaded, data) {
     await pauseMessage(page, 5);
     try {
       await dialog.accept();
-    } catch {}
+    } catch { }
   });
 
   if (process.argv.length > 2) {
@@ -282,7 +281,7 @@ async function initPage(config, onContentLoaded, data) {
   } else {
     fs.readdir(vaccineFolder, (err, files) => {
       for (const file of files) {
-        fs.unlink(path.join(vaccineFolder, file), (err) => {});
+        fs.unlink(path.join(vaccineFolder, file), (err) => { });
       }
     });
   }
@@ -298,7 +297,7 @@ async function connectOrOpenDisconnectedChrome() {
   // Configuration for systems that require remote debugging mode
   const systemConfigs = {
     nsh: { targetUrl: "https://hajj.nusuk.sa" },
-    nsk: { targetUrl: "https://masar.nusuk.sa" },
+    nsk: { targetUrl: "https://masar.nusuk.sa" }
   };
 
   const rawData = fs.readFileSync(getPath("data.json"), "utf8");
@@ -308,7 +307,7 @@ async function connectOrOpenDisconnectedChrome() {
   if (nshMode) {
     const remoteDebuggingPort = process.env.REMOTE_DEBUGGING_PORT || "9222";
     const browserURL = `http://127.0.0.1:${remoteDebuggingPort}`;
-
+    
     // Calculate defaultViewport for NSH mode connection
     let defaultViewport = null;
     if (process.argv.includes("--auto")) {
@@ -319,14 +318,14 @@ async function connectOrOpenDisconnectedChrome() {
           const monitorWidth = parseInt(
             process.argv
               .find((c) => c.startsWith("--monitor-width"))
-              ?.split("=")?.[1],
+              ?.split("=")?.[1]
           );
           const monitorHeight = parseInt(
             process.argv
               .find((c) => c.startsWith("--monitor-height"))
-              ?.split("=")?.[1],
+              ?.split("=")?.[1]
           );
-
+          
           if (monitorWidth && monitorHeight) {
             defaultViewport = {
               width: monitorWidth,
@@ -336,30 +335,23 @@ async function connectOrOpenDisconnectedChrome() {
         }
       }
     }
-
+    
     try {
-      console.log(
-        `NSH Mode: Attempting to connect to browser at ${browserURL}`,
-      );
+      console.log(`NSH Mode: Attempting to connect to browser at ${browserURL}`);
       browser = await puppeteer.connect({
         browserURL,
-        defaultViewport,
+        defaultViewport
       });
-      console.log(
-        "NSH Mode: Successfully connected to existing browser session",
-      );
+      console.log("NSH Mode: Successfully connected to existing browser session");
       return true;
     } catch (connectError) {
-      console.log(
-        `NSH Mode: Failed to connect to existing browser: ${connectError.message}`,
-      );
+      console.log(`NSH Mode: Failed to connect to existing browser: ${connectError.message}`);
       console.log("NSH Mode: Launching Chrome in remote debugging mode");
 
       // Launch Chrome in remote debugging mode with platform-specific command
       const { exec } = require("child_process");
-      const targetUrl =
-        systemConfigs[systemName]?.targetUrl || "https://hajj.nusuk.sa";
-
+      const targetUrl = systemConfigs[systemName]?.targetUrl || "https://hajj.nusuk.sa";
+      
       // Platform-specific user data directory
       let userDataDir;
       if (os.platform() === "win32") {
@@ -410,6 +402,7 @@ async function connectOrOpenDisconnectedChrome() {
     }
   }
   return false;
+
 }
 
 async function newPage(onNewPageLoaded, onNewPageClosed) {
@@ -423,7 +416,7 @@ async function createControlsFile(
   url,
   container,
   xPath,
-  fieldFunction = async () => {},
+  fieldFunction = async () => { }
 ) {
   const logFolder = getPath("log");
   if (!fs.existsSync(logFolder)) {
@@ -442,7 +435,7 @@ async function createControlsFile(
   for (const handler of handlers) {
     await fieldFunction(handler, i);
     const outerHtml = await handler.evaluate((e) =>
-      e.outerHTML.replace(/\t/g, ""),
+      e.outerHTML.replace(/\t/g, "")
     );
     allText += `${xPath}-${i}\n`;
     allText += `\t${beautify(outerHtml, { format: "html" })}\n\n`;
@@ -468,7 +461,7 @@ async function storeControls(container, url) {
         e.readonly = false;
       });
       await handler.type(index.toString());
-    },
+    }
   );
   createControlsFile(url, container, `//input[@type="file"]`);
   createControlsFile(url, container, `//input[@type="radio"]`);
@@ -490,7 +483,7 @@ function findConfig(url, config) {
   const urlConfig = config.find(
     (x) =>
       (x.url && x.url.toLowerCase() === lowerUrl) ||
-      (x.regex && RegExp(x.regex.toLowerCase()).test(lowerUrl)),
+      (x.regex && RegExp(x.regex.toLowerCase()).test(lowerUrl))
   );
   for (const param of process.argv) {
     if (
@@ -513,10 +506,9 @@ function findConfig(url, config) {
   if (urlConfig) {
     infoMessage(
       page,
-      `✈️  Workflow: ${urlConfig.name} ${
-        urlConfig.url || urlConfig.regex
+      `✈️  Workflow: ${urlConfig.name} ${urlConfig.url || urlConfig.regex
       } ${timeElapsed()} seconds`,
-      2,
+      2
     );
     return urlConfig;
   }
@@ -534,7 +526,7 @@ function findGorillaConfig(url, gorillaConfigsString) {
   } catch (e) {
     console.log(
       "Invalid Gorilla Script, skipping gorilla...",
-      gorillaConfigsString,
+      gorillaConfigsString
     );
     return;
   }
@@ -550,7 +542,7 @@ function findGorillaConfig(url, gorillaConfigsString) {
     infoMessage(
       page,
       `🦍  Gorilla: ${matchedGorilla.description} ${matchedGorilla.regex}`,
-      2,
+      2
     );
     return matchedGorilla;
   }
@@ -597,7 +589,7 @@ async function commit(page, details, row) {
           .match(/<(.*?) /g)[0]
           .replace(/</g, "")
           .replace(/ /g, "")
-          .toLowerCase(),
+          .toLowerCase()
       );
     }
     if (detail.xPath) {
@@ -608,7 +600,7 @@ async function commit(page, details, row) {
           .match(/<(.*?) /g)[0]
           .replace(/</g, "")
           .replace(/ /g, "")
-          .toLowerCase(),
+          .toLowerCase()
       );
     }
     switch (elementType) {
@@ -636,7 +628,7 @@ async function commit(page, details, row) {
               await page.$eval(
                 detail.selector,
                 (el, value) => (el.value = (value || "").toString()),
-                value,
+                value
               );
             }
           }
@@ -649,14 +641,14 @@ async function commit(page, details, row) {
           if (detail.selector) {
             await page.type(
               detail.selector,
-              budgie.get(detail.autocomplete, detail.defaultValue),
+              budgie.get(detail.autocomplete, detail.defaultValue)
             );
           }
           if (detail.xPath) {
             const xElements = await page.$x(detail.xPath);
             const xElement = xElements[detail.index];
             await xElement.type(
-              budgie.get(detail.autocomplete, detail.defaultValue),
+              budgie.get(detail.autocomplete, detail.defaultValue)
             );
           }
         }
@@ -699,7 +691,7 @@ async function selectByValueStrict(selector, txt) {
     const options = await page.$eval(selector, (e) => e.innerHTML);
     const valuePattern = new RegExp(
       `value="(.{6,7})"( selected="selected")?>${txt}</option>`,
-      "im",
+      "im"
     );
     const found = valuePattern.exec(options.replace(/\n/gim, ""));
     if (found && found.length >= 2) {
@@ -723,7 +715,7 @@ function getMofaImportString(passenger) {
       const importJSON = JSON.parse(importContent);
       return " - MOFA: " + importJSON?.status;
     }
-  } catch {}
+  } catch { }
   return "";
 }
 
@@ -732,18 +724,15 @@ function getOptionNode(passenger, cursor) {
   <div style="width: 100%; display: flex; align-items: center; gap: 1rem; background-color: yellow; height: 200px;">
     <div>${cursor + 1}- </div>
     <div>
-    ${
-      passenger.nationality?.isArabic
-        ? passenger?.nameArabic?.given + " " + passenger.nameArabic.last
-        : passenger.name.full
-    } - ${passenger.passportNumber} - ${passenger?.nationality?.name} - ${
-      passenger?.gender || "gender"
+    ${passenger.nationality?.isArabic
+      ? passenger?.nameArabic?.given + " " + passenger.nameArabic.last
+      : passenger.name.full
+    } - ${passenger.passportNumber} - ${passenger?.nationality?.name} - ${passenger?.gender || "gender"
     } - ${passenger?.dob?.age || "age"} years old${getMofaImportString(
-      passenger,
-    )}${
-      passenger.email?.includes(".companion") || passenger.isCompanion
-        ? "(companion)"
-        : ""
+      passenger
+    )}${passenger.email?.includes(".companion") || passenger.isCompanion
+      ? "(companion)"
+      : ""
     }
     </div>
   </div>
@@ -776,19 +765,17 @@ async function controller(page, structure, travellers) {
       // .filter((t) => !t.email.includes(".companion"))
       .map(
         (traveller, cursor) =>
-          `<option value="${cursor}" ${
-            cursor == lastTraveler ? "selected" : ""
+          `<option value="${cursor}" ${cursor == lastTraveler ? "selected" : ""
           }>
           ${getOptionNode(traveller, cursor)}
-          </option>`,
+          </option>`
       )
       .join(" ");
 
   try {
     await page.waitForSelector(structure.controller.selector);
-    const controllerHandleMethod = `handleEagle${
-      structure.controller.name || "Send"
-    }Click`;
+    const controllerHandleMethod = `handleEagle${structure.controller.name || "Send"
+      }Click`;
     const htmlFileName = path.join(__dirname, "assets", "controller.html");
     let html = fs.readFileSync(htmlFileName, "utf8");
     let isLooping = false;
@@ -818,9 +805,9 @@ async function controller(page, structure, travellers) {
           .replace(/{pax}/, paxLabel)
           .replace(/{current}/, (parseInt(lastTraveler) + 1).toString())
           .replace(/{mokhaa}/, controller.mokhaa ? "block" : "none")}`.replace(
-          /{sendall}/,
-          "Continuous مستمر",
-        );
+            /{sendall}/,
+            "Continuous مستمر"
+          );
       },
       [
         structure,
@@ -830,11 +817,11 @@ async function controller(page, structure, travellers) {
         html,
         travellers,
         lastTraveler,
-        isLooping,
-      ],
+        isLooping
+      ]
     );
     const isRegisterLoopRegistered = await page.evaluate(
-      () => window.registerLoop,
+      () => window.registerLoop
     );
     if (!isRegisterLoopRegistered) {
       await page.exposeFunction("registerLoop", registerLoop);
@@ -842,38 +829,38 @@ async function controller(page, structure, travellers) {
 
     const isExposed = await page.evaluate(
       (p) => window[p],
-      controllerHandleMethod,
+      controllerHandleMethod
     );
     if (!isExposed) {
       await page.exposeFunction(
         controllerHandleMethod,
-        structure.controller.action,
+        structure.controller.action
       );
       await page.exposeFunction("unregisterLoop", unregisterLoop);
       await page.exposeFunction("getVisaCount", getVisaCount);
       await page.exposeFunction(
         "handleWTUClick",
-        structure.controller.wtuAction || (() => {}),
+        structure.controller.wtuAction || (() => { })
       );
       await page.exposeFunction(
         "handleGMAClick",
-        structure.controller.gmaAction || (() => {}),
+        structure.controller.gmaAction || (() => { })
       );
       await page.exposeFunction(
         "handleBAUClick",
-        structure.controller.bauAction || (() => {}),
+        structure.controller.bauAction || (() => { })
       );
       await page.exposeFunction(
         "handleTWFClick",
-        structure.controller.twfAction || (() => {}),
+        structure.controller.twfAction || (() => { })
       );
       await page.exposeFunction(
         "handleLoadImportedOnlyClick",
-        handleLoadImportedOnlyClick,
+        handleLoadImportedOnlyClick
       );
       await page.exposeFunction(
         "handleNSKClick",
-        structure.controller.nskAction || (() => {}),
+        structure.controller.nskAction || (() => { })
       );
       await page.exposeFunction("closeBrowser", closeBrowser);
       await page.exposeFunction("handleCloseClick", handleCloseClick);
@@ -889,7 +876,7 @@ function registerLoop() {
 }
 function unregisterLoop() {
   if (fs.existsSync(getPath("loop.txt"))) {
-    fs.unlink(getPath("loop.txt"), (err) => {});
+    fs.unlink(getPath("loop.txt"), (err) => { });
   }
 }
 function getVisaCount() {
@@ -899,7 +886,7 @@ function getVisaCount() {
     "color:#fff;background:#ee6f57;padding:3px;border-radius:2px",
     "color:#fff;background:#1f3c88;padding:3px;border-radius:2px",
     "color:#fff;background:rgb(254, 67, 101);padding:3px;border-radius:2px",
-    files,
+    files
   );
 }
 async function closeBrowser() {
@@ -910,19 +897,20 @@ async function handleCloseClick() {
   try {
     // Change controller background color to indicate closing
     await page.evaluate(() => {
-      const eagleContainer = document.getElementById("eagle_container");
+      const eagleContainer = document.getElementById('eagle_container');
       if (eagleContainer) {
-        eagleContainer.style.backgroundColor = "#FF6B6B"; // Red color to indicate closing
+        eagleContainer.style.backgroundColor = '#FF6B6B'; // Red color to indicate closing
       }
     });
-
+    
     // Wait a moment for visual feedback
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     page.reload();
     process.exit(0);
+
   } catch (error) {
-    console.log("Error refreshing page:", error);
+    console.log('Error refreshing page:', error);
     process.exit(0);
   }
 }
@@ -942,9 +930,8 @@ async function commander(page, structure, travellers) {
     await page.waitForSelector(structure.controller.selector, {
       timeout: 0,
     });
-    const controllerHandleMethod = `handleEagle${
-      structure.controller.name || "Budgie"
-    }Click`;
+    const controllerHandleMethod = `handleEagle${structure.controller.name || "Budgie"
+      }Click`;
     const isLoop = fs.existsSync(getPath("loop.txt"));
 
     const htmlFileName = path.join(__dirname, "assets", "commander.html");
@@ -961,36 +948,36 @@ async function commander(page, structure, travellers) {
           .replace(/{direction}/, controller.leftAlign ? "direction: rtl;" : "")
           .replace(
             /{structureParam+controller_name}/,
-            params[0].controller.name,
+            params[0].controller.name
           )
           .replace(/{handleMethodName}/, handleMethodName)
           .replace(/{alert}/, alertText || "")
           .replace(
             /{title}/g,
             structureParam.controller.title +
-              " " +
-              structureParam.controller.arabicTitle,
+            " " +
+            structureParam.controller.arabicTitle
           );
         container.outerHTML = controller.keepOriginalElement
           ? `<div>${container.outerHTML}${htmlContent}</div>`
           : htmlContent;
       },
-      [structure, controllerHandleMethod, isLoop, html],
+      [structure, controllerHandleMethod, isLoop, html]
     );
     const isExposed = await page.evaluate(
       (p) => window[p],
-      controllerHandleMethod,
+      controllerHandleMethod
     );
     if (!isExposed) {
       await page.exposeFunction(
         controllerHandleMethod,
-        structure.controller.action,
+        structure.controller.action
       );
     }
 
     const isCloseBrowserExposed = await page.evaluate(
       (p) => window[p],
-      "closeBrowser",
+      "closeBrowser"
     );
     if (!isCloseBrowserExposed) {
       await page.exposeFunction("closeBrowser", closeBrowser);
@@ -1007,14 +994,14 @@ async function handleLoadImportedOnlyClick() {
   const files = fs.readdirSync(getPath("")).filter((f) => f.endsWith(".txt"));
   const defaultNationalityCode = await page.$eval(
     "#NationalityIsoCode",
-    (ele) => ele.value,
+    (ele) => ele.value
   );
   if (!defaultNationalityCode) {
     return;
   }
   const defaultNationalityName = await page.$eval(
     "#NationalityIsoCode",
-    (ele) => ele.options[ele.selectedIndex].text,
+    (ele) => ele.options[ele.selectedIndex].text
   );
   for (const file of files) {
     try {
@@ -1022,7 +1009,7 @@ async function handleLoadImportedOnlyClick() {
       if (data.includes("mofaNumber")) {
         const jsonData = JSON.parse(data);
         const nationality = nationalities.nationalities.find(
-          (n) => n.name === jsonData.nationality,
+          (n) => n.name === jsonData.nationality
         );
         travellersData.push({
           nationality: nationality || {
@@ -1034,7 +1021,7 @@ async function handleLoadImportedOnlyClick() {
           passportNumber: jsonData.passportNumber,
         });
       }
-    } catch {}
+    } catch { }
   }
 
   const data = {
@@ -1092,7 +1079,7 @@ function getSelectedTraveler() {
         timeoutValue = 30000;
       }
       console.log(
-        `Last passenger reached!!. Exiting in ${timeoutValue / 1000} seconds...`,
+        `Last passenger reached!!. Exiting in ${timeoutValue / 1000} seconds...`
       );
       setTimeout(() => {
         process.exit(0);
@@ -1147,7 +1134,7 @@ async function captchaClick(selector, numbers, actionSelector) {
       document.querySelector(args[0]).value.length === args[1];
     },
     { timeout: 0 },
-    [selector, numbers],
+    [selector, numbers]
   );
   await page.click(actionSelector);
 }
@@ -1176,7 +1163,7 @@ async function downloadAndResizeImage(
   imageType = "photo",
   minKb,
   maxKb,
-  convertToPNG = false,
+  convertToPNG = false
 ) {
   let folder = photosFolder;
   let url = passenger?.images?.photo;
@@ -1225,9 +1212,8 @@ async function downloadAndResizeImage(
   let imagePath = path.join(folder, `${passenger.passportNumber}.jpg`);
   const resizedPath = path.join(
     folder,
-    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.${
-      convertToPNG ? "png" : "jpg"
-    }`,
+    `${passenger.passportNumber}_${width ?? ""}x${height ?? ""}.${convertToPNG ? "png" : "jpg"
+    }`
   );
 
   if (url?.includes("placeholder")) {
@@ -1255,7 +1241,7 @@ async function downloadAndResizeImage(
     __dirname,
     "..",
     "photos",
-    passenger.passportNumber + ".jpg",
+    passenger.passportNumber + ".jpg"
   );
   if (imageType == "photo" && fs.existsSync(overridePhoto)) {
     console.log("override found at: ", overridePhoto);
@@ -1348,7 +1334,7 @@ async function sniff(page, details) {
         case "input":
           let inputText = await page.$eval(
             detail.selector,
-            (el) => el.value || el.innerText,
+            (el) => el.value || el.innerText
           );
           if (detail.autocomplete && inputText) {
             budgie.save(detail.autocomplete, inputText);
@@ -1358,7 +1344,7 @@ async function sniff(page, details) {
           let selectedValue = await page.$eval(
             detail.selector,
             (el) => el.value,
-            tagName,
+            tagName
           );
           if (detail.autocomplete && selectedValue) {
             budgie.save(detail.autocomplete, selectedValue);
@@ -1410,7 +1396,7 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
         "#content > div > div.row > div > div > div.portlet-body.form > div.form-body.form-display.form-horizontal.page-print > div:nth-child(1) > div:nth-child(2) > h2";
       const applicationType = await readValue(
         currentPage,
-        applicationTypeSelector,
+        applicationTypeSelector
       );
       if (applicationType == "خطاب الدعوة") {
         mofaData.applicationType = "invitation";
@@ -1450,7 +1436,7 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
           address: await readValue(currentPage, addressSelector),
           numberOfEntries: await readValue(
             currentPage,
-            numberOfEntriesSelector,
+            numberOfEntriesSelector
           ),
           embassy: await readValue(currentPage, embassySelector),
           duration: await readValue(currentPage, durationSelector),
@@ -1492,7 +1478,7 @@ async function handleMofa(currentPage, id1, id2, mofa_visaTypeValue) {
           address: await readValue(currentPage, addressSelector),
           numberOfEntries: await readValue(
             currentPage,
-            numberOfEntriesSelector,
+            numberOfEntriesSelector
           ),
           embassy: await readValue(currentPage, embassySelector),
           duration: await readValue(currentPage, durationSelector),
@@ -1529,7 +1515,7 @@ async function waitForCaptcha(selector, captchaLength, timeout = 0) {
     await page.hover(selector);
     await page.waitForFunction(
       `document.querySelector('${selector}').value.length === ${captchaLength}`,
-      { timeout },
+      { timeout }
     );
   } catch (err) {
     console.log(err);
@@ -1540,7 +1526,7 @@ async function waitForPageCaptcha(
   captchaPage,
   selector,
   captchaLength,
-  timeout = 0,
+  timeout = 0
 ) {
   await captchaPage.waitForSelector(selector);
   await captchaPage.bringToFront();
@@ -1553,7 +1539,7 @@ async function waitForPageCaptcha(
   await captchaPage.hover(selector);
   await captchaPage.waitForFunction(
     `document.querySelector('${selector}').value.length === ${captchaLength}`,
-    { timeout },
+    { timeout }
   );
 }
 
@@ -1561,7 +1547,7 @@ async function commitCaptchaToken(
   page,
   imgId,
   textFieldSelector,
-  captchaLength = 6,
+  captchaLength = 6
 ) {
   infoMessage(page, "🔓 Captcha thinking...", 5);
   await pauseMessage(page, 3);
@@ -1605,7 +1591,7 @@ async function commitCaptchaToken(
       await commit(
         page,
         [{ selector: textFieldSelector, value: () => token }],
-        {},
+        {}
       );
       await captchaSolver.reportGood(captchaId);
       return token;
@@ -1624,7 +1610,7 @@ async function commitCaptchaTokenWithSelector(
   page,
   imageSelector,
   textFieldSelector,
-  captchaLength = 6,
+  captchaLength = 6
 ) {
   infoMessage(page, "🔓 Captcha thinking...", 5);
   await pauseMessage(page, 3);
@@ -1662,7 +1648,7 @@ async function commitCaptchaTokenWithSelector(
       await commit(
         page,
         [{ selector: textFieldSelector, value: () => token.toString() }],
-        {},
+        {}
       );
       infoMessage(page, "🔓 Captcha solved! " + token, 5);
       return token;
@@ -1678,7 +1664,7 @@ async function commitCaptchaTokenWithSelector(
 
 async function SolveIamNotARobot(responseSelector, url, siteKey, signal) {
   const data = await axios.get(
-    `http://2captcha.com/in.php?key=${global.captchaKey}&method=userrecaptcha&googlekey=${siteKey}&pageurl=${url}`,
+    `http://2captcha.com/in.php?key=${global.captchaKey}&method=userrecaptcha&googlekey=${siteKey}&pageurl=${url}`
   );
   const id = data.data.split("|")?.[1];
   if (!id) {
@@ -1692,14 +1678,14 @@ async function SolveIamNotARobot(responseSelector, url, siteKey, signal) {
         throw new Error("Captcha solving was cancelled.");
       }
       const res = await axios.get(
-        `http://2captcha.com/res.php?key=${global.captchaKey}&action=get&id=${id}`,
+        `http://2captcha.com/res.php?key=${global.captchaKey}&action=get&id=${id}`
       );
       console.log("solving I am not a robot", id, i);
       if (res.data.split("|")[0] === "OK") {
         const tokenValue = res.data.split("|")[1].replace(/ /g, "");
         console.log(
           "📢[util.js:1358]: I am not a robot tokenValue: ",
-          "solved",
+          "solved"
         );
         await page.$eval(responseSelector, (el) => {
           el.style.display = "block";
@@ -1710,7 +1696,7 @@ async function SolveIamNotARobot(responseSelector, url, siteKey, signal) {
       // wait 5 seconds
       await new Promise((resolve) => setTimeout(resolve, 5000));
     }
-  } catch {}
+  } catch { }
 }
 const premiumSupportAlert = async (page, selector, data) => {
   await page.waitForSelector(selector);
@@ -1732,7 +1718,7 @@ const premiumSupportAlert = async (page, selector, data) => {
 
       el.outerHTML = htmlContent;
     },
-    [data, html],
+    [data, html]
   );
 };
 
@@ -1757,10 +1743,10 @@ const infoMessage = async (
   message,
   depth = 2,
   visaShot = false,
-  takeScreenShot = false,
+  takeScreenShot = false
 ) => {
   console.log(
-    `🦅 ${parseInt(getSelectedTraveler()) + 1}.${".".repeat(depth)}${message}`,
+    `🦅 ${parseInt(getSelectedTraveler()) + 1}.${".".repeat(depth)}${message}`
   );
   const screenshotsDir = getPath("screenshots");
   if (!fs.existsSync(screenshotsDir)) {
@@ -1768,7 +1754,7 @@ const infoMessage = async (
   }
   const screenshotFileName = path.join(
     screenshotsDir,
-    `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`,
+    `${moment().format("YYYY-MM-DD-HH-mm-ss")}.png`
   );
   const isCloudRun = Boolean(global.headless);
   if (page) {
@@ -1795,7 +1781,7 @@ const pauseMessage = async (page, seconds = 3) => {
         await page.evaluate("document.title=''");
       } else {
         await page.evaluate(
-          "document.title='Eagle: pause for " + seconds + " seconds'",
+          "document.title='Eagle: pause for " + seconds + " seconds'"
         );
         await new Promise((resolve) => setTimeout(resolve, 1000));
         await pauseMessage(page, seconds - 1);
@@ -1826,7 +1812,7 @@ function getLogFile(eagleData) {
   }
   const logFile = path.join(
     logFolder,
-    eagleData.info.caravan + "_" + eagleData.system.name + ".txt",
+    eagleData.info.caravan + "_" + eagleData.system.name + ".txt"
   );
   return logFile;
 }
@@ -1840,7 +1826,7 @@ const suggestGroupName = (data) => {
 
   const suggestedName = `${data.travellers?.[0]?.name?.first.substring(
     0,
-    10,
+    10
   )}_${data.travellers?.[0]?.name?.last.substring(0, 10)}$_${os
     .hostname()
     .substring(0, 8)}${time}_${data.info.run}`;
@@ -1887,7 +1873,7 @@ async function screenShotToKea(
   visaElement,
   accountId,
   currentPassenger,
-  status = "Submitted",
+  status = "Submitted"
 ) {
   // save base64 image to firestore
   const base64 = await visaElement.screenshot({
@@ -1918,7 +1904,7 @@ async function pdfToKea(
   pdfBuffer,
   accountId,
   passengerFromPage,
-  status = "visa",
+  status = "visa"
 ) {
   const folder = path.join(getDownloadFolder(), "hajonsoft", "pdf");
   if (!fs.existsSync(folder)) {
@@ -1926,7 +1912,7 @@ async function pdfToKea(
   }
   const pdfFileName = path.join(
     folder,
-    `visa_${passengerFromPage.passportNumber}.pdf`,
+    `visa_${passengerFromPage.passportNumber}.pdf`
   );
   fs.writeFileSync(pdfFileName, pdfBuffer);
   const base64 = await pdfBuffer.toString("base64");
@@ -1976,37 +1962,33 @@ async function clickWhenReady(selector, page) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     }
-  } catch (e) {
-    console.log(e);
-  }
+  } catch (e){
+    console.log(e)
+   }
 }
 
 function generateMRZ(passenger) {
   console.log(passenger);
   try {
     // LINE 1
-    const codeLine1 = `P<${
-      passenger.nationality.code
-    }${passenger.name.last.replace(/ /g, "<")}<<${passenger.name.given.replace(
-      / /g,
-      "<",
-    )}`
+    const codeLine1 = `P<${passenger.nationality.code
+      }${passenger.name.last.replace(/ /g, "<")}<<${passenger.name.given.replace(
+        / /g,
+        "<"
+      )}`
       .padEnd(MRZ_TD3_LINE_LENGTH, "<")
       .substring(0, MRZ_TD3_LINE_LENGTH);
     // LINE 2
     const icaoPassportNumber = passenger.passportNumber.padEnd(9, "<");
-    const birthDate = `${passenger.dob.yyyy.substring(2)}${passenger.dob.mm}${
-      passenger.dob.dd
-    }`;
-    const expiryDate = `${passenger.passExpireDt.yyyy.substring(2)}${
-      passenger.passExpireDt.mm
-    }${passenger.passExpireDt.dd}`;
+    const birthDate = `${passenger.dob.yyyy.substring(2)}${passenger.dob.mm}${passenger.dob.dd
+      }`;
+    const expiryDate = `${passenger.passExpireDt.yyyy.substring(2)}${passenger.passExpireDt.mm
+      }${passenger.passExpireDt.dd}`;
     const gender = passenger.gender.substring(0, 1).toUpperCase();
-    let codeLine2 = `${icaoPassportNumber}${checkDigit(icaoPassportNumber)}${
-      passenger.nationality.code
-    }${birthDate}${checkDigit(birthDate)}${gender}${expiryDate}${checkDigit(
-      expiryDate,
-    )}`;
+    let codeLine2 = `${icaoPassportNumber}${checkDigit(icaoPassportNumber)}${passenger.nationality.code
+      }${birthDate}${checkDigit(birthDate)}${gender}${expiryDate}${checkDigit(
+        expiryDate
+      )}`;
 
     if (codeLine2.length) {
       const filler = "<".repeat(MRZ_TD3_LINE_LENGTH - 2 - codeLine2.length);
@@ -2017,8 +1999,8 @@ function generateMRZ(passenger) {
       // letters that are a part of the number fields and their check digits.
       const compositeCheckDigit = checkDigit(
         codeLine2.substring(0, 10) +
-          codeLine2.substring(13, 20) +
-          codeLine2.substring(21, 43),
+        codeLine2.substring(13, 20) +
+        codeLine2.substring(21, 43)
       );
       codeLine2 += compositeCheckDigit.replace(/[-]/g, "<");
     }
