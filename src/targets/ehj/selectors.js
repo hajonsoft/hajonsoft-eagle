@@ -4,9 +4,9 @@ const { add } = require("lodash");
 const SELECTORS = {
   login: {
     username:
-      "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.form-mb > g-input-text > div > div.input-text-wrapper-class > input",
+      "body > app-root > app-auth-layout > div:nth-child(3) > div:nth-child(1) > app-general-login > div > app-login > div:nth-child(1) > form > div > div:nth-child(1) > g-input-text > div > div.input-text-wrapper-class > input",
     password:
-      "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.mb-2 > p-password > div > input",
+      "body > app-root > app-auth-layout > div:nth-child(3) > div:nth-child(1) > app-general-login > div > app-login > div:nth-child(1) > form > div > div.col-sm-12.mb-8px > p-password > div > input",
   },
   loginOtp: {
     firstDigit:
