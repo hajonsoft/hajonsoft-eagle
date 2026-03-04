@@ -342,7 +342,7 @@ function runParallelRun() {
   }
 
   const passengerIdList = passengerIds.split("=")[1].split(",");
-  // reuse the same command line arguments but set the passenerIds to one at a time
+  // reuse the same command line arguments but set the passengerIds to one at a time
   let commands = [];
   passengerIdList.forEach((passengerId) => {
     const newArgs = process.argv.map((arg) => {

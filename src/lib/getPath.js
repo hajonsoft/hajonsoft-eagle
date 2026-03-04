@@ -20,9 +20,12 @@ function getPath(filename) {
 
 function getTmpDir() {
   const passengerIds = process.argv.find((c) => c.startsWith("--passengerIds"));
+  const submissionIdArg = process.argv.find((c) => c.startsWith("--submissionId"));
   let scope = "";
   if (passengerIds) {
     scope = passengerIds.split("=")[1].split(",")[0];
+  } else if (submissionIdArg) {
+    scope = submissionIdArg.split("=")[1];
   }
   const tmpDir = path.join(os.tmpdir(), "hajonsoft-eagle", scope);
   // console.log("TMP DIR: " + tmpDir);
