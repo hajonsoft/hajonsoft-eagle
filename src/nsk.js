@@ -40,11 +40,11 @@ const config = [
     regex: `${defaultDomain}/pub/login`,
     details: [
       {
-        selector: "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.form-mb > g-input-text > div > div.input-text-wrapper-class > input",
+        selector: "body > app-root > app-auth-layout > div > div.wave.w-50 > app-general-login > div > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.form-mb > g-input-text > div > div.input-text-wrapper-class > input",
         value: (row) => row.username,
       },
       {
-        selector: "#login > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.mb-2 > p-password > div > input",
+        selector: "body > app-root > app-auth-layout > div > div.wave.w-50 > app-general-login > div > app-login > div.log-card.ng-star-inserted > form > div > div.col-sm-12.mb-8px > p-password > div > input",
         value: (row) => row.password,
       },
     ],

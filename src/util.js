@@ -302,7 +302,7 @@ async function connectOrOpenDisconnectedChrome() {
   // Configuration for systems that require remote debugging mode
   const systemConfigs = {
     nsh: { targetUrl: "https://hajj.nusuk.sa" },
-    nsk: { targetUrl: "https://masar.nusuk.sa" },
+    // nsk: { targetUrl: "https://masar.nusuk.sa" },
   };
 
   const rawData = fs.readFileSync(getPath("data.json"), "utf8");
