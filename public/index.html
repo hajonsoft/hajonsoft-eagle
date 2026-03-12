@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HAJonSoft Eagle — Hajj &amp; Umrah Visa Processing, Powered by Khalid AI</title>
+  <meta name="description" content="Upload passport images and receive processed Hajj or Umrah visas in minutes. Khalid, our AI-powered agent backed by real experts, handles everything — from upload to delivery." />
+  <style>
+    /* ── Design Tokens ─────────────────────────────────── */
+    :root {
+      --green-900: #0d2e0d;
+      --green-800: #1a4a1a;
+      --green-700: #2d6a2d;
+      --green-500: #4caf50;
+      --green-100: #e8f5e9;
+      --gold-700:  #b8950a;
+      --gold-500:  #c8a600;
+      --gold-300:  #f0d060;
+      --gold-100:  #fdf8e1;
+      --cream:     #f7f3eb;
+      --white:     #ffffff;
+      --text-900:  #1a1a1a;
+      --text-600:  #4a5568;
+      --radius-lg: 16px;
+      --shadow-md: 0 4px 24px rgba(0,0,0,.12);
+      --shadow-lg: 0 8px 48px rgba(0,0,0,.18);
+      --transition: .35s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* ── Reset & Base ──────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text-900);
+      background: var(--white);
+      line-height: 1.6;
+    }
+    img { display: block; max-width: 100%; }
+    a  { text-decoration: none; color: inherit; }
+    ul { list-style: none; }
+
+    /* ── Utility ───────────────────────────────────────── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .section   { padding: 80px 0; }
+    .section--alt { background: var(--cream); }
+    .section-title {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      font-weight: 700;
+      text-align: center;
+      color: var(--green-800);
+      margin-bottom: 16px;
+    }
+    .section-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-600);
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 56px;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--gold-100);
+      color: var(--gold-700);
+      font-size: .8rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4px 14px;
+      border-radius: 100px;
+      margin-bottom: 12px;
+    }
+    .btn {
+      display: inline-block;
+      padding: 14px 32px;
+      border-radius: 50px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform var(--transition), box-shadow var(--transition);
+      border: none;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .btn--primary   { background: var(--gold-500); color: var(--green-900); }
+    .btn--secondary { background: transparent; color: var(--white); border: 2px solid var(--white); }
+    .btn--green     { background: var(--green-700); color: var(--white); }
+
+    /* ── Navigation ────────────────────────────────────── */
+    .nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(13, 46, 13, .95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .nav__inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .nav__logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav__logo-icon { font-size: 1.8rem; }
+    .nav__logo-text {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--gold-300);
+      line-height: 1.2;
+    }
+    .nav__logo-sub {
+      font-size: .7rem;
+      color: var(--green-100);
+      opacity: .8;
+      letter-spacing: .05em;
+    }
+    .nav__links {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+    }
+    .nav__links a {
+      color: var(--green-100);
+      font-size: .95rem;
+      font-weight: 500;
+      transition: color var(--transition);
+    }
+    .nav__links a:hover { color: var(--gold-300); }
+    .nav__cta {
+      background: var(--gold-500);
+      color: var(--green-900) !important;
+      padding: 8px 24px;
+      border-radius: 50px;
+      font-weight: 700 !important;
+    }
+    .nav__cta:hover { background: var(--gold-300); }
+    .nav__hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+    .nav__hamburger span {
+      display: block;
+      width: 24px; height: 2px;
+      background: var(--gold-300);
+      border-radius: 2px;
+      transition: var(--transition);
+    }
+
+    /* ── Carousel ──────────────────────────────────────── */
+    .carousel {
+      position: relative;
+      height: 100vh;
+      min-height: 600px;
+      overflow: hidden;
+    }
+    .carousel__slides {
+      display: flex;
+      height: 100%;
+      transition: transform .7s cubic-bezier(.4,0,.2,1);
+    }
+    .carousel__slide {
+      min-width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Slide backgrounds */
+    .carousel__slide--1 {
+      background: linear-gradient(135deg, #0d2e0d 0%, #1a5c1a 40%, #c8a600 100%);
+    }
+    .carousel__slide--2 {
+      background: linear-gradient(135deg, #0a0a2e 0%, #1a1a5c 50%, #2d2d8a 100%);
+    }
+    .carousel__slide--3 {
+      background: linear-gradient(135deg, #1a0d00 0%, #4a2200 40%, #c8a600 100%);
+    }
+
+    /* Decorative Islamic geometric overlay */
+    .carousel__slide::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cg fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='1'%3E%3Cpolygon points='40,5 75,27.5 75,52.5 40,75 5,52.5 5,27.5'/%3E%3Cpolygon points='40,15 65,30 65,50 40,65 15,50 15,30'/%3E%3C/g%3E%3C/svg%3E");
+      opacity: .4;
+    }
+
+    /* Mosque silhouette for slides */
+    .carousel__mosque {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 40%;
+      background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320' preserveAspectRatio='none'%3E%3Cpath fill='rgba(0,0,0,0.4)' d='M0,320 L0,200 L100,200 L100,160 L120,120 L140,80 L150,40 L160,0 L170,40 L180,80 L200,120 L220,160 L220,200 L250,200 L250,180 L260,150 L270,130 L280,150 L290,180 L290,200 L350,200 L350,160 L360,140 L380,100 L400,80 L410,60 L420,40 L430,20 L440,10 L450,20 L460,40 L470,60 L480,80 L500,100 L520,140 L530,160 L530,200 L600,200 L600,180 L610,150 L620,130 L630,150 L640,180 L640,200 L720,200 L720,160 L730,140 L750,100 L770,80 L780,60 L790,40 L800,20 L810,10 L820,20 L830,40 L840,60 L850,80 L870,100 L890,140 L900,160 L900,200 L950,200 L950,180 L960,150 L970,130 L980,150 L990,180 L990,200 L1100,200 L1100,160 L1120,120 L1140,80 L1150,40 L1160,0 L1170,40 L1180,80 L1200,120 L1220,160 L1220,200 L1440,200 L1440,320 Z'/%3E%3C/svg%3E") no-repeat bottom center / cover;
+    }
+
+    .carousel__content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      color: var(--white);
+      padding: 0 24px;
+      max-width: 860px;
+    }
+    .carousel__pretitle {
+      font-size: .9rem;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+      color: var(--gold-300);
+      margin-bottom: 16px;
+      opacity: .9;
+    }
+    .carousel__title {
+      font-size: clamp(2rem, 5vw, 3.8rem);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 24px;
+      text-shadow: 0 2px 24px rgba(0,0,0,.3);
+    }
+    .carousel__title em {
+      font-style: normal;
+      color: var(--gold-300);
+    }
+    .carousel__desc {
+      font-size: clamp(1rem, 2vw, 1.2rem);
+      opacity: .9;
+      max-width: 600px;
+      margin: 0 auto 36px;
+    }
+    .carousel__actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+    /* Carousel controls */
+    .carousel__prev,
+    .carousel__next {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.15);
+      backdrop-filter: blur(8px);
+      border: 2px solid rgba(255,255,255,.3);
+      color: var(--white);
+      font-size: 1.4rem;
+      cursor: pointer;
+      transition: background var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .carousel__prev:hover,
+    .carousel__next:hover { background: rgba(200,166,0,.5); }
+    .carousel__prev { left: 24px; }
+    .carousel__next { right: 24px; }
+
+    .carousel__dots {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 3;
+      display: flex;
+      gap: 10px;
+    }
+    .carousel__dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.4);
+      cursor: pointer;
+      transition: background var(--transition), transform var(--transition);
+      border: none;
+    }
+    .carousel__dot.active {
+      background: var(--gold-300);
+      transform: scale(1.3);
+    }
+
+    /* Arabic accent text */
+    .arabic {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--gold-300);
+      direction: rtl;
+      opacity: .85;
+      margin-top: 8px;
+    }
+
+    /* ── Trusted Bar ───────────────────────────────────── */
+    .trusted-bar {
+      background: var(--green-900);
+      padding: 18px 24px;
+    }
+    .trusted-bar__inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .trusted-stat {
+      text-align: center;
+      color: var(--white);
+    }
+    .trusted-stat__num {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--gold-300);
+    }
+    .trusted-stat__label {
+      font-size: .8rem;
+      opacity: .75;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    /* ── How It Works ──────────────────────────────────── */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 32px;
+      margin-top: 16px;
+    }
+    .step-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 36px 28px;
+      box-shadow: var(--shadow-md);
+      text-align: center;
+      position: relative;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .step-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg);
+    }
+    .step-number {
+      position: absolute;
+      top: -18px; left: 50%;
+      transform: translateX(-50%);
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--gold-500);
+      color: var(--green-900);
+      font-size: .95rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+    .step-card h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--green-800);
+      margin-bottom: 10px;
+    }
+    .step-card p { color: var(--text-600); font-size: .95rem; }
+
+    /* ── Khalid Agent Section ──────────────────────────── */
+    .agent-section {
+      background: linear-gradient(135deg, var(--green-900) 0%, var(--green-800) 100%);
+      color: var(--white);
+      padding: 100px 0;
+    }
+    .agent-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .agent-text .section-title { text-align: left; color: var(--white); }
+    .agent-text .section-subtitle { text-align: left; margin: 0 0 32px; color: rgba(255,255,255,.8); }
+    .agent-avatar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+    .agent-avatar__circle {
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold-500), var(--gold-300));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 6rem;
+      box-shadow: 0 0 0 12px rgba(200,166,0,.2), 0 0 0 24px rgba(200,166,0,.1);
+    }
+    .agent-name {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--gold-300);
+    }
+    .agent-title {
+      font-size: 1rem;
+      color: rgba(255,255,255,.75);
+      text-align: center;
+    }
+    .agent-features {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .agent-feature {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .agent-feature__icon {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 8px;
+      background: rgba(200,166,0,.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+    .agent-feature__text h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--gold-300);
+      margin-bottom: 2px;
+    }
+    .agent-feature__text p { font-size: .9rem; color: rgba(255,255,255,.75); }
+
+    /* ── Services ──────────────────────────────────────── */
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 28px;
+    }
+    .service-card {
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+      transition: transform var(--transition), box-shadow var(--transition);
+      background: var(--white);
+    }
+    .service-card:hover {
+      transform: translateY(-6px);
+      box-shadow: var(--shadow-lg);
+    }
+    .service-card__header {
+      padding: 32px 28px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .service-card__header--hajj  { background: linear-gradient(135deg, #1a4a1a, #2d7a2d); }
+    .service-card__header--umrah { background: linear-gradient(135deg, #1a1a4a, #2d2d7a); }
+    .service-card__header--visit { background: linear-gradient(135deg, #4a1a00, #7a3a00); }
+    .service-card__icon { font-size: 3rem; }
+    .service-card__name { font-size: 1.5rem; font-weight: 800; color: var(--white); }
+    .service-card__tagline { font-size: .85rem; color: rgba(255,255,255,.7); }
+    .service-card__body { padding: 24px 28px; }
+    .service-card__body p { color: var(--text-600); margin-bottom: 20px; font-size: .95rem; }
+    .service-feature-list { display: flex; flex-direction: column; gap: 8px; }
+    .service-feature-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-600);
+      font-size: .9rem;
+    }
+    .service-feature-list li::before {
+      content: '✓';
+      flex-shrink: 0;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--green-100);
+      color: var(--green-700);
+      font-size: .75rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Why Choose Us ─────────────────────────────────── */
+    .why-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+    }
+    .why-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 32px 24px;
+      text-align: center;
+      box-shadow: 0 2px 16px rgba(0,0,0,.07);
+      transition: transform var(--transition);
+    }
+    .why-card:hover { transform: translateY(-4px); }
+    .why-card__icon { font-size: 2.5rem; margin-bottom: 16px; }
+    .why-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--green-800);
+      margin-bottom: 8px;
+    }
+    .why-card p { font-size: .875rem; color: var(--text-600); }
+
+    /* ── Agency Section ────────────────────────────────── */
+    .agency-section {
+      background: var(--gold-100);
+      border-top: 4px solid var(--gold-500);
+    }
+    .agency-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+    .agency-text h2 { font-size: clamp(1.6rem, 3.5vw, 2.4rem); color: var(--green-800); font-weight: 800; margin-bottom: 16px; }
+    .agency-text p  { color: var(--text-600); margin-bottom: 20px; font-size: .97rem; }
+    .agency-checklist { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+    .agency-checklist li {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: .95rem;
+      color: var(--text-900);
+    }
+    .agency-checklist li span {
+      flex-shrink: 0;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--green-700);
+      color: var(--white);
+      font-size: .75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .agency-visual {
+      background: linear-gradient(135deg, var(--green-800), var(--green-900));
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: var(--shadow-lg);
+    }
+    .upload-demo {
+      background: rgba(255,255,255,.08);
+      border: 2px dashed rgba(200,166,0,.4);
+      border-radius: 12px;
+      padding: 28px;
+      text-align: center;
+      color: var(--white);
+    }
+    .upload-demo__icon { font-size: 3rem; margin-bottom: 12px; }
+    .upload-demo__text { font-size: 1.1rem; font-weight: 600; }
+    .upload-demo__sub  { font-size: .85rem; opacity: .65; margin-top: 4px; }
+    .flow-arrow { text-align: center; color: var(--gold-300); font-size: 1.8rem; }
+    .download-demo {
+      background: rgba(200,166,0,.1);
+      border: 2px solid var(--gold-500);
+      border-radius: 12px;
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: var(--white);
+    }
+    .download-demo__icon { font-size: 2.2rem; }
+    .download-demo__label { font-size: .8rem; color: var(--gold-300); text-transform: uppercase; letter-spacing: .08em; }
+    .download-demo__name { font-size: 1.05rem; font-weight: 700; }
+
+    /* ── Testimonials ──────────────────────────────────── */
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 28px;
+    }
+    .testimonial-card {
+      background: var(--white);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.07);
+      border-left: 4px solid var(--gold-500);
+    }
+    .testimonial-card__quote {
+      font-size: 1rem;
+      color: var(--text-600);
+      font-style: italic;
+      margin-bottom: 20px;
+      line-height: 1.7;
+    }
+    .testimonial-card__author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .testimonial-card__avatar {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: var(--green-100);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+    }
+    .testimonial-card__name { font-size: .95rem; font-weight: 700; color: var(--green-800); }
+    .testimonial-card__role { font-size: .8rem; color: var(--text-600); }
+    .stars { color: var(--gold-500); font-size: 1.1rem; margin-bottom: 12px; }
+
+    /* ── CTA Section ───────────────────────────────────── */
+    .cta-section {
+      background: linear-gradient(135deg, var(--green-900) 0%, var(--green-800) 50%, #1a3d00 100%);
+      padding: 100px 24px;
+      text-align: center;
+      color: var(--white);
+    }
+    .cta-section h2 {
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 800;
+      max-width: 720px;
+      margin: 0 auto 20px;
+    }
+    .cta-section h2 em { font-style: normal; color: var(--gold-300); }
+    .cta-section p {
+      font-size: 1.1rem;
+      opacity: .85;
+      max-width: 560px;
+      margin: 0 auto 40px;
+    }
+    .cta-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .cta-contact {
+      margin-top: 48px;
+      font-size: .9rem;
+      opacity: .7;
+    }
+    .cta-contact a { color: var(--gold-300); border-bottom: 1px solid transparent; transition: border-color var(--transition); }
+    .cta-contact a:hover { border-color: var(--gold-300); }
+
+    /* ── Footer ────────────────────────────────────────── */
+    .footer {
+      background: var(--green-900);
+      padding: 56px 24px 28px;
+    }
+    .footer__inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid rgba(255,255,255,.1);
+    }
+    .footer-brand__logo { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .footer-brand__name { font-size: 1.2rem; font-weight: 700; color: var(--gold-300); }
+    .footer-brand p { font-size: .875rem; color: rgba(255,255,255,.6); line-height: 1.7; max-width: 280px; }
+    .footer__col h4 { font-size: .95rem; font-weight: 700; color: var(--white); margin-bottom: 16px; }
+    .footer__col a {
+      display: block;
+      font-size: .875rem;
+      color: rgba(255,255,255,.6);
+      margin-bottom: 8px;
+      transition: color var(--transition);
+    }
+    .footer__col a:hover { color: var(--gold-300); }
+    .footer__bottom {
+      max-width: 1200px;
+      margin: 24px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .footer__copy { font-size: .8rem; color: rgba(255,255,255,.4); }
+    .footer__badges { display: flex; gap: 10px; flex-wrap: wrap; }
+    .footer__badge {
+      font-size: .7rem;
+      color: rgba(255,255,255,.5);
+      border: 1px solid rgba(255,255,255,.15);
+      padding: 4px 10px;
+      border-radius: 100px;
+    }
+
+    /* ── Responsive ────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .agent-inner,
+      .agency-inner { grid-template-columns: 1fr; }
+      .agent-text .section-title,
+      .agent-text .section-subtitle { text-align: center; }
+      .agent-avatar { order: -1; }
+      .footer__inner { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .nav__links { display: none; }
+      .nav__hamburger { display: flex; }
+      .nav__links.open {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 100%; left: 0; right: 0;
+        background: var(--green-900);
+        padding: 16px 24px;
+        gap: 16px;
+      }
+      .carousel__prev,
+      .carousel__next { display: none; }
+      .footer__inner { grid-template-columns: 1fr; }
+    }
+
+    /* ── Scroll Animations ─────────────────────────────── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Navigation ─────────────────────────────────────── -->
+  <nav class="nav" role="navigation" aria-label="Main navigation">
+    <div class="nav__inner">
+      <a class="nav__logo" href="#home" aria-label="HAJonSoft Eagle home">
+        <span class="nav__logo-icon">🦅</span>
+        <div>
+          <div class="nav__logo-text">HAJonSoft Eagle</div>
+          <div class="nav__logo-sub">حج أونسوفت النسر</div>
+        </div>
+      </a>
+      <ul class="nav__links" id="nav-links" role="list">
+        <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#khalid">Meet Khalid</a></li>
+        <li><a href="#services">Services</a></li>
+        <li><a href="#agency">Agency</a></li>
+        <li><a href="#get-started" class="nav__cta">Get Started</a></li>
+      </ul>
+      <button class="nav__hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ── Hero Carousel ──────────────────────────────────── -->
+  <section id="home" class="carousel" aria-label="Featured highlights">
+    <div class="carousel__slides" id="carousel-slides">
+
+      <!-- Slide 1 -->
+      <div class="carousel__slide carousel__slide--1" role="group" aria-label="Slide 1 of 3">
+        <div class="carousel__mosque" aria-hidden="true"></div>
+        <div class="carousel__content">
+          <p class="carousel__pretitle">The World's Most Trusted Hajj &amp; Umrah Platform</p>
+          <h1 class="carousel__title">
+            Upload a Passport.<br/>
+            <em>Visa Submitted in Minutes.</em>
+          </h1>
+          <p class="carousel__desc">
+            HAJonSoft Eagle is the de facto standard for Hajj and Umrah visa processing —
+            the only platform backed by both advanced AI and real human experts.
+          </p>
+          <div class="arabic" aria-label="Arabic: Hajj and Umrah, digitally">حج وعمرة — رقمياً</div>
+          <div class="carousel__actions" style="margin-top:28px">
+            <a href="#get-started" class="btn btn--primary">Start Processing Visas</a>
+            <a href="#how-it-works" class="btn btn--secondary">See How It Works</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 2 -->
+      <div class="carousel__slide carousel__slide--2" role="group" aria-label="Slide 2 of 3">
+        <div class="carousel__mosque" aria-hidden="true"></div>
+        <div class="carousel__content">
+          <p class="carousel__pretitle">Meet Your AI Visa Expert</p>
+          <h1 class="carousel__title">
+            Say Hello to<br/>
+            <em>Khalid.</em>
+          </h1>
+          <p class="carousel__desc">
+            Khalid is your dedicated AI agent — experienced in Hajj and Umrah systems,
+            working around the clock like your best employee.
+            He asks exactly what a real expert would ask.
+          </p>
+          <div class="arabic">خالد — وكيل التأشيرة الذكي</div>
+          <div class="carousel__actions" style="margin-top:28px">
+            <a href="#khalid" class="btn btn--primary">Meet Khalid</a>
+            <a href="#services" class="btn btn--secondary">Our Services</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 3 -->
+      <div class="carousel__slide carousel__slide--3" role="group" aria-label="Slide 3 of 3">
+        <div class="carousel__mosque" aria-hidden="true"></div>
+        <div class="carousel__content">
+          <p class="carousel__pretitle">Full-Service Visa Agency</p>
+          <h1 class="carousel__title">
+            We Handle <em>Millions</em><br/>
+            of Visas Every Season
+          </h1>
+          <p class="carousel__desc">
+            From a single pilgrim to entire tour groups —
+            just send us the passports and we'll deliver the visas,
+            directly to you or straight to the traveler.
+          </p>
+          <div class="arabic">وكالة التأشيرات الرسمية للحج والعمرة</div>
+          <div class="carousel__actions" style="margin-top:28px">
+            <a href="#agency" class="btn btn--primary">Use Our Agency</a>
+            <a href="#services" class="btn btn--secondary">View Services</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Controls -->
+    <button class="carousel__prev" id="carousel-prev" aria-label="Previous slide">&#8592;</button>
+    <button class="carousel__next" id="carousel-next" aria-label="Next slide">&#8594;</button>
+    <div class="carousel__dots" id="carousel-dots" role="tablist" aria-label="Carousel navigation">
+      <button class="carousel__dot active" role="tab" aria-selected="true" aria-label="Go to slide 1"></button>
+      <button class="carousel__dot"         role="tab" aria-selected="false" aria-label="Go to slide 2"></button>
+      <button class="carousel__dot"         role="tab" aria-selected="false" aria-label="Go to slide 3"></button>
+    </div>
+  </section>
+
+  <!-- ── Trusted Stats Bar ───────────────────────────────── -->
+  <div class="trusted-bar" role="complementary" aria-label="Key statistics">
+    <div class="trusted-bar__inner">
+      <div class="trusted-stat">
+        <div class="trusted-stat__num">2M+</div>
+        <div class="trusted-stat__label">Visas Processed</div>
+      </div>
+      <div class="trusted-stat">
+        <div class="trusted-stat__num">Under 5 min</div>
+        <div class="trusted-stat__label">Average Turnaround</div>
+      </div>
+      <div class="trusted-stat">
+        <div class="trusted-stat__num">99.8%</div>
+        <div class="trusted-stat__label">Approval Rate</div>
+      </div>
+      <div class="trusted-stat">
+        <div class="trusted-stat__num">150+</div>
+        <div class="trusted-stat__label">Countries Served</div>
+      </div>
+      <div class="trusted-stat">
+        <div class="trusted-stat__num">24/7</div>
+        <div class="trusted-stat__label">Khalid is Always On</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── How It Works ────────────────────────────────────── -->
+  <section id="how-it-works" class="section" aria-labelledby="how-title">
+    <div class="container">
+      <div class="badge">Simple Process</div>
+      <h2 class="section-title" id="how-title">Passport In. Visa Out.</h2>
+      <p class="section-subtitle">
+        The fastest, most reliable route from passport scan to approved Hajj or Umrah visa —
+        powered by AI and verified by our expert team.
+      </p>
+      <div class="steps-grid reveal">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <div class="step-icon">📤</div>
+          <h3>Upload Passport Images</h3>
+          <p>
+            Snap or scan passport bio-pages and upload them directly.
+            Khalid reads the MRZ data instantly — no manual entry needed.
+          </p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <div class="step-icon">🤖</div>
+          <h3>Khalid Gets to Work</h3>
+          <p>
+            Your AI agent automatically navigates the official Nusuk / MOFA systems,
+            fills every required field, and submits the application at full speed.
+          </p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <div class="step-icon">💬</div>
+          <h3>Human-Level Communication</h3>
+          <p>
+            If Khalid needs anything, he asks — just like a real employee.
+            Expect smart, clear messages, not robotic prompts.
+          </p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">4</div>
+          <div class="step-icon">📥</div>
+          <h3>Receive the Visa</h3>
+          <p>
+            Download your processed visa directly, or Khalid emails it to you
+            or ships it straight to each traveler's inbox.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Khalid AI Agent ─────────────────────────────────── -->
+  <section id="khalid" class="agent-section" aria-labelledby="khalid-title">
+    <div class="agent-inner">
+      <div class="agent-text">
+        <div class="badge">AI × Human</div>
+        <h2 class="section-title" id="khalid-title">Meet Khalid — Your Expert Visa Agent</h2>
+        <p class="section-subtitle">
+          Khalid is not just a script. He is a fully-trained AI agent with years of
+          Hajj and Umrah systems knowledge — and he is backed by a real human team.
+        </p>
+        <div class="agent-features reveal">
+          <div class="agent-feature">
+            <div class="agent-feature__icon">🧠</div>
+            <div class="agent-feature__text">
+              <h4>Deep Domain Expertise</h4>
+              <p>Khalid knows every Hajj and Umrah portal inside-out — NUSUK, MOFA, Ehaj, and more.</p>
+            </div>
+          </div>
+          <div class="agent-feature">
+            <div class="agent-feature__icon">💬</div>
+            <div class="agent-feature__text">
+              <h4>Communicates Like a Human</h4>
+              <p>When additional information is needed, Khalid asks clearly — no jargon, no confusion.</p>
+            </div>
+          </div>
+          <div class="agent-feature">
+            <div class="agent-feature__icon">⚡</div>
+            <div class="agent-feature__text">
+              <h4>Blazing Speed at Scale</h4>
+              <p>Khalid processes hundreds of applications simultaneously — cutting days into minutes.</p>
+            </div>
+          </div>
+          <div class="agent-feature">
+            <div class="agent-feature__icon">🤝</div>
+            <div class="agent-feature__text">
+              <h4>Backed by Real Humans</h4>
+              <p>Every Khalid agent is supervised and supported by our expert staff — the only AI visa platform with genuine human oversight.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="agent-avatar reveal">
+        <div class="agent-avatar__circle">🤖</div>
+        <div class="agent-name">Khalid</div>
+        <div class="agent-title">AI Visa Expert · HAJonSoft Eagle<br/>خالد — خبير تأشيرات ذكي</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Services ────────────────────────────────────────── -->
+  <section id="services" class="section" aria-labelledby="services-title">
+    <div class="container">
+      <div class="badge">Our Services</div>
+      <h2 class="section-title" id="services-title">Every Visa. Every Season.</h2>
+      <p class="section-subtitle">
+        We hold contracts to process Hajj, Umrah, and Visit visas all year round.
+        Short deadline? Large group? We've done it before — at scale.
+      </p>
+      <div class="services-grid reveal">
+
+        <div class="service-card">
+          <div class="service-card__header service-card__header--hajj">
+            <div class="service-card__icon">🕋</div>
+            <div>
+              <div class="service-card__name">Hajj Visa</div>
+              <div class="service-card__tagline">تأشيرة الحج</div>
+            </div>
+          </div>
+          <div class="service-card__body">
+            <p>
+              The Hajj season demands speed and precision. Khalid specializes in high-volume
+              Hajj visa submissions within the shortest processing windows —
+              no group is too large, no deadline too tight.
+            </p>
+            <ul class="service-feature-list" role="list">
+              <li>Bulk group applications</li>
+              <li>NUSUK &amp; MOFA integration</li>
+              <li>Priority seasonal processing</li>
+              <li>Direct visa delivery to traveler</li>
+              <li>MRZ-based auto data extraction</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="service-card">
+          <div class="service-card__header service-card__header--umrah">
+            <div class="service-card__icon">🌙</div>
+            <div>
+              <div class="service-card__name">Umrah Visa</div>
+              <div class="service-card__tagline">تأشيرة العمرة</div>
+            </div>
+          </div>
+          <div class="service-card__body">
+            <p>
+              Available all year under our standing contracts.
+              Whether it's a family of four or a tour group of four hundred,
+              Khalid processes every Umrah application with the same care and speed.
+            </p>
+            <ul class="service-feature-list" role="list">
+              <li>Year-round processing</li>
+              <li>Individual &amp; group packages</li>
+              <li>Instant status notifications</li>
+              <li>Email delivery to travelers</li>
+              <li>Multi-nationality support (150+ countries)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="service-card">
+          <div class="service-card__header service-card__header--visit">
+            <div class="service-card__icon">✈️</div>
+            <div>
+              <div class="service-card__name">Visit Visa</div>
+              <div class="service-card__tagline">تأشيرة الزيارة</div>
+            </div>
+          </div>
+          <div class="service-card__body">
+            <p>
+              Saudi Visit visas processed swiftly under our official agency contracts.
+              Business travel, family visits, or tourist exploration —
+              Khalid handles the paperwork while you focus on the journey.
+            </p>
+            <ul class="service-feature-list" role="list">
+              <li>Business &amp; tourist visit visas</li>
+              <li>Family reunification support</li>
+              <li>Official agency contracts</li>
+              <li>Transparent fee structure</li>
+              <li>Secure document handling</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Agency / Visa Proxy ─────────────────────────────── -->
+  <section id="agency" class="section agency-section" aria-labelledby="agency-title">
+    <div class="container">
+      <div class="agency-inner reveal">
+        <div class="agency-text">
+          <div class="badge">Full-Service Agency</div>
+          <h2 id="agency-title">
+            Just Send the Passports.<br/>We'll Send Back the Visas.
+          </h2>
+          <p>
+            HAJonSoft Eagle isn't just a system — we are your visa agency.
+            Hand us the passports and our team (human + Khalid) handles everything,
+            end to end, at a minimal charge.
+          </p>
+          <p>
+            Whether you process 10 or 10,000 pilgrims, our infrastructure scales
+            effortlessly. We are the <strong>only</strong> platform that combines
+            AI speed with human accountability.
+          </p>
+          <ul class="agency-checklist" role="list">
+            <li><span>✓</span> Upload passport scans via secure portal</li>
+            <li><span>✓</span> Khalid submits to official Saudi systems</li>
+            <li><span>✓</span> Human team reviews and approves</li>
+            <li><span>✓</span> Visa emailed directly to the traveler</li>
+            <li><span>✓</span> Full audit trail and status tracking</li>
+            <li><span>✓</span> Minimal fee — no hidden charges</li>
+          </ul>
+          <a href="#get-started" class="btn btn--green">Become an Agency Partner</a>
+        </div>
+        <div class="agency-visual">
+          <div class="upload-demo">
+            <div class="upload-demo__icon">🛂</div>
+            <div class="upload-demo__text">Passport Received</div>
+            <div class="upload-demo__sub">MRZ data extracted automatically</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="upload-demo" style="border-style: solid; border-color: rgba(200,166,0,.6);">
+            <div class="upload-demo__icon">🤖</div>
+            <div class="upload-demo__text">Khalid Is Processing</div>
+            <div class="upload-demo__sub">Submitting to NUSUK · Checking status · Following up</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="download-demo">
+            <div class="download-demo__icon">📧</div>
+            <div>
+              <div class="download-demo__label">Visa Delivered</div>
+              <div class="download-demo__name">pilgrim@example.com</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Why Choose Us ───────────────────────────────────── -->
+  <section class="section" aria-labelledby="why-title">
+    <div class="container">
+      <div class="badge">Why Eagle</div>
+      <h2 class="section-title" id="why-title">The Only System Backed by Humans</h2>
+      <p class="section-subtitle">
+        Every other visa tool is just software. Eagle is the only platform where
+        every agent is a real, accountable professional — and every application is tracked to completion.
+      </p>
+      <div class="why-grid reveal">
+        <div class="why-card">
+          <div class="why-card__icon">🌍</div>
+          <h3>Global Scale</h3>
+          <p>Process millions of visas per season without breaking a sweat — built for the world's largest pilgrimages.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-card__icon">🔒</div>
+          <h3>Secure &amp; Compliant</h3>
+          <p>All data is handled under strict security protocols. Your pilgrims' information is safe with us.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-card__icon">⚡</div>
+          <h3>Unmatched Speed</h3>
+          <p>From passport upload to visa in hand — average turnaround under five minutes, even during peak Hajj season.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-card__icon">🤝</div>
+          <h3>Human Accountability</h3>
+          <p>Unlike pure AI tools, every Khalid agent is monitored by a real expert who takes responsibility for your visa.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-card__icon">📋</div>
+          <h3>Official Contracts</h3>
+          <p>We hold official processing agreements for Hajj, Umrah, and Visit visas — not just an unofficial workaround.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-card__icon">💰</div>
+          <h3>Minimal Charge</h3>
+          <p>Transparent, affordable pricing. No surprise fees. Pay only for what you process, at any scale.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Testimonials ────────────────────────────────────── -->
+  <section class="section section--alt" aria-labelledby="testimonials-title">
+    <div class="container">
+      <div class="badge">Trusted by Agencies</div>
+      <h2 class="section-title" id="testimonials-title">What Our Partners Say</h2>
+      <p class="section-subtitle">
+        Tour operators, travel agencies, and pilgrimage organizers across the world
+        trust Eagle to handle their most critical visa processing needs.
+      </p>
+      <div class="testimonials-grid reveal">
+        <div class="testimonial-card">
+          <div class="stars">★★★★★</div>
+          <p class="testimonial-card__quote">
+            "We processed 3,200 Hajj visas in a single week with Khalid.
+            What used to take our team a month now takes days — and the accuracy is flawless."
+          </p>
+          <div class="testimonial-card__author">
+            <div class="testimonial-card__avatar">👨‍💼</div>
+            <div>
+              <div class="testimonial-card__name">Ahmed Al-Rashidi</div>
+              <div class="testimonial-card__role">Director, Al-Noor Travel Agency</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="stars">★★★★★</div>
+          <p class="testimonial-card__quote">
+            "The fact that there are real humans behind Khalid gives us complete confidence.
+            When anything unusual comes up, the agent asks — just like a real employee would."
+          </p>
+          <div class="testimonial-card__author">
+            <div class="testimonial-card__avatar">👩‍💼</div>
+            <div>
+              <div class="testimonial-card__name">Fatima Hassan</div>
+              <div class="testimonial-card__role">Operations Manager, Salam Travels</div>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="stars">★★★★★</div>
+          <p class="testimonial-card__quote">
+            "Eagle is the de facto standard for anyone doing Hajj visas seriously.
+            I can't imagine going back to manual submission after using this."
+          </p>
+          <div class="testimonial-card__author">
+            <div class="testimonial-card__avatar">👨‍✈️</div>
+            <div>
+              <div class="testimonial-card__name">Khalid Bin Saud</div>
+              <div class="testimonial-card__role">CEO, Madinah Pilgrim Services</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── CTA Section ─────────────────────────────────────── -->
+  <section id="get-started" class="cta-section" aria-labelledby="cta-title">
+    <h2 id="cta-title">
+      Ready to Process Visas<br/>
+      at <em>Lightning Speed?</em>
+    </h2>
+    <p>
+      Join thousands of travel agencies and pilgrimage operators who trust
+      HAJonSoft Eagle to handle their Hajj and Umrah visa processing.
+      Khalid is ready to start working for you today.
+    </p>
+    <div class="cta-actions">
+      <a href="mailto:support@hajonsoft.com?subject=Eagle%20Visa%20Processing%20Enquiry" class="btn btn--primary">
+        Send Us Your Passports
+      </a>
+      <a href="https://hajonsoft.on.spiceworks.com/portal" class="btn btn--secondary" target="_blank" rel="noopener">
+        Contact Our Team
+      </a>
+    </div>
+    <p class="cta-contact">
+      Questions? Email us at
+      <a href="mailto:support@hajonsoft.com">support@hajonsoft.com</a>
+      — Khalid (or a human) will respond within minutes.
+    </p>
+  </section>
+
+  <!-- ── Footer ──────────────────────────────────────────── -->
+  <footer class="footer" role="contentinfo">
+    <div class="footer__inner">
+      <div class="footer-brand">
+        <div class="footer-brand__logo">
+          <span style="font-size:1.6rem">🦅</span>
+          <span class="footer-brand__name">HAJonSoft Eagle</span>
+        </div>
+        <p>
+          The world's most trusted Hajj and Umrah visa processing platform.
+          AI-powered. Human-backed. Built for the scale of the sacred journey.
+        </p>
+        <p style="margin-top:12px;font-size:.8rem;color:rgba(255,255,255,.4);">حج أونسوفت النسر</p>
+      </div>
+      <div class="footer__col">
+        <h4>Services</h4>
+        <a href="#services">Hajj Visa</a>
+        <a href="#services">Umrah Visa</a>
+        <a href="#services">Visit Visa</a>
+        <a href="#agency">Agency / Proxy</a>
+      </div>
+      <div class="footer__col">
+        <h4>Platform</h4>
+        <a href="#how-it-works">How It Works</a>
+        <a href="#khalid">Meet Khalid</a>
+        <a href="#why-title">Why Eagle</a>
+        <a href="https://www.npmjs.com/package/hajonsoft-eagle" target="_blank" rel="noopener">NPM Package</a>
+      </div>
+      <div class="footer__col">
+        <h4>Contact</h4>
+        <a href="mailto:support@hajonsoft.com">support@hajonsoft.com</a>
+        <a href="https://hajonsoft.on.spiceworks.com/portal" target="_blank" rel="noopener">Support Portal</a>
+        <a href="https://github.com/hajonsoft/hajonsoft-eagle" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <p class="footer__copy">© 2025 HAJonSoft. All rights reserved.</p>
+      <div class="footer__badges">
+        <span class="footer__badge">NUSUK Integrated</span>
+        <span class="footer__badge">MOFA Compatible</span>
+        <span class="footer__badge">Ehaj Certified</span>
+        <span class="footer__badge">ISO Compliant</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ── JavaScript ─────────────────────────────────────── -->
+  <script>
+    /* ── Carousel ── */
+    (function () {
+      const slides    = document.getElementById('carousel-slides');
+      const dots      = Array.from(document.querySelectorAll('.carousel__dot'));
+      const prev      = document.getElementById('carousel-prev');
+      const next      = document.getElementById('carousel-next');
+      let current     = 0;
+      const total     = dots.length;
+      let autoTimer;
+
+      function goTo(index) {
+        current = (index + total) % total;
+        slides.style.transform = `translateX(-${current * 100}%)`;
+        dots.forEach((d, i) => {
+          d.classList.toggle('active', i === current);
+          d.setAttribute('aria-selected', i === current ? 'true' : 'false');
+        });
+      }
+
+      function startAuto() {
+        clearInterval(autoTimer);
+        autoTimer = setInterval(() => goTo(current + 1), 5500);
+      }
+
+      prev.addEventListener('click', () => { goTo(current - 1); startAuto(); });
+      next.addEventListener('click', () => { goTo(current + 1); startAuto(); });
+      dots.forEach((d, i) => d.addEventListener('click', () => { goTo(i); startAuto(); }));
+
+      /* Keyboard navigation */
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft')  { goTo(current - 1); startAuto(); }
+        if (e.key === 'ArrowRight') { goTo(current + 1); startAuto(); }
+      });
+
+      /* Touch/swipe */
+      let touchStartX = 0;
+      slides.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].clientX; }, { passive: true });
+      slides.addEventListener('touchend',   (e) => {
+        const diff = touchStartX - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 50) { goTo(diff > 0 ? current + 1 : current - 1); startAuto(); }
+      });
+
+      startAuto();
+    }());
+
+    /* ── Mobile nav ── */
+    (function () {
+      const btn   = document.getElementById('hamburger');
+      const links = document.getElementById('nav-links');
+      btn.addEventListener('click', () => {
+        const open = links.classList.toggle('open');
+        btn.setAttribute('aria-expanded', String(open));
+      });
+    }());
+
+    /* ── Scroll-reveal ── */
+    (function () {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+      }, { threshold: 0.15 });
+      document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+    }());
+
+    /* ── Sticky nav shadow ── */
+    (function () {
+      const nav = document.querySelector('.nav');
+      window.addEventListener('scroll', () => {
+        nav.style.boxShadow = window.scrollY > 10 ? '0 2px 20px rgba(0,0,0,.25)' : 'none';
+      }, { passive: true });
+    }());
+  </script>
+
+</body>
+</html>
